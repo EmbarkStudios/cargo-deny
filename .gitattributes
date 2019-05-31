@@ -1,1 +1,1 @@
-spdx-cache.bin.gz filter=lfs diff=lfs merge=lfs -text
+spdx-cache.bin.zstd filter=lfs diff=lfs merge=lfs -text
