@@ -192,7 +192,8 @@ fn real_main() -> Result<(), Error> {
                     ))
                     .with_confidence_threshold(licenses.confidence_threshold);
 
-            let summary = timer.start_with("gather", || gatherer.gather(&all_crates, ignored));
+            let summary =
+                timer.start_with("gather", || gatherer.gather(all_crates.as_ref(), ignored));
 
             timer.start_with("check", || {
                 licenses::check_licenses(
