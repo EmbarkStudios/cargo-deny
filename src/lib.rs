@@ -10,6 +10,20 @@ pub mod licenses;
 
 use licenses::{LicenseField, LicenseInfo};
 
+#[derive(serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LintLevel {
+    Allow,
+    Warn,
+    Deny,
+}
+
+impl Default for LintLevel {
+    fn default() -> Self {
+        LintLevel::Warn
+    }
+}
+
 #[derive(Debug)]
 pub struct CrateDetails {
     pub name: String,

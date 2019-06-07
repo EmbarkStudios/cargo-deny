@@ -1,3 +1,4 @@
+use crate::LintLevel;
 use failure::Error;
 use semver::{Version, VersionReq};
 use serde::Deserialize;
@@ -6,8 +7,8 @@ use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../spdx-cache.bin.zstd");
 
-const fn tru() -> bool {
-    true
+const fn lint_warn() -> LintLevel {
+    LintLevel::Warn
 }
 
 const fn confidence_threshold() -> f32 {
@@ -101,12 +102,12 @@ pub struct SkipCrate {
 pub struct Config {
     /// If true, will cause failures if the license is not specified
     /// for a crate
-    #[serde(default = "tru")]
-    pub deny_unlicensed: bool,
+    #[serde(default = "lint_warn")]
+    pub unlicensed: LintLevel,
     /// If true, will cause failures if some kind of license is specified
     /// but it is not known, ie, is not an SDPX identifier
-    #[serde(default = "tru")]
-    pub deny_unknown: bool,
+    #[serde(default = "lint_warn")]
+    pub unknown: LintLevel,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     #[serde(default = "confidence_threshold")]
@@ -728,21 +729,17 @@ pub fn check_licenses(log: slog::Logger, summary: Summary<'_>, cfg: &Config) -> 
                     }
                 }
                 Note::Unlicensed => {
-                    if cfg.deny_unlicensed {
-                        error!(
-                            log,
-                            "could not find any license information";
-                            "crate" => crate_note,
-                        );
-                        errors += 1;
-                    } else {
-                        warn!(
-                            log,
-                            "could not find any license info for crate";
-                            "crate" => crate_note,
-                        );
-                        warnings += 1;
-                    }
+                    match cfg.unlicensed {
+                        LintLevel::Allow => continue,
+                        LintLevel::Warn => {
+                            warnings += 1;
+                            warn!(log, "could not find any license information"; "crate" => crate_note);
+                        }
+                        LintLevel::Deny => {
+                            errors += 1;
+                            error!(log, "could not find any license information"; "crate" => crate_note);
+                        }
+                    };
                 }
                 Note::Exception(e) => {
                     if binary_search(&cfg.deny, *e).is_ok() {
@@ -764,17 +761,14 @@ pub fn check_licenses(log: slog::Logger, summary: Summary<'_>, cfg: &Config) -> 
                     }
                 }
                 Note::Unknown { name, source } => {
-                    if binary_search(&cfg.allow, name).is_err() {
-                        if cfg.deny_unknown {
-                            error!(
-                                log,
-                                "detected an unknown license";
-                                "crate" => crate_note,
-                                "license" => name,
-                                "src" => source,
-                            );
-                            errors += 1;
-                        } else {
+                    if binary_search(&cfg.allow, name).is_ok() {
+                        continue;
+                    }
+
+                    match cfg.unknown {
+                        LintLevel::Allow => continue,
+                        LintLevel::Warn => {
+                            warnings += 1;
                             warn!(
                                 log,
                                 "detected an unknown license";
@@ -782,9 +776,18 @@ pub fn check_licenses(log: slog::Logger, summary: Summary<'_>, cfg: &Config) -> 
                                 "license" => name,
                                 "src" => source,
                             );
-                            warnings += 1;
                         }
-                    }
+                        LintLevel::Deny => {
+                            errors += 1;
+                            error!(
+                                log,
+                                "detected an unknown license";
+                                "crate" => crate_note,
+                                "license" => name,
+                                "src" => source,
+                            );
+                        }
+                    };
                 }
                 Note::LowConfidence { score, source } => {
                     error!(
