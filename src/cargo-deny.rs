@@ -41,12 +41,14 @@ struct Opts {
     /// allowed or denied. Will default to <context>/deny.toml if not specified.
     #[structopt(short = "c", long = "config", parse(from_os_str))]
     config: Option<PathBuf>,
+    #[structopt(short = "g", long = "graph", parse(from_os_str))]
+    graph: Option<PathBuf>,
 }
 
 #[derive(Deserialize)]
 struct Config {
     licenses: Option<licenses::Config>,
-    crates: Option<ban::Config>,
+    bans: Option<ban::Config>,
 }
 
 impl Config {
@@ -55,8 +57,8 @@ impl Config {
             lcfg.sort();
         }
 
-        if let Some(ccfg) = self.crates.as_mut() {
-            ccfg.sort();
+        if let Some(bcfg) = self.bans.as_mut() {
+            bcfg.sort();
         }
     }
 }
@@ -207,7 +209,43 @@ fn real_main() -> Result<(), Error> {
             })?;
         }
 
-        eprintln!("{}", Color::Green.paint("license check succeeded!"));
+    if let Some(ref bans) = cfg.bans {
+        let mut timer = slog_perf::TimeReporter::new_with_level(
+            "check-bans",
+            root_logger.clone(),
+            slog::Level::Debug,
+        );
+
+        let output_graph = args.graph.map(|pb| {
+            let output_dir = pb.join("graph_output");
+            let _ = std::fs::remove_dir_all(&output_dir);
+
+            std::fs::create_dir_all(&output_dir).unwrap();
+
+            move |dup_graph: ban::DupGraph| {
+                std::fs::write(
+                    output_dir.join(format!("{}.dot", dup_graph.duplicate)),
+                    dup_graph.graph.as_bytes(),
+                )?;
+
+                Ok(())
+            }
+        });
+
+        timer.start_with("check", || {
+            ban::check_bans(
+                root_logger.new(slog::o!("stage" => "ban_check")),
+                &all_crates,
+                bans,
+                output_graph,
+            )
+        })?;
+
+        info!(
+            root_logger,
+            "{}",
+            Color::Green.paint("ban check succeeded!")
+        );
     }
 
     Ok(())

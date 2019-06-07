@@ -2,8 +2,13 @@
 #![warn(rust_2018_idioms)]
 
 use failure::Error;
+use rayon::prelude::*;
 pub use semver::Version;
-use std::path::{Path, PathBuf};
+use std::{
+    cmp,
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 pub mod ban;
 pub mod licenses;
@@ -27,6 +32,7 @@ impl Default for LintLevel {
 #[derive(Debug)]
 pub struct CrateDetails {
     pub name: String,
+    pub id: cargo_metadata::PackageId,
     pub version: Version,
     pub authors: Vec<String>,
     pub repository: Option<String>,
@@ -34,12 +40,16 @@ pub struct CrateDetails {
     pub root: Option<PathBuf>,
     pub license: LicenseField,
     pub license_file: Option<PathBuf>,
+    pub deps: Vec<cargo_metadata::Dependency>,
 }
 
 impl Default for CrateDetails {
     fn default() -> Self {
         Self {
             name: "".to_owned(),
+            id: cargo_metadata::PackageId {
+                repr: "".to_owned(),
+            },
             version: Version::new(0, 1, 0),
             authors: Vec::new(),
             repository: None,
@@ -47,14 +57,39 @@ impl Default for CrateDetails {
             root: None,
             license: LicenseField::default(),
             license_file: None,
+            deps: Vec::new(),
         }
     }
 }
+
+impl PartialOrd for CrateDetails {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CrateDetails {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        match self.name.cmp(&other.name) {
+            cmp::Ordering::Equal => self.version.cmp(&other.version),
+            o => o,
+        }
+    }
+}
+
+impl PartialEq for CrateDetails {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.version == other.version
+    }
+}
+
+impl Eq for CrateDetails {}
 
 impl CrateDetails {
     pub fn new(package: cargo_metadata::Package) -> Self {
         Self {
             name: package.name,
+            id: package.id,
             version: package.version,
             authors: package.authors,
             repository: package.repository,
@@ -65,6 +100,11 @@ impl CrateDetails {
                 let mut mp = package.manifest_path;
                 mp.pop();
                 Some(mp)
+            },
+            deps: {
+                let mut deps = package.dependencies;
+                deps.par_sort_by(|a, b| a.name.cmp(&b.name));
+                deps
             },
         }
     }
@@ -123,7 +163,29 @@ fn find_license_files(dir: Option<&PathBuf>) -> Box<dyn Iterator<Item = PathBuf>
     Box::new(std::iter::empty())
 }
 
-pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Vec<CrateDetails>, Error> {
+pub struct Crates {
+    pub crates: Vec<CrateDetails>,
+    pub crate_map: HashMap<cargo_metadata::PackageId, usize>,
+    pub resolved: cargo_metadata::Resolve,
+}
+
+impl Crates {
+    pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&CrateDetails> {
+        self.crate_map.get(id).map(|i| &self.crates[*i])
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &CrateDetails> {
+        self.crates.iter()
+    }
+}
+
+impl AsRef<[CrateDetails]> for Crates {
+    fn as_ref(&self) -> &[CrateDetails] {
+        &self.crates[..]
+    }
+}
+
+pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Crates, Error> {
     let cargo_toml = root.as_ref().join("Cargo.toml");
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(cargo_toml)
@@ -131,13 +193,33 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Vec<CrateDetails>, Erro
         .exec()
         .map_err(|e| failure::format_err!("failed to fetch metadata: {}", e))?;
 
-    let crate_infos: Vec<_> = metadata
+    let mut crate_infos: Vec<_> = metadata
         .packages
         .into_iter()
         .map(CrateDetails::new)
         .collect();
 
-    Ok(crate_infos)
+    crate_infos.par_sort();
+
+    let map = crate_infos
+        .iter()
+        .enumerate()
+        .map(|(i, ci)| (ci.id.clone(), i))
+        .collect();
+
+    let mut resolved = metadata.resolve.unwrap();
+
+    resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
+    resolved
+        .nodes
+        .par_iter_mut()
+        .for_each(|nodes| nodes.dependencies.par_sort());
+
+    Ok(Crates {
+        crates: crate_infos,
+        crate_map: map,
+        resolved,
+    })
 }
 
 pub fn binary_search<T, Q>(s: &[T], query: &Q) -> Result<usize, usize>
