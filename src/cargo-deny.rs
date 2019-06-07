@@ -87,7 +87,7 @@ fn real_main() -> Result<(), Error> {
         .fuse(),
     };
 
-    let filter_level = match args.log_level.get_with_default(log::LevelFilter::Error) {
+    let filter_level = match args.log_level.get_with_default(log::LevelFilter::Info) {
         log::LevelFilter::Debug => slog::FilterLevel::Debug,
         log::LevelFilter::Error => slog::FilterLevel::Error,
         log::LevelFilter::Info => slog::FilterLevel::Info,
@@ -202,6 +202,13 @@ fn real_main() -> Result<(), Error> {
                 )
             })?;
         }
+
+        info!(
+            root_logger,
+            "{}",
+            Color::Green.paint("license check succeeded!")
+        );
+    }
 
     if let Some(ref bans) = cfg.bans {
         let mut timer = slog_perf::TimeReporter::new_with_level(

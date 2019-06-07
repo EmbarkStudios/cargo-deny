@@ -3,7 +3,7 @@ use failure::Error;
 use rayon::prelude::*;
 use semver::{Version, VersionReq};
 use serde::Deserialize;
-use slog::{debug, error, info, trace, warn};
+use slog::{debug, error, trace, warn};
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../spdx-cache.bin.zstd");
@@ -692,7 +692,7 @@ pub fn check_licenses(log: slog::Logger, summary: Summary<'_>, cfg: &Config) -> 
                 });
 
                 if !mismatch {
-                    info!(
+                    debug!(
                         log,
                         "skipping crate";
                         "crate" => crate_note,
