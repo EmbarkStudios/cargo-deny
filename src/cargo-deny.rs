@@ -144,8 +144,8 @@ fn real_main() -> Result<(), Error> {
         cfg
     };
 
-    let (all_crates, store) = crossbeam::scope(|s| {
-        let all_crates = s.spawn(|_| {
+    let (all_crates, store) = rayon::join(
+        || {
             let mut timer = slog_perf::TimeReporter::new_with_level(
                 "read-crates",
                 root_logger.clone(),
@@ -155,31 +155,25 @@ fn real_main() -> Result<(), Error> {
             timer.start_with("read", || {
                 cargo_deny::get_all_crates(&context_dir).expect("failed to acquire crates")
             })
-        });
-
-        let store = if cfg.licenses.is_some() {
-            let store = s.spawn(|_| {
+        },
+        || {
+            if cfg.licenses.is_some() {
                 let mut timer = slog_perf::TimeReporter::new_with_level(
                     "load-license-store",
                     root_logger.clone(),
                     slog::Level::Debug,
                 );
 
-                timer.start_with("load", || {
+                Some(timer.start_with("load", || {
                     licenses::LicenseStore::from_cache().expect("failed to load license store")
-                })
-            });
+                }))
+            } else {
+                None
+            }
+        },
+    );
 
-            Some(store.join().unwrap())
-        } else {
-            None
-        };
-
-        (all_crates.join().unwrap(), store)
-    })
-    .map_err(|e| format_err!("{:?}", e))?;
-
-    info!(root_logger, "checking crates"; "count" => all_crates.len());
+    info!(root_logger, "checking crates"; "count" => all_crates.as_ref().len());
 
     if let Some(ref mut licenses) = cfg.licenses {
         let ignored = licenses.get_ignore_licenses();

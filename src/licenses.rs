@@ -1,5 +1,6 @@
 use crate::LintLevel;
 use failure::Error;
+use rayon::prelude::*;
 use semver::{Version, VersionReq};
 use serde::Deserialize;
 use slog::{debug, error, info, trace, warn};
@@ -139,9 +140,9 @@ pub struct Ignored {
 
 impl Config {
     pub fn sort(&mut self) {
-        self.deny.sort();
-        self.allow.sort();
-        self.skip.sort_by(|a, b| match a.name.cmp(&b.name) {
+        self.deny.par_sort();
+        self.allow.par_sort();
+        self.skip.par_sort_by(|a, b| match a.name.cmp(&b.name) {
             std::cmp::Ordering::Equal => a.version.cmp(&b.version),
             o => o,
         });
