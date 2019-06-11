@@ -114,3 +114,8 @@ skip = [
     { name = "winapi", version = "=0.2.8" },
 ]
 ```
+
+## Development
+**NOTE:** You will need to enable [git-lfs](https://git-lfs.github.com/) when cloning this repo as we
+store a [compressed binary](/spdx-cache.bin.zstd) of all of the valid SPDX license texts and embed it in
+binary when building.
