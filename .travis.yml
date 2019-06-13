@@ -1,0 +1,30 @@
+language: rust
+cache:
+  directories:
+  - $HOME/.cargo
+
+rust:
+- stable
+- beta
+- nightly
+matrix:
+  allow_failures:
+  - rust: nightly
+  fast_finish: true
+  include:
+  - os: linux
+  - os: windows
+  - os: osx
+
+before_script:
+- rustup component add rustfmt clippy
+
+script:
+# Ensure everything has been rustfmt'ed
+- cargo fmt -- --check
+# Because rust isn't brutal enough itself
+- cargo clippy -- -D warnings
+# Build everything in a separate step to make a
+# clear distinction between building and testing
+- cargo test --no-run
+- cargo test --no-fail-fast
