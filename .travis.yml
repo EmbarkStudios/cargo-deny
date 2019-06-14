@@ -19,6 +19,10 @@ matrix:
 before_script:
 - rustup component add rustfmt clippy
 
+env:
+  global:
+  - RUST_BACKTRACE=1
+
 script:
 # Ensure everything has been rustfmt'ed
 - cargo fmt -- --check
