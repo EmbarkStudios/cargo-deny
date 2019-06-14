@@ -6,7 +6,7 @@ use serde::Deserialize;
 use slog::{debug, error, trace, warn};
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
-const LICENSE_CACHE: &[u8] = include_bytes!("../spdx-cache.bin.zstd");
+const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.zstd");
 
 const fn lint_warn() -> LintLevel {
     LintLevel::Warn
