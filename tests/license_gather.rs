@@ -437,17 +437,18 @@ fn ignores_implicit() {
 
 #[test]
 fn normalizes_line_endings() {
-    let fs =
-        licenses::get_file_source(std::path::PathBuf::from("./tests/LICENSE-SUMMARY")).unwrap();
+    let fs = licenses::get_file_source(std::path::PathBuf::from("./tests/LICENSE-RING")).unwrap();
 
     let expected = {
-        let text = std::fs::read_to_string("./tests/LICENSE-SUMMARY").unwrap();
+        let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();
         text.replace("\r\n", "\n")
     };
 
     if fs.0 != expected {
-        let diff = difference::Changeset::new(&expected, &fs.0, "");
+        eprintln!("hash: 0xbd0eed23 != {:#x}", fs.1.hash);
 
-        assert!(false, "{}", diff);
+        for (i, (a, b)) in fs.0.chars().zip(expected.chars()).enumerate() {
+            assert_eq!(a, b, "character @ {}", i);
+        }
     }
 }

@@ -235,7 +235,7 @@ pub fn get_file_source(path: PathBuf) -> Result<(String, FileSource), (PathBuf, 
                 break;
             }
 
-            let keep = std::cmp::max(s.trim_end().len(), min);
+            let keep = std::cmp::max(s.trim_end_matches(|p| p == '\r' || p == '\n').len(), min);
             s.truncate(keep);
             s.push('\n');
 
