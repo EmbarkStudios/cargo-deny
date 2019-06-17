@@ -241,11 +241,11 @@ fn analyzes_inferred_license_file() {
 fn analyzes_multiple_inferred_license_files() {
     let td = TempDir::new().unwrap();
 
-    let mit_path = td.path().join("LICENSE-MIT");
-    fs::copy("./LICENSE-MIT", &mit_path).expect("failed to copy license to tempdir");
-
     let apache_path = td.path().join("LICENSE-APACHE");
     fs::copy("./LICENSE-APACHE", &apache_path).expect("failed to copy license to tempdir");
+
+    let mit_path = td.path().join("LICENSE-MIT");
+    fs::copy("./LICENSE-MIT", &mit_path).expect("failed to copy license to tempdir");
 
     let crates = vec![CrateDetails {
         root: Some(td.path().to_owned()),
@@ -271,7 +271,7 @@ fn analyzes_multiple_inferred_license_files() {
                         path: mit_path,
                         hash: 0xa502ee8a,
                     }),
-                }
+                },
             ],
         }],
         Gatherer::default().with_store(STORE.clone())
@@ -282,11 +282,11 @@ fn analyzes_multiple_inferred_license_files() {
 fn analyzes_explicit_and_inferred_license_files() {
     let td = TempDir::new().unwrap();
 
-    let mit_path = td.path().join("LICENSE-MIT");
-    fs::copy("./LICENSE-MIT", &mit_path).expect("failed to copy license to tempdir");
-
     let apache_path = td.path().join("LICENSE-APACHE");
     fs::copy("./LICENSE-APACHE", &apache_path).expect("failed to copy license to tempdir");
+
+    let mit_path = td.path().join("LICENSE-MIT");
+    fs::copy("./LICENSE-MIT", &mit_path).expect("failed to copy license to tempdir");
 
     let crates = vec![CrateDetails {
         license_file: Some(mit_path.clone()),

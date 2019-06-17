@@ -120,6 +120,7 @@ impl CrateDetails {
 
         self.license.iter().map(LicenseInfo::Metadata).chain(
             find_license_files(root)
+                .into_iter()
                 .filter_map(move |found_path| {
                     // If the license is specified in Cargo.toml, just
                     // skip it to differentiate between what *might* be
@@ -140,27 +141,29 @@ impl CrateDetails {
     }
 }
 
-fn find_license_files(dir: Option<&PathBuf>) -> Box<dyn Iterator<Item = PathBuf>> {
+fn find_license_files(dir: Option<&PathBuf>) -> Vec<PathBuf> {
     if let Some(dir) = dir {
         if let Ok(entries) = std::fs::read_dir(dir) {
-            return Box::new(entries.filter_map(|e| {
-                e.ok().and_then(|e| {
-                    let p = e.path();
-                    if p.is_file()
-                        && p.file_name()
-                            .and_then(|name| name.to_str().map(|name| name.starts_with("LICENSE")))
-                            == Some(true)
-                    {
-                        Some(p)
-                    } else {
-                        None
-                    }
+            let mut license_files: Vec<_> = entries
+                .filter_map(|e| {
+                    e.ok().and_then(|e| {
+                        let p = e.path();
+                        let file_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                        if p.is_file() && file_name.starts_with("LICENSE") {
+                            Some(p)
+                        } else {
+                            None
+                        }
+                    })
                 })
-            }));
+                .collect();
+
+            license_files.sort();
+            return license_files;
         }
     }
 
-    Box::new(std::iter::empty())
+    Vec::new()
 }
 
 pub struct Crates {

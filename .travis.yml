@@ -1,10 +1,5 @@
 language: rust
 
-addons:
-  apt:
-    packages:
-    - expect-dev # for unbuffer
-
 rust:
 - stable
 - beta
@@ -33,4 +28,4 @@ script:
 # Build everything in a separate step to make a
 # clear distinction between building and testing
 - cargo test --no-run
-- unbuffer cargo test --no-fail-fast
+- cargo test --no-fail-fast
