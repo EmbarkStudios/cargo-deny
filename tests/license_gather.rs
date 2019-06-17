@@ -434,3 +434,20 @@ fn ignores_implicit() {
         cfg.get_ignore_licenses()
     );
 }
+
+#[test]
+fn normalizes_line_endings() {
+    let fs =
+        licenses::get_file_source(std::path::PathBuf::from("./tests/LICENSE-SUMMARY")).unwrap();
+
+    let expected = {
+        let text = std::fs::read_to_string("./tests/LICENSE-SUMMARY").unwrap();
+        text.replace("\r\n", "\n")
+    };
+
+    if fs.0 != expected {
+        let diff = difference::Changeset::new(&expected, &fs.0, "");
+
+        assert!(false, "{}", diff);
+    }
+}

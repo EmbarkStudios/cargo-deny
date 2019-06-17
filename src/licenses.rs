@@ -214,12 +214,35 @@ impl slog::Value for FileSource {
     }
 }
 
-fn get_file_source(path: PathBuf) -> Result<(String, FileSource), (PathBuf, std::io::Error)> {
-    let content = match std::fs::read_to_string(&path) {
-        Ok(c) => c,
-        Err(e) => {
-            return Err((path, e));
+pub fn get_file_source(path: PathBuf) -> Result<(String, FileSource), (PathBuf, std::io::Error)> {
+    use std::io::BufRead;
+
+    // Normalize on plain newlines to handle terrible Windows conventions
+    let content = {
+        let file = match std::fs::File::open(&path) {
+            Ok(f) => f,
+            Err(e) => return Err((path, e)),
+        };
+
+        let mut s =
+            String::with_capacity(file.metadata().map(|m| m.len() as usize + 1).unwrap_or(0));
+
+        let mut br = std::io::BufReader::new(file);
+        let mut min = 0;
+
+        while let Ok(read) = br.read_line(&mut s) {
+            if read == 0 {
+                break;
+            }
+
+            let keep = std::cmp::max(s.trim_end().len(), min);
+            s.truncate(keep);
+            s.push('\n');
+
+            min = keep + 1;
         }
+
+        s
     };
 
     let fs = FileSource {
