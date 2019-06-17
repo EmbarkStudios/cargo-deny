@@ -185,7 +185,7 @@ fn append_dependency_chain<'a>(
             })
             .collect();
 
-        for parent in parents.into_iter().map(|p| Node::from(p)) {
+        for parent in parents.into_iter().map(Node::from) {
             match node_map.get(&parent) {
                 Some(id) => {
                     if !graph.contains_edge(*id, node.1) {
