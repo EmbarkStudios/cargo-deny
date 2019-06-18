@@ -443,7 +443,7 @@ where
 
     for (i, crat) in crates.iter().enumerate() {
         if let Ok((index, skip)) = binary_search(&cfg.skip, crat) {
-            debug!(log, "skipping crate"; "crate" => format!("{}@{}", crat.name, crat.version), "skip" => format!("{} = {}", skip.name, skip.version));
+            debug!(log, "skipping crate"; "crate" => format!("{}@{}", crat.name, crat.version), "version_req" => format!("{}", skip.version));
             skip_hit[index] += 1;
             continue;
         }
