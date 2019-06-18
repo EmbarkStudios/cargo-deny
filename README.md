@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
-[![Docs](https://docs.rs/cargo-deny/badge.svg/)](https://docs.rs/cargo-deny)
+[![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 
 # cargo-deny
 
