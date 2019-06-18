@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 
 [[bin]]
 name = "cargo-deny"
-path = "src/cargo-deny.rs"
+path = "src/cargo-deny/main.rs"
 
 [dependencies]
 ansi_term = "0.11.0"
