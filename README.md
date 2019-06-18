@@ -6,8 +6,11 @@
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 available that can be easily added to your project incredibly easily via `cargo`. This is great!
 However, the larger the project is and the more dependencies you have, the harder it is to keep
-track of certain things, especially as a project evolves over time, which `cargo-deny` tries to help
+track of certain things, especially as a project evolves over time, which is `cargo-deny` tries to help
 you with.
+
+* [Licenses](#licenses) - Configure which licenses are allowed
+* [Bans](#crate-bans) - Configure whether certain crates are allowed to be in your dependency graph
 
 ## Licenses
 
@@ -24,7 +27,7 @@ So `cargo-deny` allows you to ensure that all of your dependencies meet the requ
 1. Skip checking certain crates as long as they still have the same license information.
 1. Ignore specific `LICENSE*` files. `cargo-deny` uses the [askalono](https://github.com/amzn/askalono) crate
 to parse and score license text as being a certain license, but some license text can be modified to such
-an extent as it makes it difficult to automatically determinte it.
+an extent that it makes it difficult to automatically determine it.
 
 ### Example config
 
@@ -84,7 +87,7 @@ times
 
 1. Dis/allow certain crates in your dependency graph.
 1. What happens when multiple versions of a crate are used? `allow` / `deny` / `warn`
-1. Skip certain verions of crates, sometimes you just need to wait for a crate
+1. Skip certain versions of crates, sometimes you just need to wait for a crate
 to get a new release, or sometimes a little duplication is ok and not worth the effort
 to "fix", but you are at least aware of it and allowing it, versus suffering from
 unnecessarily longer compile times.
@@ -135,4 +138,4 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
-conditions.  
+conditions.
