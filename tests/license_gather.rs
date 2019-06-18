@@ -444,8 +444,10 @@ fn normalizes_line_endings() {
         text.replace("\r\n", "\n")
     };
 
-    if fs.0 != expected {
-        eprintln!("hash: 0xbd0eed23 != {:#x}", fs.1.hash);
+    let expected_hash = 0xbd0eed23;
+
+    if expected_hash != fs.1.hash {
+        eprintln!("hash: {:#x} != {:#x}", expected_hash, fs.1.hash);
 
         for (i, (a, b)) in fs.0.chars().zip(expected.chars()).enumerate() {
             assert_eq!(a, b, "character @ {}", i);
