@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
 [![Docs](https://docs.rs/cargo-deny/badge.svg/)](https://docs.rs/cargo-deny)
 
-
 # cargo-deny
 
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
@@ -11,6 +10,7 @@ track of certain things, especially as a project evolves over time, which `cargo
 you with.
 
 ## Licenses
+
 One important aspect that one must always keep in mind when using code from other people is what the licensing
 of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
 ecosystem tend to follow the example set forth by Rust itself, namely dual-license MIT and Apache 2.0, but of
@@ -27,6 +27,7 @@ to parse and score license text as being a certain license, but some license tex
 an extent as it makes it difficult to automatically determinte it.
 
 ### Example config
+
 ```toml
 [licenses]
 unlicensed = "deny"
@@ -70,6 +71,7 @@ license_files = [
 ```
 
 ## Crate bans
+
 Sometimes, certain crates just don't fit in your project, so you have to remove them, but in
 some cases, they can sneak back in if you aren't careful, usually through accidentally using
 them via the default features of another crate. Another thing that is part of the tradeoff of
