@@ -12,16 +12,17 @@ path = "src/cargo-deny.rs"
 
 [dependencies]
 ansi_term = "0.11.0"
+atty = "0.2.11"
 cargo_metadata = "0.8.0"
 erased-serde = "0.3.9"
 failure = "0.1.5"
 log = "0.4.6"
 petgraph = "0.4.13"
-rayon = "1.0.3"
+rayon = "1.1.0"
 regex = "1.1.7"
 semver = "0.9.0"
 serde = { version = "1.0.92", features = ["derive"] }
-serde_yaml = "0.8.9"
+serde_json = "1.0.39"
 slog = { version = "2.4.1", features = ["max_level_trace", "release_max_level_debug"] }
 slog-async = "2.3.0"
 slog_derive = "0.1.1"
