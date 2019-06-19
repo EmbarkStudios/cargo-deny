@@ -88,13 +88,13 @@ fn binary_search<'a>(
 ) -> Result<(usize, &'a CrateId), usize> {
     arr.binary_search_by(|i| i.name.cmp(&details.name))
         .and_then(|i| {
-            for (j, crat) in arr[i..].iter().enumerate() {
-                if crat.name != details.name {
+            for (j, crate_) in arr[i..].iter().enumerate() {
+                if crate_.name != details.name {
                     break;
                 }
 
-                if crat.version.matches(&details.version) {
-                    return Ok((i + j, crat));
+                if crate_.version.matches(&details.version) {
+                    return Ok((i + j, crate_));
                 }
             }
 
@@ -441,14 +441,14 @@ where
     // so that people can clean up their config files
     let mut skip_hit = vec![0; cfg.skip.len()];
 
-    for (i, crat) in crates.iter().enumerate() {
-        if let Ok((index, skip)) = binary_search(&cfg.skip, crat) {
-            debug!(log, "skipping crate"; "crate" => format!("{}@{}", crat.name, crat.version), "version_req" => format!("{}", skip.version));
+    for (i, crate_) in crates.iter().enumerate() {
+        if let Ok((index, skip)) = binary_search(&cfg.skip, crate_) {
+            debug!(log, "skipping crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "version_req" => format!("{}", skip.version));
             skip_hit[index] += 1;
             continue;
         }
 
-        if multi_detector.0 == &crat.name {
+        if multi_detector.0 == &crate_.name {
             multi_detector.1 += 1;
         } else {
             if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
@@ -605,15 +605,15 @@ where
                 }
             }
 
-            multi_detector.0 = &crat.name;
+            multi_detector.0 = &crate_.name;
             multi_detector.1 = 1;
             multi_detector.2 = i;
         }
 
-        if let Ok((_, ban)) = binary_search(&cfg.deny, crat) {
-            error!(log, "detected a banned crate"; "crate" => format!("{}@{}", crat.name, crat.version), "ban" => format!("{} = {}", ban.name, ban.version))
-        } else if !cfg.allow.is_empty() && binary_search(&cfg.allow, crat).is_ok() {
-            error!(log, "detected a crate not explicitly allowed"; "crate" => format!("{}@{}", crat.name, crat.version));
+        if let Ok((_, ban)) = binary_search(&cfg.deny, crate_) {
+            error!(log, "detected a banned crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "ban" => format!("{} = {}", ban.name, ban.version))
+        } else if !cfg.allow.is_empty() && binary_search(&cfg.allow, crate_).is_ok() {
+            error!(log, "detected a crate not explicitly allowed"; "crate" => format!("{}@{}", crate_.name, crate_.version));
             errors += 1;
         }
     }

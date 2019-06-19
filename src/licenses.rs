@@ -480,23 +480,23 @@ impl Gatherer {
             .optimize(false)
             .max_passes(1);
 
-        for crat in crates {
+        for crate_ in crates {
             let mut checked_licenses = 0;
             let mut note = CrateNote {
-                name: &crat.name,
+                name: &crate_.name,
                 notes: Vec::new(),
-                version: crat.version.clone(),
+                version: crate_.version.clone(),
             };
 
-            let maybe_ignored = ignored.get(&crat.name).and_then(|ignored| {
+            let maybe_ignored = ignored.get(&crate_.name).and_then(|ignored| {
                 ignored
                     .iter()
-                    .find(|ic| ic.version_req.matches(&crat.version))
+                    .find(|ic| ic.version_req.matches(&crate_.version))
             });
 
-            let log = log.new(slog::o!("crate" => format!("{}@{}", crat.name, crat.version)));
+            let log = log.new(slog::o!("crate" => format!("{}@{}", crate_.name, crate_.version)));
 
-            for license in crat.licenses() {
+            for license in crate_.licenses() {
                 checked_licenses += 1;
                 match license {
                     LicenseInfo::Metadata(md) => match md {
