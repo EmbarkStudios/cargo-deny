@@ -43,7 +43,7 @@ fn handles_spdx_id_in_metadata() {
             name: "",
             version: Version::new(0, 1, 0),
             notes: vec![Note::License {
-                name: license_exprs::license_id("MIT").unwrap(),
+                name: spdx::license_id("MIT").unwrap(),
                 source: LicenseSource::Metadata,
             }]
         }]
@@ -64,11 +64,11 @@ fn handles_multiple_spdx_id_in_metadata() {
             version: Version::new(0, 1, 0),
             notes: vec![
                 Note::License {
-                    name: license_exprs::license_id("MIT").unwrap(),
+                    name: spdx::license_id("MIT").unwrap(),
                     source: LicenseSource::Metadata,
                 },
                 Note::License {
-                    name: license_exprs::license_id("Apache-2.0").unwrap(),
+                    name: spdx::license_id("Apache-2.0").unwrap(),
                     source: LicenseSource::Metadata,
                 }
             ]
@@ -90,11 +90,11 @@ fn handles_exception_in_metadata() {
             version: Version::new(0, 1, 0),
             notes: vec![
                 Note::License {
-                    name: license_exprs::license_id("MIT").unwrap(),
+                    name: spdx::license_id("MIT").unwrap(),
                     source: LicenseSource::Metadata,
                 },
                 Note::License {
-                    name: license_exprs::license_id("Apache-2.0").unwrap(),
+                    name: spdx::license_id("Apache-2.0").unwrap(),
                     source: LicenseSource::Metadata,
                 },
                 Note::Exception("LLVM-exception"),
@@ -123,7 +123,7 @@ fn handles_unknown_spdx_id_in_metadata() {
                     source: LicenseSource::Metadata,
                 },
                 Note::License {
-                    name: license_exprs::license_id("Apache-2.0").unwrap(),
+                    name: spdx::license_id("Apache-2.0").unwrap(),
                     source: LicenseSource::Metadata,
                 },
                 Note::Exception("LLVM-exception"),
@@ -197,7 +197,7 @@ fn analyzes_license_file() {
             name: "",
             version: Version::new(0, 1, 0),
             notes: vec![Note::License {
-                name: license_exprs::license_id("MIT").unwrap(),
+                name: spdx::license_id("MIT").unwrap(),
                 source: LicenseSource::Original(licenses::FileSource {
                     path: license_path,
                     hash: 0xa502ee8a,
@@ -226,7 +226,7 @@ fn analyzes_inferred_license_file() {
             name: "",
             version: Version::new(0, 1, 0),
             notes: vec![Note::License {
-                name: license_exprs::license_id("MIT").unwrap(),
+                name: spdx::license_id("MIT").unwrap(),
                 source: LicenseSource::Original(licenses::FileSource {
                     path: license_path,
                     hash: 0xa502ee8a,
@@ -259,14 +259,14 @@ fn analyzes_multiple_inferred_license_files() {
             version: Version::new(0, 1, 0),
             notes: vec![
                 Note::License {
-                    name: license_exprs::license_id("Apache-2.0").unwrap(),
+                    name: spdx::license_id("Apache-2.0").unwrap(),
                     source: LicenseSource::Original(licenses::FileSource {
                         path: apache_path,
                         hash: 0x4fccb6b7,
                     }),
                 },
                 Note::License {
-                    name: license_exprs::license_id("MIT").unwrap(),
+                    name: spdx::license_id("MIT").unwrap(),
                     source: LicenseSource::Original(licenses::FileSource {
                         path: mit_path,
                         hash: 0xa502ee8a,
@@ -301,14 +301,14 @@ fn analyzes_explicit_and_inferred_license_files() {
             version: Version::new(0, 1, 0),
             notes: vec![
                 Note::License {
-                    name: license_exprs::license_id("Apache-2.0").unwrap(),
+                    name: spdx::license_id("Apache-2.0").unwrap(),
                     source: LicenseSource::Original(licenses::FileSource {
                         path: apache_path,
                         hash: 0x4fccb6b7,
                     }),
                 },
                 Note::License {
-                    name: license_exprs::license_id("MIT").unwrap(),
+                    name: spdx::license_id("MIT").unwrap(),
                     source: LicenseSource::Original(licenses::FileSource {
                         path: mit_path,
                         hash: 0xa502ee8a,
