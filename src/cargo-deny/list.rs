@@ -15,21 +15,6 @@ arg_enum! {
     }
 }
 
-impl std::str::FromStr for ColorWhen {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let c = match s {
-            "auto" => ColorWhen::Auto,
-            "always" => ColorWhen::Always,
-            "never" => ColorWhen::Never,
-            s => failure::bail!("unknown coloring flag '{}'", s),
-        };
-
-        Ok(c)
-    }
-}
-
 #[derive(StructOpt, Debug)]
 pub struct Args {
     /// The confidence threshold required for license files
