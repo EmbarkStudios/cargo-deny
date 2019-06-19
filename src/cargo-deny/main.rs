@@ -16,8 +16,10 @@ use crate::common::MessageFormat;
 
 #[derive(StructOpt, Debug)]
 enum Command {
+    /// Outputs a listing of all licenses and the crates that use them
     #[structopt(name = "list")]
     List(list::Args),
+    /// Checks your dependency graph based on the configuration you specify
     #[structopt(name = "check")]
     Check(check::Args),
 }
@@ -48,6 +50,7 @@ Possible values:
 * trace"
     )]
     log_level: slog::FilterLevel,
+    /// The format for log messages: 'human' or 'json'
     #[structopt(long = "message-format", default_value = "human")]
     msg_format: MessageFormat,
     /// The directory used as the context for the deny, if not specified,

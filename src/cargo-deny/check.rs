@@ -34,9 +34,12 @@ pub struct Args {
     /// allowed or denied. Will default to <context>/deny.toml if not specified.
     #[structopt(short, long, parse(from_os_str))]
     config: Option<PathBuf>,
+    /// A root directory to place dotviz graphs into when duplicate crate
+    /// versions are detected. Will be <dir>/graph_output/<crate_name>.dot.
+    /// The /graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
     graph: Option<PathBuf>,
-    /// The check(s) to perform
+    /// The check(s) to perform: 'all', 'license', or 'ban'
     #[structopt(default_value = "all")]
     which: WhichCheck,
 }

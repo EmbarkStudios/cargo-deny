@@ -33,7 +33,7 @@ pub struct Args {
     /// to be positively identified
     #[structopt(short, long, default_value = "0.8")]
     threshold: f32,
-    /// The format of the output
+    /// The format of the output: 'human' or 'json'
     #[structopt(short, long, default_value = "human")]
     format: MessageFormat,
     /// Output coloring: 'auto', 'always', or 'never'
