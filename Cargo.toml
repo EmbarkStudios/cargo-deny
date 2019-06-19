@@ -35,7 +35,6 @@ slog-json = "2.3.0"
 slog-perf = "0.2.0"
 slog-term = "2.4.0"
 structopt = "0.2.16"
-structopt-flags = "0.3.2"
 toml = "0.5.1"
 twox-hash = "1.3.0"
 

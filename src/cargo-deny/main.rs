@@ -22,11 +22,32 @@ enum Command {
     Check(check::Args),
 }
 
+fn parse_level(s: &str) -> Result<slog::FilterLevel, Error> {
+    s.parse::<slog::FilterLevel>()
+        .map_err(|_| format_err!("failed to parse level '{}'", s))
+}
+
 #[derive(Debug, StructOpt)]
 struct Opts {
-    #[structopt(flatten)]
-    log_level: structopt_flags::LogLevelNoDef,
-    /// The format for log messages
+    /// The log level for messages, only log messages at or above
+    /// the level will be emitted.
+    #[structopt(
+        short = "L",
+        long = "log-level",
+        default_value = "info",
+        parse(try_from_str = "parse_level"),
+        long_help = "The log level for messages, only log messages at or above the level will be emitted.
+
+Possible values:
+* off
+* critical
+* error
+* warning
+* info
+* debug
+* trace"
+    )]
+    log_level: slog::FilterLevel,
     #[structopt(long = "message-format", default_value = "human")]
     msg_format: MessageFormat,
     /// The directory used as the context for the deny, if not specified,
@@ -39,7 +60,6 @@ struct Opts {
 
 fn real_main() -> Result<(), Error> {
     use slog::Drain;
-    use structopt_flags::GetWithDefault;
     let args = Opts::from_args();
 
     let drain = match args.msg_format {
@@ -61,14 +81,7 @@ fn real_main() -> Result<(), Error> {
         .fuse(),
     };
 
-    let filter_level = match args.log_level.get_with_default(log::LevelFilter::Info) {
-        log::LevelFilter::Debug => slog::FilterLevel::Debug,
-        log::LevelFilter::Error => slog::FilterLevel::Error,
-        log::LevelFilter::Info => slog::FilterLevel::Info,
-        log::LevelFilter::Trace => slog::FilterLevel::Trace,
-        log::LevelFilter::Warn => slog::FilterLevel::Warning,
-        log::LevelFilter::Off => slog::FilterLevel::Off,
-    };
+    let filter_level = args.log_level;
 
     let drain = drain
         .filter(move |r: &'_ slog::Record<'_>| r.level().as_usize() <= filter_level.as_usize())
