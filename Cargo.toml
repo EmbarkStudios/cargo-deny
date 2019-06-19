@@ -35,6 +35,7 @@ slog_derive = "0.1.1"
 slog-json = "2.3.0"
 slog-perf = "0.2.0"
 slog-term = "2.4.0"
+spdx = "0.1.0"
 structopt = "0.2.16"
 toml = "0.5.1"
 twox-hash = "1.3.0"
@@ -43,11 +44,6 @@ twox-hash = "1.3.0"
 version = "0.3.0"
 git = "https://github.com/EmbarkStudios/askalono.git"
 rev = "f57c60d"
-
-[dependencies.license-exprs]
-version = "1.4.0"
-git = "https://github.com/EmbarkStudios/license-exprs.git"
-rev = "83dbd00"
 
 [dev-dependencies]
 # We use this for pretty printing errors

@@ -40,11 +40,11 @@ impl LicenseField {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = LicenseFieldItem<'_>> {
-        license_exprs::iter_expr(&self.data).filter_map(|item| {
+        spdx::iter_expr(&self.data).filter_map(|item| {
             Some(match item {
-                Ok(license_exprs::LicenseExpr::License(l)) => LicenseFieldItem::License(l),
-                Ok(license_exprs::LicenseExpr::Exception(e)) => LicenseFieldItem::Exception(e),
-                Err(license_exprs::ParseError::UnknownLicenseId(id)) => {
+                Ok(spdx::LicenseExpr::License(l)) => LicenseFieldItem::License(l),
+                Ok(spdx::LicenseExpr::Exception(e)) => LicenseFieldItem::Exception(e),
+                Err(spdx::ParseError::UnknownLicenseId(id)) => {
                     LicenseFieldItem::UnknownLicense(id)
                 }
                 _ => return None,
@@ -309,7 +309,7 @@ impl From<(askalono::LicenseType, FileSource)> for LicenseSource {
 pub enum Note<'a> {
     /// A valid SPDX-identifiable license
     License {
-        name: license_exprs::LicenseId,
+        name: spdx::LicenseId,
         source: LicenseSource,
     },
     /// A license with an unknown SPDX identifier was encountered
@@ -400,8 +400,8 @@ impl<'a> Summary<'a> {
     }
 
     #[inline]
-    pub fn resolve_id(id: license_exprs::LicenseId) -> &'static str {
-        license_exprs::license_name(id)
+    pub fn resolve_id(id: spdx::LicenseId) -> &'static str {
+        spdx::license_name(id)
     }
 }
 
@@ -503,7 +503,7 @@ impl Gatherer {
                         LicenseFieldItem::License(l) => {
                             trace!(log, "found license in metadata"; "name" => l);
 
-                            note.notes.push(license_exprs::license_id(l).map_or_else(
+                            note.notes.push(spdx::license_id(l).map_or_else(
                                 || Note::Unknown {
                                     name: l.to_owned(),
                                     source: LicenseSource::Metadata,
@@ -554,7 +554,7 @@ impl Gatherer {
                                             Some(identified) => {
                                                 trace!(log, "license file identified"; "path" => fs.path.display(), "name" => identified.name);
 
-                                                match license_exprs::license_id(identified.name) {
+                                                match spdx::license_id(identified.name) {
                                                     Some(id) => Note::License {
                                                         name: id,
                                                         source: (identified.kind, fs).into(),
