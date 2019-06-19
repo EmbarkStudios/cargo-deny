@@ -1,15 +1,18 @@
 use crate::common::MessageFormat;
 use ansi_term::Color;
 use cargo_deny::licenses;
+use clap::arg_enum;
 use failure::Error;
 use slog::warn;
 use structopt::StructOpt;
 
-#[derive(Copy, Clone, Debug)]
-pub enum ColorWhen {
-    Always,
-    Never,
-    Auto,
+arg_enum! {
+    #[derive(Copy, Clone, Debug)]
+    pub enum ColorWhen {
+        Always,
+        Never,
+        Auto,
+    }
 }
 
 impl std::str::FromStr for ColorWhen {
@@ -30,14 +33,26 @@ impl std::str::FromStr for ColorWhen {
 #[derive(StructOpt, Debug)]
 pub struct Args {
     /// The confidence threshold required for license files
-    /// to be positively identified
+    /// to be positively identified: 0.0 - 1.0
     #[structopt(short, long, default_value = "0.8")]
     threshold: f32,
-    /// The format of the output: 'human' or 'json'
-    #[structopt(short, long, default_value = "human")]
+    /// The format of the output
+    #[structopt(
+        short,
+        long,
+        default_value = "human",
+        raw(
+            possible_values = "&MessageFormat::variants()",
+            case_insensitive = "true"
+        )
+    )]
     format: MessageFormat,
-    /// Output coloring: 'auto', 'always', or 'never'
-    #[structopt(long, default_value = "auto")]
+    /// Output coloring, only applies to 'human' format
+    #[structopt(
+        long,
+        default_value = "auto",
+        raw(possible_values = "&ColorWhen::variants()", case_insensitive = "true")
+    )]
     color: ColorWhen,
     /// This just determines if log messages are emitted, the log level specified
     /// at the top level still applies

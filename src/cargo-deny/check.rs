@@ -1,30 +1,18 @@
 use ansi_term::Color;
-use cargo_deny::{self, ban, licenses};
-use failure::{bail, format_err, Error};
+use cargo_deny::{ban, licenses};
+use clap::arg_enum;
+use failure::{format_err, Error};
 use serde::Deserialize;
 use slog::info;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-#[derive(StructOpt, Debug, PartialEq)]
-pub enum WhichCheck {
-    License,
-    Ban,
-    All,
-}
-
-impl std::str::FromStr for WhichCheck {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let check = match s {
-            "all" => WhichCheck::All,
-            "license" => WhichCheck::License,
-            "ban" => WhichCheck::Ban,
-            other => bail!("unknown check '{}'", other),
-        };
-
-        Ok(check)
+arg_enum! {
+    #[derive(Debug, PartialEq)]
+    pub enum WhichCheck {
+        License,
+        Ban,
+        All,
     }
 }
 
@@ -39,8 +27,11 @@ pub struct Args {
     /// The /graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
     graph: Option<PathBuf>,
-    /// The check(s) to perform: 'all', 'license', or 'ban'
-    #[structopt(default_value = "all")]
+    /// The check(s) to perform
+    #[structopt(
+        default_value = "all",
+        raw(possible_values = "&WhichCheck::variants()", case_insensitive = "true")
+    )]
     which: WhichCheck,
 }
 
