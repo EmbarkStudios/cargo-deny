@@ -39,6 +39,10 @@ pub struct Args {
     /// Output coloring: 'auto', 'always', or 'never'
     #[structopt(long, default_value = "auto")]
     color: ColorWhen,
+    /// This just determines if log messages are emitted, the log level specified
+    /// at the top level still applies
+    #[structopt(short, long)]
+    verbose: bool,
 }
 
 pub fn cmd(
@@ -54,6 +58,7 @@ pub fn cmd(
         collections::{BTreeMap, HashMap},
         fmt::{self, Write},
     };
+
     let gatherer = licenses::Gatherer::new(log.new(slog::o!("stage" => "license_gather")))
         .with_store(std::sync::Arc::new(
             store.expect("we should have a license store"),
@@ -152,12 +157,14 @@ pub fn cmd(
                     }
                 }
                 Note::Unknown { name, source } => {
-                    warn!(
-                        log,
-                        "detected an unknown license";
-                        "crate" => crate_note,
-                        "src" => source,
-                    );
+                    if args.verbose {
+                        warn!(
+                            log,
+                            "detected an unknown license";
+                            "crate" => crate_note,
+                            "src" => source,
+                        );
+                    }
 
                     let key = Key::License(name);
                     match license_map.get_mut(&key) {
@@ -172,22 +179,26 @@ pub fn cmd(
                     }
                 }
                 Note::LowConfidence { score, source } => {
-                    warn!(
-                        log,
-                        "unable to determine license with high confidence";
-                        "crate" => crate_note,
-                        "score" => score,
-                        "src" => source,
-                    );
+                    if args.verbose {
+                        warn!(
+                            log,
+                            "unable to determine license with high confidence";
+                            "crate" => crate_note,
+                            "score" => score,
+                            "src" => source,
+                        );
+                    }
                 }
                 Note::UnreadableLicense { path, err } => {
-                    warn!(
-                        log,
-                        "license file is unreadable";
-                        "crate" => crate_note,
-                        "path" => path.display(),
-                        "err" => err.to_string(), // io::Error makes slog sad
-                    );
+                    if args.verbose {
+                        warn!(
+                            log,
+                            "license file is unreadable";
+                            "crate" => crate_note,
+                            "path" => path.display(),
+                            "err" => err.to_string(), // io::Error makes slog sad
+                        );
+                    }
                 }
                 Note::Ignored(_) => unreachable!(),
             }
