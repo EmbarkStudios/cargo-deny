@@ -453,9 +453,6 @@ pub fn cmd(
             // We ignore the layout specification and always just do a grid of crate rows x license/exception columns
             let mut output = String::with_capacity(4 * 1024);
 
-            let license_offset = 1;
-            let exception_offset = license_offset + license_layout.licenses.len();
-
             // Column headers
             {
                 write!(output, "crate")?;
