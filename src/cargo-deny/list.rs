@@ -443,16 +443,12 @@ pub fn cmd(
 
             std::io::Write::write_all(&mut std::io::stdout(), output.as_bytes())?;
         }
-        OutputFormat::Json => {
-            match args.layout {
-                Layout::License => {
-                    serde_json::to_writer(std::io::stdout(), &license_layout)?;
-                }
-                Layout::Crate => {
-                    serde_json::to_writer(std::io::stdout(), &crate_layout.crates)?
-                }
+        OutputFormat::Json => match args.layout {
+            Layout::License => {
+                serde_json::to_writer(std::io::stdout(), &license_layout)?;
             }
-        }
+            Layout::Crate => serde_json::to_writer(std::io::stdout(), &crate_layout.crates)?,
+        },
         OutputFormat::Tsv => {
             // We ignore the layout specification and always just do a grid of crate rows x license/exception columns
             let mut output = String::with_capacity(4 * 1024);
@@ -506,7 +502,7 @@ pub fn cmd(
             }
 
             std::io::Write::write_all(&mut std::io::stdout(), output.as_bytes())?;
-        },
+        }
     }
 
     Ok(())
