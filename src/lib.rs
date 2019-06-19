@@ -225,6 +225,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Crates, Error> {
     })
 }
 
+#[inline]
 pub fn binary_search<T, Q>(s: &[T], query: &Q) -> Result<usize, usize>
 where
     T: std::borrow::Borrow<Q>,
@@ -233,6 +234,7 @@ where
     s.binary_search_by(|i| i.borrow().cmp(query))
 }
 
+#[inline]
 pub fn contains<T, Q>(s: &[T], query: &Q) -> bool
 where
     T: std::borrow::Borrow<Q>,
@@ -241,6 +243,7 @@ where
     s.iter().any(|i| i.borrow() == query)
 }
 
+#[inline]
 pub fn hash(data: &[u8]) -> u32 {
     use std::hash::Hasher;
     // We use the 32-bit hash instead of the 64 even though
