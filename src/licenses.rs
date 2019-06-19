@@ -44,9 +44,7 @@ impl LicenseField {
             Some(match item {
                 Ok(spdx::LicenseExpr::License(l)) => LicenseFieldItem::License(l),
                 Ok(spdx::LicenseExpr::Exception(e)) => LicenseFieldItem::Exception(e),
-                Err(spdx::ParseError::UnknownLicenseId(id)) => {
-                    LicenseFieldItem::UnknownLicense(id)
-                }
+                Err(spdx::ParseError::UnknownLicenseId(id)) => LicenseFieldItem::UnknownLicense(id),
                 _ => return None,
             })
         })
