@@ -23,6 +23,9 @@ env:
 script:
 # Ensure everything has been rustfmt'ed
 - cargo fmt -- --check
+# Download in a separate step to separate
+# building from fetching dependencies
+- cargo fetch
 # Because rust isn't brutal enough itself
 - cargo clippy -- -D warnings
 # Build everything in a separate step to make a
