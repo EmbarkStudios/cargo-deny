@@ -10,6 +10,11 @@ skip = [
     # rmp depends on an old version of num-traits, just ignore
     # for now
     { name = "num-traits", version = "=0.1.43" },
+    # askalono 0.3.0 uses an ancient regex version which pulls
+    # in other duplicates
+    { name = "regex", version = "=0.2.11" },
+    { name = "regex-syntax", version = "=0.5.6" },
+    { name = "aho-corasick", version = "=0.6.10" },
 ]
 
 [licenses]
@@ -29,6 +34,7 @@ allow = [
     "MPL-2.0",
     "Unicode-DFS-2016",
     "Unlicense",
+    "Zlib",
 ]
 skip = [
     # For illustration purposes:
@@ -45,4 +51,11 @@ license_files = [
     # A BSD-2-Clause-FreeBSD license, but it has the lowest confidence score
     # of all the current licenses, so ignore it so we can raise the threshold
     { path = "LICENSE-THIRD-PARTY", hash = 0x7e40bc60 },
+]
+
+[[licenses.ignore]]
+name = "adler32"
+license_files = [
+    # Zlib with a slightly lower score (at least with vanilla askalono 0.3.0)
+    { path = "LICENSE-ZLIB", hash = 0x35858a2e },
 ]
