@@ -57,4 +57,13 @@ matrix:
     os: windows
     script: .ci/test.sh
 
-  
+  - name: "self check"
+    stage: test
+    rust: stable
+    os: linux
+    env:
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - cargo install --target $TARGET --path .
+    - cargo-deny check
