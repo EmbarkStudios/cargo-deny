@@ -3,7 +3,7 @@ set -e
 
 travis_fold start "apt-get.musl"
     travis_time_start
-        sudo -E apt-get -yq --no-install-suggests --no-install-recommends install musl-tools
+        sudo apt-get update && sudo -E apt-get -yq --no-install-suggests --no-install-recommends install musl-tools
     travis_time_finish
 travis_fold end "apt-get.musl"
 
