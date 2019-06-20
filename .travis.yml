@@ -3,7 +3,7 @@ language: rust
 stages:
 - test
 - name: deploy
-  if: branch = master
+  #if: branch = master
 
 env:
   global:
@@ -18,7 +18,7 @@ before_script:
 
 matrix:
   allow_failures:
-  - env: NIGHTLY=true
+  - env: NIGHTLY=1
   fast_finish: true
   include:
   #  _      _       _   
@@ -58,7 +58,7 @@ matrix:
     rust: nightly
     script: .ci/test.sh
     env:
-    - NIGHTLY=true
+    - NIGHTLY=1
   - name: "stable test osx"
     rust: stable
     os: osx
@@ -78,3 +78,51 @@ matrix:
     - cargo fetch
     - cargo install --target $TARGET --path .
     - cargo-deny check
+  #  _____       _     _ _     _     
+  # |  __ \     | |   | (_)   | |    
+  # | |__) |   _| |__ | |_ ___| |__  
+  # |  ___/ | | | '_ \| | / __| '_ \ 
+  # | |   | |_| | |_) | | \__ \ | | |
+  # |_|    \__,_|_.__/|_|_|___/_| |_|
+  - name: "publish x86_64-unknown-linux-musl"
+    stage: deploy
+    rust: stable
+    os: linux
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - .ci/prep_deploy.sh
+  - name: "publish x86_64-windows-pc-msvc"
+    stage: deploy
+    rust: stable
+    os: windows
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-windows-pc-msvc
+    script:
+    - .ci/prep_deploy.sh
+  - name: "publish x86_64-apple-darwin"
+    stage: deploy
+    rust: stable
+    os: osx
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-apple-darwin
+    script:
+    - .ci/prep_deploy.sh
+
+deploy:
+- provider: releases
+  api_key:
+    secure: OmW9w6uglrd5LxuTCOlIWXW409Cc/ONjRfgQhhXVLqgxgtx64SlabrcASnA7q/V8vPAjBoNBky7Uz/KMIvnC7bGpXDAu9cHddJ+xaXCUgQ4yDJDsYJo4z1Qap5k+EoVXYbUSVaMpK087wlF5vjOMdUXKB56JkvQf8kFpTv6cvbN6Vn42Sq+pq59w/puDaXZJVqnnOjzgQK4YETh8pe2xoWBrlHIbb0u8281LV4KOqXeY3h4Nve/rCIk2+qo04NJF/GxL6SMLVRPFrZkvJhc2OSdnDwhwv8fC9ssyKBKEtfjRsJpn3PG9GoEH6KPNvb0HcmAoNHhmjuQPwlO3HAQ+bbkG0CC9MrbA93Sa9SJYzT28FAhCu7iSUeePEaLKGy9XNGW3qhlH26Ycqitb2kQ2R+RLW84u/xEjWs4kLoDfbmxVPzmJfwdCjJTT2b0BklzRFRvQdfS7f3aIvaIguenO0YlMX2IzBmsPqJGMjG+e/Dwi+3Sso+bGE/K757cmBrgsUjqNyTY0jIdPZ2xaMDZ58M5G4tlG6VWc6WIEH4hfFqD/8EUl7ZeInx629xm4KSh75YMlL8Id46on2L0gOecXJZYSglnxA78DWOMj9yZDuhcW0f/kpTPiFtbN/RkPE9eEW9Mk2EetxgRhTOFt3AAqoK5OzeVt1Ub/iQCFkLEspIM=
+  file:
+  - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz
+  - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz.sha256
+  skip_cleanup: true
+  draft: true
+  on:
+    condition: $DEPLOY = 1
+    repo: EmbarkStudios/cargo-deny
+    tags: true
