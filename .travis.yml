@@ -4,34 +4,61 @@ rust:
 - stable
 - beta
 - nightly
-matrix:
-  allow_failures:
-  - rust: nightly
-  fast_finish: true
-  include:
-  - os: linux
-  - os: windows
-  - os: osx
 
-before_script:
-- rustup component add rustfmt clippy
+stages:
+- lint
+- test
+- name: deploy
+  if: branch = master
 
 env:
   global:
   - RUST_BACKTRACE=1
 
-script:
-# Ensure everything has been rustfmt'ed
-- cargo fmt -- --check
-# Download in a separate step to separate
-# building from fetching dependencies
-- cargo fetch
-# Because rust isn't brutal enough itself
-- cargo clippy -- -D warnings
-# Build everything in a separate step to make a
-# clear distinction between building and testing
-- cargo test --no-run
-- cargo test --no-fail-fast
-# Run ourselves against ourselves
-- cargo install --path .
-- cargo-deny check
+# See http://www.garbers.co.za/2017/11/01/code-folding-and-timing-in-travis-ci/
+before_script:
+- export -f travis_nanoseconds
+- export -f travis_fold
+- export -f travis_time_start
+- export -f travis_time_finish
+
+matrix:
+  allow_failures:
+  - rust: nightly
+  fast_finish: true
+  include:
+  - name: "stable lint"
+    stage: lint
+    rust: stable
+    os: linux
+    script: .ci/lint.sh
+  - name: "beta lint"
+    stage: lint
+    rust: beta
+    os: linux
+    script: .ci/lint.sh
+
+  - name: "stable test linux"
+    stage: test
+    rust: stable
+    os: linux
+    script: .ci/test.sh
+  - name: "beta test linux"
+    stage: test
+    rust: beta
+    os: linux
+    script: .ci/test.sh
+  - name: "nightly test linux"
+    stage: test
+    rust: nightly
+    script: .ci/test.sh
+  - name: "stable test osx"
+    rust: stable
+    os: osx
+    script: .ci/test.sh
+  - name: "stable test windows"
+    rust: stable
+    os: windows
+    script: .ci/test.sh
+
+  
