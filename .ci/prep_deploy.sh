@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-travis_fold start "cargo.fetch"
-    travis_time_start
-        rustup target add "$TARGET"
-    travis_time_finish
-travis_fold end "cargo.fetch"
-
 # Fetch dependencies in a different step to clearly
 # delineate between downloading and building
 travis_fold start "cargo.fetch"
