@@ -1,7 +1,6 @@
 language: rust
 
 stages:
-- lint
 - test
 - name: deploy
   if: branch = master
@@ -19,16 +18,16 @@ before_script:
 
 matrix:
   allow_failures:
-  - rust: nightly
+  - env: NIGHTLY=true
   fast_finish: true
   include:
   - name: "stable lint"
-    stage: lint
+    stage: test
     rust: stable
     os: linux
     script: .ci/lint.sh
   - name: "beta lint"
-    stage: lint
+    stage: test
     rust: beta
     os: linux
     script: .ci/lint.sh
@@ -47,6 +46,8 @@ matrix:
     stage: test
     rust: nightly
     script: .ci/test.sh
+    env:
+    - NIGHTLY=true
   - name: "stable test osx"
     rust: stable
     os: osx
