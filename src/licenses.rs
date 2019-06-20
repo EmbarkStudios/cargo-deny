@@ -6,7 +6,7 @@ use serde::Deserialize;
 use slog::{debug, error, trace, warn};
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
-const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.zstd");
+const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.gz");
 
 const fn lint_warn() -> LintLevel {
     LintLevel::Warn
@@ -550,9 +550,9 @@ impl Gatherer {
                                     Ok(match_) => {
                                         let lnote = match match_.license {
                                             Some(identified) => {
-                                                trace!(log, "license file identified"; "path" => fs.path.display(), "name" => identified.name);
+                                                trace!(log, "license file identified"; "path" => fs.path.display(), "name" => &identified.name);
 
-                                                match spdx::license_id(identified.name) {
+                                                match spdx::license_id(&identified.name) {
                                                     Some(id) => Note::License {
                                                         name: id,
                                                         source: (identified.kind, fs).into(),
