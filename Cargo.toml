@@ -1,12 +1,15 @@
 [package]
 name = "cargo-deny"
-description = "Like #[deny(...)] and #[allow(...)] for your CI"
+description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
 version = "0.1.0"
 authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+documentation = "https://docs.rs/cargo-deny"
+homepage = "https://github.com/EmbarkStudios/cargo-deny"
+keywords = ["cargo", "license"]
 
 [badges]
 travis-ci = { repository = "EmbarkStudios/cargo-deny", branch = "master" }
