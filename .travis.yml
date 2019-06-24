@@ -104,6 +104,8 @@ matrix:
     # caused by running in bash
     - TRAVIS_RUST_VERSION=stable-x86_64-pc-windows-msvc
     script:
+    - rustc -Vv
+    - rustc --print sysroot
     - .ci/prep_deploy.sh
   - name: "publish x86_64-apple-darwin"
     stage: deploy
