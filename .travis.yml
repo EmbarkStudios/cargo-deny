@@ -101,7 +101,7 @@ matrix:
     - DEPLOY=1
     - TARGET=x86_64-windows-pc-msvc
     script:
-    - curl -sSf https://build.travis-ci.com/files/rustup-init.sh | sh -s -- --default-toolchain=stable-x86_64-windows-pc-msvc -y
+    - curl -sSf https://build.travis-ci.com/files/rustup-init.sh | sh -s -- --default-toolchain=stable-x86_64-pc-windows-msvc -y
     - .ci/prep_deploy.sh
   - name: "publish x86_64-apple-darwin"
     stage: deploy
