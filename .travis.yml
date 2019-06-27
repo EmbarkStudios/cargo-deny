@@ -106,6 +106,7 @@ matrix:
     script:
     - rustc -Vv
     - rustc --print sysroot
+    - rustc --print target-list
     - .ci/prep_deploy.sh
   # - name: "publish x86_64-apple-darwin"
   #   stage: deploy
