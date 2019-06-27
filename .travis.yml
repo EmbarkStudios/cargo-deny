@@ -3,7 +3,7 @@ language: rust
 stages:
 - test
 - name: deploy
-  if: tag =~ /^v\d+\.\d+\.\d+.*$/
+  if: tag =~ /^\d+\.\d+\.\d+.*$/
 
 env:
   global:
