@@ -23,7 +23,7 @@ travis_fold start "package.release"
         release_name="$name-$TRAVIS_TAG-$TARGET"
         mkdir "$release_name"
 
-        if [ "$TARGET" == "pc-windows-msvc" ]; then
+        if [ "$TARGET" == "x86_64-pc-windows-msvc" ]; then
             # We don't use name again, so just add the exe extension
             # to it and call it a day
             name="$name.exe"
@@ -38,7 +38,13 @@ travis_fold start "package.release"
         cp README.md LICENSE-APACHE LICENSE-MIT "$release_name/"
         tar czvf "$release_name.tar.gz" "$release_name"
 
+        rm -r "$release_name"
+
+        stat "$release_name.tar.gz"
+
         # Get the sha-256 checksum w/o filename and newline
         echo -n "$(shasum -ba 256 "$release_name.tar.gz" | cut -d " " -f 1)" > "$release_name.tar.gz.sha256"
+
+        stat "$release_name.tar.gz.sha256"
     travis_time_finish
 travis_fold end "package.release"
