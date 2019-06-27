@@ -94,12 +94,12 @@ matrix:
   #   script:
   #   - .ci/install_musl.sh
   #   - .ci/prep_deploy.sh
-  - name: "publish x86_64-windows-pc-msvc"
+  - name: "publish x86_64-pc-windows-msvc"
     stage: deploy
     os: windows
     env:
     - DEPLOY=1
-    - TARGET=x86_64-windows-pc-msvc
+    - TARGET=x86_64-pc-windows-msvc
     # Override Travis' rust version, we don't want the gnu default
     # caused by running in bash
     - TRAVIS_RUST_VERSION=stable-x86_64-pc-windows-msvc
