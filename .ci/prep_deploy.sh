@@ -45,7 +45,7 @@ travis_fold start "package.release"
         # Get the sha-256 checksum w/o filename and newline, on windows we use
         # powershell because git bash only seems to include md5/sha1sum
         if [ "$TARGET" == "x86_64-pc-windows-msvc" ]; then
-            ./checksum.ps1 "$release_name.tar.gz"
+            .ci/checksum.ps1 "$release_name.tar.gz"
         else
             echo -n "$(shasum -ba 256 "$release_name.tar.gz" | cut -d " " -f 1)" > "$release_name.tar.gz.sha256"
         fi
