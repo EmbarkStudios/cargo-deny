@@ -4,4 +4,4 @@ param (
 
 $ErrorActionPreference="Stop"
 
-(Get-FileHash "${filename}").Hash | Out-File "${filename}.sha256" -NoNewline
+(Get-FileHash "${filename}").Hash | Out-File -Encoding ASCII -NoNewline "${filename}.sha256"
