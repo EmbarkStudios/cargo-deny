@@ -3,7 +3,7 @@ language: rust
 stages:
 - test
 - name: deploy
-  #if: branch = master
+  if: tag =~ /^v\d+\.\d+\.\d+.*$/
 
 env:
   global:
@@ -27,73 +27,82 @@ matrix:
   # | |    | | '_ \| __|
   # | |____| | | | | |_ 
   # |______|_|_| |_|\__|
-  # - name: "stable lint"
-  #   stage: test
-  #   rust: stable
-  #   os: linux
-  #   script: .ci/lint.sh
-  # - name: "beta lint"
-  #   stage: test
-  #   rust: beta
-  #   os: linux
-  #   script: .ci/lint.sh
+  - name: "stable lint"
+    stage: test
+    rust: stable
+    os: linux
+    script: .ci/lint.sh
+
+  - name: "beta lint"
+    stage: test
+    rust: beta
+    os: linux
+    script: .ci/lint.sh
+
   #  _______        _   
   # |__   __|      | |  
   #    | | ___  ___| |_ 
   #    | |/ _ \/ __| __|
   #    | |  __/\__ \ |_ 
   #    |_|\___||___/\__|
-  # - name: "stable test linux"
-  #   stage: test
-  #   rust: stable
-  #   os: linux
-  #   script: .ci/test.sh
-  # - name: "beta test linux"
-  #   stage: test
-  #   rust: beta
-  #   os: linux
-  #   script: .ci/test.sh
-  # - name: "nightly test linux"
-  #   stage: test
-  #   rust: nightly
-  #   script: .ci/test.sh
-  #   env:
-  #   - NIGHTLY=1
-  # - name: "stable test osx"
-  #   rust: stable
-  #   os: osx
-  #   script: .ci/test.sh
-  # - name: "stable test windows"
-  #   rust: stable
-  #   os: windows
-  #   script: .ci/test.sh
-  # - name: "self check"
-  #   stage: test
-  #   rust: stable
-  #   os: linux
-  #   env:
-  #   - TARGET=x86_64-unknown-linux-musl
-  #   script:
-  #   - .ci/install_musl.sh
-  #   - cargo fetch
-  #   - cargo install --target $TARGET --path .
-  #   - cargo-deny check
+  - name: "stable test linux"
+    stage: test
+    rust: stable
+    os: linux
+    script: .ci/test.sh
+
+  - name: "beta test linux"
+    stage: test
+    rust: beta
+    os: linux
+    script: .ci/test.sh
+
+  - name: "nightly test linux"
+    stage: test
+    rust: nightly
+    script: .ci/test.sh
+    env:
+    - NIGHTLY=1
+
+  - name: "stable test osx"
+    rust: stable
+    os: osx
+    script: .ci/test.sh
+
+  - name: "stable test windows"
+    rust: stable
+    os: windows
+    script: .ci/test.sh
+
+  - name: "self check"
+    stage: test
+    rust: stable
+    os: linux
+    env:
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - cargo fetch
+    - cargo install --target $TARGET --path .
+    - cargo-deny check
+
   #  _____       _     _ _     _     
   # |  __ \     | |   | (_)   | |    
   # | |__) |   _| |__ | |_ ___| |__  
   # |  ___/ | | | '_ \| | / __| '_ \ 
   # | |   | |_| | |_) | | \__ \ | | |
   # |_|    \__,_|_.__/|_|_|___/_| |_|
-  # - name: "publish x86_64-unknown-linux-musl"
-  #   stage: deploy
-  #   rust: stable
-  #   os: linux
-  #   env:
-  #   - DEPLOY=1
-  #   - TARGET=x86_64-unknown-linux-musl
-  #   script:
-  #   - .ci/install_musl.sh
-  #   - .ci/prep_deploy.sh
+  - name: "publish x86_64-unknown-linux-musl"
+    stage: deploy
+    rust: stable
+    os: linux
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - .ci/prep_deploy.sh
+
   - name: "publish x86_64-pc-windows-msvc"
     stage: deploy
     os: windows
@@ -104,19 +113,17 @@ matrix:
     # caused by running in bash
     - TRAVIS_RUST_VERSION=stable-x86_64-pc-windows-msvc
     script:
-    - rustc -Vv
-    - rustc --print sysroot
-    - rustc --print target-list
     - .ci/prep_deploy.sh
-  # - name: "publish x86_64-apple-darwin"
-  #   stage: deploy
-  #   rust: stable
-  #   os: osx
-  #   env:
-  #   - DEPLOY=1
-  #   - TARGET=x86_64-apple-darwin
-  #   script:
-  #   - .ci/prep_deploy.sh
+
+  - name: "publish x86_64-apple-darwin"
+    stage: deploy
+    rust: stable
+    os: osx
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-apple-darwin
+    script:
+    - .ci/prep_deploy.sh
 
 deploy:
 - provider: releases
