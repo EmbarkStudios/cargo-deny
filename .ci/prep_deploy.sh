@@ -5,12 +5,12 @@ set -e
 # delineate between downloading and building
 travis_fold start "cargo.fetch"
     travis_time_start
-        cargo fetch
+        cargo fetch --target "$TARGET"
     travis_time_finish
 travis_fold end "cargo.fetch"
 
 # Build without running to clearly delineate between
-# building and running the tests
+# building and packaging
 travis_fold start "cargo.build"
     travis_time_start
         cargo build --release --target "$TARGET"
