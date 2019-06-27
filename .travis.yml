@@ -125,6 +125,18 @@ matrix:
     script:
     - .ci/prep_deploy.sh
 
+  - stage: deploy
+    rust: stable
+    os: linux
+    script: echo "deploying $TRAVIS_TAG to crates.io"
+    deploy:
+      provider: cargo
+      token:
+        secure: EgipoJ4TiLN92aDEbZ7as1gMOaXAVCsIar3YVIAQW/KvY6qjfYwjl7Q+kuocIRD910HUb71kZ1AduyI9GH2JH0r91VsL+hK22b8CU6AVnyKDsuS7B2FbivQukIdP/bjGo1XT10NSFx/Qpy7UrckeMCyuAdpN6yPnuqHaRam9JyM2aOTKeOoqIWB6E54y7rlKGSzUHfsNx741J2qBtevwJF2zO7ZRPe+I4uVzllISnsNw+ldmL8RleVLGPCSg25HYvJNWaclu78zi3k7q5YQVhcb9JA3YWeGY+yxCNJqzEvh8KPl3THDhzAgWJXG9RnktWblOgXsin4tLzH12AbVcZvjvJB2X1PcLi4xhHpRoIXLOxaoRUoCqrNIrntuxdZYR/+9O8UQHaZ/Cq3KlalsiBO4/KIQ+Tu2gsz0gWo2YTCksAHCr6g6p5nS3qWDz6yX6QxHK9xB1z7ohDC9lRvjdw4gYY6frvmq3cKT0kFgqANER9P6dlHIRf42t6sJzms/i16w6ZnQdI6jAekdJYqdEXY7I1J/+ZKE5DIcW6hObIuIp2rIHKm2PuSJaI456+VACg9dx/FUrgbpVkJLGSNuMC3zPdEI+nNvsRHR6oUfvNE9oh0TxlY+tRhAGl0YT3syoxnKdGJKq7XFSkew37MQFb4L0GI/Hs/OmGitKxc82OeQ=
+      on:
+        repo: EmbarkStudios/cargo-deny
+        tags: true
+
 deploy:
 - provider: releases
   api_key:
