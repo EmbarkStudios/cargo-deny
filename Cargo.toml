@@ -19,6 +19,7 @@ exclude = [
 
 [badges]
 travis-ci = { repository = "EmbarkStudios/cargo-deny", branch = "master" }
+maintenance = { status = "actively-developed" }
 
 [[bin]]
 name = "cargo-deny"

@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
+[![Latest version](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 
 # ❌ cargo-deny
