@@ -9,7 +9,8 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 documentation = "https://docs.rs/cargo-deny"
 homepage = "https://github.com/EmbarkStudios/cargo-deny"
-keywords = ["cargo", "license"]
+categories = ["development-tools::cargo-plugins"]
+keywords = ["cargo", "license", "spdx", "ci"]
 exclude = [
   # Exclude the zstd cache for now, as we are using the vanilla
   # askalono with support for gzip
