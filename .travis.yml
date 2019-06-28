@@ -145,7 +145,6 @@ deploy:
   - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz
   - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz.sha256
   skip_cleanup: true
-  draft: true
   on:
     condition: $DEPLOY = 1
     repo: EmbarkStudios/cargo-deny
