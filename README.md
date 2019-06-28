@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
 [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 
-# cargo-deny
+# ❌ cargo-deny
 
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 available that can be easily added to your project incredibly easily via `cargo`. This is great!
