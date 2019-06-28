@@ -6,13 +6,19 @@
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 available that can be easily added to your project incredibly easily via `cargo`. This is great!
 However, the larger the project is and the more dependencies you have, the harder it is to keep
-track of certain things, especially as a project evolves over time, which is `cargo-deny` tries to help
+track of certain things, especially as a project evolves over time, which is what `cargo-deny` tries to help
 you with.
 
 * [Licenses](#licenses) - Configure which licenses are allowed
 * [Bans](#crate-bans) - Configure whether certain crates are allowed to be in your dependency graph
 
-## Licenses
+## tl;dr
+
+* `cargo-deny check <license|all>` - verify licenses for a crate graph
+* `cargo-deny check <ban|all>` - verify crate graph doesn't contain certain crates
+* `cargo-deny list` - list all of the licenses in a crate graph
+
+## Licenses - `cargo-deny check license`
 
 One important aspect that one must always keep in mind when using code from other people is what the licensing
 of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
@@ -73,17 +79,19 @@ license_files = [
 ]
 ```
 
-## Crate bans
+## Crate bans - `cargo-deny check ban`
 
-Sometimes, certain crates just don't fit in your project, so you have to remove them, but in
-some cases, they can sneak back in if you aren't careful, usually through accidentally using
-them via the default features of another crate. Another thing that is part of the tradeoff of
-being able to use so many crates is that they all don't necessarily agree on what versions of a
-dependency they want to use, and cargo and rust will happily chug along compiling all of them
-this is great for adding a new dependency that you just want to try at first without having
-to heavily modify your own crates, but it does come at a long term cost of increased crate fetch
-times and particularly compile times as you are essentially compiling the "same" thing multiple
-times
+Sometimes, certain crates just don't fit in your project, so you have to remove them. However,
+nothing really stops them from sneaking back in due to small changes, like updating a crate to
+a new version that happens to add it as a dependency, or just changing what crates are included
+in the default feature set.
+
+One thing that is part of the tradeoff of being able to use so many crates, is that they all won't
+necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily
+chug along compiling all of them.  This is great when just trying out a new dependency as quickly as
+possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased,
+but in particular, **compile times** and ultimately your binary sizes to increase. If you are made aware 
+that you depend on multiple versions of the same crate, you have an opportunity to 
 
 1. Dis/allow certain crates in your dependency graph.
 1. What happens when multiple versions of a crate are used? `allow` / `deny` / `warn`
@@ -91,6 +99,15 @@ times
 to get a new release, or sometimes a little duplication is ok and not worth the effort
 to "fix", but you are at least aware of it and allowing it, versus suffering from
 unnecessarily longer compile times.
+1. The `-g <path>` cmd line option on the `check` subcommand instructs `cargo-deny` to create
+a [dotgraph](https://www.graphviz.org/) if multiple versions of a crate are detected and that
+isn't allowed. A single graph will be created for each crate, with each version as a terminating
+node in the graph with the full graph of crates that reference each version to more easily
+show you why a particular version is included. It also highlights the lowest version's path
+in ![red](https://placehold.it/15/ff0000/000000?text=+), and if it different from the lowest version,
+the "simplest" path is highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
+
+![Imgur](https://i.imgur.com/xtarzeU.png)
 
 ```toml
 [bans]
@@ -123,6 +140,33 @@ skip = [
     { name = "winapi", version = "=0.2.8" },
 ]
 ```
+
+## CI Usage
+
+`cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all
+your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using
+the [deny.toml](deny.toml) config.
+
+## List - `cargo-deny list`
+
+Similarly to [cargo-license](https://github.com/onur/cargo-license), print out the licenses and crates
+that use them.
+
+* `layout = license, format = human` (default)
+
+![Imgur](https://i.imgur.com/Iejfc7h.png)
+
+* `layout = crate, format = human`
+
+![Imgur](https://i.imgur.com/zZdcFXI.png)
+
+* `layout = license, format = json`
+
+![Imgur](https://i.imgur.com/wC2R0ym.png)
+
+* `layout = license, format = tsv`
+
+![Imgur](https://i.imgur.com/14l8a5K.png)
 
 ## License
 
