@@ -1,12 +1,20 @@
 [package]
 name = "cargo-deny"
-description = "Like #[deny(...)] and #[allow(...)] for your CI"
+description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+documentation = "https://docs.rs/cargo-deny"
+homepage = "https://github.com/EmbarkStudios/cargo-deny"
+keywords = ["cargo", "license"]
+exclude = [
+  # Exclude the zstd cache for now, as we are using the vanilla
+  # askalono with support for gzip
+  "spdx_cache.bin.zstd",
+]
 
 [badges]
 travis-ci = { repository = "EmbarkStudios/cargo-deny", branch = "master" }
@@ -42,8 +50,6 @@ twox-hash = "1.3.0"
 
 [dependencies.askalono]
 version = "0.3.0"
-# git = "https://github.com/EmbarkStudios/askalono.git"
-# rev = "f57c60d"
 
 [dev-dependencies]
 # We use this for pretty printing errors

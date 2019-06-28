@@ -1,37 +1,152 @@
 language: rust
 
-rust:
-- stable
-- beta
-- nightly
-matrix:
-  allow_failures:
-  - rust: nightly
-  fast_finish: true
-  include:
-  - os: linux
-  - os: windows
-  - os: osx
-
-before_script:
-- rustup component add rustfmt clippy
+stages:
+- test
+- name: deploy
+  if: tag =~ /^\d+\.\d+\.\d+.*$/
 
 env:
   global:
   - RUST_BACKTRACE=1
 
-script:
-# Ensure everything has been rustfmt'ed
-- cargo fmt -- --check
-# Download in a separate step to separate
-# building from fetching dependencies
-- cargo fetch
-# Because rust isn't brutal enough itself
-- cargo clippy -- -D warnings
-# Build everything in a separate step to make a
-# clear distinction between building and testing
-- cargo test --no-run
-- cargo test --no-fail-fast
-# Run ourselves against ourselves
-- cargo install --path .
-- cargo-deny check
+# See http://www.garbers.co.za/2017/11/01/code-folding-and-timing-in-travis-ci/
+before_script:
+- export -f travis_nanoseconds
+- export -f travis_fold
+- export -f travis_time_start
+- export -f travis_time_finish
+
+matrix:
+  allow_failures:
+  - env: NIGHTLY=1
+  fast_finish: true
+  include:
+  #  _      _       _   
+  # | |    (_)     | |  
+  # | |     _ _ __ | |_ 
+  # | |    | | '_ \| __|
+  # | |____| | | | | |_ 
+  # |______|_|_| |_|\__|
+  - name: "stable lint"
+    stage: test
+    rust: stable
+    os: linux
+    script: .ci/lint.sh
+
+  - name: "beta lint"
+    stage: test
+    rust: beta
+    os: linux
+    script: .ci/lint.sh
+
+  #  _______        _   
+  # |__   __|      | |  
+  #    | | ___  ___| |_ 
+  #    | |/ _ \/ __| __|
+  #    | |  __/\__ \ |_ 
+  #    |_|\___||___/\__|
+  - name: "stable test linux"
+    stage: test
+    rust: stable
+    os: linux
+    script: .ci/test.sh
+
+  - name: "beta test linux"
+    stage: test
+    rust: beta
+    os: linux
+    script: .ci/test.sh
+
+  - name: "nightly test linux"
+    stage: test
+    rust: nightly
+    script: .ci/test.sh
+    env:
+    - NIGHTLY=1
+
+  - name: "stable test osx"
+    rust: stable
+    os: osx
+    script: .ci/test.sh
+
+  - name: "stable test windows"
+    rust: stable
+    os: windows
+    script: .ci/test.sh
+
+  - name: "self check"
+    stage: test
+    rust: stable
+    os: linux
+    env:
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - cargo fetch
+    - cargo install --target $TARGET --path .
+    - cargo-deny check
+
+  #  _____       _     _ _     _     
+  # |  __ \     | |   | (_)   | |    
+  # | |__) |   _| |__ | |_ ___| |__  
+  # |  ___/ | | | '_ \| | / __| '_ \ 
+  # | |   | |_| | |_) | | \__ \ | | |
+  # |_|    \__,_|_.__/|_|_|___/_| |_|
+  - name: "publish x86_64-unknown-linux-musl"
+    stage: deploy
+    rust: stable
+    os: linux
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-unknown-linux-musl
+    script:
+    - .ci/install_musl.sh
+    - .ci/prep_deploy.sh
+
+  - name: "publish x86_64-pc-windows-msvc"
+    stage: deploy
+    os: windows
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-pc-windows-msvc
+    # Override Travis' rust version, we don't want the gnu default
+    # caused by running in bash
+    - TRAVIS_RUST_VERSION=stable-x86_64-pc-windows-msvc
+    script:
+    - .ci/prep_deploy.sh
+
+  - name: "publish x86_64-apple-darwin"
+    stage: deploy
+    rust: stable
+    os: osx
+    env:
+    - DEPLOY=1
+    - TARGET=x86_64-apple-darwin
+    script:
+    - .ci/prep_deploy.sh
+
+  - stage: deploy
+    rust: stable
+    os: linux
+    script: echo "deploying $TRAVIS_TAG to crates.io"
+    deploy:
+      provider: cargo
+      token:
+        secure: EgipoJ4TiLN92aDEbZ7as1gMOaXAVCsIar3YVIAQW/KvY6qjfYwjl7Q+kuocIRD910HUb71kZ1AduyI9GH2JH0r91VsL+hK22b8CU6AVnyKDsuS7B2FbivQukIdP/bjGo1XT10NSFx/Qpy7UrckeMCyuAdpN6yPnuqHaRam9JyM2aOTKeOoqIWB6E54y7rlKGSzUHfsNx741J2qBtevwJF2zO7ZRPe+I4uVzllISnsNw+ldmL8RleVLGPCSg25HYvJNWaclu78zi3k7q5YQVhcb9JA3YWeGY+yxCNJqzEvh8KPl3THDhzAgWJXG9RnktWblOgXsin4tLzH12AbVcZvjvJB2X1PcLi4xhHpRoIXLOxaoRUoCqrNIrntuxdZYR/+9O8UQHaZ/Cq3KlalsiBO4/KIQ+Tu2gsz0gWo2YTCksAHCr6g6p5nS3qWDz6yX6QxHK9xB1z7ohDC9lRvjdw4gYY6frvmq3cKT0kFgqANER9P6dlHIRf42t6sJzms/i16w6ZnQdI6jAekdJYqdEXY7I1J/+ZKE5DIcW6hObIuIp2rIHKm2PuSJaI456+VACg9dx/FUrgbpVkJLGSNuMC3zPdEI+nNvsRHR6oUfvNE9oh0TxlY+tRhAGl0YT3syoxnKdGJKq7XFSkew37MQFb4L0GI/Hs/OmGitKxc82OeQ=
+      on:
+        repo: EmbarkStudios/cargo-deny
+        tags: true
+
+deploy:
+- provider: releases
+  api_key:
+    secure: OmW9w6uglrd5LxuTCOlIWXW409Cc/ONjRfgQhhXVLqgxgtx64SlabrcASnA7q/V8vPAjBoNBky7Uz/KMIvnC7bGpXDAu9cHddJ+xaXCUgQ4yDJDsYJo4z1Qap5k+EoVXYbUSVaMpK087wlF5vjOMdUXKB56JkvQf8kFpTv6cvbN6Vn42Sq+pq59w/puDaXZJVqnnOjzgQK4YETh8pe2xoWBrlHIbb0u8281LV4KOqXeY3h4Nve/rCIk2+qo04NJF/GxL6SMLVRPFrZkvJhc2OSdnDwhwv8fC9ssyKBKEtfjRsJpn3PG9GoEH6KPNvb0HcmAoNHhmjuQPwlO3HAQ+bbkG0CC9MrbA93Sa9SJYzT28FAhCu7iSUeePEaLKGy9XNGW3qhlH26Ycqitb2kQ2R+RLW84u/xEjWs4kLoDfbmxVPzmJfwdCjJTT2b0BklzRFRvQdfS7f3aIvaIguenO0YlMX2IzBmsPqJGMjG+e/Dwi+3Sso+bGE/K757cmBrgsUjqNyTY0jIdPZ2xaMDZ58M5G4tlG6VWc6WIEH4hfFqD/8EUl7ZeInx629xm4KSh75YMlL8Id46on2L0gOecXJZYSglnxA78DWOMj9yZDuhcW0f/kpTPiFtbN/RkPE9eEW9Mk2EetxgRhTOFt3AAqoK5OzeVt1Ub/iQCFkLEspIM=
+  file:
+  - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz
+  - cargo-deny-$TRAVIS_TAG-$TARGET.tar.gz.sha256
+  skip_cleanup: true
+  draft: true
+  on:
+    condition: $DEPLOY = 1
+    repo: EmbarkStudios/cargo-deny
+    tags: true
