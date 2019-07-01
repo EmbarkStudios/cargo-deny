@@ -5,7 +5,7 @@ use semver::{Version, VersionReq};
 use serde::Deserialize;
 use std::{cmp, collections::HashMap, fmt};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, PartialOrd, PartialEq, Ord, Eq)]
 pub struct CrateId {
     // The name of the crate
     pub name: String,
@@ -71,14 +71,9 @@ pub struct Config {
 
 impl Config {
     pub fn sort(&mut self) {
-        let sort = |a: &CrateId, b: &CrateId| match a.name.cmp(&b.name) {
-            std::cmp::Ordering::Equal => a.version.cmp(&b.version),
-            o => o,
-        };
-
-        self.deny.par_sort_by(sort);
-        self.allow.par_sort_by(sort);
-        self.skip.par_sort_by(sort);
+        self.deny.par_sort();
+        self.allow.par_sort();
+        self.skip.par_sort();
     }
 }
 
@@ -635,4 +630,87 @@ where
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn binary_search_() {
+        let mut versions = vec![
+            CrateId {
+                name: "unicase".to_owned(),
+                version: VersionReq::parse("=1.4.2").unwrap(),
+            },
+            CrateId {
+                name: "crossbeam-deque".to_owned(),
+                version: VersionReq::parse("=0.6.3").unwrap(),
+            },
+            CrateId {
+                name: "parking_lot".to_owned(),
+                version: VersionReq::parse("=0.7.1").unwrap(),
+            },
+            CrateId {
+                name: "parking_lot_core".to_owned(),
+                version: VersionReq::parse("=0.4.0").unwrap(),
+            },
+            CrateId {
+                name: "lock_api".to_owned(),
+                version: VersionReq::parse("=0.1.5").unwrap(),
+            },
+            CrateId {
+                name: "rand".to_owned(),
+                version: VersionReq::parse("=0.6.5").unwrap(),
+            },
+            CrateId {
+                name: "rand_chacha".to_owned(),
+                version: VersionReq::parse("=0.1.1").unwrap(),
+            },
+            CrateId {
+                name: "rand_core".to_owned(),
+                version: VersionReq::parse("=0.4.0").unwrap(),
+            },
+            CrateId {
+                name: "rand_core".to_owned(),
+                version: VersionReq::parse("=0.3.1").unwrap(),
+            },
+            CrateId {
+                name: "rand_hc".to_owned(),
+                version: VersionReq::parse("=0.1.0").unwrap(),
+            },
+            CrateId {
+                name: "rand_pcg".to_owned(),
+                version: VersionReq::parse("=0.1.2").unwrap(),
+            },
+            CrateId {
+                name: "scopeguard".to_owned(),
+                version: VersionReq::parse("=0.3.3").unwrap(),
+            },
+            CrateId {
+                name: "winapi".to_owned(),
+                version: VersionReq::parse("=0.2.8").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse("=0.1.43").unwrap(),
+            },
+        ];
+
+        versions.sort();
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "rand_core".to_owned(),
+                    version: Version::parse("0.3.1").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("=0.3.1").unwrap())
+        );
+    }
 }
