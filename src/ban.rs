@@ -81,8 +81,14 @@ fn binary_search<'a>(
     arr: &'a [CrateId],
     details: &crate::CrateDetails,
 ) -> Result<(usize, &'a CrateId), usize> {
-    arr.binary_search_by(|i| i.name.cmp(&details.name))
-        .and_then(|i| {
+    let lowest = VersionReq::exact(&Version::new(0, 0, 0));
+
+    match arr.binary_search_by(|i| match i.name.cmp(&details.name) {
+        cmp::Ordering::Equal => i.version.cmp(&lowest),
+        o => o,
+    }) {
+        Ok(i) => Ok((i, &arr[i])),
+        Err(i) => {
             for (j, crate_) in arr[i..].iter().enumerate() {
                 if crate_.name != details.name {
                     break;
@@ -92,9 +98,9 @@ fn binary_search<'a>(
                     return Ok((i + j, crate_));
                 }
             }
-
             Err(i)
-        })
+        }
+    }
 }
 
 use petgraph::Graph;
