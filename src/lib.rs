@@ -1,7 +1,7 @@
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
 
-//! [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
+//!! [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
 //! [![Latest version](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 //! [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 //!
@@ -26,7 +26,7 @@
 //!
 //! One important aspect that one must always keep in mind when using code from other people is what the licensing
 //! of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
-//! ecosystem tend to follow the example set forth by Rust itself, namely dual-license MIT and Apache 2.0, but of
+//! ecosystem tend to follow the example set forth by Rust itself, namely dual-license `MIT OR Apache-2.0`, but of
 //! course, that is not always the case.
 //!
 //! So `cargo-deny` allows you to ensure that all of your dependencies meet the requirements you want.
@@ -43,10 +43,14 @@
 //!
 //! ```toml
 //! [licenses]
+//! # If a crate doesn't have a license, error
 //! unlicensed = "deny"
+//! # If a crate has a LICENSE* file, but it can't be determined, error
 //! unknown = "deny"
 //! # We want really high confidence when inferring licenses from text
 //! confidence_threshold = 0.92
+//! # The only licenses we allow. These must be valid SPDX identifiers, at least syntactically,
+//! # but nothing stops you from using your own license identifier for your private crates
 //! allow = [
 //!     "Embark-Proprietary",
 //!     "Apache-2.0",
@@ -85,36 +89,52 @@
 //!
 //! ## Crate bans - `cargo-deny check ban`
 //!
+//! ### Use Case - Keeping certain crates out of your dependency graph
+//!
 //! Sometimes, certain crates just don't fit in your project, so you have to remove them. However,
 //! nothing really stops them from sneaking back in due to small changes, like updating a crate to
-//! a new version that happens to add it as a dependency, or just changing what crates are included
-//! in the default feature set.
+//! a new version that happens to add it as a dependency, or an existing dependency just changing
+//! what crates are included in the default feature set.
+//!
+//! For example, we previously depended on OpenSSL as it is the "default" for many crates that deal
+//! with HTTP traffic. This was extremely annoying as it required us to have OpenSSL development libraries
+//! installed on Windows, for both individuals and CI. We moved all of our dependencies to use the
+//! much more streamlined `native-tls` and `ring` crates instead, and now we can make sure that OpenSSL
+//! doesn't return from the grave by being pulled in as a default feature of some future HTTP crate
+//! we might use.
+//!
+//! 1. Dis/allow certain crates in your dependency graph.
+//!
+//! ### Use Case - Get a handle on duplicate versions
 //!
 //! One thing that is part of the tradeoff of being able to use so many crates, is that they all won't
 //! necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily
 //! chug along compiling all of them.  This is great when just trying out a new dependency as quickly as
 //! possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased,
-//! but in particular, **compile times** and ultimately your binary sizes to increase. If you are made aware
-//! that you depend on multiple versions of the same crate, you have an opportunity to
+//! but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware
+//! that you depend on multiple versions of the same crate, you at least have an opportunity to decide
+//! how you want to handle them.
 //!
-//! 1. Dis/allow certain crates in your dependency graph.
 //! 1. What happens when multiple versions of a crate are used? `allow` / `deny` / `warn`
 //! 1. Skip certain versions of crates, sometimes you just need to wait for a crate
 //! to get a new release, or sometimes a little duplication is ok and not worth the effort
-//! to "fix", but you are at least aware of it and allowing it, versus suffering from
-//! unnecessarily longer compile times.
+//! to "fix", but you are at least aware of it and explicitly allowing it, rather than suffering in
+//! ignorance.
 //! 1. The `-g <path>` cmd line option on the `check` subcommand instructs `cargo-deny` to create
 //! a [dotgraph](https://www.graphviz.org/) if multiple versions of a crate are detected and that
 //! isn't allowed. A single graph will be created for each crate, with each version as a terminating
 //! node in the graph with the full graph of crates that reference each version to more easily
 //! show you why a particular version is included. It also highlights the lowest version's path
-//! in ![red](https://placehold.it/15/ff0000/000000?text=+), and if it different from the lowest version,
+//! in ![red](https://placehold.it/15/ff0000/000000?text=+), and, if it differs from the lowest version,
 //! the "simplest" path is highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
 //!
 //! ![Imgur](https://i.imgur.com/xtarzeU.png)
 //!
+//! ### Example Config
+//!
 //! ```toml
 //! [bans]
+//! # Emit an error if we detect multiple versions of the same crate
 //! multiple_versions = "deny"
 //! deny = [
 //!     # OpenSSL = Just Say No.
