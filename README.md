@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
 [![Latest version](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
+[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+[![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.games)
 
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 available that can be easily added to your project incredibly easily via `cargo`. This is great!
@@ -188,6 +190,12 @@ that use them.
 * `layout = license, format = tsv`
 
 ![Imgur](https://i.imgur.com/14l8a5K.png)
+
+## Contributing
+
+We welcome community contributions to this project.
+
+Please read our [Contributor Guide](CONTRIBUTING.md) for more information on how to get started.
 
 ## License
 
