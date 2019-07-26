@@ -63,7 +63,15 @@ Possible values:
 
 fn real_main() -> Result<(), Error> {
     use slog::Drain;
-    let args = Opts::from_args();
+    let args = Opts::from_iter({
+        let mut raw: Vec<String> = std::env::args().collect();
+        // Running this as a cargo subcommand gives us our name as an argument,
+        // so we'll discard that before parsing.
+        if raw.get(1).map(String::as_str) == Some("deny") {
+            raw.remove(1);
+        }
+        raw
+    });
 
     let drain = match args.msg_format {
         MessageFormat::Human => {
