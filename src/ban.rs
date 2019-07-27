@@ -89,13 +89,16 @@ fn binary_search<'a>(
     }) {
         Ok(i) => Ok((i, &arr[i])),
         Err(i) => {
-            for (j, crate_) in arr[i..].iter().enumerate() {
+            // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
+            // before the 0.0.0 version
+            let begin = if i > 0 && arr[i - 1].name == details.name { i - 1 } else { i };
+            for (j, crate_) in arr[begin..].iter().enumerate() {
                 if crate_.name != details.name {
                     break;
                 }
 
                 if crate_.version.matches(&details.version) {
-                    return Ok((i + j, crate_));
+                    return Ok((begin + j, crate_));
                 }
             }
             Err(i)
@@ -612,7 +615,8 @@ where
         }
 
         if let Ok((_, ban)) = binary_search(&cfg.deny, crate_) {
-            error!(log, "detected a banned crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "ban" => format!("{} = {}", ban.name, ban.version))
+            error!(log, "detected a banned crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "ban" => format!("{} = {}", ban.name, ban.version));
+            errors += 1;
         } else if !cfg.allow.is_empty() && binary_search(&cfg.allow, crate_).is_ok() {
             error!(log, "detected a crate not explicitly allowed"; "crate" => format!("{}@{}", crate_.name, crate_.version));
             errors += 1;
@@ -690,6 +694,10 @@ mod test {
                 version: VersionReq::parse("=0.1.2").unwrap(),
             },
             CrateId {
+                name: "serde".to_owned(),
+                version: VersionReq::any(),
+            },
+            CrateId {
                 name: "scopeguard".to_owned(),
                 version: VersionReq::parse("=0.3.3").unwrap(),
             },
@@ -700,6 +708,26 @@ mod test {
             CrateId {
                 name: "num-traits".to_owned(),
                 version: VersionReq::parse("=0.1.43").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse("<0.1").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse("<0.2").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse("0.1.*").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse("<0.1.42").unwrap(),
+            },
+            CrateId {
+                name: "num-traits".to_owned(),
+                version: VersionReq::parse(">0.1.43").unwrap(),
             },
         ];
 
@@ -717,6 +745,87 @@ mod test {
             .map(|(_, s)| &s.version)
             .unwrap(),
             &(VersionReq::parse("=0.3.1").unwrap())
+        );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "serde".to_owned(),
+                    version: Version::parse("1.0.94").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::any())
+        );
+
+        assert!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "nope".to_owned(),
+                    version: Version::parse("1.0.0").unwrap(),
+                    ..Default::default()
+                }
+            ).is_err()
+        );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "num-traits".to_owned(),
+                    version: Version::parse("0.1.43").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("=0.1.43").unwrap())
+        );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "num-traits".to_owned(),
+                    version: Version::parse("0.1.2").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("<0.1.42").unwrap())
+        );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "num-traits".to_owned(),
+                    version: Version::parse("0.2.0").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse(">0.1.43").unwrap())
+        );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::CrateDetails {
+                    name: "num-traits".to_owned(),
+                    version: Version::parse("0.0.99").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("<0.1").unwrap())
         );
     }
 }
