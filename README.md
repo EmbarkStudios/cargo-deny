@@ -12,8 +12,8 @@ However, the larger the project is and the more dependencies you have, the harde
 track of certain things, especially as a project evolves over time, which is what `cargo-deny` tries to help
 you with.
 
-* [Licenses](#licenses) - Configure which licenses are allowed
-* [Bans](#crate-bans) - Configure whether certain crates are allowed to be in your dependency graph
+* [Licenses](#licenses---cargo-deny-check-license) - Configure which licenses are allowed
+* [Bans](#crate-bans---cargo-deny-check-ban) - Configure whether certain crates are allowed to be in your dependency graph
 
 ## tl;dr
 
@@ -26,7 +26,7 @@ you with.
 One important aspect that one must always keep in mind when using code from other people is what the licensing
 of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
 ecosystem tend to follow the example set forth by Rust itself, namely dual-license `MIT OR Apache-2.0`, but of
-course, that is not always the case. 
+course, that is not always the case.
 
 So `cargo-deny` allows you to ensure that all of your dependencies meet the requirements you want.
 
@@ -92,7 +92,7 @@ license_files = [
 
 Sometimes, certain crates just don't fit in your project, so you have to remove them. However,
 nothing really stops them from sneaking back in due to small changes, like updating a crate to
-a new version that happens to add it as a dependency, or an existing dependency just changing 
+a new version that happens to add it as a dependency, or an existing dependency just changing
 what crates are included in the default feature set.
 
 For example, we previously depended on OpenSSL as it is the "default" for many crates that deal
@@ -110,7 +110,7 @@ One thing that is part of the tradeoff of being able to use so many crates, is t
 necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily
 chug along compiling all of them.  This is great when just trying out a new dependency as quickly as
 possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased,
-but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware 
+but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware
 that you depend on multiple versions of the same crate, you at least have an opportunity to decide
 how you want to handle them.
 
