@@ -17,11 +17,11 @@ you with.
 
 ## tl;dr
 
-* `cargo-deny check <license|all>` - verify licenses for a crate graph
-* `cargo-deny check <ban|all>` - verify crate graph doesn't contain certain crates
-* `cargo-deny list` - list all of the licenses in a crate graph
+* `cargo deny check <license|all>` - verify licenses for a crate graph
+* `cargo deny check <ban|all>` - verify crate graph doesn't contain certain crates
+* `cargo deny list` - list all of the licenses in a crate graph
 
-## Licenses - `cargo-deny check license`
+## Licenses - `cargo deny check license`
 
 One important aspect that one must always keep in mind when using code from other people is what the licensing
 of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
@@ -86,7 +86,7 @@ license_files = [
 ]
 ```
 
-## Crate bans - `cargo-deny check ban`
+## Crate bans - `cargo deny check ban`
 
 ### Use Case - Keeping certain crates out of your dependency graph
 
@@ -170,7 +170,7 @@ skip = [
 your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using
 the [deny.toml](deny.toml) config.
 
-## List - `cargo-deny list`
+## List - `cargo deny list`
 
 Similarly to [cargo-license](https://github.com/onur/cargo-license), print out the licenses and crates
 that use them.

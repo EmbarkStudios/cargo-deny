@@ -84,7 +84,7 @@ matrix:
     - .ci/install_musl.sh
     - cargo fetch
     - cargo install --target $TARGET --path .
-    - cargo-deny check
+    - cargo deny check
 
   #  _____       _     _ _     _     
   # |  __ \     | |   | (_)   | |    
