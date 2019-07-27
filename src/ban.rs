@@ -91,7 +91,11 @@ fn binary_search<'a>(
         Err(i) => {
             // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
             // before the 0.0.0 version
-            let begin = if i > 0 && arr[i - 1].name == details.name { i - 1 } else { i };
+            let begin = if i > 0 && arr[i - 1].name == details.name {
+                i - 1
+            } else {
+                i
+            };
             for (j, crate_) in arr[begin..].iter().enumerate() {
                 if crate_.name != details.name {
                     break;
@@ -761,16 +765,15 @@ mod test {
             &(VersionReq::any())
         );
 
-        assert!(
-            binary_search(
-                &versions,
-                &crate::CrateDetails {
-                    name: "nope".to_owned(),
-                    version: Version::parse("1.0.0").unwrap(),
-                    ..Default::default()
-                }
-            ).is_err()
-        );
+        assert!(binary_search(
+            &versions,
+            &crate::CrateDetails {
+                name: "nope".to_owned(),
+                version: Version::parse("1.0.0").unwrap(),
+                ..Default::default()
+            }
+        )
+        .is_err());
 
         assert_eq!(
             binary_search(

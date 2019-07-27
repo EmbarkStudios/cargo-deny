@@ -63,15 +63,16 @@ Possible values:
 
 fn real_main() -> Result<(), Error> {
     use slog::Drain;
-    let args = Opts::from_iter({
-        std::env::args().enumerate().filter_map(|(i, a)| {
-            if i == 1 && a == "deny" {
-                None
-            } else {
-                Some(a)
-            }
-        })
-    });
+    let args =
+        Opts::from_iter({
+            std::env::args().enumerate().filter_map(|(i, a)| {
+                if i == 1 && a == "deny" {
+                    None
+                } else {
+                    Some(a)
+                }
+            })
+        });
 
     let drain = match args.msg_format {
         MessageFormat::Human => {
