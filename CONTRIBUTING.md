@@ -52,4 +52,4 @@ Unless otherwise specified, all Embark open source projects are licensed under a
 
 ## Code of Conduct
 
-Please note that our projects are released with a [Contributor Code of Conduct](code_of_conduct.md) to ensure that they are welcoming places for everyone to contribute. By participating in any Embark open source project, you agree to abide by these terms.
+Please note that our projects are released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md) to ensure that they are welcoming places for everyone to contribute. By participating in any Embark open source project, you agree to abide by these terms.
