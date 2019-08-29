@@ -6,8 +6,8 @@ deny = [
 ]
 skip = [
     # rand depends on a multiple versions of rand_core...
-    { name = "rand_core", version = "=0.3.1" },
-    { name = "rand_core", version = "=0.4.0" },
+    { name = "rand_core", version = "=0.3" },
+    { name = "rand_core", version = "=0.4" },
     # rmp depends on an old version of num-traits, just ignore
     # for now
     { name = "num-traits", version = "=0.1.43" },
@@ -16,6 +16,12 @@ skip = [
     { name = "regex", version = "=0.2.11" },
     { name = "regex-syntax", version = "=0.5.6" },
     { name = "aho-corasick", version = "=0.6.10" },
+
+    # some macro crates use the pre 1.0 syn dependencies
+    { name = "syn", version = "<=0.15" },
+    { name = "proc-macro2", version = "<=0.4" },
+    { name = "quote", version = "<=0.6" },
+    { name = "unicode-xid", version = "=0.1" },
 ]
 
 [licenses]
@@ -36,6 +42,11 @@ allow = [
     "Unicode-DFS-2016",
     "Unlicense",
     "Zlib",
+    
+    # we currently parse out exceptions as separate licenses, which may not be the correct thing to do
+    # example: `wasi` crate uses "Apache-2.0 WITH LLVM-exception" as on of the licenses
+    # tracked in https://github.com/EmbarkStudios/cargo-deny/issues/22
+    "LLVM-exception" 
 ]
 skip = [
     # For illustration purposes:
