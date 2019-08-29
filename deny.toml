@@ -36,6 +36,11 @@ allow = [
     "Unicode-DFS-2016",
     "Unlicense",
     "Zlib",
+    
+    # we currently parse out exceptions as separate licenses, which may not be the correct thing to do
+    # example: `wasi` crate uses "Apache-2.0 WITH LLVM-exception" as on of the licenses
+    # tracked in https://github.com/EmbarkStudios/cargo-deny/issues/22
+    "LLVM-exception" 
 ]
 skip = [
     # For illustration purposes:
