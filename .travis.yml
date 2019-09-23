@@ -33,12 +33,6 @@ matrix:
     os: linux
     script: .ci/lint.sh
 
-  - name: "beta lint"
-    stage: test
-    rust: beta
-    os: linux
-    script: .ci/lint.sh
-
   #  _______        _   
   # |__   __|      | |  
   #    | | ___  ___| |_ 
@@ -48,12 +42,6 @@ matrix:
   - name: "stable test linux"
     stage: test
     rust: stable
-    os: linux
-    script: .ci/test.sh
-
-  - name: "beta test linux"
-    stage: test
-    rust: beta
     os: linux
     script: .ci/test.sh
 
