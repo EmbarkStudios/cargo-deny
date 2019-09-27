@@ -156,7 +156,7 @@ fn main() {
     match real_main() {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("{}", Color::Red.paint(format!("{}", e)));
+            eprintln!("{}: {}", Color::Red.bold().paint("error"), e);
             std::process::exit(1);
         }
     }
