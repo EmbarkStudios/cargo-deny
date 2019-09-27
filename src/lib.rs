@@ -213,14 +213,15 @@ use rayon::prelude::*;
 pub use semver::Version;
 use std::{
     cmp,
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
 };
 
-pub mod ban;
-pub mod licenses;
+pub use codespan_reporting::diagnostic::Label;
 
-use licenses::{LicenseField, LicenseInfo};
+pub mod ban;
+pub mod inclusion_graph;
+pub mod licenses;
 
 #[derive(serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -237,165 +238,127 @@ impl Default for LintLevel {
 }
 
 #[derive(Debug)]
-pub struct CrateDetails {
+pub struct KrateDetails {
+    //pub pkg: cargo_metadata::Package,
     pub name: String,
     pub id: cargo_metadata::PackageId,
     pub version: Version,
+    pub source: Option<cargo_metadata::Source>,
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
-    pub root: Option<PathBuf>,
-    pub license: LicenseField,
+    pub manifest_path: PathBuf,
+    pub license: Option<String>,
     pub license_file: Option<PathBuf>,
     pub deps: Vec<cargo_metadata::Dependency>,
+    pub features: HashMap<String, Vec<String>>,
+    pub targets: Vec<cargo_metadata::Target>,
 }
 
-impl Default for CrateDetails {
+#[cfg(test)]
+impl Default for KrateDetails {
     fn default() -> Self {
         Self {
+            //pkg: cargo_metadata::Package {
             name: "".to_owned(),
+            version: Version::new(0, 1, 0),
+            authors: Vec::new(),
             id: cargo_metadata::PackageId {
                 repr: "".to_owned(),
             },
-            version: Version::new(0, 1, 0),
-            authors: Vec::new(),
-            repository: None,
+            source: None,
             description: None,
-            root: None,
-            license: LicenseField::default(),
-            license_file: None,
             deps: Vec::new(),
+            license: None,
+            license_file: None,
+            targets: Vec::new(),
+            features: HashMap::new(),
+            manifest_path: PathBuf::new(),
+            repository: None,
         }
     }
 }
 
-impl PartialOrd for CrateDetails {
+impl PartialOrd for KrateDetails {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for CrateDetails {
+impl Ord for KrateDetails {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        match self.name.cmp(&other.name) {
-            cmp::Ordering::Equal => self.version.cmp(&other.version),
-            o => o,
-        }
+        self.id.cmp(&other.id)
+        // match self.name.cmp(&other.name) {
+        //     cmp::Ordering::Equal => self.version.cmp(&other.version),
+        //     o => o,
+        // }
     }
 }
 
-impl PartialEq for CrateDetails {
+impl PartialEq for KrateDetails {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.version == other.version
+        self.id == other.id
     }
 }
 
-impl Eq for CrateDetails {}
+impl Eq for KrateDetails {}
 
-impl CrateDetails {
-    pub fn new(package: cargo_metadata::Package) -> Self {
+impl KrateDetails {
+    pub fn new(pkg: cargo_metadata::Package) -> Self {
         Self {
-            name: package.name,
-            id: package.id,
-            version: package.version,
-            authors: package.authors,
-            repository: package.repository,
-            license: package.license.map(LicenseField::new).unwrap_or_default(),
-            license_file: package.license_file,
-            description: package.description,
-            root: {
-                let mut mp = package.manifest_path;
-                mp.pop();
-                Some(mp)
-            },
+            name: pkg.name,
+            id: pkg.id,
+            version: pkg.version,
+            authors: pkg.authors,
+            repository: pkg.repository,
+            source: pkg.source,
+            targets: pkg.targets,
+            license: pkg.license.map(|lf| {
+                // cargo used to allow / in place of OR which is not valid
+                // in SPDX expression, we force correct it here
+                if lf.contains('/') {
+                    lf.replace("/", " OR ")
+                } else {
+                    lf
+                }
+            }),
+            license_file: pkg.license_file,
+            description: pkg.description,
+            manifest_path: pkg.manifest_path,
             deps: {
-                let mut deps = package.dependencies;
+                let mut deps = pkg.dependencies;
                 deps.par_sort_by(|a, b| a.name.cmp(&b.name));
                 deps
             },
+            features: pkg.features,
         }
-    }
-
-    pub fn licenses(&self) -> impl Iterator<Item = LicenseInfo<'_>> {
-        let root = self.root.as_ref();
-        let explicit = self
-            .license_file
-            .as_ref()
-            .and_then(|lf| root.map(|r| r.join(lf)));
-
-        // metadata licenses + inferred licenses + explicit license
-
-        self.license.iter().map(LicenseInfo::Metadata).chain(
-            find_license_files(root)
-                .into_iter()
-                .filter_map(move |found_path| {
-                    // If the license is specified in Cargo.toml, just
-                    // skip it to differentiate between what *might* be
-                    // a license vs what the crate maintainer explicitly
-                    // specified *is* a license
-                    if let Some(ref specified) = explicit {
-                        if *specified == found_path {
-                            return None;
-                        }
-                    }
-
-                    Some(LicenseInfo::InferredLicenseFile(found_path))
-                })
-                .chain(self.license_file.iter().filter_map(move |elf| {
-                    root.map(|r| LicenseInfo::ExplicitLicenseFile(r.join(elf)))
-                })),
-        )
     }
 }
 
-fn find_license_files(dir: Option<&PathBuf>) -> Vec<PathBuf> {
-    if let Some(dir) = dir {
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            let mut license_files: Vec<_> = entries
-                .filter_map(|e| {
-                    e.ok().and_then(|e| {
-                        let p = e.path();
-                        let file_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                        if p.is_file() && file_name.starts_with("LICENSE") {
-                            Some(p)
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .collect();
-
-            license_files.sort();
-            return license_files;
-        }
-    }
-
-    Vec::new()
-}
-
-pub struct Crates {
-    pub crates: Vec<CrateDetails>,
-    pub crate_map: HashMap<cargo_metadata::PackageId, usize>,
+pub struct Krates {
+    pub krates: Vec<KrateDetails>,
+    pub krate_map: HashMap<cargo_metadata::PackageId, usize>,
     pub resolved: cargo_metadata::Resolve,
+    pub lock_file: PathBuf,
 }
 
-impl Crates {
-    pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&CrateDetails> {
-        self.crate_map.get(id).map(|i| &self.crates[*i])
+impl Krates {
+    pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&KrateDetails> {
+        self.krate_map.get(id).map(|i| &self.krates[*i])
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &CrateDetails> {
-        self.crates.iter()
-    }
-}
-
-impl AsRef<[CrateDetails]> for Crates {
-    fn as_ref(&self) -> &[CrateDetails] {
-        &self.crates[..]
+    pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
+        self.krates.iter()
     }
 }
 
-pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Crates, Error> {
+impl AsRef<[KrateDetails]> for Krates {
+    fn as_ref(&self) -> &[KrateDetails] {
+        &self.krates[..]
+    }
+}
+
+pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
     let cargo_toml = root.as_ref().join("Cargo.toml");
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(cargo_toml)
@@ -406,7 +369,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Crates, Error> {
     let mut crate_infos: Vec<_> = metadata
         .packages
         .into_iter()
-        .map(CrateDetails::new)
+        .map(KrateDetails::new)
         .collect();
 
     crate_infos.par_sort();
@@ -425,10 +388,11 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Crates, Error> {
         .par_iter_mut()
         .for_each(|nodes| nodes.dependencies.par_sort());
 
-    Ok(Crates {
-        crates: crate_infos,
-        crate_map: map,
+    Ok(Krates {
+        krates: crate_infos,
+        krate_map: map,
         resolved,
+        lock_file: root.as_ref().join("Cargo.lock"),
     })
 }
 
@@ -472,4 +436,13 @@ impl<'a> slog::Value for CrateVersion<'a> {
     ) -> slog::Result {
         serializer.emit_arguments(key, &format_args!("{}", self.0))
     }
+}
+
+#[derive(Debug)]
+pub struct Diagnostic {
+    pub severity: codespan_reporting::diagnostic::Severity,
+    pub message: String,
+
+    pub primary: Label,
+    pub secondary: Vec<Label>,
 }

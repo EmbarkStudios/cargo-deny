@@ -27,7 +27,7 @@ const fn highlight() -> GraphHighlight {
 }
 
 #[derive(Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum GraphHighlight {
     /// Highlights the path to a duplicate dependency with the fewest number
     /// of total edges, which tends to make it the best candidate for removing
@@ -51,6 +51,7 @@ impl GraphHighlight {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     /// Disallow multiple versions of the same crate
     #[serde(default = "lint_warn")]
@@ -70,16 +71,36 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn sort(&mut self) {
+    pub fn validate(
+        mut self,
+        cfg_file: codespan::FileId,
+        contents: &str,
+    ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
         self.deny.par_sort();
         self.allow.par_sort();
         self.skip.par_sort();
+
+        Ok(ValidConfig {
+            multiple_versions: self.multiple_versions,
+            highlight: self.highlight,
+            deny: self.deny,
+            allow: self.allow,
+            skip: self.skip,
+        })
     }
+}
+
+pub struct ValidConfig {
+    pub multiple_versions: LintLevel,
+    pub highlight: GraphHighlight,
+    pub deny: Vec<CrateId>,
+    pub allow: Vec<CrateId>,
+    pub skip: Vec<CrateId>,
 }
 
 fn binary_search<'a>(
     arr: &'a [CrateId],
-    details: &crate::CrateDetails,
+    details: &crate::KrateDetails,
 ) -> Result<(usize, &'a CrateId), usize> {
     let lowest = VersionReq::exact(&Version::new(0, 0, 0));
 
@@ -96,6 +117,7 @@ fn binary_search<'a>(
             } else {
                 i
             };
+
             for (j, crate_) in arr[begin..].iter().enumerate() {
                 if crate_.name != details.name {
                     break;
@@ -105,6 +127,7 @@ fn binary_search<'a>(
                     return Ok((begin + j, crate_));
                 }
             }
+
             Err(i)
         }
     }
@@ -118,8 +141,8 @@ struct Node<'a> {
     version: &'a Version,
 }
 
-impl<'a, 'b: 'a> From<&'b crate::CrateDetails> for Node<'a> {
-    fn from(d: &'b crate::CrateDetails) -> Self {
+impl<'a, 'b: 'a> From<&'b crate::KrateDetails> for Node<'a> {
+    fn from(d: &'b crate::KrateDetails) -> Self {
         Self {
             name: &d.name,
             version: &d.version,
@@ -142,12 +165,12 @@ impl<'a> fmt::Display for Node<'a> {
 type Id = petgraph::graph::NodeIndex<u32>;
 
 fn append_dependency_chain<'a>(
-    crates: &'a crate::Crates,
+    crates: &'a crate::Krates,
     start: usize,
     graph: &mut Graph<Node<'a>, &'a str>,
     node_map: &mut HashMap<Node<'a>, Id>,
 ) {
-    let cd = &crates.crates[start];
+    let cd = &crates.krates[start];
 
     let root_node = Node::from(cd);
     let root_id = graph.add_node(root_node);
@@ -431,8 +454,8 @@ pub struct DupGraph {
 
 pub fn check_bans<OG>(
     log: slog::Logger,
-    crates: &crate::Crates,
-    cfg: &Config,
+    crates: &crate::Krates,
+    cfg: &ValidConfig,
     output_graph: Option<OG>,
 ) -> Result<(), Error>
 where
@@ -484,7 +507,7 @@ where
                     let mut dupes: HashMap<&str, Vec<_>> = HashMap::new();
 
                     for duplicate in multi_detector.2..i {
-                        let dest = Node::from(&crates.crates[duplicate]);
+                        let dest = Node::from(&crates.krates[duplicate]);
 
                         if let Some(id) = node_map.get(&dest) {
                             let mut nodes = vec![*id];
@@ -740,7 +763,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "rand_core".to_owned(),
                     version: Version::parse("0.3.1").unwrap(),
                     ..Default::default()
@@ -754,7 +777,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "serde".to_owned(),
                     version: Version::parse("1.0.94").unwrap(),
                     ..Default::default()
@@ -767,7 +790,7 @@ mod test {
 
         assert!(binary_search(
             &versions,
-            &crate::CrateDetails {
+            &crate::KrateDetails {
                 name: "nope".to_owned(),
                 version: Version::parse("1.0.0").unwrap(),
                 ..Default::default()
@@ -778,7 +801,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.43").unwrap(),
                     ..Default::default()
@@ -792,7 +815,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.2").unwrap(),
                     ..Default::default()
@@ -806,7 +829,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.2.0").unwrap(),
                     ..Default::default()
@@ -820,7 +843,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.0.99").unwrap(),
                     ..Default::default()
