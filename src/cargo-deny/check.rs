@@ -1,10 +1,11 @@
 use ansi_term::Color;
 use cargo_deny::{ban, licenses};
 use clap::arg_enum;
+use codespan_reporting::diagnostic::Diagnostic;
 use failure::{format_err, Error};
 use serde::Deserialize;
 use slog::info;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 arg_enum! {
@@ -48,15 +49,31 @@ struct Config {
     bans: Option<ban::Config>,
 }
 
-impl Config {
-    fn sort(&mut self) {
-        if let Some(lcfg) = self.licenses.as_mut() {
-            lcfg.sort();
-        }
+struct ValidatedConfig {
+    licenses: Option<licenses::ValidConfig>,
+    bans: Option<ban::ValidConfig>,
+}
 
-        if let Some(bcfg) = self.bans.as_mut() {
-            bcfg.sort();
-        }
+impl Config {
+    fn validate(
+        self,
+        files: &mut codespan::Files,
+        path: &Path,
+        contents: String,
+    ) -> Result<ValidatedConfig, Vec<Diagnostic>> {
+        let id = files.add(path.to_string_lossy(), contents.clone());
+
+        let licenses = match self.licenses {
+            Some(lc) => Some(lc.validate(id)?),
+            None => None,
+        };
+
+        let bans = match self.bans {
+            Some(b) => Some(b.validate(id, &contents)?),
+            None => None,
+        };
+
+        Ok(ValidatedConfig { licenses, bans })
     }
 }
 
@@ -64,10 +81,10 @@ pub fn cmd(
     log: slog::Logger,
     context_dir: PathBuf,
     args: Args,
-    crates: cargo_deny::Crates,
+    krates: cargo_deny::Krates,
     store: Option<licenses::LicenseStore>,
 ) -> Result<(), Error> {
-    let config = args
+    let cfg_path = args
         .config
         .or_else(|| Some("deny.toml".to_owned().into()))
         .map(|p| {
@@ -79,68 +96,88 @@ pub fn cmd(
         })
         .ok_or_else(|| format_err!("unable to determine config path"))?;
 
+    let mut files = codespan::Files::new();
+
     let mut cfg = {
-        let cfg_contents = std::fs::read_to_string(&config)
-            .map_err(|e| format_err!("failed to read config from {}: {}", config.display(), e))?;
+        let cfg_contents = std::fs::read_to_string(&cfg_path)
+            .map_err(|e| format_err!("failed to read config from {}: {}", cfg_path.display(), e))?;
 
         let mut cfg: Config = toml::from_str(&cfg_contents).map_err(|e| {
             format_err!(
                 "failed to deserialize config from {}: {}",
-                config.display(),
+                cfg_path.display(),
                 e
             )
         })?;
 
-        cfg.sort();
+        match cfg.validate(&mut files, &cfg_path, cfg_contents) {
+            Ok(vcfg) => vcfg,
+            Err(diags) => {
+                use codespan_reporting::term;
 
-        cfg
+                let writer =
+                    term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+                let config = term::Config::default();
+                for diag in &diags {
+                    term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
+                }
+
+                return Err(format_err!(
+                    "failed to validate configuration file {}",
+                    cfg_path.display()
+                ));
+            }
+        }
     };
 
-    info!(log, "checking crates"; "count" => crates.as_ref().len());
+    let lic_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::License {
+        if let Some(licenses) = cfg.licenses {
+            let gatherer =
+                licenses::Gatherer::new(log.new(slog::o!("stage" => "license_gather")))
+                    .with_store(std::sync::Arc::new(
+                        store.expect("we should have a license store"),
+                    ))
+                    .with_confidence_threshold(licenses.confidence_threshold);
 
-    if args.which == WhichCheck::All || args.which == WhichCheck::License {
-        if let Some(ref mut licenses) = cfg.licenses {
-            let ignored = licenses.get_ignore_licenses();
-
-            {
-                let mut timer = slog_perf::TimeReporter::new_with_level(
-                    "check-licenses",
-                    log.clone(),
-                    slog::Level::Debug,
-                );
-
-                let gatherer =
-                    licenses::Gatherer::new(log.new(slog::o!("stage" => "license_gather")))
-                        .with_store(std::sync::Arc::new(
-                            store.expect("we should have a license store"),
-                        ))
-                        .with_confidence_threshold(licenses.confidence_threshold);
-
-                let summary =
-                    timer.start_with("gather", || gatherer.gather(crates.as_ref(), ignored));
-
-                timer.start_with("check", || {
-                    licenses::check_licenses(
-                        log.new(slog::o!("stage" => "license_check")),
-                        summary,
-                        licenses,
-                    )
-                })?;
-            }
-
-            info!(log, "{}", Color::Green.paint("license check succeeded!"));
+            Some((gatherer.gather(krates.as_ref(), &mut files, Some(&licenses)), licenses))
+        } else {
+            None
         }
-    }
+    } else {
+        None
+    };
 
-    if args.which == WhichCheck::All || args.which == WhichCheck::Ban {
-        if let Some(ref bans) = cfg.bans {
+    let ban_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::Ban {
+        cfg.bans
+    } else {
+        None
+    };
+
+    let graph_out_dir = args.graph;
+
+    let (send, recv) = crossbeam::channel::unbounded();
+
+    let krates = &krates;
+    let mut inc_grapher = cargo_deny::inclusion_graph::Grapher::new(krates);
+
+    let (_, error) = rayon::join(move || {
+        if let Some((summary, lic_cfg)) = lic_cfg {
+            licenses::check_licenses(
+                log.new(slog::o!("stage" => "license_check")),
+                summary,
+                &lic_cfg,
+                send.clone(),
+            );
+        }
+
+        if let Some(ref bans) = ban_cfg {
             let mut timer = slog_perf::TimeReporter::new_with_level(
                 "check-bans",
                 log.clone(),
                 slog::Level::Debug,
             );
 
-            let output_graph = args.graph.map(|pb| {
+            let output_graph = graph_out_dir.map(|pb| {
                 let output_dir = pb.join("graph_output");
                 let _ = std::fs::remove_dir_all(&output_dir);
 
@@ -156,18 +193,53 @@ pub fn cmd(
                 }
             });
 
-            timer.start_with("check", || {
-                ban::check_bans(
-                    log.new(slog::o!("stage" => "ban_check")),
-                    &crates,
-                    bans,
-                    output_graph,
-                )
-            })?;
-
-            info!(log, "{}", Color::Green.paint("ban check succeeded!"));
+            ban::check_bans(
+                log.new(slog::o!("stage" => "ban_check")),
+                krates,
+                bans,
+                output_graph,
+            );
         }
-    }
+    }, move || {
+        use codespan_reporting::term;
 
-    Ok(())
+        let writer = term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+        let config = term::Config::default();
+
+        let mut error_count = 0;
+
+        for pack in recv {
+            let mut note = Some(inc_grapher.write_graph(&pack.krate_id).unwrap());
+
+            for (i, diag) in pack.diagnostics.into_iter().enumerate() {
+                if diag.severity == codespan_reporting::diagnostic::Severity::Error {
+                    error_count += 1;
+                }
+
+                let mut ediag = Diagnostic::new(diag.severity, diag.message, diag.primary);
+
+                if note.is_some() {
+                    ediag = ediag.with_notes(vec![note.take().unwrap()]);
+                }
+
+                if !diag.secondary.is_empty() {
+                    ediag = ediag.with_secondary_labels(diag.secondary);
+                }
+
+                term::emit(&mut writer.lock(), &config, &files, &ediag).unwrap();
+            }
+        }
+
+        if error_count > 0 {
+            Some(failure::format_err!("encountered {} errors", error_count))
+        } else {
+            None
+        }
+    });
+
+    if let Some(err) = error {
+        Err(err)
+    } else {
+        Ok(())
+    }
 }
