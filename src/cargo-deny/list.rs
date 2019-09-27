@@ -43,17 +43,16 @@ pub struct Args {
         short,
         long,
         default_value = "human",
-        raw(
-            possible_values = "&OutputFormat::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &OutputFormat::variants(),
+        case_insensitive = true,
     )]
     format: OutputFormat,
     /// Output coloring, only applies to 'human' format
     #[structopt(
         long,
         default_value = "auto",
-        raw(possible_values = "&ColorWhen::variants()", case_insensitive = "true")
+        possible_values = &ColorWhen::variants(),
+        case_insensitive = true,
     )]
     color: ColorWhen,
     /// This just determines if log messages are emitted, the log level specified
@@ -65,7 +64,8 @@ pub struct Args {
         short,
         long,
         default_value = "license",
-        raw(possible_values = "&Layout::variants()", case_insensitive = "true")
+        possible_values = &Layout::variants(),
+        case_insensitive = true,
     )]
     layout: Layout,
 }

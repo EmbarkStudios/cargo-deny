@@ -30,7 +30,8 @@ pub struct Args {
     /// The check(s) to perform
     #[structopt(
         default_value = "all",
-        raw(possible_values = "&WhichCheck::variants()", case_insensitive = "true")
+        possible_values = &WhichCheck::variants(),
+        case_insensitive = true,
     )]
     which: WhichCheck,
 }

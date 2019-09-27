@@ -37,7 +37,7 @@ struct Opts {
         short = "L",
         long = "log-level",
         default_value = "info",
-        parse(try_from_str = "parse_level"),
+        parse(try_from_str = parse_level),
         long_help = "The log level for messages, only log messages at or above the level will be emitted.
 
 Possible values:
