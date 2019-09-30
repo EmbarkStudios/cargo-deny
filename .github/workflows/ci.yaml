@@ -68,7 +68,8 @@ jobs:
       - name: cargo install
         uses: actions-rs/cargo@v1
         with:
-          command: install --path .
+          command: install
+          args: --path .
       - name: self check
         uses: actions-rs/cargo@v1
         with:
