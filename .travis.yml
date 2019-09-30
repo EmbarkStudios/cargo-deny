@@ -1,7 +1,6 @@
 language: rust
 
 stages:
-- test
 - name: deploy
   if: tag =~ /^\d+\.\d+\.\d+.*$/
 
@@ -21,58 +20,6 @@ matrix:
   - env: NIGHTLY=1
   fast_finish: true
   include:
-  #  _      _       _   
-  # | |    (_)     | |  
-  # | |     _ _ __ | |_ 
-  # | |    | | '_ \| __|
-  # | |____| | | | | |_ 
-  # |______|_|_| |_|\__|
-  - name: "stable lint"
-    stage: test
-    rust: stable
-    os: linux
-    script: .ci/lint.sh
-
-  #  _______        _   
-  # |__   __|      | |  
-  #    | | ___  ___| |_ 
-  #    | |/ _ \/ __| __|
-  #    | |  __/\__ \ |_ 
-  #    |_|\___||___/\__|
-  - name: "stable test linux"
-    stage: test
-    rust: stable
-    os: linux
-    script: .ci/test.sh
-
-  - name: "nightly test linux"
-    stage: test
-    rust: nightly
-    script: .ci/test.sh
-    env:
-    - NIGHTLY=1
-
-  - name: "stable test osx"
-    rust: stable
-    os: osx
-    script: .ci/test.sh
-
-  - name: "stable test windows"
-    rust: stable
-    os: windows
-    script: .ci/test.sh
-
-  - name: "self check"
-    stage: test
-    rust: stable
-    os: linux
-    env:
-    - TARGET=x86_64-unknown-linux-musl
-    script:
-    - .ci/install_musl.sh
-    - cargo fetch
-    - cargo install --target $TARGET --path .
-    - cargo deny check
 
   #  _____       _     _ _     _     
   # |  __ \     | |   | (_)   | |    
