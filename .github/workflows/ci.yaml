@@ -80,7 +80,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: --path .
+          # Install in debug mode since this part is sloooooow and
+          # release doesn't really matter much for runtime
+          args: --path . --debug
       - name: self check
         uses: actions-rs/cargo@v1
         with:
