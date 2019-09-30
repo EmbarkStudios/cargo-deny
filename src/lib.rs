@@ -213,7 +213,7 @@ use rayon::prelude::*;
 pub use semver::Version;
 use std::{
     cmp,
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     path::{Path, PathBuf},
 };
 
@@ -239,7 +239,6 @@ impl Default for LintLevel {
 
 #[derive(Debug)]
 pub struct KrateDetails {
-    //pub pkg: cargo_metadata::Package,
     pub name: String,
     pub id: cargo_metadata::PackageId,
     pub version: Version,
@@ -259,7 +258,6 @@ pub struct KrateDetails {
 impl Default for KrateDetails {
     fn default() -> Self {
         Self {
-            //pkg: cargo_metadata::Package {
             name: "".to_owned(),
             version: Version::new(0, 1, 0),
             authors: Vec::new(),
@@ -288,10 +286,6 @@ impl PartialOrd for KrateDetails {
 impl Ord for KrateDetails {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.id.cmp(&other.id)
-        // match self.name.cmp(&other.name) {
-        //     cmp::Ordering::Equal => self.version.cmp(&other.version),
-        //     o => o,
-        // }
     }
 }
 

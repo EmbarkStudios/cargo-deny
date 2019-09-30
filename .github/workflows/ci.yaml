@@ -54,7 +54,7 @@ jobs:
 
   self:
     name: Self Check
-    runs-on: ubunut-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1

@@ -2,10 +2,7 @@ use crate::{KrateDetails, Krates};
 use failure::Error;
 use petgraph::Graph;
 use rayon::prelude::*;
-use std::{
-    cmp,
-    collections::{hash_map::Entry, HashMap, HashSet},
-};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 pub type Pid = cargo_metadata::PackageId;
 type Nid = petgraph::graph::NodeIndex<u32>;

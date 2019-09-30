@@ -3,7 +3,6 @@ use cargo_deny::licenses;
 use clap::arg_enum;
 use failure::Error;
 use serde::Serialize;
-use slog::warn;
 use structopt::StructOpt;
 
 arg_enum! {
@@ -80,12 +79,9 @@ pub fn cmd(
     use licenses::LicenseInfo;
     type Pid = cargo_metadata::PackageId;
 
-    use std::{
-        collections::{BTreeMap, HashMap},
-        fmt::Write,
-    };
+    use std::{collections::BTreeMap, fmt::Write};
 
-    let gatherer = licenses::Gatherer::new(log.new(slog::o!("stage" => "license_gather")))
+    let gatherer = licenses::Gatherer::default()
         .with_store(std::sync::Arc::new(
             store.expect("we should have a license store"),
         ))
@@ -135,7 +131,7 @@ pub fn cmd(
             };
 
             match krate_lic_nfo.lic_info {
-                LicenseInfo::SPDXExpression { expr, nfo } => {
+                LicenseInfo::SPDXExpression { expr, .. } => {
                     for req in expr.requirements() {
                         let s = req.req.to_string();
 
@@ -159,7 +155,9 @@ pub fn cmd(
                 }
             }
 
-            crate_layout.crates.insert(krate_lic_nfo.krate.id.clone(), cur);
+            crate_layout
+                .crates
+                .insert(krate_lic_nfo.krate.id.clone(), cur);
         }
 
         // Drop the stderr log so all of its output is written first
@@ -177,8 +175,6 @@ pub fn cmd(
 
         Ok(write!(out, "{}@{}", parts.0, parts.1)?)
     }
-
-
 
     match args.format {
         OutputFormat::Human => {
@@ -217,12 +213,7 @@ pub fn cmd(
                                 };
 
                                 let parts = get_parts(krate_id);
-                                write!(
-                                    output,
-                                    "{}@{}",
-                                    color.paint(parts.0),
-                                    parts.1,
-                                )?;
+                                write!(output, "{}@{}", color.paint(parts.0), parts.1,)?;
                             } else {
                                 write_pid(&mut output, krate_id)?;
                             }
@@ -273,9 +264,7 @@ pub fn cmd(
                                 "{}@{} ({}): ",
                                 color.paint(parts.0),
                                 parts.1,
-                                Color::White.bold().paint(
-                                    krate.licenses.len().to_string()
-                                ),
+                                Color::White.bold().paint(krate.licenses.len().to_string()),
                             )?;
                         } else {
                             let parts = get_parts(&id);

@@ -2,14 +2,12 @@ use crate::{Diagnostic, KrateDetails, LintLevel};
 use codespan_reporting::diagnostic::{Label, Severity};
 use failure::Error;
 use rayon::prelude::*;
-use semver::{Version, VersionReq};
+use semver::VersionReq;
 use serde::Deserialize;
-use slog::{debug, error, trace, warn};
+use smallvec::SmallVec;
 use spdx::Licensee;
 use std::{
-    cmp,
-    collections::HashMap,
-    fmt,
+    cmp, fmt,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -41,7 +39,7 @@ pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
     pub expr_offset: u32,
-    pub expression: spdx::ValidExpression,
+    pub expression: spdx::Expression,
     pub license_files: Vec<FileSource>,
 }
 
@@ -191,7 +189,7 @@ impl Config {
 
         let mut clarifications = Vec::with_capacity(self.clarify.len());
         for c in self.clarify {
-            let expr = match spdx::ValidExpression::parse(c.expression.get_ref()) {
+            let expr = match spdx::Expression::parse(c.expression.get_ref()) {
                 Ok(validated) => validated,
                 Err(err) => {
                     let offset = (c.expression.start() + 1) as u32;
@@ -419,13 +417,26 @@ impl LicensePack {
         file: codespan::FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
-    ) -> Result<(String, spdx::ValidExpression), (String, Vec<Label>)> {
+    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
         use std::fmt::Write;
 
         let mut expr = String::new();
         let mut lic_count = 0;
 
         let mut synth_toml = String::new();
+        if let Some(ref err) = self.err {
+            write!(synth_toml, "license-files = \"{}\"", err).unwrap();
+            let len = synth_toml.len() as u32;
+            return Err((
+                synth_toml,
+                vec![Label::new(
+                    file,
+                    17..len - 1,
+                    "unable to gather license files",
+                )],
+            ));
+        }
+
         let mut fails = Vec::new();
         synth_toml.push_str("license-files = [\n");
 
@@ -436,16 +447,12 @@ impl LicensePack {
                 synth_toml,
                 "    {{ path = \"{}\", ",
                 lic_contents.path.strip_prefix(root_path).unwrap().display(),
-                //lic_contents.data.hash,
-            );
+            )
+            .unwrap();
 
             match &lic_contents.data {
                 PackFileData::Good(data) => {
-                    write!(
-                        synth_toml,
-                        "hash = 0x{:08x}, ",
-                        data.hash,
-                    );
+                    write!(synth_toml, "hash = 0x{:08x}, ", data.hash).unwrap();
 
                     let text = askalono::TextData::new(&data.content);
                     match strat.scan(&text) {
@@ -470,13 +477,15 @@ impl LicensePack {
                                                     synth_toml,
                                                     "score = {:.2}",
                                                     lic_match.score
-                                                );
+                                                )
+                                                .unwrap();
                                                 let start = synth_toml.len() as u32;
                                                 write!(
                                                     synth_toml,
                                                     ", license = \"{}\"",
                                                     identified.name
-                                                );
+                                                )
+                                                .unwrap();
                                                 let end = synth_toml.len() as u32;
 
                                                 fails.push(Label::new(
@@ -488,9 +497,11 @@ impl LicensePack {
                                         }
                                     } else {
                                         let start = synth_toml.len() as u32;
-                                        write!(synth_toml, "score = {:.2}", lic_match.score);
+                                        write!(synth_toml, "score = {:.2}", lic_match.score)
+                                            .unwrap();
                                         let end = synth_toml.len() as u32;
-                                        write!(synth_toml, ", license = \"{}\"", identified.name);
+                                        write!(synth_toml, ", license = \"{}\"", identified.name)
+                                            .unwrap();
 
                                         fails.push(Label::new(
                                             file,
@@ -502,7 +513,7 @@ impl LicensePack {
                                 None => {
                                     // If the license can't be matched with high enough confidence
                                     let start = synth_toml.len() as u32;
-                                    write!(synth_toml, "score = {:.2}", lic_match.score);
+                                    write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
                                     let end = synth_toml.len() as u32;
 
                                     fails.push(Label::new(
@@ -524,7 +535,7 @@ impl LicensePack {
                 }
                 PackFileData::Bad(err) => {
                     let start = synth_toml.len() as u32;
-                    write!(synth_toml, "err = \"{}\"", err);
+                    write!(synth_toml, "err = \"{}\"", err).unwrap();
                     let end = synth_toml.len() as u32;
 
                     fails.push(Label::new(
@@ -541,7 +552,7 @@ impl LicensePack {
         synth_toml.push_str("]");
 
         if fails.is_empty() {
-            Ok((synth_toml, spdx::ValidExpression::parse(&expr).unwrap()))
+            Ok((synth_toml, spdx::Expression::parse(&expr).unwrap()))
         } else {
             Err((synth_toml, fails))
         }
@@ -552,7 +563,7 @@ impl LicensePack {
 pub struct LicenseExprInfo {
     file_id: codespan::FileId,
     offset: u32,
-    source: LicenseExprSource,
+    pub source: LicenseExprSource,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -561,16 +572,19 @@ pub enum LicenseExprSource {
     Metadata,
     /// An override in the user's deny.toml
     UserOverride,
-    /// An override from an overlay,
+    /// An override from an overlay
     OverlayOverride,
     /// An expression synthesized from one or more LICENSE files
     LicenseFiles,
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum LicenseInfo {
+    /// An SPDX expression parsed or generated from the
+    /// license information provided by a crate
     SPDXExpression {
-        expr: spdx::ValidExpression,
+        expr: spdx::Expression,
         nfo: LicenseExprInfo,
     },
     /// No licenses were detected in the crate
@@ -584,7 +598,7 @@ pub struct KrateLicense<'a> {
 
     // Reasons for why the license was determined (or not!) when
     // gathering the license information
-    labels: smallvec::SmallVec<[Label; 1]>,
+    labels: SmallVec<[Label; 1]>,
 }
 
 pub struct Summary<'a> {
@@ -623,7 +637,6 @@ impl Default for LicenseStore {
 }
 
 pub struct Gatherer {
-    log: slog::Logger,
     store: Arc<LicenseStore>,
     threshold: f32,
 }
@@ -631,7 +644,6 @@ pub struct Gatherer {
 impl Default for Gatherer {
     fn default() -> Self {
         Self {
-            log: slog::Logger::root(slog::Discard, slog::o!()),
             store: Arc::new(LicenseStore::default()),
             threshold: 0.8,
         }
@@ -649,13 +661,6 @@ fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<u32> {
 }
 
 impl Gatherer {
-    pub fn new(log: slog::Logger) -> Self {
-        Self {
-            log,
-            ..Default::default()
-        }
-    }
-
     pub fn with_store(mut self, store: Arc<LicenseStore>) -> Self {
         self.store = store;
         self
@@ -678,7 +683,6 @@ impl Gatherer {
         files: &mut codespan::Files,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
-        let log = self.log;
         let mut summary = Summary::new(self.store);
 
         let threshold = self.threshold;
@@ -771,7 +775,7 @@ impl Gatherer {
 
                         // pub name: String,
                         // pub version: VersionReq,
-                        // pub expression: spdx::ValidExpression,
+                        // pub expression: spdx::Expression,
                         // pub license_files: Vec<FileSource>,
                         // Check to see if the clarification provided exactly matches
                         // the set of detected licenses, if they do, we use the clarification's
@@ -804,7 +808,7 @@ impl Gatherer {
                         // * It also just does basic lexing, so parens, duplicate operators,
                         // unpaired exceptions etc can all fail validation
 
-                        match spdx::ValidExpression::parse(license_field) {
+                        match spdx::Expression::parse(license_field) {
                             Ok(validated) => {
                                 let (id, span) = get_span("license");
 
@@ -856,7 +860,15 @@ impl Gatherer {
 
                                 let (new_source, offset) = {
                                     let source = fl.source(id);
-                                    (format!("{}files-expr = \"{}\"\n{}\n", source, expr.as_ref(), new_toml), (source.len() + 14) as u32)
+                                    (
+                                        format!(
+                                            "{}files-expr = \"{}\"\n{}\n",
+                                            source,
+                                            expr.as_ref(),
+                                            new_toml
+                                        ),
+                                        (source.len() + 14) as u32,
+                                    )
                                 };
 
                                 fl.update(id, new_source);
@@ -871,7 +883,7 @@ impl Gatherer {
                                         file_id: id,
                                         offset: expr_offset,
                                         source: LicenseExprSource::LicenseFiles,
-                                    }
+                                    },
                                 },
                                 labels,
                             };
@@ -930,17 +942,11 @@ pub struct DiagPack {
     pub diagnostics: Vec<crate::Diagnostic>,
 }
 
-#[allow(clippy::cognitive_complexity)]
 pub fn check_licenses(
-    log: slog::Logger,
     summary: Summary<'_>,
     cfg: &ValidConfig,
     sender: crossbeam::channel::Sender<DiagPack>,
-) -> Result<(), Error> {
-    use crate::{binary_search, contains};
-    let mut warnings = 0;
-    let mut errors = 0;
-
+) {
     for mut krate_lic_nfo in summary.nfos {
         let mut diagnostics = Vec::new();
 
@@ -966,7 +972,9 @@ pub fn check_licenses(
                     // "Apache-2.0 OR MIT" used in by a lot crates means that
                     // banning Apache-2.0, but allowing MIT, will allow the crate
                     // to be used as you are upholding at least one license requirement
-                    if let Ok(maybe_denied) = cfg.denied.binary_search_by(|a| a.partial_cmp(req).unwrap()) {
+                    if let Ok(maybe_denied) =
+                        cfg.denied.binary_search_by(|a| a.partial_cmp(req).unwrap())
+                    {
                         if cfg.denied[maybe_denied].satisfies(req) {
                             fail_reasons.push(Reason::Denied);
                             return false;
@@ -975,7 +983,10 @@ pub fn check_licenses(
 
                     // 2. A license that is specifically allowed will of course mean
                     // that the requirement is met.
-                    if let Ok(maybe_allowed) = cfg.allowed.binary_search_by(|a| a.partial_cmp(req).unwrap()) {
+                    if let Ok(maybe_allowed) = cfg
+                        .allowed
+                        .binary_search_by(|a| a.partial_cmp(req).unwrap())
+                    {
                         if cfg.allowed[maybe_allowed].satisfies(req) {
                             return true;
                         }
@@ -995,8 +1006,7 @@ pub fn check_licenses(
                                     return true;
                                 }
                                 // I don't know if this would actually even be useful to log something?
-                                LintLevel::Warn => {
-                                }
+                                LintLevel::Warn => {}
                             }
                         }
 
@@ -1010,8 +1020,7 @@ pub fn check_licenses(
                                     return true;
                                 }
                                 // I don't know if this would actually even be useful to log something?
-                                LintLevel::Warn => {
-                                }
+                                LintLevel::Warn => {}
                             }
                         }
                     }
@@ -1022,8 +1031,6 @@ pub fn check_licenses(
                 });
 
                 if let Err(failed) = eval_res {
-                    
-
                     let mut secondary = Vec::with_capacity(fail_reasons.len());
                     for (reason, failed_req) in fail_reasons.into_iter().zip(failed.into_iter()) {
                         secondary.push(Label::new(
@@ -1041,19 +1048,30 @@ pub fn check_licenses(
                     diagnostics.push(Diagnostic {
                         severity: Severity::Error,
                         message: "failed to satisfy license requirements".to_owned(),
-                        primary: Label::new(nfo.file_id, nfo.offset..nfo.offset + expr.as_ref().len() as u32, "license expression"),
+                        primary: Label::new(
+                            nfo.file_id,
+                            nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                            "license expression",
+                        ),
                         secondary,
                     });
 
                     diagnostics.push(Diagnostic {
                         severity: Severity::Note,
-                        message: format!("license expression retrieved via {}", match nfo.source {
-                            LicenseExprSource::Metadata => "Cargo.toml `license`",
-                            LicenseExprSource::UserOverride => "user override",
-                            LicenseExprSource::LicenseFiles => "LICENSE file(s)",
-                            LicenseExprSource::OverlayOverride => unreachable!(),
-                        }),
-                        primary: Label::new(nfo.file_id, nfo.offset..nfo.offset + expr.as_ref().len() as u32, "license expression"),
+                        message: format!(
+                            "license expression retrieved via {}",
+                            match nfo.source {
+                                LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                LicenseExprSource::UserOverride => "user override",
+                                LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                LicenseExprSource::OverlayOverride => unreachable!(),
+                            }
+                        ),
+                        primary: Label::new(
+                            nfo.file_id,
+                            nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                            "license expression",
+                        ),
                         secondary: Vec::from(&krate_lic_nfo.labels[..]),
                     });
                 }
@@ -1083,6 +1101,29 @@ pub fn check_licenses(
             sender.send(pack).unwrap();
         }
     }
+}
 
-    Ok(())
+#[cfg(test)]
+mod test {
+    #[test]
+    fn normalizes_line_endings() {
+        let pf = super::get_file_source(std::path::PathBuf::from("./tests/LICENSE-RING"));
+
+        let expected = {
+            let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();
+            text.replace("\r\n", "\n")
+        };
+
+        let expected_hash = 0xbd0e_ed23;
+
+        if let super::PackFileData::Good(lf) = pf.data {
+            if lf.hash != expected_hash {
+                eprintln!("hash: {:#x} != {:#x}", expected_hash, lf.hash);
+
+                for (i, (a, b)) in lf.content.chars().zip(expected.chars()).enumerate() {
+                    assert_eq!(a, b, "character @ {}", i);
+                }
+            }
+        }
+    }
 }

@@ -73,8 +73,8 @@ pub struct Config {
 impl Config {
     pub fn validate(
         mut self,
-        cfg_file: codespan::FileId,
-        contents: &str,
+        _cfg_file: codespan::FileId,
+        _contents: &str,
     ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
         self.deny.par_sort();
         self.allow.par_sort();
