@@ -73,4 +73,5 @@ jobs:
       - name: self check
         uses: actions-rs/cargo@v1
         with:
-          command: deny check
+          command: deny
+          args: check
