@@ -453,9 +453,8 @@ pub struct DupGraph {
 }
 
 pub fn check_bans<OG>(
-    log: slog::Logger,
-    crates: &crate::Krates,
-    cfg: &ValidConfig,
+    krates: &crate::Krates,
+    cfg: ValidConfig,
     output_graph: Option<OG>,
 ) -> Result<(), Error>
 where

@@ -263,17 +263,6 @@ impl fmt::Debug for FileSource {
     }
 }
 
-impl slog::Value for FileSource {
-    fn serialize(
-        &self,
-        _record: &slog::Record<'_>,
-        key: slog::Key,
-        serializer: &mut dyn slog::Serializer,
-    ) -> slog::Result {
-        serializer.emit_arguments(key, &format_args!("{:#?}", self))
-    }
-}
-
 fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
     let entries = std::fs::read_dir(dir)?;
     Ok(entries
@@ -936,16 +925,10 @@ impl Gatherer {
     }
 }
 
-pub struct DiagPack {
-    // The particular package that the diagnostics pertain to
-    pub krate_id: cargo_metadata::PackageId,
-    pub diagnostics: Vec<crate::Diagnostic>,
-}
-
 pub fn check_licenses(
     summary: Summary<'_>,
     cfg: &ValidConfig,
-    sender: crossbeam::channel::Sender<DiagPack>,
+    sender: crossbeam::channel::Sender<crate::DiagPack>,
 ) {
     for mut krate_lic_nfo in summary.nfos {
         let mut diagnostics = Vec::new();
@@ -1045,35 +1028,39 @@ pub fn check_licenses(
                         ));
                     }
 
-                    diagnostics.push(Diagnostic {
-                        severity: Severity::Error,
-                        message: "failed to satisfy license requirements".to_owned(),
-                        primary: Label::new(
-                            nfo.file_id,
-                            nfo.offset..nfo.offset + expr.as_ref().len() as u32,
-                            "license expression",
-                        ),
-                        secondary,
-                    });
+                    diagnostics.push(
+                        Diagnostic::new(
+                            Severity::Error,
+                            "failed to satisfy license requirements",
+                            Label::new(
+                                nfo.file_id,
+                                nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                "license expression",
+                            ),
+                        )
+                        .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                    );
 
-                    diagnostics.push(Diagnostic {
-                        severity: Severity::Note,
-                        message: format!(
-                            "license expression retrieved via {}",
-                            match nfo.source {
-                                LicenseExprSource::Metadata => "Cargo.toml `license`",
-                                LicenseExprSource::UserOverride => "user override",
-                                LicenseExprSource::LicenseFiles => "LICENSE file(s)",
-                                LicenseExprSource::OverlayOverride => unreachable!(),
-                            }
-                        ),
-                        primary: Label::new(
-                            nfo.file_id,
-                            nfo.offset..nfo.offset + expr.as_ref().len() as u32,
-                            "license expression",
-                        ),
-                        secondary: Vec::from(&krate_lic_nfo.labels[..]),
-                    });
+                    diagnostics.push(
+                        Diagnostic::new(
+                            Severity::Note,
+                            format!(
+                                "license expression retrieved via {}",
+                                match nfo.source {
+                                    LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                    LicenseExprSource::UserOverride => "user override",
+                                    LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                    LicenseExprSource::OverlayOverride => unreachable!(),
+                                }
+                            ),
+                            Label::new(
+                                nfo.file_id,
+                                nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                "license expression",
+                            ),
+                        )
+                        .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                    );
                 }
             }
             LicenseInfo::Unlicensed => {
@@ -1083,18 +1070,20 @@ pub fn check_licenses(
                     LintLevel::Deny => Severity::Error,
                 };
 
-                diagnostics.push(Diagnostic {
-                    severity,
-                    message: format!("{} is unlicensed", krate_lic_nfo.krate.id),
-                    primary: krate_lic_nfo.labels.pop().unwrap(),
-                    secondary: Vec::from(&krate_lic_nfo.labels[..]),
-                });
+                diagnostics.push(
+                    Diagnostic::new(
+                        severity,
+                        format!("{} is unlicensed", krate_lic_nfo.krate.id),
+                        krate_lic_nfo.labels.pop().unwrap(),
+                    )
+                    .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                );
             }
         }
 
         if !diagnostics.is_empty() {
-            let pack = DiagPack {
-                krate_id: krate_lic_nfo.krate.id.clone(),
+            let pack = crate::DiagPack {
+                krate_id: Some(krate_lic_nfo.krate.id.clone()),
                 diagnostics,
             };
 

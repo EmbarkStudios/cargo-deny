@@ -76,7 +76,7 @@ impl Config {
 }
 
 pub fn cmd(
-    log: slog::Logger,
+    log_level: log::LevelFilter,
     context_dir: PathBuf,
     args: Args,
     krates: cargo_deny::Krates,
@@ -160,7 +160,16 @@ pub fn cmd(
     let krates = &krates;
     let mut inc_grapher = cargo_deny::inclusion_graph::Grapher::new(krates);
 
-    let (_, error) = rayon::join(
+    use codespan_reporting::diagnostic::Severity;
+
+    let max_severity = match log_level {
+        log::LevelFilter::Off => None,
+        log::LevelFilter::Debug => Some(Severity::Help),
+        log::LevelFilter::Error => Some(Severity::Error),
+        log::LevelFilter::Info => Some(Severity::Note),
+        log::LevelFilter::Trace => Some(Severity::Help),
+        log::LevelFilter::Warn => Some(Severity::Warning),
+    };
         move || {
             if let Some((summary, lic_cfg)) = lic_cfg {
                 licenses::check_licenses(summary, &lic_cfg, send.clone());
@@ -201,24 +210,29 @@ pub fn cmd(
             let mut error_count = 0;
 
             for pack in recv {
-                let mut note = Some(inc_grapher.write_graph(&pack.krate_id).unwrap());
+                let mut note = pack
+                    .krate_id
+                    .map(|pid| inc_grapher.write_graph(&pid).unwrap());
 
-                for diag in pack.diagnostics.into_iter() {
-                    if diag.severity == codespan_reporting::diagnostic::Severity::Error {
+                for mut diag in pack.diagnostics.into_iter() {
+                    if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
                         error_count += 1;
                     }
 
-                    let mut ediag = Diagnostic::new(diag.severity, diag.message, diag.primary);
+                    match max_severity {
+                        Some(max) => {
+                            if diag.severity < max {
+                                continue;
+                            }
+                        }
+                        None => continue,
+                    }
 
                     if note.is_some() {
-                        ediag = ediag.with_notes(vec![note.take().unwrap()]);
+                        diag = diag.with_notes(vec![note.take().unwrap()]);
                     }
 
-                    if !diag.secondary.is_empty() {
-                        ediag = ediag.with_secondary_labels(diag.secondary);
-                    }
-
-                    term::emit(&mut writer.lock(), &config, &files, &ediag).unwrap();
+                    term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
                 }
             }
 

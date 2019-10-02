@@ -71,7 +71,6 @@ pub struct Args {
 
 #[allow(clippy::cognitive_complexity)]
 pub fn cmd(
-    log: slog::Logger,
     args: Args,
     crates: cargo_deny::Krates,
     store: Option<licenses::LicenseStore>,
@@ -159,9 +158,6 @@ pub fn cmd(
                 .crates
                 .insert(krate_lic_nfo.krate.id.clone(), cur);
         }
-
-        // Drop the stderr log so all of its output is written first
-        drop(log);
     }
 
     fn get_parts(pid: &Pid) -> (&str, &str) {

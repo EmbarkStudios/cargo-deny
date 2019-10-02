@@ -421,22 +421,8 @@ pub fn hash(data: &[u8]) -> u32 {
 
 pub struct CrateVersion<'a>(pub &'a semver::Version);
 
-impl<'a> slog::Value for CrateVersion<'a> {
-    fn serialize(
-        &self,
-        _record: &slog::Record<'_>,
-        key: slog::Key,
-        serializer: &mut dyn slog::Serializer,
-    ) -> slog::Result {
-        serializer.emit_arguments(key, &format_args!("{}", self.0))
-    }
-}
-
-#[derive(Debug)]
-pub struct Diagnostic {
-    pub severity: codespan_reporting::diagnostic::Severity,
-    pub message: String,
-
-    pub primary: Label,
-    pub secondary: Vec<Label>,
+pub struct DiagPack {
+    // The particular package that the diagnostics pertain to
+    pub krate_id: Option<cargo_metadata::PackageId>,
+    pub diagnostics: Vec<codespan_reporting::diagnostic::Diagnostic>,
 }
