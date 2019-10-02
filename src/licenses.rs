@@ -1,5 +1,5 @@
-use crate::{Diagnostic, KrateDetails, LintLevel};
-use codespan_reporting::diagnostic::{Label, Severity};
+use crate::{KrateDetails, LintLevel};
+use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use failure::Error;
 use rayon::prelude::*;
 use semver::VersionReq;
@@ -119,8 +119,6 @@ impl Config {
         self,
         cfg_file: codespan::FileId,
     ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
-        use codespan_reporting::diagnostic::Diagnostic;
-
         let mut diagnostics = Vec::new();
 
         let mut parse_license =
