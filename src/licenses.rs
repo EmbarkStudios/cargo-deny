@@ -639,11 +639,19 @@ impl Default for Gatherer {
 
 #[inline]
 fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<u32> {
-    let start = content.find(key).unwrap();
-    let val_start = content[start..].find(" = \"").unwrap();
-    let val_end = content[start + val_start..].find("\"\n").unwrap();
+    let mut offset = 0;
+    let val_start = loop {
+        let start = content[offset..].find('\n').unwrap() + 1;
+        if content[start + offset..].starts_with(key) {
+            break start + offset + key.len();
+        }
 
-    let start = start as u32 + val_start as u32 + 4;
+        offset += start;
+    };
+
+    let val_end = content[val_start..].find("\"\n").unwrap();
+
+    let start = val_start as u32 + 4;
     start..start + val_end as u32 - 4
 }
 
@@ -1036,7 +1044,7 @@ pub fn check_licenses(
                                 "license expression",
                             ),
                         )
-                        .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                        .with_secondary_labels(secondary),
                     );
 
                     diagnostics.push(
