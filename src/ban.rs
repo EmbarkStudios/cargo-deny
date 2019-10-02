@@ -916,7 +916,7 @@ mod test {
 
     #[test]
     fn binary_search_() {
-        let mut versions = vec![
+        let versions = [
             CrateId {
                 name: "unicase".to_owned(),
                 version: VersionReq::parse("=1.4.2").unwrap(),
@@ -998,6 +998,15 @@ mod test {
                 version: VersionReq::parse(">0.1.43").unwrap(),
             },
         ];
+
+        let mut versions: Vec<_> = versions
+            .iter()
+            .map(|v| super::KrateId {
+                name: v.name.clone(),
+                version: v.version.clone(),
+                span: 0..0,
+            })
+            .collect();
 
         versions.sort();
 
