@@ -9,7 +9,7 @@ the license requirements of every crate in your dependency graph.
 license = "MIT OR Apache-2.0"
 ```
 
-## Allowance
+## Config
 
 ```toml
 [license]
