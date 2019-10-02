@@ -147,11 +147,15 @@ pub fn cmd(
         None
     };
 
-    let ban_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::Ban {
-        cfg.bans
-    } else {
-        None
-    };
+    let (ban_cfg, lock_id, lock_contents) =
+        if args.which == WhichCheck::All || args.which == WhichCheck::Ban {
+            let lock_contents = std::fs::read_to_string(&krates.lock_file)?;
+            let lock_id = files.add(krates.lock_file.to_string_lossy(), lock_contents.clone());
+
+            (cfg.bans, Some(lock_id), Some(lock_contents))
+        } else {
+            (None, None, None)
+        };
 
     let graph_out_dir = args.graph;
 
@@ -170,12 +174,14 @@ pub fn cmd(
         log::LevelFilter::Trace => Some(Severity::Help),
         log::LevelFilter::Warn => Some(Severity::Warning),
     };
+
+    let (check_error, error) = rayon::join(
         move || {
             if let Some((summary, lic_cfg)) = lic_cfg {
                 licenses::check_licenses(summary, &lic_cfg, send.clone());
             }
 
-            if let Some(ref bans) = ban_cfg {
+            if let Some(bans) = ban_cfg {
                 let output_graph = graph_out_dir.map(|pb| {
                     let output_dir = pb.join("graph_output");
                     let _ = std::fs::remove_dir_all(&output_dir);
@@ -192,13 +198,16 @@ pub fn cmd(
                     }
                 });
 
-                let _: Result<(), _> = ban::check_bans(
-                    log.new(slog::o!("stage" => "ban_check")),
+                return ban::check_bans(
                     krates,
                     bans,
+                    (lock_id.unwrap(), &lock_contents.unwrap()),
                     output_graph,
+                    send.clone(),
                 );
             }
+
+            Ok(())
         },
         move || {
             use codespan_reporting::term;
@@ -245,6 +254,8 @@ pub fn cmd(
     );
 
     if let Some(err) = error {
+        Err(err)
+    } else if let Err(err) = check_error {
         Err(err)
     } else {
         Ok(())
