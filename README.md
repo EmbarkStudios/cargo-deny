@@ -191,6 +191,12 @@ that use them.
 
 ![Imgur](https://i.imgur.com/14l8a5K.png)
 
+## Building
+
+You need to have the following components installed to build this project:
+* OpenSSL 1.0.1/1.0.2/1.1.0 or LibreSSL 2.5/2.6.0
+* CMake
+
 ## Contributing
 
 We welcome community contributions to this project.
