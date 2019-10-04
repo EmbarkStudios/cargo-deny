@@ -178,6 +178,7 @@ pub fn cmd(
     let (check_error, error) = rayon::join(
         move || {
             if let Some((summary, lic_cfg)) = lic_cfg {
+                log::info!("checking licenses...");
                 licenses::check_licenses(summary, &lic_cfg, send.clone());
             }
 
@@ -198,6 +199,7 @@ pub fn cmd(
                     }
                 });
 
+                log::info!("checking bans...");
                 return ban::check_bans(
                     krates,
                     bans,

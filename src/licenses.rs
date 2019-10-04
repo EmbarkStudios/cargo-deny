@@ -14,10 +14,6 @@ use std::{
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.gz");
 
-const fn lint_warn() -> LintLevel {
-    LintLevel::Warn
-}
-
 const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
@@ -80,6 +76,30 @@ fn iter_clarifications<'a>(
     })
 }
 
+/// Allows agreement of licensing terms based on whether the license is
+/// [OSI Approved](https://opensource.org/licenses) or [considered free](
+/// https://www.gnu.org/licenses/license-list.en.html) by the FSF
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BlanketAgreement {
+    /// The license must be both OSI Approved and FSF/Free Libre
+    Both,
+    /// The license can be be either OSI Approved or FSF/Free Libre
+    Either,
+    /// The license must be OSI Approved but not FSF/Free Libre
+    OsiOnly,
+    /// The license must be FSF/Free Libre but not OSI Approved
+    FsfOnly,
+    /// The license is not regarded specially
+    Neither,
+}
+
+impl Default for BlanketAgreement {
+    fn default() -> Self {
+        BlanketAgreement::Neither
+    }
+}
+
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
@@ -87,19 +107,10 @@ pub struct Config {
     /// determined for a crate
     #[serde(default = "lint_deny")]
     pub unlicensed: LintLevel,
-    // /// If true, will cause failures if some kind of license is specified
-    // /// but it is not known, ie, is not an SDPX identifier
-    // #[serde(default = "lint_warn")]
-    // pub unknown: LintLevel,
-    /// Determines what happens when a license is not explicitly allowed
-    /// or denied, but it is a [OSI Approved](https://opensource.org/licenses)
-    #[serde(default = "lint_warn")]
-    pub osi_approved: LintLevel,
-    /// Determines what happens when a license is not explicitly allowed
-    /// or denied, but it is [considered free](https://www.gnu.org/licenses/license-list.en.html)
-    /// by the FSF
-    #[serde(default = "lint_warn")]
-    pub fsf_free_libre: LintLevel,
+    /// Agrees to licenses based on whether they are OSI Approved
+    /// or FSF/Free Libre
+    #[serde(default)]
+    pub allow_osi_fsf_free: BlanketAgreement,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     #[serde(default = "confidence_threshold")]
@@ -110,6 +121,8 @@ pub struct Config {
     /// Licenses that will be allowed in a license expression
     #[serde(default)]
     pub allow: Vec<toml::Spanned<String>>,
+    /// Overrides the license expression used for a particular crate as long as it
+    /// exactly matches the specified license files and hashes
     #[serde(default)]
     pub clarify: Vec<Clarification>,
 }
@@ -222,8 +235,7 @@ impl Config {
             Ok(ValidConfig {
                 file_id: cfg_file,
                 unlicensed: self.unlicensed,
-                osi_approved: self.osi_approved,
-                fsf_free_libre: self.fsf_free_libre,
+                allow_osi_fsf_free: self.allow_osi_fsf_free,
                 confidence_threshold: self.confidence_threshold,
                 clarifications,
                 denied,
@@ -236,8 +248,7 @@ impl Config {
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
     pub unlicensed: LintLevel,
-    pub osi_approved: LintLevel,
-    pub fsf_free_libre: LintLevel,
+    pub allow_osi_fsf_free: BlanketAgreement,
     pub confidence_threshold: f32,
     pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
@@ -948,8 +959,8 @@ pub fn check_licenses(
                 enum Reason {
                     Denied,
                     NotExplicitlyAllowed,
-                    IsOsiApproved,
                     IsFsfFree,
+                    IsOsiApproved,
                 }
 
                 let mut fail_reasons = smallvec::SmallVec::<[Reason; 2]>::new();
@@ -985,31 +996,37 @@ pub fn check_licenses(
                     // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
                     // allowances
                     if let spdx::LicenseItem::SPDX { id, .. } = req.license {
-                        if id.is_fsf_free_libre() {
-                            match cfg.fsf_free_libre {
-                                LintLevel::Deny => {
-                                    fail_reasons.push(Reason::IsFsfFree);
-                                    return false;
-                                }
-                                LintLevel::Allow => {
+                        match cfg.allow_osi_fsf_free {
+                            BlanketAgreement::Neither => {}
+                            BlanketAgreement::Either => {
+                                if id.is_fsf_free_libre() || id.is_osi_approved() {
                                     return true;
                                 }
-                                // I don't know if this would actually even be useful to log something?
-                                LintLevel::Warn => {}
                             }
-                        }
-
-                        if id.is_osi_approved() {
-                            match cfg.osi_approved {
-                                LintLevel::Deny => {
-                                    fail_reasons.push(Reason::IsOsiApproved);
-                                    return false;
-                                }
-                                LintLevel::Allow => {
+                            BlanketAgreement::Both => {
+                                if id.is_fsf_free_libre() && id.is_osi_approved() {
                                     return true;
                                 }
-                                // I don't know if this would actually even be useful to log something?
-                                LintLevel::Warn => {}
+                            }
+                            BlanketAgreement::OsiOnly => {
+                                if id.is_osi_approved() {
+                                    if id.is_fsf_free_libre() {
+                                        fail_reasons.push(Reason::IsFsfFree);
+                                        return false;
+                                    } else {
+                                        return true;
+                                    }
+                                }
+                            }
+                            BlanketAgreement::FsfOnly => {
+                                if id.is_fsf_free_libre() {
+                                    if id.is_osi_approved() {
+                                        fail_reasons.push(Reason::IsOsiApproved);
+                                        return false;
+                                    } else {
+                                        return true;
+                                    }
+                                }
                             }
                         }
                     }
@@ -1030,7 +1047,7 @@ pub fn check_licenses(
                                 Reason::NotExplicitlyAllowed => "not explicitly allowed",
                                 Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
                                 Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
-                            }
+                            },
                         ));
                     }
 

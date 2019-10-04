@@ -21,6 +21,7 @@ skip = [
 [licenses]
 unlicensed = "deny"
 unknown = "deny"
+allow-osi-fsf-free = "neither"
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
 allow = [
