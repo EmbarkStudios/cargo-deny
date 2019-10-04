@@ -944,6 +944,7 @@ impl Gatherer {
 
 pub fn check_licenses(
     summary: Summary<'_>,
+    max_severity: Option<Severity>,
     cfg: &ValidConfig,
     sender: crossbeam::channel::Sender<crate::DiagPack>,
 ) {
@@ -961,9 +962,11 @@ pub fn check_licenses(
                     NotExplicitlyAllowed,
                     IsFsfFree,
                     IsOsiApproved,
+                    IsBothFreeAndOsi,
+                    ExplicitAllowance,
                 }
 
-                let mut fail_reasons = smallvec::SmallVec::<[Reason; 2]>::new();
+                let mut reasons = smallvec::SmallVec::<[Reason; 8]>::new();
 
                 let eval_res = expr.evaluate_with_failures(|req| {
                     // 1. Licenses explicitly denied are of course hard failures,
@@ -976,7 +979,7 @@ pub fn check_licenses(
                         cfg.denied.binary_search_by(|a| a.partial_cmp(req).unwrap())
                     {
                         if cfg.denied[maybe_denied].satisfies(req) {
-                            fail_reasons.push(Reason::Denied);
+                            reasons.push(Reason::Denied);
                             return false;
                         }
                     }
@@ -988,6 +991,7 @@ pub fn check_licenses(
                         .binary_search_by(|a| a.partial_cmp(req).unwrap())
                     {
                         if cfg.allowed[maybe_allowed].satisfies(req) {
+                            reasons.push(Reason::ExplicitAllowance);
                             return true;
                         }
                     }
@@ -999,21 +1003,27 @@ pub fn check_licenses(
                         match cfg.allow_osi_fsf_free {
                             BlanketAgreement::Neither => {}
                             BlanketAgreement::Either => {
-                                if id.is_fsf_free_libre() || id.is_osi_approved() {
+                                if id.is_osi_approved() {
+                                    reasons.push(Reason::IsOsiApproved);
+                                    return true;
+                                } else if id.is_fsf_free_libre() {
+                                    reasons.push(Reason::IsFsfFree);
                                     return true;
                                 }
                             }
                             BlanketAgreement::Both => {
                                 if id.is_fsf_free_libre() && id.is_osi_approved() {
+                                    reasons.push(Reason::IsBothFreeAndOsi);
                                     return true;
                                 }
                             }
                             BlanketAgreement::OsiOnly => {
                                 if id.is_osi_approved() {
                                     if id.is_fsf_free_libre() {
-                                        fail_reasons.push(Reason::IsFsfFree);
+                                        reasons.push(Reason::IsFsfFree);
                                         return false;
                                     } else {
+                                        reasons.push(Reason::IsOsiApproved);
                                         return true;
                                     }
                                 }
@@ -1021,9 +1031,10 @@ pub fn check_licenses(
                             BlanketAgreement::FsfOnly => {
                                 if id.is_fsf_free_libre() {
                                     if id.is_osi_approved() {
-                                        fail_reasons.push(Reason::IsOsiApproved);
+                                        reasons.push(Reason::IsOsiApproved);
                                         return false;
                                     } else {
+                                        reasons.push(Reason::IsFsfFree);
                                         return true;
                                     }
                                 }
@@ -1032,58 +1043,95 @@ pub fn check_licenses(
                     }
 
                     // 4. Whelp, this license just won't do!
-                    fail_reasons.push(Reason::NotExplicitlyAllowed);
+                    reasons.push(Reason::NotExplicitlyAllowed);
                     false
                 });
 
-                if let Err(failed) = eval_res {
-                    let mut secondary = Vec::with_capacity(fail_reasons.len());
-                    for (reason, failed_req) in fail_reasons.into_iter().zip(failed.into_iter()) {
-                        secondary.push(Label::new(
-                            nfo.file_id,
-                            nfo.offset + failed_req.span.start..nfo.offset + failed_req.span.end,
-                            match reason {
-                                Reason::Denied => "explicitly denied",
-                                Reason::NotExplicitlyAllowed => "not explicitly allowed",
-                                Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
-                                Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
-                            },
-                        ));
+                match eval_res {
+                    Err(_) => {
+                        let mut secondary = Vec::with_capacity(reasons.len());
+                        for (reason, failed_req) in reasons.into_iter().zip(expr.requirements()) {
+                            secondary.push(Label::new(
+                                nfo.file_id,
+                                nfo.offset + failed_req.span.start..nfo.offset + failed_req.span.end,
+                                match reason {
+                                    Reason::Denied => "explicitly denied",
+                                    Reason::NotExplicitlyAllowed => "not explicitly allowed",
+                                    Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
+                                    Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
+                                    Reason::ExplicitAllowance => "license is explicitly allowed",
+                                    Reason::IsBothFreeAndOsi => "license is FSF approved AND OSI approved",
+                                },
+                            ));
+                        }
+
+                        diagnostics.push(
+                            Diagnostic::new(
+                                Severity::Error,
+                                "failed to satisfy license requirements",
+                                Label::new(
+                                    nfo.file_id,
+                                    nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                    format!(
+                                        "license expression retrieved via {}",
+                                        match nfo.source {
+                                            LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                            LicenseExprSource::UserOverride => "user override",
+                                            LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                            LicenseExprSource::OverlayOverride => unreachable!(),
+                                        }
+                                    ),
+                                ),
+                            )
+                            .with_secondary_labels(
+                                krate_lic_nfo
+                                    .labels
+                                    .iter()
+                                    .cloned()
+                                    .chain(secondary.into_iter()),
+                            ),
+                        );
                     }
+                    Ok(_) => {
+                        if max_severity == Some(Severity::Help) {
+                            let mut secondary = Vec::with_capacity(reasons.len());
+                            for (reason, req) in reasons.into_iter().zip(expr.requirements()) {
+                                secondary.push(Label::new(
+                                    nfo.file_id,
+                                    nfo.offset + req.span.start..nfo.offset + req.span.end,
+                                    match reason {
+                                        Reason::Denied => "explicitly denied",
+                                        Reason::NotExplicitlyAllowed => "not explicitly allowed",
+                                        Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
+                                        Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
+                                        Reason::ExplicitAllowance => "license is explicitly allowed",
+                                        Reason::IsBothFreeAndOsi => "license is FSF approved AND OSI approved",
+                                    },
+                                ));
+                            }
 
-                    diagnostics.push(
-                        Diagnostic::new(
-                            Severity::Error,
-                            "failed to satisfy license requirements",
-                            Label::new(
-                                nfo.file_id,
-                                nfo.offset..nfo.offset + expr.as_ref().len() as u32,
-                                "license expression",
-                            ),
-                        )
-                        .with_secondary_labels(secondary),
-                    );
-
-                    diagnostics.push(
-                        Diagnostic::new(
-                            Severity::Note,
-                            format!(
-                                "license expression retrieved via {}",
-                                match nfo.source {
-                                    LicenseExprSource::Metadata => "Cargo.toml `license`",
-                                    LicenseExprSource::UserOverride => "user override",
-                                    LicenseExprSource::LicenseFiles => "LICENSE file(s)",
-                                    LicenseExprSource::OverlayOverride => unreachable!(),
-                                }
-                            ),
-                            Label::new(
-                                nfo.file_id,
-                                nfo.offset..nfo.offset + expr.as_ref().len() as u32,
-                                "license expression",
-                            ),
-                        )
-                        .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
-                    );
+                            diagnostics.push(
+                                Diagnostic::new(
+                                    Severity::Help,
+                                    format!(
+                                        "license expression retrieved via {}",
+                                        match nfo.source {
+                                            LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                            LicenseExprSource::UserOverride => "user override",
+                                            LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                            LicenseExprSource::OverlayOverride => unreachable!(),
+                                        }
+                                    ),
+                                    Label::new(
+                                        nfo.file_id,
+                                        nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                        "license expression",
+                                    ),
+                                )
+                                .with_secondary_labels(secondary),
+                            );
+                        }
+                    }
                 }
             }
             LicenseInfo::Unlicensed => {
