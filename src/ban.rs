@@ -962,16 +962,16 @@ mod test {
                 version: VersionReq::parse("=0.1.2").unwrap(),
             },
             CrateId {
+                name: "winapi".to_owned(),
+                version: VersionReq::parse("<0.3").unwrap(),
+            },
+            CrateId {
                 name: "serde".to_owned(),
                 version: VersionReq::any(),
             },
             CrateId {
                 name: "scopeguard".to_owned(),
                 version: VersionReq::parse("=0.3.3").unwrap(),
-            },
-            CrateId {
-                name: "winapi".to_owned(),
-                version: VersionReq::parse("=0.2.8").unwrap(),
             },
             CrateId {
                 name: "num-traits".to_owned(),
@@ -1103,5 +1103,29 @@ mod test {
             .unwrap(),
             &(VersionReq::parse("<0.1").unwrap())
         );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::KrateDetails {
+                    name: "winapi".to_owned(),
+                    version: Version::parse("0.2.8").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("<0.3").unwrap())
+        );
+
+        assert!(binary_search(
+            &versions,
+            &crate::KrateDetails {
+                name: "winapi".to_owned(),
+                version: Version::parse("0.3.8").unwrap(),
+                ..Default::default()
+            }
+        )
+        .is_err());
     }
 }
