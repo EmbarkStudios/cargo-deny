@@ -26,6 +26,9 @@ pub struct Args {
     /// The /graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
     graph: Option<PathBuf>,
+    /// Hides the inclusion graph when printing out info for a crate
+    #[structopt(short, long)]
+    hide_inclusion_graph: bool,
     /// The check(s) to perform
     #[structopt(
         default_value = "all",
@@ -162,7 +165,11 @@ pub fn cmd(
     let (send, recv) = crossbeam::channel::unbounded();
 
     let krates = &krates;
-    let mut inc_grapher = cargo_deny::inclusion_graph::Grapher::new(krates);
+    let mut inc_grapher = if args.hide_inclusion_graph {
+        None
+    } else {
+        Some(cargo_deny::inclusion_graph::Grapher::new(krates))
+    };
 
     use codespan_reporting::diagnostic::Severity;
 
@@ -223,7 +230,8 @@ pub fn cmd(
             for pack in recv {
                 let mut note = pack
                     .krate_id
-                    .map(|pid| inc_grapher.write_graph(&pid).unwrap());
+                    .and_then(|pid| inc_grapher.as_mut().map(|ig| (pid, ig)))
+                    .map(|(pid, ig)| ig.write_graph(&pid).unwrap());
 
                 for mut diag in pack.diagnostics.into_iter() {
                     if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
