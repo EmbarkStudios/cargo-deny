@@ -167,13 +167,7 @@ jobs:
 
           rm -r "$release_name"
 
-          # Get the sha-256 checksum w/o filename and newline, on windows we use
-          # powershell because git bash only seems to include md5/sha1sum
-          if [ "${{ matrix.target }}" == "x86_64-pc-windows-msvc" ]; then
-            powershell -NoLogo -ExecutionPolicy Bypass -File .ci/checksum.ps1 "$release_name.tar.gz"
-          else
-            echo -n "$(shasum -ba 256 "$release_name.tar.gz" | cut -d " " -f 1)" > "$release_name.tar.gz.sha256"
-          fi
+          echo -n "$(shasum -ba 256 "$release_name.tar.gz" | cut -d " " -f 1)" > "$release_name.tar.gz.sha256"
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
