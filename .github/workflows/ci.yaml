@@ -99,7 +99,8 @@ jobs:
     - name: cargo publish
       uses: actions-rs/cargo@v1
       with:
-        command: publish --dry-run
+        command: publish
+        args: --dry-run
 
   publish:
     name: Publish
