@@ -81,11 +81,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: deny
-          args: check
+          args: -L debug check
 
   publish:
     name: Publish
-    needs: [test]
+    needs: [test, self]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -107,7 +107,7 @@ jobs:
 
   release:
     name: Release
-    needs: [test]
+    needs: [test, self]
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
