@@ -134,21 +134,6 @@ with HTTP traffic. This was extremely annoying as it required us to have OpenSSL
 One thing that is part of the tradeoff of being able to use so many crates, is that they all won't
 necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily chug along compiling all of them.  This is great when just trying out a new dependency as quickly as possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased, but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware that you depend on multiple versions of the same crate, you at least have an opportunity to decide how you want to handle them.
 
-1. What happens when multiple versions of a crate are used? `allow` / `deny` / `warn`
-1. Skip certain versions of crates, sometimes you just need to wait for a crate
-to get a new release, or sometimes a little duplication is ok and not worth the effort
-to "fix", but you are at least aware of it and explicitly allowing it, rather than suffering in
-ignorance.
-1. The `-g <path>` cmd line option on the `check` subcommand instructs `cargo-deny` to create
-a [dotgraph](https://www.graphviz.org/) if multiple versions of a crate are detected and that
-isn't allowed. A single graph will be created for each crate, with each version as a terminating
-node in the graph with the full graph of crates that reference each version to more easily
-show you why a particular version is included. It also highlights the lowest version's path
-in ![red](https://placehold.it/15/ff0000/000000?text=+), and, if it differs from the lowest version,
-the "simplest" path is highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
-
-![Imgur](https://i.imgur.com/xtarzeU.png)
-
 ### The `[bans]` section
 
 Contains all of the configuration for `cargo deny check ban`
@@ -163,12 +148,14 @@ Determines what happens when multiple versions of the same crate are encountered
 
 #### The `highlight` field
 
-When multiple versions of the same crate are encountered and the `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a dotgraph of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
+When multiple versions of the same crate are encountered and the `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
 
+* `lowest-version` - Highlights the path to the lowest duplicate version. Highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+)
 * `simplest-path` - Highlights the path to the duplicate version with the fewest number of total
-edges to the root of the graph, which will often be the best candidate for removal and/or upgrading.
-* `lowest-version` - Highlights the path to the lowest duplicate version
-* `all` - Highlights both the `lowest-version` and `simplest-path`, if they are different
+edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
+* `all` - Highlights both the `lowest-version` and `simplest-path`. If they are the same, they are only highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+).
+
+![Imgur](https://i.imgur.com/xtarzeU.png)
 
 #### The `allow` and `deny` fields
 
