@@ -9,80 +9,111 @@
 One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 available that can be easily added to your project incredibly easily via `cargo`. This is great!
 However, the larger the project is and the more dependencies you have, the harder it is to keep
-track of certain things, especially as a project evolves over time, which is what `cargo-deny` tries to help
-you with.
+track of certain things, especially as a project evolves over time, which is what `cargo-deny` tries to help you with.
 
-* [Licenses](#licenses---cargo-deny-check-license) - Configure which licenses are allowed
-* [Bans](#crate-bans---cargo-deny-check-ban) - Configure whether certain crates are allowed to be in your dependency graph
+* [Licenses](#licenses---cargo-deny-check-license) - Configure which license terms you accept
+* [Bans](#crate-bans---cargo-deny-check-ban) - Configure whether particular crates are allowed in your dependency graph
 
 ## tl;dr
 
-* `cargo deny check <license|all>` - verify licenses for a crate graph
+* `cargo deny check <license|all>` - verify crate graph only contains acceptable license requirements
 * `cargo deny check <ban|all>` - verify crate graph doesn't contain certain crates
-* `cargo deny list` - list all of the licenses in a crate graph
+* `cargo deny list` - list all of the licenses for all crates in a project
 
 ## Licenses - `cargo deny check license`
 
-One important aspect that one must always keep in mind when using code from other people is what the licensing
-of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust
-ecosystem tend to follow the example set forth by Rust itself, namely dual-license `MIT OR Apache-2.0`, but of
-course, that is not always the case.
+One important aspect that one must always keep in mind when using code from other people is what the licensing of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust ecosystem tend to follow the example set forth by Rust itself, namely dual-license `MIT OR Apache-2.0`, but of course, that is not always the case.
 
-So `cargo-deny` allows you to ensure that all of your dependencies meet the requirements you want.
+So `cargo-deny` allows you to ensure that all of your dependencies have license requirements that align with your configuration.
 
-1. What happens when a crate is unlicensed? `allow` / `deny` / `warn`
-1. What happens when a crate's license can't be determined? `allow` / `deny` / `warn`
-1. Explicitly allow or deny 1 or more licenses.
-1. Skip checking certain crates as long as they still have the same license information.
-1. Ignore specific `LICENSE*` files. `cargo-deny` uses the [askalono](https://github.com/amzn/askalono) crate
-to parse and score license text as being a certain license, but some license text can be modified to such
-an extent that it makes it difficult to automatically determine it.
+### The `[licenses]` section
+
+Contains all of the configuration for `cargo deny check license`
+
+#### The `unlicensed` field
+
+Determines what happens when a crate has not explicitly specified its license terms, and no license
+information could be easily detected via `LICENSE*` files in the crate's source.
+
+* `deny` (default) - All unlicensed crates will emit an error and fail the license check
+* `allow` - All unlicensed crates will be allowed with no feedback
+* `warn` - All unlicensed crates will show a warning, but will not fail the license check
+
+#### The `allow` and `deny` fields
+
+The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either be in version 3.6 of the [SPDX License List](https://spdx.org/licenses/), with an optional [exception](https://spdx.org/licenses/exceptions-index.html) specified by `WITH <exception-id>`, or else a user defined license reference denoted by `LicenseRef-<idstring>` for a license not on the SPDX License List.
+
+The same license cannot appear in both the `allow` and `deny` lists.
+
+#### The `allow-osi-fsf-free` field
+
+Determines what happens when licenses aren't explicitly allowed or denied, but are marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.6 of the [SPDX License List](https://spdx.org/licenses/).
+
+* `both` - The license is accepted if it is both OSI approved and FSF Free
+* `either` - The license is accepted if it is either OSI approved or FSF Free
+* `osi-only` - The license is accepted if it is OSI approved and not FSF Free
+* `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
+* `neither` (default) - No special consideration is given the license
+
+#### The `confidence-threshold` field
+
+`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the license of a license file, the confidence threshold value determines if askalono's determination meets your
+minimum requirements. The higher the value, the more closely the license text must be to the canonical license text of a valid SPDX license file.
+
+`0.0` - `1.0` (default `0.8`)
+
+#### The `clarify` field
+
+In some exceptional cases, the crate does not have easily machine readable license information, and would by default be considered "unlicensed" by `cargo-deny`. As a (hopefully) temporary patch for using the crate, you can specify a clarification for a crate where you can specify the license expression based on your understanding of the requirements as described by the license holder.
+
+##### The `name` field
+
+The name of the crate that you are clarifying
+
+##### The `version` field
+
+An optional version constraint specifying the range of crate versions you are clarifying. Defaults to all versions (`*`).
+
+##### The `expression` field
+
+The [SPDX license expression](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60) you are specifying as the license requirements for the crate in question.
+
+##### The `license-files` field
+
+Contains one or more files that will be checked to ensure the license expression still applies to a version of the crate. Each file is a `path` to the file relative to the crate route, and a `hash` of the contents to detect changes between versions. This hash is printed out when license files cannot have their license determined with high confidence.
 
 ### Example config
 
 ```toml
 [licenses]
-# If a crate doesn't have a license, error
 unlicensed = "deny"
-# If a crate has a LICENSE* file, but it can't be determined, error
-unknown = "deny"
-# We want really high confidence when inferring licenses from text
-confidence_threshold = 0.92
-# The only licenses we allow. These must be valid SPDX identifiers, at least syntactically,
-# but nothing stops you from using your own license identifier for your private crates
+allow-osi-fsf-free = "either"
+confidence-threshold = 0.92
+deny = [
+    "GPL-3.0-or-later",
+]
 allow = [
-    "Embark-Proprietary",
     "Apache-2.0",
-    "BSD-2-Clause",
-    "BSD-2-Clause-FreeBSD",
+    "Apache-2.0 WITH LLVM-exception",
     "BSD-3-Clause",
-    "BSL-1.0",
-    "CC0-1.0",
-    "FTL",
-    "ISC",
-    "LLVM-exception",
     "MIT",
-    "MPL-2.0",
-    "Unicode-DFS-2016",
-    "Unlicense",
     "Zlib",
 ]
-skip = [
-    # ring has a rather complicated LICENSE file due to reasons spelled out
-    # in said LICENSE file, but is basically OpenSSL for older parts, and ISC
-    # for newer parts
-    { name = "ring", licenses = [] },
-    # webpki uses an ISC license but it only has a 0.83 confidence level
-    { name = "webpki", licenses = [] },
-]
 
-[[licenses.ignore]]
-name = "rustls"
-license_files = [
-    # This is a top-level LICENSE that just spells out the *actual* 3
-    # licenses that can be used with the crate, which askalono is unable
-    # to score
-    { path = "LICENSE", hash = 0xe567c411 },
+# ring has a rather complicated license file, and unfortunately does not
+# provide an SPDX expression in the `license` toml
+[[licenses.clarify]]
+name = "ring"
+# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
+# https://spdx.org/licenses/OpenSSL.html
+# ISC - Both BoringSSL and ring use this for their new files
+# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
+# license, for third_party/fiat, which, unlike other third_party directories, is
+# compiled into non-test libraries, is included below."
+# OpenSSL - Obviously
+expression = "ISC AND MIT AND OpenSSL"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 ```
 
@@ -96,23 +127,12 @@ a new version that happens to add it as a dependency, or an existing dependency 
 what crates are included in the default feature set.
 
 For example, we previously depended on OpenSSL as it is the "default" for many crates that deal
-with HTTP traffic. This was extremely annoying as it required us to have OpenSSL development libraries
-installed on Windows, for both individuals and CI. We moved all of our dependencies to use the
-much more streamlined `native-tls` and `ring` crates instead, and now we can make sure that OpenSSL
-doesn't return from the grave by being pulled in as a default feature of some future HTTP crate
-we might use.
-
-1. Dis/allow certain crates in your dependency graph.
+with HTTP traffic. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined `native-tls` and `ring` crates instead, and now we can make sure that OpenSSL doesn't return from the grave by being pulled in as a default feature of some future HTTP crate we might use.
 
 ### Use Case - Get a handle on duplicate versions
 
 One thing that is part of the tradeoff of being able to use so many crates, is that they all won't
-necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily
-chug along compiling all of them.  This is great when just trying out a new dependency as quickly as
-possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased,
-but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware
-that you depend on multiple versions of the same crate, you at least have an opportunity to decide
-how you want to handle them.
+necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily chug along compiling all of them.  This is great when just trying out a new dependency as quickly as possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased, but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware that you depend on multiple versions of the same crate, you at least have an opportunity to decide how you want to handle them.
 
 1. What happens when multiple versions of a crate are used? `allow` / `deny` / `warn`
 1. Skip certain versions of crates, sometimes you just need to wait for a crate
@@ -129,46 +149,77 @@ the "simplest" path is highlighted in ![blue](https://placehold.it/15/0000FF/000
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
 
+### The `[bans]` section
+
+Contains all of the configuration for `cargo deny check ban`
+
+#### The `multiple-versions` field
+
+Determines what happens when multiple versions of the same crate are encountered.
+
+* `deny` - Will emit an error for each crate with duplicates and fail the check.
+* `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.
+* `allow` - Ignores duplicate versions of the same crate.
+
+#### The `highlight` field
+
+When multiple versions of the same crate are encountered and the `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a dotgraph of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
+
+* `simplest-path` - Highlights the path to the duplicate version with the fewest number of total
+edges to the root of the graph, which will often be the best candidate for removal and/or upgrading.
+* `lowest-version` - Highlights the path to the lowest duplicate version
+* `all` - Highlights both the `lowest-version` and `simplest-path`, if they are different
+
+#### The `allow` and `deny` fields
+
+As with `licenses`, these determine which specificy crates and version ranges are actually allowed or denied.
+
+#### The `skip` field
+
+When denying duplicate versions, it sometimes takes time to update versions in transitive dependencies, or big changes in core often used crates such as winapi and others to ripple through the rest of the ecosystem. In such cases, it can be ok to remove certain versions from consideration so that they won't trigger failures due to multiple versions, and can eventually be removed once all crates have update to the later version(s).
+
+Note entries in the `skip` field that never match a crate in your graph will have a warning printed that they never matched, allowing you to clean up your configuration as your crate graph changes over time.
+
+#### Crate specifier
+
+The `allow`, `deny`, and `skip` fields all use a crate identifier to specify what crate(s) they want to match against.
+
+##### The `name` field
+
+The name of the crate.
+
+##### The `version` field
+
+An optional version constraint specifying the range of crate versions that will match. Defaults to all versions (`*`).
+
 ### Example Config
 
 ```toml
 [bans]
-# Emit an error if we detect multiple versions of the same crate
-multiple_versions = "deny"
+multiple-versions = "deny"
 deny = [
-    # OpenSSL = Just Say No.
+    # You can never be too sure
     { name = "openssl" },
 ]
 skip = [
-    # The issue where mime_guess is using a really old version of
-    # unicase has been fixed, it just needs to be released
-    # https://github.com/sfackler/rust-phf/issues/143
-    { name = "unicase", version = "=1.4.2" },
-    # rayon/rayon-core use very old versions of crossbeam crates,
-    # so skip them for now until rayon updates them
-    { name = "crossbeam-deque", version = "=0.2.0" },
-    { name = "crossbeam-epoch", version = "=0.3.1" },
-    { name = "crossbeam-utils", version = "=0.2.2" },
-    # tokio-reactor, wasmer, and winit all use an older version
-    # of parking_lot
-    { name = "parking_lot", version = "=0.7.1" },
-    { name = "parking_lot_core", version = "=0.4.0" },
-    { name = "lock_api", version = "=0.1.5" },
-    # rand_core depends on a newever version of itself...
-    { name = "rand_core", version = "=0.3.1" },
-    # lots of transitive dependencies use the pre-1.0 version
-    # of scopeguard
-    { name = "scopeguard", version = "=0.3.3" },
-    # tons of transitive dependencies use this older winapi version
-    { name = "winapi", version = "=0.2.8" },
+    # askalono 0.3.0 uses an ancient regex version which pulls
+    # in other duplicates
+    { name = "regex", version = "=0.2.11" },
+    { name = "regex-syntax", version = "=0.5.6" },
+    { name = "aho-corasick", version = "=0.6.10" },
+
+    # some macro crates use the pre 1.0 syn dependencies
+    { name = "syn", version = "<=0.15" },
+    { name = "proc-macro2", version = "<=0.4" },
+    { name = "quote", version = "<=0.6" },
+    { name = "unicode-xid", version = "=0.1" },
 ]
 ```
 
 ## CI Usage
 
 `cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all
-your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using
-the [deny.toml](deny.toml) config.
+your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config.
 
 ## List - `cargo deny list`
 
