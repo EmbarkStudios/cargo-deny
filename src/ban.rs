@@ -1,11 +1,12 @@
 use crate::LintLevel;
+use codespan_reporting::diagnostic::Diagnostic;
 use failure::Error;
 use rayon::prelude::*;
 use semver::{Version, VersionReq};
 use serde::Deserialize;
 use std::{cmp, collections::HashMap, fmt};
 
-#[derive(Deserialize, Debug, PartialOrd, PartialEq, Ord, Eq)]
+#[derive(Deserialize)]
 pub struct CrateId {
     // The name of the crate
     pub name: String,
@@ -26,8 +27,8 @@ const fn highlight() -> GraphHighlight {
     GraphHighlight::All
 }
 
-#[derive(Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub enum GraphHighlight {
     /// Highlights the path to a duplicate dependency with the fewest number
     /// of total edges, which tends to make it the best candidate for removing
@@ -40,17 +41,18 @@ pub enum GraphHighlight {
 
 impl GraphHighlight {
     #[inline]
-    fn simplest(&self) -> bool {
-        *self == GraphHighlight::SimplestPath || *self == GraphHighlight::All
+    fn simplest(self) -> bool {
+        self == Self::SimplestPath || self == Self::All
     }
 
     #[inline]
-    fn lowest_version(&self) -> bool {
-        *self == GraphHighlight::LowestVersion || *self == GraphHighlight::All
+    fn lowest_version(self) -> bool {
+        self == Self::LowestVersion || self == Self::All
     }
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     /// Disallow multiple versions of the same crate
     #[serde(default = "lint_warn")]
@@ -60,27 +62,151 @@ pub struct Config {
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
     #[serde(default)]
-    pub deny: Vec<CrateId>,
+    pub deny: Vec<toml::Spanned<CrateId>>,
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
-    pub allow: Vec<CrateId>,
+    pub allow: Vec<toml::Spanned<CrateId>>,
     /// If specified, disregards the crate completely
     #[serde(default)]
-    pub skip: Vec<CrateId>,
+    pub skip: Vec<toml::Spanned<CrateId>>,
 }
 
 impl Config {
-    pub fn sort(&mut self) {
-        self.deny.par_sort();
-        self.allow.par_sort();
-        self.skip.par_sort();
+    pub fn validate(
+        self,
+        cfg_file: codespan::FileId,
+        _contents: &str,
+    ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
+        use codespan_reporting::diagnostic::Label;
+
+        let from = |s: toml::Spanned<CrateId>| {
+            let span = s.start() as u32..s.end() as u32;
+            let inner = s.into_inner();
+            KrateId {
+                name: inner.name,
+                version: inner.version,
+                span,
+            }
+        };
+
+        let mut diagnostics = Vec::new();
+
+        let mut denied: Vec<_> = self.deny.into_iter().map(from).collect();
+        denied.par_sort();
+
+        let mut allowed: Vec<_> = self.allow.into_iter().map(from).collect();
+        allowed.par_sort();
+
+        let mut skipped: Vec<_> = self.skip.into_iter().map(from).collect();
+        skipped.par_sort();
+
+        let mut add_diag = |first: (&KrateId, &str), second: (&KrateId, &str)| {
+            let flabel = Label::new(
+                cfg_file,
+                first.0.span.clone(),
+                format!("marked as `{}`", first.1),
+            );
+            let slabel = Label::new(
+                cfg_file,
+                second.0.span.clone(),
+                format!("marked as `{}`", second.1),
+            );
+
+            // Put the one that occurs last as the primary label to make it clear
+            // that the first one was "ok" until we noticed this other one
+            let diag = if flabel.span.start() > slabel.span.start() {
+                Diagnostic::new_error(
+                    format!(
+                        "a license id was specified in both `{}` and `{}`",
+                        first.1, second.1
+                    ),
+                    flabel,
+                )
+                .with_secondary_labels(std::iter::once(slabel))
+            } else {
+                Diagnostic::new_error(
+                    format!(
+                        "a license id was specified in both `{}` and `{}`",
+                        second.1, first.1
+                    ),
+                    slabel,
+                )
+                .with_secondary_labels(std::iter::once(flabel))
+            };
+
+            diagnostics.push(diag);
+        };
+
+        for d in &denied {
+            if let Ok(ai) = allowed.binary_search(&d) {
+                add_diag((d, "deny"), (&allowed[ai], "allow"));
+            }
+            if let Ok(si) = skipped.binary_search(&d) {
+                add_diag((d, "deny"), (&skipped[si], "skip"));
+            }
+        }
+
+        for a in &allowed {
+            if let Ok(si) = skipped.binary_search(&a) {
+                add_diag((a, "allow"), (&skipped[si], "skip"));
+            }
+        }
+        if !diagnostics.is_empty() {
+            Err(diagnostics)
+        } else {
+            Ok(ValidConfig {
+                file_id: cfg_file,
+                multiple_versions: self.multiple_versions,
+                highlight: self.highlight,
+                denied,
+                allowed,
+                skipped,
+            })
+        }
     }
 }
 
+#[derive(Eq)]
+struct KrateId {
+    name: String,
+    version: VersionReq,
+    span: std::ops::Range<u32>,
+}
+
+impl Ord for KrateId {
+    fn cmp(&self, o: &Self) -> cmp::Ordering {
+        match self.name.cmp(&o.name) {
+            cmp::Ordering::Equal => self.version.cmp(&o.version),
+            o => o,
+        }
+    }
+}
+
+impl PartialOrd for KrateId {
+    fn partial_cmp(&self, o: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(o))
+    }
+}
+
+impl PartialEq for KrateId {
+    fn eq(&self, o: &Self) -> bool {
+        self.cmp(o) == cmp::Ordering::Equal
+    }
+}
+
+pub struct ValidConfig {
+    pub file_id: codespan::FileId,
+    pub multiple_versions: LintLevel,
+    pub highlight: GraphHighlight,
+    denied: Vec<KrateId>,
+    allowed: Vec<KrateId>,
+    skipped: Vec<KrateId>,
+}
+
 fn binary_search<'a>(
-    arr: &'a [CrateId],
-    details: &crate::CrateDetails,
-) -> Result<(usize, &'a CrateId), usize> {
+    arr: &'a [KrateId],
+    details: &crate::KrateDetails,
+) -> Result<(usize, &'a KrateId), usize> {
     let lowest = VersionReq::exact(&Version::new(0, 0, 0));
 
     match arr.binary_search_by(|i| match i.name.cmp(&details.name) {
@@ -96,15 +222,17 @@ fn binary_search<'a>(
             } else {
                 i
             };
-            for (j, crate_) in arr[begin..].iter().enumerate() {
-                if crate_.name != details.name {
+
+            for (j, krate) in arr[begin..].iter().enumerate() {
+                if krate.name != details.name {
                     break;
                 }
 
-                if crate_.version.matches(&details.version) {
-                    return Ok((begin + j, crate_));
+                if krate.version.matches(&details.version) {
+                    return Ok((begin + j, krate));
                 }
             }
+
             Err(i)
         }
     }
@@ -118,8 +246,8 @@ struct Node<'a> {
     version: &'a Version,
 }
 
-impl<'a, 'b: 'a> From<&'b crate::CrateDetails> for Node<'a> {
-    fn from(d: &'b crate::CrateDetails) -> Self {
+impl<'a, 'b: 'a> From<&'b crate::KrateDetails> for Node<'a> {
+    fn from(d: &'b crate::KrateDetails) -> Self {
         Self {
             name: &d.name,
             version: &d.version,
@@ -142,12 +270,12 @@ impl<'a> fmt::Display for Node<'a> {
 type Id = petgraph::graph::NodeIndex<u32>;
 
 fn append_dependency_chain<'a>(
-    crates: &'a crate::Crates,
+    crates: &'a crate::Krates,
     start: usize,
     graph: &mut Graph<Node<'a>, &'a str>,
     node_map: &mut HashMap<Node<'a>, Id>,
 ) {
-    let cd = &crates.crates[start];
+    let cd = &crates.krates[start];
 
     let root_node = Node::from(cd);
     let root_id = graph.add_node(root_node);
@@ -327,6 +455,131 @@ struct EdgeAttributes {
 
 const INDENT: &str = "    ";
 
+fn create_graph(
+    dup_name: &str,
+    highlight: GraphHighlight,
+    krates: &crate::Krates,
+    dup_range: std::ops::Range<usize>,
+) -> Result<String, Error> {
+    use petgraph::visit::{EdgeRef, NodeRef};
+
+    let mut graph = Graph::new();
+    let mut node_map = HashMap::new();
+
+    for duplicate in dup_range.clone() {
+        append_dependency_chain(krates, duplicate, &mut graph, &mut node_map);
+    }
+
+    let mut edges = Vec::with_capacity(dup_range.end - dup_range.start);
+    let mut dupes: HashMap<&str, Vec<_>> = HashMap::new();
+
+    for duplicate in dup_range {
+        let dest = Node::from(&krates.krates[duplicate]);
+
+        if let Some(id) = node_map.get(&dest) {
+            let mut nodes = vec![*id];
+            let mut set = std::collections::HashSet::new();
+            while let Some(id) = nodes.pop() {
+                let node = graph.node_weight(id).unwrap();
+                dupes
+                    .entry(node.name)
+                    .and_modify(|v| {
+                        if !v.contains(&node.version) {
+                            v.push(node.version);
+                        }
+                    })
+                    .or_insert_with(|| vec![node.version]);
+
+                for node in graph.neighbors_directed(id, petgraph::Direction::Incoming) {
+                    set.insert(graph.find_edge(node, id).unwrap());
+                    nodes.push(node);
+                }
+            }
+
+            edges.push(set);
+        }
+    }
+
+    dupes.retain(|_, v| {
+        v.sort();
+        v.len() > 1
+    });
+
+    // Find the version with the least number of total edges to the least common ancestor,
+    // this will presumably be the easiest version to "fix"
+    // This just returns the first lowest one, there can be multiple with
+    // same number of edges
+    let smollest = edges
+        .iter()
+        .min_by(|a, b| a.len().cmp(&b.len()))
+        .ok_or_else(|| failure::format_err!("expected shortest edge path"))?;
+    let lowest = &edges[0];
+
+    print_graph(
+        &graph,
+        |node| {
+            let node_weight = node.weight();
+
+            if node_weight.name == dup_name || dupes.contains_key(node_weight.name) {
+                NodeAttributes {
+                    label: Some(node_weight.version),
+                    shape: Some(Shape::r#box),
+                    color: Some("red"),
+                    style: Some(Style::rounded),
+                    ..Default::default()
+                }
+            } else {
+                NodeAttributes {
+                    label: Some(node.1),
+                    shape: Some(Shape::r#box),
+                    style: Some(Style::rounded),
+                    ..Default::default()
+                }
+            }
+        },
+        |edge| {
+            if highlight.simplest() && smollest.contains(&edge.id()) {
+                EdgeAttributes { color: Some("red") }
+            } else if highlight.lowest_version() && lowest.contains(&edge.id()) {
+                EdgeAttributes {
+                    color: Some("blue"),
+                }
+            } else {
+                EdgeAttributes { color: None }
+            }
+        },
+        |output| {
+            use std::fmt::Write;
+
+            for (i, (name, versions)) in dupes.iter().enumerate() {
+                writeln!(output, "{}subgraph cluster_{} {{", INDENT, i)?;
+
+                write!(output, "{}{}{{rank=same ", INDENT, INDENT)?;
+
+                for version in versions {
+                    if let Some(id) = node_map.get(&Node { name, version }) {
+                        write!(output, "{} ", id.index())?;
+                    }
+                }
+
+                writeln!(
+                    output,
+                    "}}\n{}{}style=\"rounded{}\";\n{}{}label=\"{}\"\n{}}}",
+                    INDENT,
+                    INDENT,
+                    if name == &dup_name { ",filled" } else { "" },
+                    INDENT,
+                    INDENT,
+                    name,
+                    INDENT
+                )?;
+            }
+
+            Ok(())
+        },
+    )
+}
+
 fn print_graph<'a: 'b, 'b, NP, EP, SG>(
     graph: &'a Graph<Node<'a>, &'a str>,
     node_print: NP,
@@ -430,217 +683,228 @@ pub struct DupGraph {
 }
 
 pub fn check_bans<OG>(
-    log: slog::Logger,
-    crates: &crate::Crates,
-    cfg: &Config,
+    krates: &crate::Krates,
+    cfg: ValidConfig,
+    (lock_id, lock_contents): (codespan::FileId, &str),
     output_graph: Option<OG>,
+    sender: crossbeam::channel::Sender<crate::DiagPack>,
 ) -> Result<(), Error>
 where
     OG: Fn(DupGraph) -> Result<(), Error>,
 {
-    use petgraph::visit::{EdgeRef, NodeRef};
-    use slog::{debug, error, warn};
-    let mut multi_detector = (&crates.as_ref()[0].name, 0, 0);
-    let mut errors = 0;
-    let mut warnings = 0;
+    use codespan_reporting::diagnostic::{Label, Severity};
+
+    // Get the offset of the beginning of the metadata section
+    let metadata_start = lock_contents
+        .rfind("[metadata]")
+        .ok_or_else(|| failure::format_err!("unable to find metadata section in Cargo.lock"))?
+        + 10;
+
+    let mut krate_spans: Vec<Option<std::ops::Range<u32>>> = vec![None; krates.krates.len()];
+
+    let mut cur_offset = metadata_start;
+
+    for (i, krate) in krates.iter().enumerate() {
+        // Local crates don't have metadata entries, and it would also be kind of weird to
+        // ban your own local crates...
+        if krate.source.is_none() {
+            continue;
+        }
+
+        let krate_start = lock_contents[cur_offset..]
+            .find("\"checksum ")
+            .ok_or_else(|| {
+                failure::format_err!("unable to find metadata entry for krate {}", krate.id)
+            })?;
+
+        let id_end = lock_contents[cur_offset + krate_start..]
+            .find("\" = \"")
+            .ok_or_else(|| failure::format_err!("invalid metadata format"))?;
+
+        let lock_id =
+            &lock_contents[cur_offset + krate_start + 10..cur_offset + krate_start + id_end - 1];
+
+        // Git ids will can differ, but they have to start the same
+        if &krate.id.repr[..lock_id.len()] != lock_id {
+            failure::bail!(
+                "invalid metadata for package '{}' != '{}'",
+                krate.id,
+                lock_id
+            );
+        }
+
+        let krate_end = lock_contents[cur_offset + krate_start..]
+            .find('\n')
+            .ok_or_else(|| failure::format_err!("unable to find end for krate {}", krate.id))?;
+
+        krate_spans[i] =
+            Some((cur_offset + krate_start) as u32..(cur_offset + krate_start + krate_end) as u32);
+        cur_offset = cur_offset + krate_start + krate_end;
+    }
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let mut skip_hit = vec![0; cfg.skip.len()];
+    let mut skip_hit = vec![0; cfg.skipped.len()];
+    let mut multi_detector = (&krates.as_ref()[0].name, 0);
 
-    for (i, crate_) in crates.iter().enumerate() {
-        if let Ok((index, skip)) = binary_search(&cfg.skip, crate_) {
-            debug!(log, "skipping crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "version_req" => format!("{}", skip.version));
+    for (i, krate) in krates.iter().enumerate() {
+        let mut diagnostics = Vec::new();
+
+        if let Ok((index, skip)) = binary_search(&cfg.skipped, krate) {
+            diagnostics.push(Diagnostic::new(
+                Severity::Help,
+                format!("skipping crate {} = {}", krate.name, krate.version),
+                Label::new(cfg.file_id, skip.span.clone(), "matched filter"),
+            ));
+
+            // Keep a count of the number of times each skip filter is hit
+            // so that we can report unused filters to the user so that they
+            // can cleanup their configs as their dependency graph changes over time
             skip_hit[index] += 1;
-            continue;
-        }
-
-        if multi_detector.0 == &crate_.name {
-            multi_detector.1 += 1;
         } else {
-            if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
-                match cfg.multiple_versions {
-                    LintLevel::Warn => {
-                        warn!(log, "detected multiple versions of crate"; "crate" => multi_detector.0, "count" => multi_detector.1);
-                        warnings += 1;
-                    }
-                    LintLevel::Deny => {
-                        error!(log, "detected multiple versions of crate"; "crate" => multi_detector.0, "count" => multi_detector.1);
-                        errors += 1;
-                    }
-                    LintLevel::Allow => unreachable!(),
-                }
+            if multi_detector.0 == &krate.name {
+                multi_detector.1 += 1;
+            } else {
+                if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
+                    let severity = match cfg.multiple_versions {
+                        LintLevel::Warn => Severity::Warning,
+                        LintLevel::Deny => Severity::Error,
+                        LintLevel::Allow => unreachable!(),
+                    };
 
-                if let Some(ref og) = output_graph {
-                    let mut graph = Graph::new();
-                    let mut node_map = HashMap::new();
+                    let mut all_start = std::u32::MAX;
+                    let mut all_end = 0;
 
-                    for duplicate in multi_detector.2..i {
-                        append_dependency_chain(crates, duplicate, &mut graph, &mut node_map);
-                    }
+                    let mut dupes = Vec::with_capacity(multi_detector.1);
 
-                    let mut edges = Vec::with_capacity(i - multi_detector.2);
-                    let mut dupes: HashMap<&str, Vec<_>> = HashMap::new();
-
-                    for duplicate in multi_detector.2..i {
-                        let dest = Node::from(&crates.crates[duplicate]);
-
-                        if let Some(id) = node_map.get(&dest) {
-                            let mut nodes = vec![*id];
-                            let mut set = std::collections::HashSet::new();
-                            while let Some(id) = nodes.pop() {
-                                let node = graph.node_weight(id).unwrap();
-                                dupes
-                                    .entry(node.name)
-                                    .and_modify(|v| {
-                                        if !v.contains(&node.version) {
-                                            v.push(node.version);
-                                        }
-                                    })
-                                    .or_insert_with(|| vec![node.version]);
-
-                                for node in
-                                    graph.neighbors_directed(id, petgraph::Direction::Incoming)
-                                {
-                                    set.insert(graph.find_edge(node, id).unwrap());
-                                    nodes.push(node);
-                                }
+                    #[allow(clippy::needless_range_loop)]
+                    for dup in i - multi_detector.1..i {
+                        if let Some(ref span) = krate_spans[dup] {
+                            if span.start < all_start {
+                                all_start = span.start
                             }
 
-                            edges.push(set);
-                        } else {
-                            failure::bail!("failed to find root node for duplicate crate");
+                            if span.end > all_end {
+                                all_end = span.end
+                            }
+
+                            let krate = &krates.krates[dup];
+
+                            dupes.push(crate::DiagPack {
+                                krate_id: Some(krate.id.clone()),
+                                diagnostics: vec![Diagnostic::new(
+                                    severity,
+                                    format!(
+                                        "duplicate #{} {} = {}",
+                                        dupes.len() + 1,
+                                        krate.name,
+                                        krate.version
+                                    ),
+                                    Label::new(lock_id, span.clone(), "lock entry"),
+                                )],
+                            });
                         }
                     }
 
-                    dupes.retain(|_, v| {
-                        v.sort();
-                        v.len() > 1
-                    });
+                    sender
+                        .send(crate::DiagPack {
+                            krate_id: None,
+                            diagnostics: vec![Diagnostic::new(
+                                severity,
+                                format!(
+                                    "found {} duplicate entries for crate '{}'",
+                                    dupes.len(),
+                                    multi_detector.0
+                                ),
+                                Label::new(lock_id, all_start..all_end, "lock entries"),
+                            )],
+                        })
+                        .unwrap();
 
-                    // Find the least common ancestor between all of our duplicates, the nodes that have an incoming edge
-                    // from that least common ancestor are the root cause packages, mark them as such
-                    // for duplicate in multi_detector.2..i {
-                    //     let dest = Node::from(&crates.crates[duplicate]);
-                    // }
+                    for dup in dupes {
+                        sender.send(dup).unwrap();
+                    }
 
-                    // Find the version with the least number of total edges to the least common ancestor,
-                    // this will presumably be the easiest version to "fix"
-                    // This just returns the first lowest one, there can be multiple with
-                    // same number of edges
-                    let smollest = edges
-                        .iter()
-                        .min_by(|a, b| a.len().cmp(&b.len()))
-                        .ok_or_else(|| failure::format_err!("expected shortest edge path"))?;
-                    let lowest = &edges[0];
+                    if let Some(ref og) = output_graph {
+                        let graph = create_graph(
+                            multi_detector.0,
+                            cfg.highlight,
+                            krates,
+                            i - multi_detector.1..i,
+                        )?;
 
-                    let graph = print_graph(
-                        &graph,
-                        |node| {
-                            let node_weight = node.weight();
-
-                            if node_weight.name == multi_detector.0
-                                || dupes.contains_key(node_weight.name)
-                            {
-                                NodeAttributes {
-                                    label: Some(node_weight.version),
-                                    shape: Some(Shape::r#box),
-                                    color: Some("red"),
-                                    style: Some(Style::rounded),
-                                    ..Default::default()
-                                }
-                            } else {
-                                NodeAttributes {
-                                    label: Some(node.1),
-                                    shape: Some(Shape::r#box),
-                                    style: Some(Style::rounded),
-                                    ..Default::default()
-                                }
-                            }
-                        },
-                        |edge| {
-                            if cfg.highlight.simplest() && smollest.contains(&edge.id()) {
-                                EdgeAttributes { color: Some("red") }
-                            } else if cfg.highlight.lowest_version() && lowest.contains(&edge.id())
-                            {
-                                EdgeAttributes {
-                                    color: Some("blue"),
-                                }
-                            } else {
-                                EdgeAttributes { color: None }
-                            }
-                        },
-                        |output| {
-                            use std::fmt::Write;
-
-                            for (i, (name, versions)) in dupes.iter().enumerate() {
-                                writeln!(output, "{}subgraph cluster_{} {{", INDENT, i)?;
-
-                                write!(output, "{}{}{{rank=same ", INDENT, INDENT)?;
-
-                                for version in versions {
-                                    if let Some(id) = node_map.get(&Node { name, version }) {
-                                        write!(output, "{} ", id.index())?;
-                                    }
-                                }
-
-                                writeln!(
-                                    output,
-                                    "}}\n{}{}style=\"rounded{}\";\n{}{}label=\"{}\"\n{}}}",
-                                    INDENT,
-                                    INDENT,
-                                    if name == multi_detector.0 {
-                                        ",filled"
-                                    } else {
-                                        ""
-                                    },
-                                    INDENT,
-                                    INDENT,
-                                    name,
-                                    INDENT
-                                )?;
-                            }
-
-                            Ok(())
-                        },
-                    )?;
-
-                    og(DupGraph {
-                        duplicate: multi_detector.0.to_owned(),
-                        graph,
-                    })?;
+                        og(DupGraph {
+                            duplicate: multi_detector.0.to_owned(),
+                            graph,
+                        })?;
+                    }
                 }
+
+                multi_detector.0 = &krate.name;
+                multi_detector.1 = 1;
             }
 
-            multi_detector.0 = &crate_.name;
-            multi_detector.1 = 1;
-            multi_detector.2 = i;
+            if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
+                diagnostics.push(Diagnostic::new(
+                    Severity::Error,
+                    format!("detected banned crate {} = {}", krate.name, krate.version),
+                    Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
+                ));
+            }
+
+            if !cfg.allowed.is_empty() {
+                // Since only allowing specific crates is pretty draconian,
+                // also emit which allow filters actually passed each crate
+                match binary_search(&cfg.allowed, krate) {
+                    Ok((_, allow)) => {
+                        diagnostics.push(Diagnostic::new(
+                            Severity::Note,
+                            format!("allowed {} = {}", krate.name, krate.version),
+                            Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
+                        ));
+                    }
+                    Err(mut ind) => {
+                        if ind >= cfg.allowed.len() {
+                            ind = cfg.allowed.len() - 1;
+                        }
+
+                        diagnostics.push(Diagnostic::new(
+                            Severity::Error,
+                            format!(
+                                "detected crate not specifically allowed {} = {}",
+                                krate.name, krate.version
+                            ),
+                            Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
+                        ));
+                    }
+                }
+            }
         }
 
-        if let Ok((_, ban)) = binary_search(&cfg.deny, crate_) {
-            error!(log, "detected a banned crate"; "crate" => format!("{}@{}", crate_.name, crate_.version), "ban" => format!("{} = {}", ban.name, ban.version));
-            errors += 1;
-        } else if !cfg.allow.is_empty() && binary_search(&cfg.allow, crate_).is_ok() {
-            error!(log, "detected a crate not explicitly allowed"; "crate" => format!("{}@{}", crate_.name, crate_.version));
-            errors += 1;
+        if !diagnostics.is_empty() {
+            sender
+                .send(crate::DiagPack {
+                    krate_id: Some(krate.id.clone()),
+                    diagnostics,
+                })
+                .unwrap();
         }
     }
 
-    for (count, skip) in skip_hit.into_iter().zip(cfg.skip.iter()) {
+    for (count, skip) in skip_hit.into_iter().zip(cfg.skipped.into_iter()) {
         if count == 0 {
-            warn!(log, "skipped crate not encountered"; "crate" => skip.name.to_owned(), "version_req" => skip.version.to_string());
-            warnings += 1;
+            sender
+                .send(crate::DiagPack {
+                    krate_id: None,
+                    diagnostics: vec![Diagnostic::new(
+                        Severity::Warning,
+                        "skipped crate was not encountered",
+                        Label::new(cfg.file_id, skip.span, "no crate matches these criteria"),
+                    )],
+                })
+                .unwrap();
         }
-    }
-
-    if warnings > 0 {
-        warn!(log, "encountered {} ban warnings", warnings);
-    }
-
-    if errors > 0 {
-        error!(log, "encountered {} ban errors", errors);
-        failure::bail!("failed ban check");
     }
 
     Ok(())
@@ -652,7 +916,7 @@ mod test {
 
     #[test]
     fn binary_search_() {
-        let mut versions = vec![
+        let versions = [
             CrateId {
                 name: "unicase".to_owned(),
                 version: VersionReq::parse("=1.4.2").unwrap(),
@@ -698,16 +962,16 @@ mod test {
                 version: VersionReq::parse("=0.1.2").unwrap(),
             },
             CrateId {
+                name: "winapi".to_owned(),
+                version: VersionReq::parse("<0.3").unwrap(),
+            },
+            CrateId {
                 name: "serde".to_owned(),
                 version: VersionReq::any(),
             },
             CrateId {
                 name: "scopeguard".to_owned(),
                 version: VersionReq::parse("=0.3.3").unwrap(),
-            },
-            CrateId {
-                name: "winapi".to_owned(),
-                version: VersionReq::parse("=0.2.8").unwrap(),
             },
             CrateId {
                 name: "num-traits".to_owned(),
@@ -735,12 +999,21 @@ mod test {
             },
         ];
 
+        let mut versions: Vec<_> = versions
+            .iter()
+            .map(|v| super::KrateId {
+                name: v.name.clone(),
+                version: v.version.clone(),
+                span: 0..0,
+            })
+            .collect();
+
         versions.sort();
 
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "rand_core".to_owned(),
                     version: Version::parse("0.3.1").unwrap(),
                     ..Default::default()
@@ -754,7 +1027,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "serde".to_owned(),
                     version: Version::parse("1.0.94").unwrap(),
                     ..Default::default()
@@ -767,7 +1040,7 @@ mod test {
 
         assert!(binary_search(
             &versions,
-            &crate::CrateDetails {
+            &crate::KrateDetails {
                 name: "nope".to_owned(),
                 version: Version::parse("1.0.0").unwrap(),
                 ..Default::default()
@@ -778,7 +1051,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.43").unwrap(),
                     ..Default::default()
@@ -792,7 +1065,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.2").unwrap(),
                     ..Default::default()
@@ -806,7 +1079,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.2.0").unwrap(),
                     ..Default::default()
@@ -820,7 +1093,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::CrateDetails {
+                &crate::KrateDetails {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.0.99").unwrap(),
                     ..Default::default()
@@ -830,5 +1103,29 @@ mod test {
             .unwrap(),
             &(VersionReq::parse("<0.1").unwrap())
         );
+
+        assert_eq!(
+            binary_search(
+                &versions,
+                &crate::KrateDetails {
+                    name: "winapi".to_owned(),
+                    version: Version::parse("0.2.8").unwrap(),
+                    ..Default::default()
+                }
+            )
+            .map(|(_, s)| &s.version)
+            .unwrap(),
+            &(VersionReq::parse("<0.3").unwrap())
+        );
+
+        assert!(binary_search(
+            &versions,
+            &crate::KrateDetails {
+                name: "winapi".to_owned(),
+                version: Version::parse("0.3.8").unwrap(),
+                ..Default::default()
+            }
+        )
+        .is_err());
     }
 }

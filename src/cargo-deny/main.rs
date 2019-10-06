@@ -1,18 +1,14 @@
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
 
-use ansi_term::Color;
 use cargo_deny::licenses;
 use failure::{bail, format_err, Error};
-//use slog::{info, warn};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod check;
 mod common;
 mod list;
-
-use crate::common::MessageFormat;
 
 #[derive(StructOpt, Debug)]
 enum Command {
@@ -24,8 +20,8 @@ enum Command {
     Check(check::Args),
 }
 
-fn parse_level(s: &str) -> Result<slog::FilterLevel, Error> {
-    s.parse::<slog::FilterLevel>()
+fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
+    s.parse::<log::LevelFilter>()
         .map_err(|_| format_err!("failed to parse level '{}'", s))
 }
 
@@ -36,23 +32,19 @@ struct Opts {
     #[structopt(
         short = "L",
         long = "log-level",
-        default_value = "info",
-        parse(try_from_str = "parse_level"),
+        default_value = "warn",
+        parse(try_from_str = parse_level),
         long_help = "The log level for messages, only log messages at or above the level will be emitted.
 
 Possible values:
 * off
-* critical
 * error
-* warning
+* warn
 * info
 * debug
 * trace"
     )]
-    log_level: slog::FilterLevel,
-    /// The format for log messages: 'human' or 'json'
-    #[structopt(long = "message-format", default_value = "human")]
-    msg_format: MessageFormat,
+    log_level: log::LevelFilter,
     /// The directory used as the context for the deny, if not specified,
     /// the current working directory is used instead. Must contain a Cargo.toml file.
     #[structopt(long = "context", parse(from_os_str))]
@@ -61,8 +53,32 @@ Possible values:
     cmd: Command,
 }
 
+fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
+    use ansi_term::Color::*;
+    use log::Level::*;
+
+    fern::Dispatch::new()
+        .level(level)
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "{date} [{level}] {message}\x1B[0m",
+                date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                level = match record.level() {
+                    Error => Red.paint("ERROR"),
+                    Warn => Yellow.paint("WARN"),
+                    Info => Green.paint("INFO"),
+                    Debug => Blue.paint("DEBUG"),
+                    Trace => Purple.paint("TRACE"),
+                },
+                message = message,
+            ));
+        })
+        .chain(std::io::stderr())
+        .apply()?;
+    Ok(())
+}
+
 fn real_main() -> Result<(), Error> {
-    use slog::Drain;
     let args =
         Opts::from_iter({
             std::env::args().enumerate().filter_map(|(i, a)| {
@@ -74,32 +90,7 @@ fn real_main() -> Result<(), Error> {
             })
         });
 
-    let drain = match args.msg_format {
-        MessageFormat::Human => {
-            let decorator = slog_term::TermDecorator::new().stderr().build();
-
-            slog_async::Async::new(slog_term::CompactFormat::new(decorator).build().fuse())
-                .build()
-                .fuse()
-        }
-        MessageFormat::Json => slog_async::Async::new(
-            slog_json::Json::new(std::io::stderr())
-                .add_default_keys()
-                .set_newlines(true)
-                .build()
-                .fuse(),
-        )
-        .build()
-        .fuse(),
-    };
-
-    let filter_level = args.log_level;
-
-    let drain = drain
-        .filter(move |r: &'_ slog::Record<'_>| r.level().as_usize() <= filter_level.as_usize())
-        .fuse();
-
-    let root_logger = slog::Logger::root(drain, slog::o!());
+    setup_logger(args.log_level)?;
 
     let context_dir = args
         .context
@@ -117,15 +108,8 @@ fn real_main() -> Result<(), Error> {
 
     let (all_crates, store) = rayon::join(
         || {
-            let mut timer = slog_perf::TimeReporter::new_with_level(
-                "read-crates",
-                root_logger.clone(),
-                slog::Level::Debug,
-            );
-
-            timer.start_with("read", || {
-                cargo_deny::get_all_crates(&context_dir).expect("failed to acquire crates")
-            })
+            log::info!("gathering crates for {}", context_dir.display());
+            cargo_deny::get_all_crates(&context_dir)
         },
         || {
             if let Command::Check(ref check) = args.cmd {
@@ -134,21 +118,29 @@ fn real_main() -> Result<(), Error> {
                 }
             }
 
-            let mut timer = slog_perf::TimeReporter::new_with_level(
-                "load-license-store",
-                root_logger.clone(),
-                slog::Level::Debug,
-            );
-
-            Some(timer.start_with("load", || {
-                licenses::LicenseStore::from_cache().expect("failed to load license store")
-            }))
+            log::info!("loading license store");
+            Some(licenses::LicenseStore::from_cache())
         },
     );
 
+    let all_crates = all_crates?;
+
+    log::info!("gathered {} crates", all_crates.krates.len());
+
+    let license_store = match store {
+        Some(res) => Some(res?),
+        None => None,
+    };
+
     match args.cmd {
-        Command::List(list) => list::cmd(root_logger, list, all_crates, store),
-        Command::Check(check) => check::cmd(root_logger, context_dir, check, all_crates, store),
+        Command::List(list) => list::cmd(list, all_crates, license_store),
+        Command::Check(check) => check::cmd(
+            args.log_level,
+            context_dir,
+            check,
+            all_crates,
+            license_store,
+        ),
     }
 }
 
@@ -156,7 +148,7 @@ fn main() {
     match real_main() {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("{}", Color::Red.paint(format!("{}", e)));
+            log::error!("{}", e);
             std::process::exit(1);
         }
     }

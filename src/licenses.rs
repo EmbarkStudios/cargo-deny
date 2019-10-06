@@ -1,194 +1,265 @@
-use crate::LintLevel;
+use crate::{KrateDetails, LintLevel};
+use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use failure::Error;
 use rayon::prelude::*;
-use semver::{Version, VersionReq};
+use semver::VersionReq;
 use serde::Deserialize;
-use slog::{debug, error, trace, warn};
-use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
+use smallvec::SmallVec;
+use spdx::Licensee;
+use std::{
+    cmp, fmt,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.gz");
 
-const fn lint_warn() -> LintLevel {
-    LintLevel::Warn
+const fn lint_deny() -> LintLevel {
+    LintLevel::Deny
 }
 
 const fn confidence_threshold() -> f32 {
     0.8
 }
 
-#[derive(Debug)]
-pub enum LicenseFieldItem<'a> {
-    License(&'a str),
-    Exception(&'a str),
-    UnknownLicense(&'a str),
+#[derive(Deserialize)]
+pub struct Clarification {
+    pub name: String,
+    pub version: Option<VersionReq>,
+    pub expression: toml::Spanned<String>,
+    #[serde(default, rename = "license-files")]
+    pub license_files: Vec<FileSource>,
 }
 
-#[derive(Debug, Default)]
-pub struct LicenseField {
-    data: String,
+pub struct ValidClarification {
+    pub name: String,
+    pub version: VersionReq,
+    pub expr_offset: u32,
+    pub expression: spdx::Expression,
+    pub license_files: Vec<FileSource>,
 }
 
-impl LicenseField {
-    pub fn new(lf: String) -> Self {
-        let license_expr = if lf.contains('/') {
-            lf.replace("/", " OR ")
-        } else {
-            lf
-        };
-
-        Self { data: license_expr }
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = LicenseFieldItem<'_>> {
-        spdx::iter_expr(&self.data).filter_map(|item| {
-            Some(match item {
-                Ok(spdx::LicenseExpr::License(l)) => LicenseFieldItem::License(l),
-                Ok(spdx::LicenseExpr::Exception(e)) => LicenseFieldItem::Exception(e),
-                Err(spdx::ParseError::UnknownLicenseId(id)) => LicenseFieldItem::UnknownLicense(id),
-                _ => return None,
-            })
-        })
+impl Ord for ValidClarification {
+    fn cmp(&self, o: &Self) -> cmp::Ordering {
+        match self.name.cmp(&o.name) {
+            cmp::Ordering::Equal => self.version.cmp(&o.version),
+            o => o,
+        }
     }
 }
 
-#[derive(Debug)]
-pub enum LicenseInfo<'a> {
-    Metadata(LicenseFieldItem<'a>),
-    ExplicitLicenseFile(PathBuf),
-    InferredLicenseFile(PathBuf),
+impl PartialOrd for ValidClarification {
+    fn partial_cmp(&self, o: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(o))
+    }
 }
 
+impl PartialEq for ValidClarification {
+    fn eq(&self, o: &Self) -> bool {
+        self.cmp(o) == cmp::Ordering::Equal
+    }
+}
+
+impl Eq for ValidClarification {}
+
+#[inline]
+fn iter_clarifications<'a>(
+    all: &'a [ValidClarification],
+    krate: &'a KrateDetails,
+) -> impl Iterator<Item = &'a ValidClarification> {
+    all.iter().filter(move |vc| {
+        if vc.name == krate.name {
+            return vc.version.matches(&krate.version);
+        }
+
+        false
+    })
+}
+
+/// Allows agreement of licensing terms based on whether the license is
+/// [OSI Approved](https://opensource.org/licenses) or [considered free](
+/// https://www.gnu.org/licenses/license-list.en.html) by the FSF
 #[derive(Deserialize)]
-pub struct LicenseFile {
-    /// The crate relative path of the LICENSE file
-    pub path: PathBuf,
-    /// The hash of the LICENSE text, as outputted
-    /// when a license file hash mismatch occurs,
-    /// to detect when the text changes between versions
-    /// and needs to be verified again before using
-    /// the new hash
-    pub hash: u32,
+#[serde(rename_all = "kebab-case")]
+pub enum BlanketAgreement {
+    /// The license must be both OSI Approved and FSF/Free Libre
+    Both,
+    /// The license can be be either OSI Approved or FSF/Free Libre
+    Either,
+    /// The license must be OSI Approved but not FSF/Free Libre
+    OsiOnly,
+    /// The license must be FSF/Free Libre but not OSI Approved
+    FsfOnly,
+    /// The license is not regarded specially
+    Neither,
 }
 
-#[derive(Deserialize)]
-pub struct IgnoreLicenses {
-    /// The name of the crate we are ignoring
-    pub name: String,
-    /// The version constraints of the crate we are ignoring
-    pub version: Option<VersionReq>,
-    /// Ignores certain LICENSE* files when
-    /// analyzing the crate
-    pub license_files: Vec<LicenseFile>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct SkipCrate {
-    /// The name of the crate we may skip
-    pub name: String,
-    /// The version constraints of the crate we may skip
-    pub version: Option<VersionReq>,
-    /// The license configuration that are allowed to be ignored,
-    /// if this differs from the state of the crate being checked
-    /// it is treated as a warning and checked fully
-    #[serde(default)]
-    pub licenses: Vec<String>,
-    /// The exceptions that are allowed to be ignored
-    #[serde(default)]
-    pub exceptions: Vec<String>,
+impl Default for BlanketAgreement {
+    fn default() -> Self {
+        BlanketAgreement::Neither
+    }
 }
 
 #[derive(Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
-    /// If true, will cause failures if the license is not specified
-    /// for a crate
-    #[serde(default = "lint_warn")]
+    /// Determines what happens when license information cannot be
+    /// determined for a crate
+    #[serde(default = "lint_deny")]
     pub unlicensed: LintLevel,
-    /// If true, will cause failures if some kind of license is specified
-    /// but it is not known, ie, is not an SDPX identifier
-    #[serde(default = "lint_warn")]
-    pub unknown: LintLevel,
+    /// Agrees to licenses based on whether they are OSI Approved
+    /// or FSF/Free Libre
+    #[serde(default)]
+    pub allow_osi_fsf_free: BlanketAgreement,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     #[serde(default = "confidence_threshold")]
     pub confidence_threshold: f32,
-    /// The licenses or exceptions that will cause us to emit failures
+    /// Licenses that will be rejected in a license expression
     #[serde(default)]
-    pub deny: Vec<String>,
-    /// If specified, allows the following licenses or exceptions, if they are not
-    /// otherwise denied, including "unknown" licenses eg. proprietary ones that
-    /// aren't a known SPDX license
+    pub deny: Vec<toml::Spanned<String>>,
+    /// Licenses that will be allowed in a license expression
     #[serde(default)]
-    pub allow: Vec<String>,
-    /// If specified, allows crates to pass the license check, even
-    /// if they otherwise violate one of the other constraints, eg
-    /// you want to deny unlicensed by default, especially for new
-    /// crates, but you've already "manually" verified 1 or more crates
-    /// you already use that are unlicensed
+    pub allow: Vec<toml::Spanned<String>>,
+    /// Overrides the license expression used for a particular crate as long as it
+    /// exactly matches the specified license files and hashes
     #[serde(default)]
-    pub skip: Vec<SkipCrate>,
-    /// If specified, ignores specific license files within a crate
-    #[serde(default)]
-    pub ignore: Vec<IgnoreLicenses>,
-}
-
-pub struct Ignored {
-    version_req: VersionReq,
-    licenses: Vec<LicenseFile>,
+    pub clarify: Vec<Clarification>,
 }
 
 impl Config {
-    pub fn sort(&mut self) {
-        self.deny.par_sort();
-        self.allow.par_sort();
-        self.skip.par_sort_by(|a, b| match a.name.cmp(&b.name) {
-            std::cmp::Ordering::Equal => a.version.cmp(&b.version),
-            o => o,
-        });
-    }
+    pub fn validate(
+        self,
+        cfg_file: codespan::FileId,
+    ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
+        let mut diagnostics = Vec::new();
 
-    pub fn get_skipped(&self, crate_name: &str, version: &Version) -> Option<&SkipCrate> {
-        self.skip
-            .binary_search_by(|ic| ic.name.as_str().cmp(crate_name))
-            .ok()
-            .and_then(|i| {
-                for sc in &self.skip[i..] {
-                    if sc.name != crate_name {
-                        break;
-                    }
+        let mut parse_license =
+            |l: &toml::Spanned<String>, v: &mut Vec<Licensee>| match Licensee::parse(l.get_ref()) {
+                Ok(l) => v.push(l),
+                Err(pe) => {
+                    let offset = (l.start() + 1) as u32;
+                    let span = pe.span.start as u32 + offset..pe.span.end as u32 + offset;
+                    let diag = Diagnostic::new_error(
+                        "invalid licensee",
+                        Label::new(cfg_file, span, format!("{}", pe.reason)),
+                    );
 
-                    match sc.version {
-                        Some(ref req) => {
-                            if req.matches(version) {
-                                return Some(sc);
-                            }
-                        }
-                        None => return Some(sc),
-                    }
+                    diagnostics.push(diag);
                 }
+            };
 
-                None
-            })
-    }
+        let mut denied = Vec::with_capacity(self.deny.len());
+        for d in &self.deny {
+            parse_license(d, &mut denied);
+        }
 
-    pub fn get_ignore_licenses(&mut self) -> HashMap<String, Vec<Ignored>> {
-        let ignored = std::mem::replace(&mut self.ignore, Vec::new());
+        let mut allowed: Vec<Licensee> = Vec::with_capacity(self.allow.len());
+        for a in &self.allow {
+            parse_license(a, &mut allowed);
+        }
 
-        ignored.into_iter().fold(HashMap::new(), |mut hm, ic| {
-            let entry = hm.entry(ic.name).or_insert_with(Vec::new);
+        denied.par_sort();
+        allowed.par_sort();
 
-            entry.push(Ignored {
-                version_req: ic.version.unwrap_or_else(VersionReq::any),
-                licenses: ic.license_files,
+        // Ensure the config doesn't contain the same exact license as
+        // both denied and allowed, that's confusing and probably
+        // not intended, so they should pick one
+        for (di, d) in denied.iter().enumerate() {
+            if let Ok(ai) = allowed.binary_search(&d) {
+                let dlabel = Label::new(
+                    cfg_file,
+                    self.deny[di].start() as u32..self.deny[di].end() as u32,
+                    "marked as `deny`",
+                );
+                let alabel = Label::new(
+                    cfg_file,
+                    self.allow[ai].start() as u32..self.allow[ai].end() as u32,
+                    "marked as `allow`",
+                );
+
+                // Put the one that occurs last as the primary label to make it clear
+                // that the first one was "ok" until we noticed this other one
+                let diag = if dlabel.span.start() > alabel.span.start() {
+                    Diagnostic::new_error(
+                        "a license id was specified in both `allow` and `deny`",
+                        dlabel,
+                    )
+                    .with_secondary_labels(std::iter::once(alabel))
+                } else {
+                    Diagnostic::new_error(
+                        "a license id was specified in both `allow` and `deny`",
+                        alabel,
+                    )
+                    .with_secondary_labels(std::iter::once(dlabel))
+                };
+
+                diagnostics.push(diag);
+            }
+        }
+
+        let mut clarifications = Vec::with_capacity(self.clarify.len());
+        for c in self.clarify {
+            let expr = match spdx::Expression::parse(c.expression.get_ref()) {
+                Ok(validated) => validated,
+                Err(err) => {
+                    let offset = (c.expression.start() + 1) as u32;
+                    let expr_span = offset + err.span.start as u32..offset + err.span.end as u32;
+
+                    diagnostics.push(Diagnostic::new_error(
+                        "unable to parse license expression",
+                        Label::new(cfg_file, expr_span, format!("{}", err.reason)),
+                    ));
+
+                    continue;
+                }
+            };
+
+            let mut license_files = c.license_files;
+            license_files.sort_by(|a, b| a.path.cmp(&b.path));
+
+            clarifications.push(ValidClarification {
+                name: c.name,
+                version: c.version.unwrap_or_else(VersionReq::any),
+                expr_offset: (c.expression.start() + 1) as u32,
+                expression: expr,
+                license_files,
             });
+        }
 
-            hm
-        })
+        clarifications.par_sort();
+
+        if !diagnostics.is_empty() {
+            Err(diagnostics)
+        } else {
+            Ok(ValidConfig {
+                file_id: cfg_file,
+                unlicensed: self.unlicensed,
+                allow_osi_fsf_free: self.allow_osi_fsf_free,
+                confidence_threshold: self.confidence_threshold,
+                clarifications,
+                denied,
+                allowed,
+            })
+        }
     }
 }
 
-#[derive(PartialEq, Eq)]
+pub struct ValidConfig {
+    pub file_id: codespan::FileId,
+    pub unlicensed: LintLevel,
+    pub allow_osi_fsf_free: BlanketAgreement,
+    pub confidence_threshold: f32,
+    pub denied: Vec<Licensee>,
+    pub allowed: Vec<Licensee>,
+    pub clarifications: Vec<ValidClarification>,
+}
+
+#[derive(PartialEq, Eq, Deserialize)]
 pub struct FileSource {
+    /// The crate relative path of the LICENSE file
     pub path: PathBuf,
+    /// The hash of the LICENSE text
     pub hash: u32,
 }
 
@@ -201,25 +272,36 @@ impl fmt::Debug for FileSource {
     }
 }
 
-impl slog::Value for FileSource {
-    fn serialize(
-        &self,
-        _record: &slog::Record<'_>,
-        key: slog::Key,
-        serializer: &mut dyn slog::Serializer,
-    ) -> slog::Result {
-        serializer.emit_arguments(key, &format_args!("{:#?}", self))
-    }
+fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+    let entries = std::fs::read_dir(dir)?;
+    Ok(entries
+        .filter_map(|e| {
+            e.ok().and_then(|e| {
+                let p = e.path();
+                let file_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                if p.is_file() && file_name.starts_with("LICENSE") {
+                    Some(p)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect())
 }
 
-pub fn get_file_source(path: PathBuf) -> Result<(String, FileSource), (PathBuf, std::io::Error)> {
+fn get_file_source(path: PathBuf) -> PackFile {
     use std::io::BufRead;
 
     // Normalize on plain newlines to handle terrible Windows conventions
     let content = {
         let file = match std::fs::File::open(&path) {
             Ok(f) => f,
-            Err(e) => return Err((path, e)),
+            Err(e) => {
+                return PackFile {
+                    path,
+                    data: PackFileData::Bad(e),
+                }
+            }
         };
 
         let mut s =
@@ -243,163 +325,291 @@ pub fn get_file_source(path: PathBuf) -> Result<(String, FileSource), (PathBuf, 
         s
     };
 
-    let fs = FileSource {
+    let hash = crate::hash(content.as_bytes());
+    PackFile {
         path,
-        hash: crate::hash(content.as_bytes()),
-    };
-
-    Ok((content, fs))
+        data: PackFileData::Good(LicenseFile { hash, content }),
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum LicenseSource {
-    /// An SPDX identifier in the Cargo.toml `license` field
-    Metadata,
-    /// The canonical text of the license.
-    Original(FileSource),
-    /// A license header. There may be more than one in a `Store`.
-    Header(FileSource),
-    /// An alternate form of a license. This is intended to be used for
-    /// alternate _formats_ of a license, not for variants where the text has
-    /// different meaning. Not currently used in askalono's SPDX dataset.
-    Alternate(FileSource),
+struct LicenseFile {
+    hash: u32,
+    content: String,
 }
 
-impl fmt::Display for LicenseSource {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LicenseSource::Metadata => write!(f, "metadata"),
-            LicenseSource::Original(fs) => {
-                write!(f, "text={},hash={:#x}", fs.path.display(), fs.hash)
+enum PackFileData {
+    Good(LicenseFile),
+    Bad(std::io::Error),
+}
+
+struct PackFile {
+    path: PathBuf,
+    data: PackFileData,
+}
+
+struct LicensePack {
+    license_files: Vec<PackFile>,
+    err: Option<std::io::Error>,
+}
+
+impl LicensePack {
+    fn read(krate: &KrateDetails) -> Self {
+        let root_path = krate.manifest_path.parent().unwrap();
+
+        let mut lic_paths = match find_license_files(root_path) {
+            Ok(paths) => paths,
+            Err(e) => {
+                return Self {
+                    license_files: Vec::new(),
+                    err: Some(e),
+                }
             }
-            LicenseSource::Header(fs) => {
-                write!(f, "header={},hash={:#x}", fs.path.display(), fs.hash)
-            }
-            LicenseSource::Alternate(fs) => {
-                write!(f, "alt-text={},hash={:#x}", fs.path.display(), fs.hash)
+        };
+
+        // Add the explicitly specified license if it wasn't
+        // already found in the root directory
+        if let Some(ref lf) = krate.license_file {
+            if lic_paths.iter().find(|l| l.ends_with(lf)).is_none() {
+                lic_paths.push(lf.clone());
             }
         }
-    }
-}
 
-impl slog::Value for LicenseSource {
-    fn serialize(
+        let mut license_files: Vec<_> = lic_paths.into_iter().map(get_file_source).collect();
+
+        license_files.sort_by(|a, b| a.path.cmp(&b.path));
+
+        Self {
+            license_files,
+            err: None,
+        }
+    }
+
+    fn matches(&self, hashes: &[FileSource]) -> bool {
+        if self.license_files.len() != hashes.len() {
+            return false;
+        }
+
+        for (expected, actual) in self.license_files.iter().zip(hashes.iter()) {
+            if !expected.path.ends_with(&actual.path) {
+                return false;
+            }
+
+            match &expected.data {
+                PackFileData::Bad(_) => {
+                    return false;
+                }
+                PackFileData::Good(lf) => {
+                    if lf.hash != actual.hash {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
+
+    fn get_expression(
         &self,
-        _record: &slog::Record<'_>,
-        key: slog::Key,
-        serializer: &mut dyn slog::Serializer,
-    ) -> slog::Result {
-        serializer.emit_arguments(key, &format_args!("{}", self))
-    }
-}
+        krate: &KrateDetails,
+        file: codespan::FileId,
+        strat: &askalono::ScanStrategy<'_>,
+        confidence: f32,
+    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
+        use std::fmt::Write;
 
-impl From<(askalono::LicenseType, FileSource)> for LicenseSource {
-    fn from(lt: (askalono::LicenseType, FileSource)) -> Self {
-        match lt.0 {
-            askalono::LicenseType::Original => LicenseSource::Original(lt.1),
-            askalono::LicenseType::Header => LicenseSource::Header(lt.1),
-            askalono::LicenseType::Alternate => LicenseSource::Alternate(lt.1),
+        let mut expr = String::new();
+        let mut lic_count = 0;
+
+        let mut synth_toml = String::new();
+        if let Some(ref err) = self.err {
+            write!(synth_toml, "license-files = \"{}\"", err).unwrap();
+            let len = synth_toml.len() as u32;
+            return Err((
+                synth_toml,
+                vec![Label::new(
+                    file,
+                    17..len - 1,
+                    "unable to gather license files",
+                )],
+            ));
+        }
+
+        let mut fails = Vec::new();
+        synth_toml.push_str("license-files = [\n");
+
+        let root_path = krate.manifest_path.parent().unwrap();
+
+        for lic_contents in &self.license_files {
+            write!(
+                synth_toml,
+                "    {{ path = \"{}\", ",
+                lic_contents.path.strip_prefix(root_path).unwrap().display(),
+            )
+            .unwrap();
+
+            match &lic_contents.data {
+                PackFileData::Good(data) => {
+                    write!(synth_toml, "hash = 0x{:08x}, ", data.hash).unwrap();
+
+                    let text = askalono::TextData::new(&data.content);
+                    match strat.scan(&text) {
+                        Ok(lic_match) => {
+                            match lic_match.license {
+                                Some(identified) => {
+                                    // askalano doesn't report any matches below the confidence threshold
+                                    // but we want to see what it thinks the license is if the confidence
+                                    // is somewhat ok at least
+                                    if lic_match.score >= confidence {
+                                        match spdx::license_id(&identified.name) {
+                                            Some(id) => {
+                                                if lic_count > 0 {
+                                                    expr.push_str(" AND ");
+                                                }
+
+                                                expr.push_str(id.name);
+                                                lic_count += 1;
+                                            }
+                                            None => {
+                                                write!(
+                                                    synth_toml,
+                                                    "score = {:.2}",
+                                                    lic_match.score
+                                                )
+                                                .unwrap();
+                                                let start = synth_toml.len() as u32;
+                                                write!(
+                                                    synth_toml,
+                                                    ", license = \"{}\"",
+                                                    identified.name
+                                                )
+                                                .unwrap();
+                                                let end = synth_toml.len() as u32;
+
+                                                fails.push(Label::new(
+                                                    file,
+                                                    start + 13..end - 1,
+                                                    "unknown SPDX identifier",
+                                                ));
+                                            }
+                                        }
+                                    } else {
+                                        let start = synth_toml.len() as u32;
+                                        write!(synth_toml, "score = {:.2}", lic_match.score)
+                                            .unwrap();
+                                        let end = synth_toml.len() as u32;
+                                        write!(synth_toml, ", license = \"{}\"", identified.name)
+                                            .unwrap();
+
+                                        fails.push(Label::new(
+                                            file,
+                                            start + 8..end,
+                                            "low confidence in the license text",
+                                        ));
+                                    }
+                                }
+                                None => {
+                                    // If the license can't be matched with high enough confidence
+                                    let start = synth_toml.len() as u32;
+                                    write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
+                                    let end = synth_toml.len() as u32;
+
+                                    fails.push(Label::new(
+                                        file,
+                                        start + 8..end,
+                                        "low confidence in the license text",
+                                    ));
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            // the elimination strategy can't currently fail
+                            unimplemented!(
+                                "I guess askalano's elimination strategy can now fail: {}",
+                                e
+                            );
+                        }
+                    }
+                }
+                PackFileData::Bad(err) => {
+                    let start = synth_toml.len() as u32;
+                    write!(synth_toml, "err = \"{}\"", err).unwrap();
+                    let end = synth_toml.len() as u32;
+
+                    fails.push(Label::new(
+                        file,
+                        start + 7..end - 1,
+                        "unable to read license file",
+                    ));
+                }
+            }
+
+            writeln!(synth_toml, " }},").unwrap();
+        }
+
+        synth_toml.push_str("]");
+
+        if fails.is_empty() {
+            Ok((synth_toml, spdx::Expression::parse(&expr).unwrap()))
+        } else {
+            Err((synth_toml, fails))
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Note<'a> {
-    /// A valid SPDX-identifiable license
-    License {
-        name: spdx::LicenseId,
-        source: LicenseSource,
+pub struct LicenseExprInfo {
+    file_id: codespan::FileId,
+    offset: u32,
+    pub source: LicenseExprSource,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum LicenseExprSource {
+    /// An SPDX expression in the Cargo.toml `license` field
+    Metadata,
+    /// An override in the user's deny.toml
+    UserOverride,
+    /// An override from an overlay
+    OverlayOverride,
+    /// An expression synthesized from one or more LICENSE files
+    LicenseFiles,
+}
+
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum LicenseInfo {
+    /// An SPDX expression parsed or generated from the
+    /// license information provided by a crate
+    SPDXExpression {
+        expr: spdx::Expression,
+        nfo: LicenseExprInfo,
     },
-    /// A license with an unknown SPDX identifier was encountered
-    Unknown { name: String, source: LicenseSource },
-    /// The license could not be determined with high enough confidence
-    LowConfidence { score: f32, source: LicenseSource },
-    /// A license file was filtered out due to matching ignore criteria
-    Ignored(FileSource),
-    /// A license exception
-    Exception(&'a str),
-    /// A license file was unreadable
-    UnreadableLicense { path: PathBuf, err: String },
     /// No licenses were detected in the crate
     Unlicensed,
 }
 
-impl<'a> PartialEq for Note<'a> {
-    fn eq(&self, o: &'_ Self) -> bool {
-        match (self, o) {
-            (Note::Unlicensed, Note::Unlicensed) => true,
-            (
-                Note::License { name, source },
-                Note::License {
-                    name: name1,
-                    source: source1,
-                },
-            ) => name == name1 && source == source1,
-            (
-                Note::Unknown { name, source },
-                Note::Unknown {
-                    name: name1,
-                    source: source1,
-                },
-            ) => name == name1 && source == source1,
-            (
-                Note::LowConfidence { source, .. },
-                Note::LowConfidence {
-                    source: source1, ..
-                },
-            ) => source == source1,
-            (Note::Exception(exc), Note::Exception(exc1)) => exc == exc1,
-            (
-                Note::UnreadableLicense { path, err },
-                Note::UnreadableLicense {
-                    path: path1,
-                    err: err1,
-                },
-            ) => path == path1 && err == err1,
-            (Note::Ignored(fs), Note::Ignored(fs1)) => fs == fs1,
-            _ => false,
-        }
-    }
-}
+#[derive(Debug)]
+pub struct KrateLicense<'a> {
+    pub krate: &'a KrateDetails,
+    pub lic_info: LicenseInfo,
 
-#[derive(Debug, PartialEq)]
-pub struct CrateNote<'a> {
-    pub name: &'a str,
-    pub version: Version,
-    pub notes: Vec<Note<'a>>,
-}
-
-impl<'a> slog::Value for CrateNote<'a> {
-    fn serialize(
-        &self,
-        _record: &slog::Record<'_>,
-        key: slog::Key,
-        serializer: &mut dyn slog::Serializer,
-    ) -> slog::Result {
-        serializer.emit_arguments(key, &format_args!("{}@{}", self.name, self.version))
-    }
+    // Reasons for why the license was determined (or not!) when
+    // gathering the license information
+    labels: SmallVec<[Label; 1]>,
 }
 
 pub struct Summary<'a> {
-    notes: Vec<CrateNote<'a>>,
     store: Arc<LicenseStore>,
+    pub nfos: Vec<KrateLicense<'a>>,
 }
 
 impl<'a> Summary<'a> {
     fn new(store: Arc<LicenseStore>) -> Self {
         Self {
-            notes: Vec::new(),
             store,
+            nfos: Vec::new(),
         }
-    }
-
-    pub fn notes(&self) -> impl Iterator<Item = &CrateNote<'_>> {
-        self.notes.iter()
-    }
-
-    #[inline]
-    pub fn resolve_id(id: spdx::LicenseId) -> &'static str {
-        spdx::license_name(id)
     }
 }
 
@@ -425,7 +635,6 @@ impl Default for LicenseStore {
 }
 
 pub struct Gatherer {
-    log: slog::Logger,
     store: Arc<LicenseStore>,
     threshold: f32,
 }
@@ -433,21 +642,31 @@ pub struct Gatherer {
 impl Default for Gatherer {
     fn default() -> Self {
         Self {
-            log: slog::Logger::root(slog::Discard, slog::o!()),
             store: Arc::new(LicenseStore::default()),
             threshold: 0.8,
         }
     }
 }
 
-impl Gatherer {
-    pub fn new(log: slog::Logger) -> Self {
-        Self {
-            log,
-            ..Default::default()
+#[inline]
+fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<u32> {
+    let mut offset = 0;
+    let val_start = loop {
+        let start = content[offset..].find('\n').unwrap() + 1;
+        if content[start + offset..].starts_with(key) {
+            break start + offset + key.len();
         }
-    }
 
+        offset += start;
+    };
+
+    let val_end = content[val_start..].find("\"\n").unwrap();
+
+    let start = val_start as u32 + 4;
+    start..start + val_end as u32 - 4
+}
+
+impl Gatherer {
     pub fn with_store(mut self, store: Arc<LicenseStore>) -> Self {
         self.store = store;
         self
@@ -464,393 +683,507 @@ impl Gatherer {
         self
     }
 
-    pub fn gather<H: std::hash::BuildHasher>(
+    pub fn gather<'k>(
         self,
-        crates: &[crate::CrateDetails],
-        ignored: HashMap<String, Vec<Ignored>, H>,
-    ) -> Summary<'_> {
-        let log = self.log;
+        krates: &'k [crate::KrateDetails],
+        files: &mut codespan::Files,
+        cfg: Option<&ValidConfig>,
+    ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
+
+        let threshold = self.threshold;
 
         let strategy = askalono::ScanStrategy::new(&summary.store.store)
             .mode(askalono::ScanMode::Elimination)
-            .confidence_threshold(self.threshold) // May want to set this higher, or expose it as a config option
+            .confidence_threshold(0.5)
             .optimize(false)
             .max_passes(1);
 
-        for crate_ in crates {
-            let mut checked_licenses = 0;
-            let mut note = CrateNote {
-                name: &crate_.name,
-                notes: Vec::new(),
-                version: crate_.version.clone(),
-            };
+        let files_lock = std::sync::Arc::new(std::sync::RwLock::new(files));
 
-            let maybe_ignored = ignored.get(&crate_.name).and_then(|ignored| {
-                ignored
-                    .iter()
-                    .find(|ic| ic.version_req.matches(&crate_.version))
-            });
+        // Retrieve the license expression we'll use to evaluate the user's overall
+        // constraints with.
+        //
+        // NOTE: The reason that user/overalay overrides are prioritized over the
+        // expression that may be present in the crate's `license` field itself is
+        // because that expression is currently limited in functionality to basic
+        // tokenization and thus might not be able to express the actual licensing
+        // used by a crate, which often means the expression is either not provided
+        // at all, or is actually inaccurate with regards to the actual licensing
+        // terms of the crate.
+        //
+        // When falling back to full-text license files to obtain the possible
+        // licenses used by a crate, we create a license expression where all
+        // licenses found are joined with the `AND` operator, which means that
+        // the user must comply with **ALL** licenses. This is the conservative
+        // approach to ensure a (possibly) required license is not introduced which
+        // could potentially be ignored if 1 or more other license requirements
+        // were met that the user actually intended.
+        //
+        // 1. User overrides - If the user specifies the license expression and
+        // the constraints for the package still match the current one being checked
+        // 2. Overlay overrides - If the user has specified an overlay, and it contains
+        // information for the crate and the constraints for the package still
+        // match the current one being checked
+        // 3. `license`
+        // 4. `license-file` + all LICENSE(-*)? files - Due to the prevalance
+        // of dual-licensing in the rust ecosystem, many people forgo setting
+        // license-file, so we use it and/or any LICENSE files
+        krates
+            .par_iter()
+            .map(|krate| {
+                // Attempt an SPDX expression that we can validate the user's acceptable
+                // license terms with
+                let mut synth_id = None;
 
-            let log = log.new(slog::o!("crate" => format!("{}@{}", crate_.name, crate_.version)));
+                let mut labels = smallvec::SmallVec::<[Label; 1]>::new();
 
-            for license in crate_.licenses() {
-                checked_licenses += 1;
-                match license {
-                    LicenseInfo::Metadata(md) => match md {
-                        LicenseFieldItem::License(l) => {
-                            trace!(log, "found license in metadata"; "name" => l);
-
-                            note.notes.push(spdx::license_id(l).map_or_else(
-                                || Note::Unknown {
-                                    name: l.to_owned(),
-                                    source: LicenseSource::Metadata,
-                                },
-                                |id| Note::License {
-                                    name: id,
-                                    source: LicenseSource::Metadata,
-                                },
-                            ));
+                let mut get_span = |key: &'static str| -> (codespan::FileId, std::ops::Range<u32>) {
+                    match synth_id {
+                        Some(id) => {
+                            let l = files_lock.read().unwrap();
+                            (synth_id.unwrap(), get_toml_span(key, l.source(id)))
                         }
-                        LicenseFieldItem::Exception(e) => {
-                            trace!(log, "found exception in metadata"; "exc" => e);
-                            note.notes.push(Note::Exception(e))
-                        }
-                        LicenseFieldItem::UnknownLicense(l) => {
-                            trace!(log, "found unknown license in metadata"; "name" => l);
+                        None => {
+                            // Synthesize a minimal Cargo.toml for reporting diagnostics
+                            // for where we retrieved license stuff
+                            let synth_manifest = format!(
+                                "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
+                                krate.name,
+                                krate.version,
+                                krate.license.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                            );
 
-                            note.notes.push(Note::Unknown {
-                                name: l.to_owned(),
-                                source: LicenseSource::Metadata,
-                            });
-                        }
-                    },
-                    LicenseInfo::ExplicitLicenseFile(path)
-                    | LicenseInfo::InferredLicenseFile(path) => {
-                        trace!(log, "reading license from path"; "path" => path.display());
-
-                        match get_file_source(path) {
-                            Ok((license_text, fs)) => {
-                                if let Some(ref ignored) = maybe_ignored {
-                                    if let Some(lf) = ignored
-                                        .licenses
-                                        .iter()
-                                        .find(|lf| lf.path.file_name() == fs.path.file_name())
-                                    {
-                                        if fs.hash == lf.hash {
-                                            checked_licenses -= 1;
-                                            note.notes.push(Note::Ignored(fs));
-                                            continue;
-                                        }
-                                    }
-                                }
-
-                                let text = askalono::TextData::new(&license_text);
-                                match strategy.scan(&text) {
-                                    Ok(match_) => {
-                                        let lnote = match match_.license {
-                                            Some(identified) => {
-                                                trace!(log, "license file identified"; "path" => fs.path.display(), "name" => &identified.name);
-
-                                                match spdx::license_id(&identified.name) {
-                                                    Some(id) => Note::License {
-                                                        name: id,
-                                                        source: (identified.kind, fs).into(),
-                                                    },
-                                                    None => Note::Unknown {
-                                                        name: identified.name.to_owned(),
-                                                        source: (identified.kind, fs).into(),
-                                                    },
-                                                }
-                                            }
-                                            None => Note::LowConfidence {
-                                                score: match_.score,
-                                                source: LicenseSource::Original(fs),
-                                            },
-                                        };
-
-                                        note.notes.push(lnote);
-                                    }
-                                    Err(e) => {
-                                        // the elimination strategy can't currently fail
-                                        unimplemented!("{}", e);
-                                    }
-                                }
+                            {
+                                let mut fl = files_lock.write().unwrap();
+                                synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
+                                (
+                                    synth_id.unwrap(),
+                                    get_toml_span(key, fl.source(synth_id.unwrap())),
+                                )
                             }
-                            Err((path, err)) => {
-                                note.notes.push(Note::UnreadableLicense {
-                                    path,
-                                    err: format!("{}", err),
-                                });
+                        }
+                    }
+                };
+
+                let mut license_pack = None;
+
+                // 1
+                if let Some(ref cfg) = cfg {
+                    for clarification in iter_clarifications(&cfg.clarifications, krate) {
+                        let lp = match license_pack {
+                            Some(ref lp) => lp,
+                            None => {
+                                license_pack = Some(LicensePack::read(krate));
+                                license_pack.as_ref().unwrap()
+                            }
+                        };
+
+                        // pub name: String,
+                        // pub version: VersionReq,
+                        // pub expression: spdx::Expression,
+                        // pub license_files: Vec<FileSource>,
+                        // Check to see if the clarification provided exactly matches
+                        // the set of detected licenses, if they do, we use the clarification's
+                        // license expression as the license requirement's for this crate
+                        if lp.matches(&clarification.license_files) {
+                            return KrateLicense {
+                                krate,
+                                lic_info: LicenseInfo::SPDXExpression {
+                                    expr: clarification.expression.clone(),
+                                    nfo: LicenseExprInfo {
+                                        file_id: cfg.file_id,
+                                        offset: clarification.expr_offset,
+                                        source: LicenseExprSource::UserOverride,
+                                    },
+                                },
+                                labels,
+                            };
+                        }
+                    }
+                }
+
+                // 2 TODO
+
+                // 3
+                match &krate.license {
+                    Some(license_field) => {
+                        // Reasons this can fail:
+                        // * Empty! The rust crate used to validate this field has a bug
+                        // https://github.com/rust-lang-nursery/license-exprs/issues/23
+                        // * It also just does basic lexing, so parens, duplicate operators,
+                        // unpaired exceptions etc can all fail validation
+
+                        match spdx::Expression::parse(license_field) {
+                            Ok(validated) => {
+                                let (id, span) = get_span("license");
+
+                                return KrateLicense {
+                                    krate,
+                                    lic_info: LicenseInfo::SPDXExpression {
+                                        expr: validated,
+                                        nfo: LicenseExprInfo {
+                                            file_id: id,
+                                            offset: span.start,
+                                            source: LicenseExprSource::Metadata,
+                                        },
+                                    },
+                                    labels,
+                                };
+                            }
+                            Err(err) => {
+                                let (id, lic_span) = get_span("license");
+                                let lic_span = lic_span.start + err.span.start as u32
+                                    ..lic_span.start + err.span.end as u32;
+
+                                labels.push(Label::new(id, lic_span, format!("{}", err.reason)));
+                            }
+                        }
+                    }
+                    None => {
+                        let (id, lic_span) = get_span("license");
+                        labels.push(Label::new(
+                            id,
+                            lic_span,
+                            "license expression was not specified",
+                        ));
+                    }
+                }
+
+                // 4
+                // We might have already loaded the licenses to check them against a clarification
+                let license_pack = license_pack.unwrap_or_else(|| LicensePack::read(krate));
+
+                if !license_pack.license_files.is_empty() {
+                    let (id, _) = get_span("license");
+
+                    match license_pack.get_expression(krate, id, &strategy, threshold) {
+                        Ok((new_toml, expr)) => {
+                            // Push our synthesized license files toml content to the end of
+                            // the other synthesized toml then fixup all of our spans
+                            let expr_offset = {
+                                let mut fl = files_lock.write().unwrap();
+
+                                let (new_source, offset) = {
+                                    let source = fl.source(id);
+                                    (
+                                        format!(
+                                            "{}files-expr = \"{}\"\n{}\n",
+                                            source,
+                                            expr.as_ref(),
+                                            new_toml
+                                        ),
+                                        (source.len() + 14) as u32,
+                                    )
+                                };
+
+                                fl.update(id, new_source);
+                                offset
+                            };
+
+                            return KrateLicense {
+                                krate,
+                                lic_info: LicenseInfo::SPDXExpression {
+                                    expr,
+                                    nfo: LicenseExprInfo {
+                                        file_id: id,
+                                        offset: expr_offset,
+                                        source: LicenseExprSource::LicenseFiles,
+                                    },
+                                },
+                                labels,
+                            };
+                        }
+                        Err((new_toml, lic_file_lables)) => {
+                            // Push our synthesized license files toml content to the end of
+                            // the other synthesized toml then fixup all of our spans
+                            let old_end = {
+                                let mut fl = files_lock.write().unwrap();
+
+                                let (new_source, old_end) = {
+                                    let source = fl.source(id);
+                                    (format!("{}{}\n", source, new_toml), source.len() as u32)
+                                };
+
+                                fl.update(id, new_source);
+                                old_end
+                            };
+
+                            for label in lic_file_lables {
+                                let span = label.span.start().to_usize() as u32 + old_end
+                                    ..label.span.end().to_usize() as u32 + old_end;
+                                labels.push(Label::new(label.file_id, span, label.message));
                             }
                         }
                     }
                 }
-            }
 
-            if checked_licenses == 0 {
-                note.notes.push(Note::Unlicensed);
-            }
+                // Just get a label for the crate name
+                let (id, nspan) = get_span("name");
+                labels.push(Label::new(
+                    id,
+                    nspan,
+                    "a valid license expression could not be retrieved for the crate",
+                ));
 
-            summary.notes.push(note);
-        }
+                // Well, we tried our very best. Actually that's not true, we could scan for license
+                // files not prefixed by LICENSE, and recurse into subdirectories, but honestly
+                // at that point it's probably better to open a PR or something because the license
+                // information is not conventional and probably warrants closer inspection
+                KrateLicense {
+                    krate,
+                    lic_info: LicenseInfo::Unlicensed,
+                    labels,
+                }
+            })
+            .collect_into_vec(&mut summary.nfos);
 
         summary
     }
 }
 
-#[allow(clippy::cognitive_complexity)]
-pub fn check_licenses(log: slog::Logger, summary: Summary<'_>, cfg: &Config) -> Result<(), Error> {
-    use crate::{binary_search, contains};
-    let mut warnings = 0;
-    let mut errors = 0;
+pub fn check_licenses(
+    summary: Summary<'_>,
+    max_severity: Option<Severity>,
+    cfg: &ValidConfig,
+    sender: crossbeam::channel::Sender<crate::DiagPack>,
+) {
+    for mut krate_lic_nfo in summary.nfos {
+        let mut diagnostics = Vec::new();
 
-    for crate_note in summary.notes() {
-        // Check the list of crates the user wishes to skip to ensure it meets
-        // the criteria, otherwise we treat it as normal
-        if let Some(ic) = cfg.get_skipped(crate_note.name, &crate_note.version) {
-            debug!(
-                log,
-                "checking skipped crate";
-                "crate" => crate_note,
-            );
+        match krate_lic_nfo.lic_info {
+            LicenseInfo::SPDXExpression { expr, nfo } => {
+                // TODO: If an expression with the same hash is encountered
+                // just use the same result as a memoized one
 
-            let missing_license = ic.licenses.iter().any(|i| {
-                match crate_note.notes.iter().find(|n| match n {
-                    Note::License { name, .. } => {
-                        let license_name = Summary::resolve_id(*name);
-                        license_name == i
-                    }
-                    _ => false,
-                }) {
-                    Some(_) => false,
-                    None => {
-                        warn!(
-                            log,
-                            "crate no longer skipped due to license not being present in the crate";
-                            "crate" => crate_note,
-                            "license" => i,
-                        );
-                        warnings += 1;
-                        true
-                    }
+                #[derive(Debug)]
+                enum Reason {
+                    Denied,
+                    NotExplicitlyAllowed,
+                    IsFsfFree,
+                    IsOsiApproved,
+                    IsBothFreeAndOsi,
+                    ExplicitAllowance,
                 }
-            });
-            let missing_exception = ic.exceptions.iter().any(|i| {
-                match crate_note.notes.iter().find(|n| match n {
-                    Note::Exception(e) => e == i,
-                    _ => false,
-                }) {
-                    Some(_) => false,
-                    None => {
-                        warn!(
-                            log,
-                            "crate no longer skipped due to exception not being present in crate";
-                            "crate" => crate_note,
-                            "exception" => i,
-                        );
-                        warnings += 1;
-                        true
+
+                let mut reasons = smallvec::SmallVec::<[Reason; 8]>::new();
+
+                let eval_res = expr.evaluate_with_failures(|req| {
+                    // 1. Licenses explicitly denied are of course hard failures,
+                    // but failing one license in an expression is not necessarily
+                    // going to actually ban the crate, for example, the canonical
+                    // "Apache-2.0 OR MIT" used in by a lot crates means that
+                    // banning Apache-2.0, but allowing MIT, will allow the crate
+                    // to be used as you are upholding at least one license requirement
+                    if let Ok(maybe_denied) =
+                        cfg.denied.binary_search_by(|a| a.partial_cmp(req).unwrap())
+                    {
+                        if cfg.denied[maybe_denied].satisfies(req) {
+                            reasons.push(Reason::Denied);
+                            return false;
+                        }
                     }
-                }
-            });
 
-            if !missing_exception && !missing_license {
-                let mismatch = crate_note.notes.iter().any(|note| {
-                    match note {
-                        Note::License { name, source} => {
-                            let license_name = Summary::resolve_id(*name);
-
-                            if !contains(&ic.licenses, license_name) {
-                                warn!(
-                                    log,
-                                    "crate no longer skipped due to additional license";
-                                    "crate" => crate_note,
-                                    "license" => license_name,
-                                    "src" => source,
-                                );
-                                warnings += 1;
-                                return true;
-                            }
-                        }
-                        Note::Exception(e) => {
-                            if !contains(&ic.exceptions, *e) {
-                                warn!(
-                                    log,
-                                    "crate no longer skipped due to additional exception";
-                                    "crate" => crate_note,
-                                    "exception" => e,
-                                );
-                                warnings += 1;
-                                return true;
-                            }
-                        }
-                        Note::LowConfidence { source, .. } => {
-                            warn!(
-                                log,
-                                "crate no longer skipped due to finding a license that could be identified";
-                                "crate" => crate_note,
-                                "src" => source,
-                            );
-                            warnings += 1;
+                    // 2. A license that is specifically allowed will of course mean
+                    // that the requirement is met.
+                    if let Ok(maybe_allowed) = cfg
+                        .allowed
+                        .binary_search_by(|a| a.partial_cmp(req).unwrap())
+                    {
+                        if cfg.allowed[maybe_allowed].satisfies(req) {
+                            reasons.push(Reason::ExplicitAllowance);
                             return true;
                         }
-                        Note::Unlicensed => {
-                            if !ic.licenses.is_empty() || !ic.exceptions.is_empty() {
-                                warn!(
-                                    log,
-                                    "crate no longer skipped due to no licenses or exceptions found";
-                                    "crate" => crate_note,
-                                );
-                                warnings += 1;
-                                return true;
+                    }
+
+                    // 3. If the license isn't explicitly allowed, it still may
+                    // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
+                    // allowances
+                    if let spdx::LicenseItem::SPDX { id, .. } = req.license {
+                        match cfg.allow_osi_fsf_free {
+                            BlanketAgreement::Neither => {}
+                            BlanketAgreement::Either => {
+                                if id.is_osi_approved() {
+                                    reasons.push(Reason::IsOsiApproved);
+                                    return true;
+                                } else if id.is_fsf_free_libre() {
+                                    reasons.push(Reason::IsFsfFree);
+                                    return true;
+                                }
+                            }
+                            BlanketAgreement::Both => {
+                                if id.is_fsf_free_libre() && id.is_osi_approved() {
+                                    reasons.push(Reason::IsBothFreeAndOsi);
+                                    return true;
+                                }
+                            }
+                            BlanketAgreement::OsiOnly => {
+                                if id.is_osi_approved() {
+                                    if id.is_fsf_free_libre() {
+                                        reasons.push(Reason::IsFsfFree);
+                                        return false;
+                                    } else {
+                                        reasons.push(Reason::IsOsiApproved);
+                                        return true;
+                                    }
+                                }
+                            }
+                            BlanketAgreement::FsfOnly => {
+                                if id.is_fsf_free_libre() {
+                                    if id.is_osi_approved() {
+                                        reasons.push(Reason::IsOsiApproved);
+                                        return false;
+                                    } else {
+                                        reasons.push(Reason::IsFsfFree);
+                                        return true;
+                                    }
+                                }
                             }
                         }
-                        _ => {}
-                    };
+                    }
 
+                    // 4. Whelp, this license just won't do!
+                    reasons.push(Reason::NotExplicitlyAllowed);
                     false
                 });
 
-                if !mismatch {
-                    debug!(
-                        log,
-                        "skipping crate";
-                        "crate" => crate_note,
-                    );
-                    continue;
+                match eval_res {
+                    Err(_) => {
+                        let mut secondary = Vec::with_capacity(reasons.len());
+                        for (reason, failed_req) in reasons.into_iter().zip(expr.requirements()) {
+                            secondary.push(Label::new(
+                                nfo.file_id,
+                                nfo.offset + failed_req.span.start..nfo.offset + failed_req.span.end,
+                                match reason {
+                                    Reason::Denied => "explicitly denied",
+                                    Reason::NotExplicitlyAllowed => "not explicitly allowed",
+                                    Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
+                                    Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
+                                    Reason::ExplicitAllowance => "license is explicitly allowed",
+                                    Reason::IsBothFreeAndOsi => "license is FSF approved AND OSI approved",
+                                },
+                            ));
+                        }
+
+                        diagnostics.push(
+                            Diagnostic::new(
+                                Severity::Error,
+                                "failed to satisfy license requirements",
+                                Label::new(
+                                    nfo.file_id,
+                                    nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                    format!(
+                                        "license expression retrieved via {}",
+                                        match nfo.source {
+                                            LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                            LicenseExprSource::UserOverride => "user override",
+                                            LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                            LicenseExprSource::OverlayOverride => unreachable!(),
+                                        }
+                                    ),
+                                ),
+                            )
+                            .with_secondary_labels(
+                                krate_lic_nfo
+                                    .labels
+                                    .iter()
+                                    .cloned()
+                                    .chain(secondary.into_iter()),
+                            ),
+                        );
+                    }
+                    Ok(_) => {
+                        if max_severity == Some(Severity::Help) {
+                            let mut secondary = Vec::with_capacity(reasons.len());
+                            for (reason, req) in reasons.into_iter().zip(expr.requirements()) {
+                                secondary.push(Label::new(
+                                    nfo.file_id,
+                                    nfo.offset + req.span.start..nfo.offset + req.span.end,
+                                    match reason {
+                                        Reason::Denied => "explicitly denied",
+                                        Reason::NotExplicitlyAllowed => "not explicitly allowed",
+                                        Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
+                                        Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
+                                        Reason::ExplicitAllowance => "license is explicitly allowed",
+                                        Reason::IsBothFreeAndOsi => "license is FSF approved AND OSI approved",
+                                    },
+                                ));
+                            }
+
+                            diagnostics.push(
+                                Diagnostic::new(
+                                    Severity::Help,
+                                    format!(
+                                        "license expression retrieved via {}",
+                                        match nfo.source {
+                                            LicenseExprSource::Metadata => "Cargo.toml `license`",
+                                            LicenseExprSource::UserOverride => "user override",
+                                            LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                                            LicenseExprSource::OverlayOverride => unreachable!(),
+                                        }
+                                    ),
+                                    Label::new(
+                                        nfo.file_id,
+                                        nfo.offset..nfo.offset + expr.as_ref().len() as u32,
+                                        "license expression",
+                                    ),
+                                )
+                                .with_secondary_labels(secondary),
+                            );
+                        }
+                    }
                 }
+            }
+            LicenseInfo::Unlicensed => {
+                let severity = match cfg.unlicensed {
+                    LintLevel::Allow => continue,
+                    LintLevel::Warn => Severity::Warning,
+                    LintLevel::Deny => Severity::Error,
+                };
+
+                diagnostics.push(
+                    Diagnostic::new(
+                        severity,
+                        format!("{} is unlicensed", krate_lic_nfo.krate.id),
+                        krate_lic_nfo.labels.pop().unwrap(),
+                    )
+                    .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                );
             }
         }
 
-        for note in &crate_note.notes {
-            match note {
-                Note::License { name, source } => {
-                    let license_name = Summary::resolve_id(*name);
+        if !diagnostics.is_empty() {
+            let pack = crate::DiagPack {
+                krate_id: Some(krate_lic_nfo.krate.id.clone()),
+                diagnostics,
+            };
 
-                    if binary_search(&cfg.deny, license_name).is_ok() {
-                        error!(
-                            log,
-                            "detected a denied license";
-                            "crate" => crate_note,
-                            "license" => license_name,
-                            "src" => source,
-                        );
-                        errors += 1;
-                    } else if !cfg.allow.is_empty()
-                        && binary_search(&cfg.allow, license_name).is_err()
-                    {
-                        error!(
-                            log,
-                            "detected a license not explicitly allowed";
-                            "crate" => crate_note,
-                            "license" => license_name,
-                            "src" => source,
-                        );
-                        errors += 1;
-                    }
-                }
-                Note::Unlicensed => {
-                    match cfg.unlicensed {
-                        LintLevel::Allow => continue,
-                        LintLevel::Warn => {
-                            warnings += 1;
-                            warn!(log, "could not find any license information"; "crate" => crate_note);
-                        }
-                        LintLevel::Deny => {
-                            errors += 1;
-                            error!(log, "could not find any license information"; "crate" => crate_note);
-                        }
-                    };
-                }
-                Note::Exception(e) => {
-                    if binary_search(&cfg.deny, *e).is_ok() {
-                        error!(
-                            log,
-                            "detected a denied exception";
-                            "crate" => crate_note,
-                            "exception" => e,
-                        );
-                        errors += 1;
-                    } else if !cfg.allow.is_empty() && binary_search(&cfg.allow, *e).is_err() {
-                        error!(
-                            log,
-                            "detected an exception not explicitly allowed";
-                            "crate" => crate_note,
-                            "exception" => e,
-                        );
-                        errors += 1;
-                    }
-                }
-                Note::Unknown { name, source } => {
-                    if binary_search(&cfg.allow, name).is_ok() {
-                        continue;
-                    }
+            sender.send(pack).unwrap();
+        }
+    }
+}
 
-                    match cfg.unknown {
-                        LintLevel::Allow => continue,
-                        LintLevel::Warn => {
-                            warnings += 1;
-                            warn!(
-                                log,
-                                "detected an unknown license";
-                                "crate" => crate_note,
-                                "license" => name,
-                                "src" => source,
-                            );
-                        }
-                        LintLevel::Deny => {
-                            errors += 1;
-                            error!(
-                                log,
-                                "detected an unknown license";
-                                "crate" => crate_note,
-                                "license" => name,
-                                "src" => source,
-                            );
-                        }
-                    };
-                }
-                Note::LowConfidence { score, source } => {
-                    error!(
-                        log,
-                        "unable to determine license with high confidence";
-                        "crate" => crate_note,
-                        "score" => score,
-                        "src" => source,
-                    );
-                    errors += 1;
-                }
-                Note::UnreadableLicense { path, err } => {
-                    error!(
-                        log,
-                        "license file is unreadable";
-                        "crate" => crate_note,
-                        "path" => path.display(),
-                        "err" => err.to_string(), // io::Error makes slog sad
-                    );
-                    errors += 1;
-                }
-                Note::Ignored(fs) => {
-                    debug!(
-                        log,
-                        "ignored license file";
-                        "crate" => crate_note,
-                        "src" => fs,
-                    );
+#[cfg(test)]
+mod test {
+    #[test]
+    fn normalizes_line_endings() {
+        let pf = super::get_file_source(std::path::PathBuf::from("./tests/LICENSE-RING"));
+
+        let expected = {
+            let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();
+            text.replace("\r\n", "\n")
+        };
+
+        let expected_hash = 0xbd0e_ed23;
+
+        if let super::PackFileData::Good(lf) = pf.data {
+            if lf.hash != expected_hash {
+                eprintln!("hash: {:#x} != {:#x}", expected_hash, lf.hash);
+
+                for (i, (a, b)) in lf.content.chars().zip(expected.chars()).enumerate() {
+                    assert_eq!(a, b, "character @ {}", i);
                 }
             }
         }
     }
-
-    if warnings > 0 {
-        warn!(log, "encountered {} license warnings", warnings);
-    }
-
-    if errors > 0 {
-        error!(log, "encountered {} license errors", errors);
-        failure::bail!("failed license check");
-    }
-
-    Ok(())
 }

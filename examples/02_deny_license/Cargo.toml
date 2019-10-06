@@ -1,0 +1,10 @@
+[package]
+name = "deny-license"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+license = "MIT AND Apache-2.0"
+edition = "2018"
+
+[[bin]]
+name = "allow-license"
+path = "main.rs"

@@ -1,16 +1,10 @@
 [bans]
-multiple_versions = "deny"
+multiple-versions = "deny"
 deny = [
     # You can never be too sure
     { name = "openssl" },
 ]
 skip = [
-    # rand depends on a multiple versions of rand_core...
-    { name = "rand_core", version = "=0.3" },
-    { name = "rand_core", version = "=0.4" },
-    # rmp depends on an old version of num-traits, just ignore
-    # for now
-    { name = "num-traits", version = "=0.1.43" },
     # askalono 0.3.0 uses an ancient regex version which pulls
     # in other duplicates
     { name = "regex", version = "=0.2.11" },
@@ -27,47 +21,12 @@ skip = [
 [licenses]
 unlicensed = "deny"
 unknown = "deny"
+allow-osi-fsf-free = "neither"
 # We want really high confidence when inferring licenses from text
-confidence_threshold = 0.93
+confidence-threshold = 0.93
 allow = [
     "Apache-2.0",
     "BSD-2-Clause",
-    "BSD-2-Clause-FreeBSD",
-    "BSD-3-Clause",
-    "BSL-1.0",
-    "CC0-1.0",
-    "ISC",
     "MIT",
-    "MPL-2.0",
-    "Unicode-DFS-2016",
-    "Unlicense",
     "Zlib",
-    
-    # we currently parse out exceptions as separate licenses, which may not be the correct thing to do
-    # example: `wasi` crate uses "Apache-2.0 WITH LLVM-exception" as on of the licenses
-    # tracked in https://github.com/EmbarkStudios/cargo-deny/issues/22
-    "LLVM-exception" 
-]
-skip = [
-    # For illustration purposes:
-
-    # ring has a rather complicated LICENSE file due to reasons spelled out
-    # in said LICENSE file, but is basically OpenSSL for older parts, and ISC
-    # for newer parts
-    #{ name = "ring", licenses = [] },
-]
-
-[[licenses.ignore]]
-name = "crossbeam-queue"
-license_files = [
-    # A BSD-2-Clause-FreeBSD license, but it has the lowest confidence score
-    # of all the current licenses, so ignore it so we can raise the threshold
-    { path = "LICENSE-THIRD-PARTY", hash = 0x7e40bc60 },
-]
-
-[[licenses.ignore]]
-name = "adler32"
-license_files = [
-    # Zlib with a slightly lower score (at least with vanilla askalono 0.3.0)
-    { path = "LICENSE-ZLIB", hash = 0x35858a2e },
 ]
