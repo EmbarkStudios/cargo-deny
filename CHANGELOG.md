@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0-beta] - 2019-10-07
 ### Added
 - Output that pertains to a particular crate now outputs the inclusion graph for that crate, similarly to how [cargo tree](https://github.com/sfackler/cargo-tree) shows the inverse dependency graph. This can be turned off with the `--hide-inclusion-graphs` flag on the `check` subcommand.
 - All configuration problems that aren't directly related to actual toml parsing now pretty print the location and cause(s)
@@ -58,7 +60,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 ### Added
 - Initial implementation release
 
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0-beta...HEAD
+[0.3.0-beta]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.5...0.3.0-beta
 [0.2.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.4...0.2.5
 [0.2.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.2...0.2.3

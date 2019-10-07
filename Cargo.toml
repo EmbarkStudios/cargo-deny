@@ -2,7 +2,7 @@
 name = "cargo-deny"
 description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
-version = "0.2.6"
+version = "0.3.0-beta"
 authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -64,5 +64,3 @@ lazy_static = "1.4.0"
 # crawling license files on disk
 tempfile = "3.1.0"
 
-# [patch.crates-io]
-# spdx = { git = "https://github.com/EmbarkStudios/spdx.git", rev = "106592a" }
