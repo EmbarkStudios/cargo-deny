@@ -171,13 +171,13 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          name=cargo_deny
+          name=cargo-deny
           tag=$(git describe --tags --abbrev=0)
           release_name="$name-$tag-${{ matrix.target }}"
           mkdir "$release_name"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
-              strip "target/${{ matrix.target }}/release/$name"
+              strip "target/${{ matrix.target }}/release/$bin"
           fi
 
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$release_name/"
