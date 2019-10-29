@@ -1023,18 +1023,19 @@ pub fn check_licenses(
                     // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
                     // allowances
                     if let spdx::LicenseItem::SPDX { id, .. } = req.license {
-                        match cfg.copyleft {
-                            LintLevel::Allow => {
-                                allow!(IsCopyleft);
+                        if id.is_copyleft() {
+                            match cfg.copyleft {
+                                LintLevel::Allow => {
+                                    allow!(IsCopyleft);
+                                }
+                                LintLevel::Warn => {
+                                    warnings += 1;
+                                    allow!(IsCopyleft);
+                                }
+                                LintLevel::Deny => {
+                                    deny!(IsCopyleft);
+                                }
                             }
-                            LintLevel::Warn => {
-                                warnings += 1;
-                                allow!(IsCopyleft);
-                            }
-                            LintLevel::Deny => {
-                                deny!(IsCopyleft);
-                            }
-                            LintLevel::Ignore => {}
                         }
 
                         match cfg.allow_osi_fsf_free {
@@ -1108,14 +1109,14 @@ pub fn check_licenses(
                     secondary.push(Label::new(
                         nfo.file_id,
                         nfo.offset + failed_req.span.start..nfo.offset + failed_req.span.end,
-                        format!("{}: {}", if reason.1 { "allowed" } else { "denied" },
+                        format!("{}: {}", if reason.1 { "accepted" } else { "rejected" },
                             match reason.0 {
-                                Reason::Denied => "explicitly",
+                                Reason::Denied => "explicitly denied",
                                 Reason::NotExplicitlyAllowed => "not explicitly allowed",
                                 Reason::IsFsfFree => "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
                                 Reason::IsOsiApproved => "license is OSI approved https://opensource.org/licenses",
                                 Reason::ExplicitAllowance => "license is explicitly allowed",
-                                Reason::IsBothFreeAndOsi => "license is FSF approved AND OSI approved",
+                                Reason::IsBothFreeAndOsi => "license is FSF AND OSI approved",
                                 Reason::IsCopyleft => "license is considered copyleft",
                             }
                         ),
@@ -1134,7 +1135,6 @@ pub fn check_licenses(
             }
             LicenseInfo::Unlicensed => {
                 let severity = match cfg.unlicensed {
-                    LintLevel::Ignore => continue,
                     LintLevel::Allow => Severity::Note,
                     LintLevel::Warn => Severity::Warning,
                     LintLevel::Deny => Severity::Error,
