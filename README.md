@@ -26,9 +26,19 @@ One important aspect that one must always keep in mind when using code from othe
 
 So `cargo-deny` allows you to ensure that all of your dependencies have license requirements that align with your configuration.
 
+### Precedence
+
+Currently, the precedence for determining whether a particular license is accepted or rejected is as follows:
+
+1. A license specified in the `deny` list is **always rejected**.
+1. A license specified in the `allow` list is **always accepted**.
+1. If the license is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft), the [`[license.copyleft]`](#the-copyleft-field) configuration determines its status
+1. If the license is [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html), the [`[license.allow-osi-fsf-free]`](#the-allow-osi-fsf-free-field) configuration determines its status
+1. If the license does not match any of the above criteria, it is implicitly **rejected**.
+
 ### The `[licenses]` section
 
-Contains all of the configuration for `cargo deny check license`
+Contains all of the configuration for `cargo deny check license`.
 
 #### The `unlicensed` field
 
@@ -36,14 +46,22 @@ Determines what happens when a crate has not explicitly specified its license te
 information could be easily detected via `LICENSE*` files in the crate's source.
 
 * `deny` (default) - All unlicensed crates will emit an error and fail the license check
-* `allow` - All unlicensed crates will be allowed with no feedback
+* `allow` - All unlicensed crates will show a note, but will not fail the license check
 * `warn` - All unlicensed crates will show a warning, but will not fail the license check
 
 #### The `allow` and `deny` fields
 
 The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either be in version 3.6 of the [SPDX License List](https://spdx.org/licenses/), with an optional [exception](https://spdx.org/licenses/exceptions-index.html) specified by `WITH <exception-id>`, or else a user defined license reference denoted by `LicenseRef-<idstring>` for a license not on the SPDX License List.
 
-The same license cannot appear in both the `allow` and `deny` lists.
+**NOTE:** The same license cannot appear in both the `allow` and `deny` lists.
+
+#### The `copyleft` field
+
+Determines what happens when a license that is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft) is encountered.
+
+* `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
+* `deny` - The license is not accepted if it is copyleft, but might not fail the license check if part of an expression that containe
+* `allow` - The license is accepted if it is copyleft
 
 #### The `allow-osi-fsf-free` field
 
@@ -88,6 +106,7 @@ Contains one or more files that will be checked to ensure the license expression
 [licenses]
 unlicensed = "deny"
 allow-osi-fsf-free = "either"
+copyleft = "ignore"
 confidence-threshold = 0.92
 deny = [
     "GPL-3.0-or-later",

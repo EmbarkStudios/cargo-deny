@@ -186,7 +186,7 @@ pub fn cmd(
         move || {
             if let Some((summary, lic_cfg)) = lic_cfg {
                 log::info!("checking licenses...");
-                licenses::check_licenses(summary, max_severity, &lic_cfg, send.clone());
+                licenses::check_licenses(summary, &lic_cfg, send.clone());
             }
 
             if let Some(bans) = ban_cfg {
