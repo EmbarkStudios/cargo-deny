@@ -766,11 +766,14 @@ where
             if multi_detector.0 == &krate.name {
                 multi_detector.1 += 1;
             } else {
-                if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
+                if multi_detector.1 > 1
+                    && (cfg.multiple_versions == LintLevel::Warn
+                        || cfg.multiple_versions == LintLevel::Deny)
+                {
                     let severity = match cfg.multiple_versions {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
-                        LintLevel::Allow => unreachable!(),
+                        LintLevel::Allow | LintLevel::Ignore => unreachable!(),
                     };
 
                     let mut all_start = std::u32::MAX;

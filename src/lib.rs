@@ -226,6 +226,7 @@ pub mod licenses;
 #[derive(serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LintLevel {
+    Ignore,
     Allow,
     Warn,
     Deny,

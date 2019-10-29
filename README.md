@@ -36,14 +36,24 @@ Determines what happens when a crate has not explicitly specified its license te
 information could be easily detected via `LICENSE*` files in the crate's source.
 
 * `deny` (default) - All unlicensed crates will emit an error and fail the license check
-* `allow` - All unlicensed crates will be allowed with no feedback
+* `allow` - All unlicensed crates will show a note, but will not fail the license check
 * `warn` - All unlicensed crates will show a warning, but will not fail the license check
+* `ignore` - All unlicensed crates will be allowed, with no feedback
 
 #### The `allow` and `deny` fields
 
 The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either be in version 3.6 of the [SPDX License List](https://spdx.org/licenses/), with an optional [exception](https://spdx.org/licenses/exceptions-index.html) specified by `WITH <exception-id>`, or else a user defined license reference denoted by `LicenseRef-<idstring>` for a license not on the SPDX License List.
 
 The same license cannot appear in both the `allow` and `deny` lists.
+
+#### The `copyleft` field
+
+Determines what happens when a license that is considered copyleft is encountered.
+
+* `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
+* `deny` - The license is not accepted if it is copyleft, but might not fail the license check if part of an expression that containe
+* `allow` - The license is accepted if it is copyleft
+* `ignore` - The copyleft nature of the license is ignored, and the license is is allowed or denied based on the `allow-osi-fsf-free` configuration detailed below
 
 #### The `allow-osi-fsf-free` field
 
