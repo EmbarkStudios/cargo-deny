@@ -114,7 +114,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.3.0-beta"
+version = "0.3.0"
 dependencies = [
  "ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "askalono 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
