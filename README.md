@@ -176,6 +176,20 @@ edges to the root of the graph, which will often be the best candidate for remov
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
 
+#### Crate specifier
+
+The `allow`, `deny`, `skip`, and `skip-tree` fields all use a crate identifier to specify what crate(s) they want to match against.
+
+`{ name = "some-crate-name-here", version = "<= 0.7.0" }`
+
+##### The `name` field
+
+The name of the crate.
+
+##### The `version` field
+
+An optional version constraint specifying the range of crate versions that will match. Defaults to all versions (`*`).
+
 #### The `allow` and `deny` fields
 
 As with `licenses`, these determine which specificy crates and version ranges are actually allowed or denied.
@@ -186,17 +200,13 @@ When denying duplicate versions, it sometimes takes time to update versions in t
 
 Note entries in the `skip` field that never match a crate in your graph will have a warning printed that they never matched, allowing you to clean up your configuration as your crate graph changes over time.
 
-#### Crate specifier
+#### The `skip-tree` field
 
-The `allow`, `deny`, and `skip` fields all use a crate identifier to specify what crate(s) they want to match against.
+When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.
 
-##### The `name` field
+`skip-tree` entries are similar to `skip` in that they are used to specify a crate name and version range that will be skipped, but they also have an additional `depth` field that can be used to specify the depth from that root crate that will also be ignored when checking for duplicates. In that sense, a `depth` of `0` would be functionally the same as specifying the same crate name and version constraint in the `skip` list instead.
 
-The name of the crate.
-
-##### The `version` field
-
-An optional version constraint specifying the range of crate versions that will match. Defaults to all versions (`*`).
+Note that by default, the `depth` is infinite.
 
 ### Example Config
 
@@ -219,6 +229,13 @@ skip = [
     { name = "proc-macro2", version = "<=0.4" },
     { name = "quote", version = "<=0.6" },
     { name = "unicode-xid", version = "=0.1" },
+]
+skip-tree = [
+    # tonic is in alpha right now, and pulls in many alpha versions of tokio/tower
+    # crates, so ignore all of them for now until things stabilize
+    { name = "tonic", version = "0.1.0-alpha.4" },
+    # ignore older rand as many crates still use it instead of the newer 0.7+ version
+    { name = "rand", version = "=0.6.5" },
 ]
 ```
 
