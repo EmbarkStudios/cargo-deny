@@ -15,6 +15,13 @@ pub struct CrateId {
     pub version: VersionReq,
 }
 
+#[derive(Deserialize)]
+pub struct TreeSkip {
+    #[serde(flatten)]
+    pub id: CrateId,
+    pub depth: Option<usize>,
+}
+
 const fn lint_warn() -> LintLevel {
     LintLevel::Warn
 }
@@ -69,6 +76,10 @@ pub struct Config {
     /// If specified, disregards the crate completely
     #[serde(default)]
     pub skip: Vec<toml::Spanned<CrateId>>,
+    /// If specified, disregards the crate's transitive dependencies
+    /// down to a certain depth
+    #[serde(default)]
+    pub skip_tree: Vec<toml::Spanned<TreeSkip>>,
 }
 
 impl Config {
@@ -151,6 +162,7 @@ impl Config {
                 add_diag((a, "allow"), (&skipped[si], "skip"));
             }
         }
+
         if !diagnostics.is_empty() {
             Err(diagnostics)
         } else {
@@ -161,6 +173,7 @@ impl Config {
                 denied,
                 allowed,
                 skipped,
+                tree_skipped: self.skip_tree,
             })
         }
     }
@@ -201,6 +214,7 @@ pub struct ValidConfig {
     denied: Vec<KrateId>,
     allowed: Vec<KrateId>,
     skipped: Vec<KrateId>,
+    tree_skipped: Vec<toml::Spanned<TreeSkip>>,
 }
 
 fn binary_search<'a>(
@@ -234,6 +248,36 @@ fn binary_search<'a>(
             }
 
             Err(i)
+        }
+    }
+}
+
+fn binary_search_by_name<'a>(
+    arr: &'a [crate::KrateDetails],
+    name: &'a str,
+) -> Result<std::ops::Range<usize>, usize> {
+    let lowest = Version::new(0, 0, 0);
+
+    match arr.binary_search_by(|i| match i.name.as_str().cmp(name) {
+        cmp::Ordering::Equal => i.version.cmp(&lowest),
+        o => o,
+    }) {
+        Ok(i) | Err(i) => {
+            if arr[i].name != name {
+                return Err(i);
+            }
+
+            // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
+            // before the 0.0.0 version
+            let begin = if i > 0 && arr[i - 1].name == name {
+                i - 1
+            } else {
+                i
+            };
+
+            let end = arr[begin..].iter().take_while(|kd| kd.name == name).count() + begin;
+
+            Ok(begin..end)
         }
     }
 }
@@ -459,22 +503,22 @@ fn create_graph(
     dup_name: &str,
     highlight: GraphHighlight,
     krates: &crate::Krates,
-    dup_range: std::ops::Range<usize>,
+    duplicates: &[usize],
 ) -> Result<String, Error> {
     use petgraph::visit::{EdgeRef, NodeRef};
 
     let mut graph = Graph::new();
     let mut node_map = HashMap::new();
 
-    for duplicate in dup_range.clone() {
-        append_dependency_chain(krates, duplicate, &mut graph, &mut node_map);
+    for duplicate in duplicates {
+        append_dependency_chain(krates, *duplicate, &mut graph, &mut node_map);
     }
 
-    let mut edges = Vec::with_capacity(dup_range.end - dup_range.start);
+    let mut edges = Vec::with_capacity(duplicates.len());
     let mut dupes: HashMap<&str, Vec<_>> = HashMap::new();
 
-    for duplicate in dup_range {
-        let dest = Node::from(&krates.krates[duplicate]);
+    for duplicate in duplicates {
+        let dest = Node::from(&krates.krates[*duplicate]);
 
         if let Some(id) = node_map.get(&dest) {
             let mut nodes = vec![*id];
@@ -677,6 +721,56 @@ where
     Ok(output)
 }
 
+pub type Pid = cargo_metadata::PackageId;
+
+struct SkipRoot {
+    span: std::ops::Range<u32>,
+    skip_crates: Vec<Pid>,
+    skip_hits: bitvec::vec::BitVec,
+}
+
+use bitvec::prelude::*;
+
+fn build_skip_root(
+    ts: toml::Spanned<TreeSkip>,
+    krate: &crate::KrateDetails,
+    krates: &crate::Krates,
+) -> SkipRoot {
+    let span = ts.start() as u32..ts.end() as u32;
+    let ts = ts.into_inner();
+
+    let max_depth = ts.depth.unwrap_or(std::usize::MAX);
+
+    let mut pending = smallvec::SmallVec::<[(Pid, usize); 10]>::new();
+    pending.push((krate.id.clone(), 0));
+
+    let mut skip_crates = Vec::with_capacity(10);
+    while let Some((pkg_id, depth)) = pending.pop() {
+        if depth < max_depth {
+            let node = &krates.resolved.nodes[krates
+                .resolved
+                .nodes
+                .binary_search_by(|n| n.id.cmp(&pkg_id))
+                .unwrap()];
+            for dep in &node.dependencies {
+                pending.push((dep.clone(), depth + 1));
+            }
+        }
+
+        if let Err(i) = skip_crates.binary_search(&pkg_id) {
+            skip_crates.insert(i, pkg_id);
+        }
+    }
+
+    let skip_hits = bitvec![0; skip_crates.len()];
+
+    SkipRoot {
+        span,
+        skip_crates,
+        skip_hits,
+    }
+}
+
 pub struct DupGraph {
     pub duplicate: String,
     pub graph: String,
@@ -724,7 +818,7 @@ where
         let lock_id =
             &lock_contents[cur_offset + krate_start + 10..cur_offset + krate_start + id_end - 1];
 
-        // Git ids will can differ, but they have to start the same
+        // Git ids can differ, but they have to start the same
         if &krate.id.repr[..lock_id.len()] != lock_id {
             failure::bail!(
                 "invalid metadata for package '{}' != '{}'",
@@ -742,14 +836,113 @@ where
         cur_offset = cur_offset + krate_start + krate_end;
     }
 
+    struct TreeSkipper {
+        roots: Vec<SkipRoot>,
+    }
+
+    // If trees are being skipped, walk each one down to the specified depth and add
+    // each dependency as a skipped crate at the specific version
+    let mut tree_skip = if !cfg.tree_skipped.is_empty() {
+        let roots: Vec<_> = cfg
+            .tree_skipped
+            .into_iter()
+            .filter_map(|ts| {
+                if let Ok(rng) = binary_search_by_name(&krates.krates, &ts.get_ref().id.name) {
+                    for i in rng {
+                        if ts.get_ref().id.version.matches(&krates.krates[i].version) {
+                            let sr = build_skip_root(ts, &krates.krates[i], krates);
+                            return Some(sr);
+                        }
+                    }
+                }
+
+                None
+            })
+            .collect();
+
+        Some(TreeSkipper { roots })
+    } else {
+        None
+    };
+
+    let file_id = cfg.file_id;
+
+    let mut check_root_filters = |krate: &crate::KrateDetails, diags: &mut Vec<Diagnostic>| {
+        if let Some(ref mut tree_skipper) = tree_skip {
+            let mut skip = false;
+
+            for root in &mut tree_skipper.roots {
+                if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
+                    diags.push(Diagnostic::new(
+                        Severity::Help,
+                        format!("skipping crate {} = {}", krate.name, krate.version),
+                        Label::new(file_id, root.span.clone(), "matched root filter"),
+                    ));
+
+                    root.skip_hits.as_mut_bitslice().set(i, true);
+                    skip = true;
+                }
+            }
+
+            skip
+        } else {
+            false
+        }
+    };
+
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let mut skip_hit = vec![0; cfg.skipped.len()];
-    let mut multi_detector = (&krates.as_ref()[0].name, 0);
+    let mut skip_hit = bitvec![0; cfg.skipped.len()];
+
+    struct MultiDetector<'a> {
+        name: &'a str,
+        dupes: smallvec::SmallVec<[usize; 2]>,
+    }
+
+    let mut multi_detector = MultiDetector {
+        name: &krates.as_ref()[0].name,
+        dupes: smallvec::SmallVec::new(),
+    };
 
     for (i, krate) in krates.iter().enumerate() {
         let mut diagnostics = Vec::new();
+
+        if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
+            diagnostics.push(Diagnostic::new(
+                Severity::Error,
+                format!("detected banned crate {} = {}", krate.name, krate.version),
+                Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
+            ));
+        }
+
+        if !cfg.allowed.is_empty() {
+            // Since only allowing specific crates is pretty draconian,
+            // also emit which allow filters actually passed each crate
+            match binary_search(&cfg.allowed, krate) {
+                Ok((_, allow)) => {
+                    diagnostics.push(Diagnostic::new(
+                        Severity::Note,
+                        format!("allowed {} = {}", krate.name, krate.version),
+                        Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
+                    ));
+                }
+                Err(mut ind) => {
+                    if ind >= cfg.allowed.len() {
+                        ind = cfg.allowed.len() - 1;
+                    }
+
+                    diagnostics.push(Diagnostic::new(
+                        Severity::Error,
+                        format!(
+                            "detected crate not specifically allowed {} = {}",
+                            krate.name, krate.version
+                        ),
+                        Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
+                    ));
+                }
+            }
+        }
 
         if let Ok((index, skip)) = binary_search(&cfg.skipped, krate) {
             diagnostics.push(Diagnostic::new(
@@ -761,12 +954,12 @@ where
             // Keep a count of the number of times each skip filter is hit
             // so that we can report unused filters to the user so that they
             // can cleanup their configs as their dependency graph changes over time
-            skip_hit[index] += 1;
-        } else {
-            if multi_detector.0 == &krate.name {
-                multi_detector.1 += 1;
+            skip_hit.as_mut_bitslice().set(index, true);
+        } else if !check_root_filters(krate, &mut diagnostics) {
+            if multi_detector.name == krate.name {
+                multi_detector.dupes.push(i);
             } else {
-                if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
+                if multi_detector.dupes.len() > 1 && cfg.multiple_versions != LintLevel::Allow {
                     let severity = match cfg.multiple_versions {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
@@ -776,10 +969,10 @@ where
                     let mut all_start = std::u32::MAX;
                     let mut all_end = 0;
 
-                    let mut dupes = Vec::with_capacity(multi_detector.1);
+                    let mut dupes = Vec::with_capacity(multi_detector.dupes.len());
 
                     #[allow(clippy::needless_range_loop)]
-                    for dup in i - multi_detector.1..i {
+                    for dup in multi_detector.dupes.iter().cloned() {
                         if let Some(ref span) = krate_spans[dup] {
                             if span.start < all_start {
                                 all_start = span.start
@@ -796,8 +989,9 @@ where
                                 diagnostics: vec![Diagnostic::new(
                                     severity,
                                     format!(
-                                        "duplicate #{} {} = {}",
+                                        "duplicate #{} ({}) {} = {}",
                                         dupes.len() + 1,
+                                        dup,
                                         krate.name,
                                         krate.version
                                     ),
@@ -815,7 +1009,7 @@ where
                                 format!(
                                     "found {} duplicate entries for crate '{}'",
                                     dupes.len(),
-                                    multi_detector.0
+                                    multi_detector.name
                                 ),
                                 Label::new(lock_id, all_start..all_end, "lock entries"),
                             )],
@@ -828,57 +1022,22 @@ where
 
                     if let Some(ref og) = output_graph {
                         let graph = create_graph(
-                            multi_detector.0,
+                            multi_detector.name,
                             cfg.highlight,
                             krates,
-                            i - multi_detector.1..i,
+                            &multi_detector.dupes,
                         )?;
 
                         og(DupGraph {
-                            duplicate: multi_detector.0.to_owned(),
+                            duplicate: multi_detector.name.to_owned(),
                             graph,
                         })?;
                     }
                 }
 
-                multi_detector.0 = &krate.name;
-                multi_detector.1 = 1;
-            }
-
-            if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
-                diagnostics.push(Diagnostic::new(
-                    Severity::Error,
-                    format!("detected banned crate {} = {}", krate.name, krate.version),
-                    Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
-                ));
-            }
-
-            if !cfg.allowed.is_empty() {
-                // Since only allowing specific crates is pretty draconian,
-                // also emit which allow filters actually passed each crate
-                match binary_search(&cfg.allowed, krate) {
-                    Ok((_, allow)) => {
-                        diagnostics.push(Diagnostic::new(
-                            Severity::Note,
-                            format!("allowed {} = {}", krate.name, krate.version),
-                            Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
-                        ));
-                    }
-                    Err(mut ind) => {
-                        if ind >= cfg.allowed.len() {
-                            ind = cfg.allowed.len() - 1;
-                        }
-
-                        diagnostics.push(Diagnostic::new(
-                            Severity::Error,
-                            format!(
-                                "detected crate not specifically allowed {} = {}",
-                                krate.name, krate.version
-                            ),
-                            Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
-                        ));
-                    }
-                }
+                multi_detector.name = &krate.name;
+                multi_detector.dupes.clear();
+                multi_detector.dupes.push(i);
             }
         }
 
@@ -892,15 +1051,15 @@ where
         }
     }
 
-    for (count, skip) in skip_hit.into_iter().zip(cfg.skipped.into_iter()) {
-        if count == 0 {
+    for (hit, skip) in skip_hit.into_iter().zip(cfg.skipped.into_iter()) {
+        if !hit {
             sender
                 .send(crate::DiagPack {
                     krate_id: None,
                     diagnostics: vec![Diagnostic::new(
                         Severity::Warning,
                         "skipped crate was not encountered",
-                        Label::new(cfg.file_id, skip.span, "no crate matches these criteria"),
+                        Label::new(cfg.file_id, skip.span, "no crate matched these criteria"),
                     )],
                 })
                 .unwrap();
@@ -1127,5 +1286,139 @@ mod test {
             }
         )
         .is_err());
+    }
+
+    #[test]
+    fn binary_search_by_name_() {
+        use crate::KrateDetails;
+
+        macro_rules! kd {
+            ($name:expr, $vs:expr) => {
+                KrateDetails {
+                    name: $name.to_owned(),
+                    version: Version::parse($vs).unwrap(),
+                    ..Default::default()
+                }
+            };
+        }
+
+        let krates = [
+            kd!("adler32", "1.0.4"),
+            kd!("aho-corasick", "0.7.6"),
+            kd!("alsa-sys", "0.1.2"),
+            kd!("andrew", "0.2.1"),
+            kd!("android_glue", "0.2.3"),
+            kd!("ansi_term", "0.11.0"),
+            kd!("anyhow", "1.0.18"),
+            kd!("anymap", "0.12.1"),
+            kd!("app_dirs2", "2.0.4"),
+            kd!("approx", "0.3.2"),
+            kd!("arrayref", "0.3.5"),
+            kd!("arrayvec", "0.4.12"),
+            kd!("arrayvec", "0.5.1"),
+            kd!("ash", "0.29.0"),
+            kd!("ash-molten", "0.2.0+37"),
+            kd!("assert-json-diff", "1.0.1"),
+            kd!("async-stream", "0.1.2"),
+            kd!("async-stream-impl", "0.1.1"),
+            kd!("async-trait", "0.1.17"),
+            kd!("atk-sys", "0.6.0"),
+            kd!("atty", "0.2.13"),
+            kd!("autocfg", "0.1.7"),
+            kd!("backoff", "0.1.5"),
+            kd!("backtrace", "0.3.40"),
+            kd!("backtrace-sys", "0.1.32"),
+            kd!("base-x", "0.2.6"),
+            kd!("base64", "0.10.1"),
+            kd!("bincode", "1.2.0"),
+            kd!("bindgen", "0.51.1"),
+            kd!("bitflags", "1.2.1"),
+            kd!("core-foundation", "0.6.4"),
+            kd!("core-foundation-sys", "0.6.2"),
+            kd!("core-graphics", "0.17.3"),
+            kd!("coreaudio-rs", "0.9.1"),
+            kd!("coreaudio-sys", "0.2.3"),
+            kd!("crossbeam", "0.7.2"),
+            kd!("crossbeam-channel", "0.3.9"),
+            kd!("crossbeam-deque", "0.7.1"),
+            kd!("crossbeam-epoch", "0.7.2"),
+            kd!("crossbeam-queue", "0.1.2"),
+            kd!("crossbeam-utils", "0.6.6"),
+            kd!("hex", "0.3.2"),
+            kd!("hyper", "0.12.35"),
+            kd!("hyper", "0.13.0-alpha.4"),
+            kd!("hyper-rustls", "0.17.1"),
+            kd!("tokio", "0.1.22"),
+            kd!("tokio", "0.2.0-alpha.6"),
+            kd!("tokio-buf", "0.1.1"),
+            kd!("tokio-codec", "0.1.1"),
+            kd!("tokio-codec", "0.2.0-alpha.6"),
+            kd!("tokio-current-thread", "0.1.6"),
+            kd!("tokio-executor", "0.1.8"),
+            kd!("tokio-executor", "0.2.0-alpha.6"),
+            kd!("tokio-fs", "0.1.6"),
+            kd!("tokio-fs", "0.2.0-alpha.6"),
+            kd!("tokio-io", "0.1.12"),
+            kd!("tokio-io", "0.2.0-alpha.6"),
+            kd!("tokio-macros", "0.2.0-alpha.6"),
+            kd!("tokio-net", "0.2.0-alpha.6"),
+            kd!("tokio-reactor", "0.1.10"),
+            kd!("tokio-rustls", "0.10.2"),
+            kd!("tokio-sync", "0.1.7"),
+            kd!("tokio-sync", "0.2.0-alpha.6"),
+            kd!("tokio-tcp", "0.1.3"),
+            kd!("tokio-threadpool", "0.1.16"),
+            kd!("tokio-timer", "0.2.11"),
+            kd!("tokio-timer", "0.3.0-alpha.6"),
+            kd!("tokio-udp", "0.1.5"),
+            kd!("tokio-uds", "0.2.5"),
+            kd!("tonic", "0.1.0-alpha.4"),
+            kd!("tonic-build", "0.1.0-alpha.4"),
+            kd!("tower", "0.1.1"),
+            kd!("tower", "0.3.0-alpha.2"),
+            kd!("tower-balance", "0.3.0-alpha.2"),
+            kd!("tower-buffer", "0.1.2"),
+            kd!("tower-buffer", "0.3.0-alpha.2"),
+            kd!("tower-discover", "0.1.0"),
+            kd!("tower-discover", "0.3.0-alpha.2"),
+            kd!("tower-http-util", "0.1.0"),
+            kd!("tower-hyper", "0.1.1"),
+            kd!("tower-layer", "0.1.0"),
+            kd!("tower-layer", "0.3.0-alpha.2"),
+            kd!("tower-limit", "0.1.1"),
+            kd!("tower-limit", "0.3.0-alpha.2"),
+            kd!("tower-load", "0.3.0-alpha.2"),
+            kd!("tower-load-shed", "0.1.0"),
+            kd!("tower-load-shed", "0.3.0-alpha.2"),
+            kd!("tower-make", "0.3.0-alpha.2a"),
+            kd!("tower-reconnect", "0.3.0-alpha.2"),
+            kd!("tower-request-modifier", "0.1.0"),
+            kd!("tower-retry", "0.1.0"),
+            kd!("tower-retry", "0.3.0-alpha.2"),
+            kd!("tower-service", "0.2.0"),
+            kd!("tower-service", "0.3.0-alpha.2"),
+            kd!("tower-timeout", "0.1.1"),
+            kd!("tower-timeout", "0.3.0-alpha.2"),
+            kd!("tower-util", "0.1.0"),
+            kd!("tower-util", "0.3.0-alpha.2"),
+            kd!("tracing", "0.1.10"),
+            kd!("tracing-attributes", "0.1.5"),
+            kd!("tracing-core", "0.1.7"),
+        ];
+
+        assert_eq!(binary_search_by_name(&krates, "adler32",), Ok(0..1));
+        assert_eq!(
+            binary_search_by_name(&krates, "tower-service",)
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(binary_search_by_name(&krates, "tracing",).unwrap().len(), 1);
+        assert_eq!(
+            binary_search_by_name(&krates, "tokio-codec",)
+                .unwrap()
+                .len(),
+            2
+        );
     }
 }

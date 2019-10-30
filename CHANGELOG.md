@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added  `[license.copyleft]` config which can be used to determine what happens when a copyleft license is encountered.
+- Added `[license.copyleft]` config, which can be used to determine what happens when a copyleft license is encountered.
+- Added `[bans.skip-tree]` config, which can be used to skip entire subtrees of a dependency graph when considering duplicates
+
+### Fixed
+- Fixed displaying of duplicate errors in the presence of a `skip`ped crate
 
 ## [0.3.0-beta] - 2019-10-07
 ### Added
