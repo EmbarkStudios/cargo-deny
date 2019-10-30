@@ -908,6 +908,42 @@ where
     for (i, krate) in krates.iter().enumerate() {
         let mut diagnostics = Vec::new();
 
+        if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
+            diagnostics.push(Diagnostic::new(
+                Severity::Error,
+                format!("detected banned crate {} = {}", krate.name, krate.version),
+                Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
+            ));
+        }
+
+        if !cfg.allowed.is_empty() {
+            // Since only allowing specific crates is pretty draconian,
+            // also emit which allow filters actually passed each crate
+            match binary_search(&cfg.allowed, krate) {
+                Ok((_, allow)) => {
+                    diagnostics.push(Diagnostic::new(
+                        Severity::Note,
+                        format!("allowed {} = {}", krate.name, krate.version),
+                        Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
+                    ));
+                }
+                Err(mut ind) => {
+                    if ind >= cfg.allowed.len() {
+                        ind = cfg.allowed.len() - 1;
+                    }
+
+                    diagnostics.push(Diagnostic::new(
+                        Severity::Error,
+                        format!(
+                            "detected crate not specifically allowed {} = {}",
+                            krate.name, krate.version
+                        ),
+                        Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
+                    ));
+                }
+            }
+        }
+
         if let Ok((index, skip)) = binary_search(&cfg.skipped, krate) {
             diagnostics.push(Diagnostic::new(
                 Severity::Help,
@@ -1002,42 +1038,6 @@ where
                 multi_detector.name = &krate.name;
                 multi_detector.dupes.clear();
                 multi_detector.dupes.push(i);
-            }
-
-            if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
-                diagnostics.push(Diagnostic::new(
-                    Severity::Error,
-                    format!("detected banned crate {} = {}", krate.name, krate.version),
-                    Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
-                ));
-            }
-
-            if !cfg.allowed.is_empty() {
-                // Since only allowing specific crates is pretty draconian,
-                // also emit which allow filters actually passed each crate
-                match binary_search(&cfg.allowed, krate) {
-                    Ok((_, allow)) => {
-                        diagnostics.push(Diagnostic::new(
-                            Severity::Note,
-                            format!("allowed {} = {}", krate.name, krate.version),
-                            Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
-                        ));
-                    }
-                    Err(mut ind) => {
-                        if ind >= cfg.allowed.len() {
-                            ind = cfg.allowed.len() - 1;
-                        }
-
-                        diagnostics.push(Diagnostic::new(
-                            Severity::Error,
-                            format!(
-                                "detected crate not specifically allowed {} = {}",
-                                krate.name, krate.version
-                            ),
-                            Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
-                        ));
-                    }
-                }
             }
         }
 
