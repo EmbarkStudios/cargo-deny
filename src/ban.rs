@@ -459,22 +459,22 @@ fn create_graph(
     dup_name: &str,
     highlight: GraphHighlight,
     krates: &crate::Krates,
-    dup_range: std::ops::Range<usize>,
+    duplicates: &[usize],
 ) -> Result<String, Error> {
     use petgraph::visit::{EdgeRef, NodeRef};
 
     let mut graph = Graph::new();
     let mut node_map = HashMap::new();
 
-    for duplicate in dup_range.clone() {
-        append_dependency_chain(krates, duplicate, &mut graph, &mut node_map);
+    for duplicate in duplicates {
+        append_dependency_chain(krates, *duplicate, &mut graph, &mut node_map);
     }
 
-    let mut edges = Vec::with_capacity(dup_range.end - dup_range.start);
+    let mut edges = Vec::with_capacity(duplicates.len());
     let mut dupes: HashMap<&str, Vec<_>> = HashMap::new();
 
-    for duplicate in dup_range {
-        let dest = Node::from(&krates.krates[duplicate]);
+    for duplicate in duplicates {
+        let dest = Node::from(&krates.krates[*duplicate]);
 
         if let Some(id) = node_map.get(&dest) {
             let mut nodes = vec![*id];
@@ -724,7 +724,7 @@ where
         let lock_id =
             &lock_contents[cur_offset + krate_start + 10..cur_offset + krate_start + id_end - 1];
 
-        // Git ids will can differ, but they have to start the same
+        // Git ids can differ, but they have to start the same
         if &krate.id.repr[..lock_id.len()] != lock_id {
             failure::bail!(
                 "invalid metadata for package '{}' != '{}'",
@@ -746,7 +746,16 @@ where
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
     let mut skip_hit = vec![0; cfg.skipped.len()];
-    let mut multi_detector = (&krates.as_ref()[0].name, 0);
+
+    struct MultiDetector<'a> {
+        name: &'a str,
+        dupes: smallvec::SmallVec<[usize; 2]>,
+    }
+
+    let mut multi_detector = MultiDetector {
+        name: &krates.as_ref()[0].name,
+        dupes: smallvec::SmallVec::new(),
+    };
 
     for (i, krate) in krates.iter().enumerate() {
         let mut diagnostics = Vec::new();
@@ -763,10 +772,10 @@ where
             // can cleanup their configs as their dependency graph changes over time
             skip_hit[index] += 1;
         } else {
-            if multi_detector.0 == &krate.name {
-                multi_detector.1 += 1;
+            if multi_detector.name == krate.name {
+                multi_detector.dupes.push(i);
             } else {
-                if multi_detector.1 > 1 && cfg.multiple_versions != LintLevel::Allow {
+                if multi_detector.dupes.len() > 1 && cfg.multiple_versions != LintLevel::Allow {
                     let severity = match cfg.multiple_versions {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
@@ -776,10 +785,10 @@ where
                     let mut all_start = std::u32::MAX;
                     let mut all_end = 0;
 
-                    let mut dupes = Vec::with_capacity(multi_detector.1);
+                    let mut dupes = Vec::with_capacity(multi_detector.dupes.len());
 
                     #[allow(clippy::needless_range_loop)]
-                    for dup in i - multi_detector.1..i {
+                    for dup in multi_detector.dupes.iter().cloned() {
                         if let Some(ref span) = krate_spans[dup] {
                             if span.start < all_start {
                                 all_start = span.start
@@ -796,8 +805,9 @@ where
                                 diagnostics: vec![Diagnostic::new(
                                     severity,
                                     format!(
-                                        "duplicate #{} {} = {}",
+                                        "duplicate #{} ({}) {} = {}",
                                         dupes.len() + 1,
+                                        dup,
                                         krate.name,
                                         krate.version
                                     ),
@@ -815,7 +825,7 @@ where
                                 format!(
                                     "found {} duplicate entries for crate '{}'",
                                     dupes.len(),
-                                    multi_detector.0
+                                    multi_detector.name
                                 ),
                                 Label::new(lock_id, all_start..all_end, "lock entries"),
                             )],
@@ -828,21 +838,22 @@ where
 
                     if let Some(ref og) = output_graph {
                         let graph = create_graph(
-                            multi_detector.0,
+                            multi_detector.name,
                             cfg.highlight,
                             krates,
-                            i - multi_detector.1..i,
+                            &multi_detector.dupes,
                         )?;
 
                         og(DupGraph {
-                            duplicate: multi_detector.0.to_owned(),
+                            duplicate: multi_detector.name.to_owned(),
                             graph,
                         })?;
                     }
                 }
 
-                multi_detector.0 = &krate.name;
-                multi_detector.1 = 1;
+                multi_detector.name = &krate.name;
+                multi_detector.dupes.clear();
+                multi_detector.dupes.push(i);
             }
 
             if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
