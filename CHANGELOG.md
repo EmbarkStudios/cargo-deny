@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `[license.copyleft]` config, which can be used to determine what happens when a copyleft license is encountered.
 - Added `[bans.skip-tree]` config, which can be used to skip entire subtrees of a dependency graph when considering duplicates
 
+### Fixed
+- Fixed displaying of duplicate errors in the presence of a `skip`ped crate
+
 ## [0.3.0-beta] - 2019-10-07
 ### Added
 - Output that pertains to a particular crate now outputs the inclusion graph for that crate, similarly to how [cargo tree](https://github.com/sfackler/cargo-tree) shows the inverse dependency graph. This can be turned off with the `--hide-inclusion-graphs` flag on the `check` subcommand.
