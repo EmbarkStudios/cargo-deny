@@ -1,6 +1,6 @@
 use crate::LintLevel;
+use anyhow::{Context, Error};
 use codespan_reporting::diagnostic::Diagnostic;
-use failure::Error;
 use rayon::prelude::*;
 use semver::{Version, VersionReq};
 use serde::Deserialize;
@@ -556,7 +556,7 @@ fn create_graph(
     let smollest = edges
         .iter()
         .min_by(|a, b| a.len().cmp(&b.len()))
-        .ok_or_else(|| failure::format_err!("expected shortest edge path"))?;
+        .context("expected shortest edge path")?;
     let lowest = &edges[0];
 
     print_graph(
@@ -791,7 +791,7 @@ where
     // Get the offset of the beginning of the metadata section
     let metadata_start = lock_contents
         .rfind("[metadata]")
-        .ok_or_else(|| failure::format_err!("unable to find metadata section in Cargo.lock"))?
+        .context("unable to find metadata section in Cargo.lock")?
         + 10;
 
     let mut krate_spans: Vec<Option<std::ops::Range<u32>>> = vec![None; krates.krates.len()];
@@ -807,20 +807,18 @@ where
 
         let krate_start = lock_contents[cur_offset..]
             .find("\"checksum ")
-            .ok_or_else(|| {
-                failure::format_err!("unable to find metadata entry for krate {}", krate.id)
-            })?;
+            .with_context(|| format!("unable to find metadata entry for krate {}", krate.id))?;
 
         let id_end = lock_contents[cur_offset + krate_start..]
             .find("\" = \"")
-            .ok_or_else(|| failure::format_err!("invalid metadata format"))?;
+            .context("invalid metadata format")?;
 
         let lock_id =
             &lock_contents[cur_offset + krate_start + 10..cur_offset + krate_start + id_end - 1];
 
         // Git ids can differ, but they have to start the same
         if &krate.id.repr[..lock_id.len()] != lock_id {
-            failure::bail!(
+            anyhow::bail!(
                 "invalid metadata for package '{}' != '{}'",
                 krate.id,
                 lock_id
@@ -829,7 +827,7 @@ where
 
         let krate_end = lock_contents[cur_offset + krate_start..]
             .find('\n')
-            .ok_or_else(|| failure::format_err!("unable to find end for krate {}", krate.id))?;
+            .with_context(|| format!("unable to find end for krate {}", krate.id))?;
 
         krate_spans[i] =
             Some((cur_offset + krate_start) as u32..(cur_offset + krate_start + krate_end) as u32);

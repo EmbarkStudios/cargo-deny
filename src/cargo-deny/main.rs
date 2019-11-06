@@ -1,8 +1,8 @@
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
 
+use anyhow::{bail, Context, Error};
 use cargo_deny::licenses;
-use failure::{bail, format_err, Error};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -22,7 +22,7 @@ enum Command {
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
     s.parse::<log::LevelFilter>()
-        .map_err(|_| format_err!("failed to parse level '{}'", s))
+        .with_context(|| format!("failed to parse level '{}'", s))
 }
 
 #[derive(Debug, StructOpt)]
@@ -96,7 +96,7 @@ fn real_main() -> Result<(), Error> {
         .context
         .clone()
         .or_else(|| std::env::current_dir().ok())
-        .ok_or_else(|| format_err!("unable to determine context directory"))?;
+        .context("unable to determine context directory")?;
 
     if !context_dir.exists() {
         bail!("context {} was not found", context_dir.display());

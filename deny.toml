@@ -10,6 +10,9 @@ skip = [
     { name = "regex", version = "=0.2.11" },
     { name = "regex-syntax", version = "=0.5.6" },
     { name = "aho-corasick", version = "=0.6.10" },
+
+    # parking_lot_core uses an outdated smallvec
+    { name = "smallvec", version = "0.6.11" },
 ]
 
 [licenses]

@@ -1,6 +1,6 @@
 use crate::{KrateDetails, LintLevel};
+use anyhow::Error;
 use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
-use failure::Error;
 use rayon::prelude::*;
 use semver::VersionReq;
 use serde::Deserialize;
@@ -629,7 +629,8 @@ pub struct LicenseStore {
 
 impl LicenseStore {
     pub fn from_cache() -> Result<Self, Error> {
-        let store = askalono::Store::from_cache(LICENSE_CACHE)?;
+        let store = askalono::Store::from_cache(LICENSE_CACHE)
+            .map_err(|e| anyhow::anyhow!("failed to load license store: {}", e))?;
 
         Ok(Self { store })
     }

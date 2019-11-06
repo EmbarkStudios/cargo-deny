@@ -208,7 +208,7 @@
 //! license, shall be dual licensed as above, without any additional terms or
 //! conditions.
 
-use failure::Error;
+use anyhow::{Context, Error};
 use rayon::prelude::*;
 pub use semver::Version;
 use std::{
@@ -358,7 +358,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
         .manifest_path(cargo_toml)
         .features(cargo_metadata::CargoOpt::AllFeatures)
         .exec()
-        .map_err(|e| failure::format_err!("failed to fetch metadata: {}", e))?;
+        .context("failed to fetch metdata")?;
 
     let mut crate_infos: Vec<_> = metadata
         .packages
