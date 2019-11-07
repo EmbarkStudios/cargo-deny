@@ -1,7 +1,7 @@
 use ansi_term::Color;
+use anyhow::Error;
 use cargo_deny::licenses;
 use clap::arg_enum;
-use failure::Error;
 use serde::Serialize;
 use structopt::StructOpt;
 

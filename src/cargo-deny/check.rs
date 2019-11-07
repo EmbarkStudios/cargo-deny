@@ -1,7 +1,7 @@
+use anyhow::{Context, Error};
 use cargo_deny::{ban, licenses};
 use clap::arg_enum;
 use codespan_reporting::diagnostic::Diagnostic;
-use failure::{format_err, Error};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
@@ -95,20 +95,16 @@ pub fn cmd(
                 context_dir.join(p)
             }
         })
-        .ok_or_else(|| format_err!("unable to determine config path"))?;
+        .context("unable to determine config path")?;
 
     let mut files = codespan::Files::new();
 
     let cfg = {
         let cfg_contents = std::fs::read_to_string(&cfg_path)
-            .map_err(|e| format_err!("failed to read config from {}: {}", cfg_path.display(), e))?;
+            .with_context(|| format!("failed to read config from {}", cfg_path.display()))?;
 
-        let cfg: Config = toml::from_str(&cfg_contents).map_err(|e| {
-            format_err!(
-                "failed to deserialize config from {}: {}",
-                cfg_path.display(),
-                e
-            )
+        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
+            format!("failed to deserialize config from {}", cfg_path.display(),)
         })?;
 
         match cfg.validate(&mut files, &cfg_path, cfg_contents) {
@@ -123,10 +119,10 @@ pub fn cmd(
                     term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
                 }
 
-                return Err(format_err!(
+                anyhow::bail!(
                     "failed to validate configuration file {}",
                     cfg_path.display()
-                ));
+                );
             }
         }
     };
@@ -256,7 +252,7 @@ pub fn cmd(
             }
 
             if error_count > 0 {
-                Some(failure::format_err!("encountered {} errors", error_count))
+                Some(anyhow::anyhow!("encountered {} errors", error_count))
             } else {
                 None
             }

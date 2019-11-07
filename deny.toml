@@ -5,11 +5,12 @@ deny = [
     { name = "openssl" },
 ]
 skip = [
-    # askalono 0.3.0 uses an ancient regex version which pulls
-    # in other duplicates
-    { name = "regex", version = "=0.2.11" },
-    { name = "regex-syntax", version = "=0.5.6" },
-    { name = "aho-corasick", version = "=0.6.10" },
+    # rayon uses an older crossbeam
+    { name = "crossbeam-queue", version = "=0.1.2" },
+    { name = "crossbeam-utils", version = "=0.6.6" },
+
+    # parking_lot_core uses an outdated smallvec
+    { name = "smallvec", version = "=0.6.13" },
 ]
 
 [licenses]

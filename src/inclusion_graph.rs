@@ -1,5 +1,5 @@
 use crate::{KrateDetails, Krates};
-use failure::Error;
+use anyhow::Error;
 use petgraph::Graph;
 use rayon::prelude::*;
 use std::collections::{hash_map::Entry, HashMap, HashSet};

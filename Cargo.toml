@@ -2,7 +2,7 @@
 name = "cargo-deny"
 description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -12,9 +12,6 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci"]
 exclude = [
-  # Exclude the zstd cache for now, as we are using the vanilla
-  # askalono with support for gzip
-  "spdx_cache.bin.zstd",
   "examples/",
   ".github/",
 ]
@@ -28,33 +25,31 @@ path = "src/cargo-deny/main.rs"
 
 [dependencies]
 ansi_term = "0.11.0"
+anyhow = "1.0.19"
+askalono = "0.4.0"
 atty = "0.2.13"
 bitvec = { version = "0.15.2", features = ["alloc"] }
-cargo_metadata = "0.8.2"
+cargo_metadata = "0.9.0"
 chrono = "0.4.9"
 clap = "2.33.0"
-codespan = "0.4.1"
-codespan-reporting = "0.4.1"
+codespan = "0.5.0"
+codespan-reporting = "0.5.0"
 crossbeam = "0.7.2"
 erased-serde = "0.3.9"
-failure = "0.1.5"
-fern = "0.5.8"
+fern = "0.5.9"
 log = "0.4.8"
 parking_lot = "0.9.0"
 petgraph = "0.4.13"
 rayon = "1.2.0"
 regex = { version = "1.3.1", default-features = true }
 semver = "0.9.0"
-serde = { version = "1.0.101", features = ["derive"] }
-serde_json = "1.0.40"
-smallvec = "0.6.10"
-spdx = "0.2.0"
-structopt = "0.3.2"
-toml = "0.5.3"
+serde = { version = "1.0.102", features = ["derive"] }
+serde_json = "1.0.41"
+smallvec = "1.0.0"
+spdx = "0.2.3"
+structopt = "0.3.3"
+toml = "0.5.5"
 twox-hash = { version = "1.5.0", default-features = false }
-
-[dependencies.askalono]
-version = "0.3.0"
 
 [dev-dependencies]
 # We use this for pretty printing errors
