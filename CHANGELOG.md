@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2019-11-07
+### Changed
+- Replaced usage of `failure` with `anyhow`
+- Upgraded askalono and spdx to newer versions that both use version 3.7 of the SPDX license list
+
 ## [0.3.0] - 2019-10-30
 ### Added
 - Added `[licenses.copyleft]` config, which can be used to determine what happens when a copyleft license is encountered.
@@ -68,7 +73,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 ### Added
 - Initial implementation release
 
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0-beta...0.3.0
 [0.3.0-beta]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.5...0.3.0-beta
 [0.2.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.4...0.2.5
