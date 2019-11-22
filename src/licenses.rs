@@ -379,7 +379,11 @@ impl LicensePack {
         // already found in the root directory
         if let Some(ref lf) = krate.license_file {
             if lic_paths.iter().find(|l| l.ends_with(lf)).is_none() {
-                lic_paths.push(lf.clone());
+                // The `krate.license_file` is relative to the crate, while files found with
+                // `find_license_files()` are absolute. We prepend the directory of the current
+                // crate, to make sure all license file paths will be absolute.
+                let absolute_lf = krate.manifest_path.parent().unwrap().join(lf);
+                lic_paths.push(absolute_lf);
             }
         }
 
