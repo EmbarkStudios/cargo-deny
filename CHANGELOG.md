@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+- [PR#46](https://github.com/EmbarkStudios/cargo-deny/pull/46) Fixed issue where `license-file` was not being
+turned into an absolute path like the normal license file scanning, causing a crash. Thanks [@foresterre](https://github.com/foresterre)!
 - Fixed an out of bounds panic when skipping a crate which wasn't present in the crate graph, that would
 have been sorted last if it had existed
 
