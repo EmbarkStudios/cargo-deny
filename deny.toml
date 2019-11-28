@@ -5,12 +5,8 @@ deny = [
     { name = "openssl" },
 ]
 skip = [
-    # rayon uses an older crossbeam
-    { name = "crossbeam-queue", version = "=0.1.2" },
-    { name = "crossbeam-utils", version = "=0.6.6" },
-
-    # parking_lot_core uses an outdated smallvec
-    { name = "smallvec", version = "=0.6.13" },
+    # clap uses an older version of ansi_term
+    { name = "ansi_term", version = "=0.11.0" },
 ]
 
 [licenses]

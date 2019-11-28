@@ -263,7 +263,7 @@ fn binary_search_by_name<'a>(
         o => o,
     }) {
         Ok(i) | Err(i) => {
-            if arr[i].name != name {
+            if i >= arr.len() || arr[i].name != name {
                 return Err(i);
             }
 
@@ -1418,5 +1418,9 @@ mod test {
                 .len(),
             2
         );
+
+        // Ensure that searching for a crate that doesn't exist, but would be sorted at the end
+        // does not cause and out of bounds panic
+        assert_eq!(binary_search_by_name(&krates, "winit",), Err(krates.len()));
     }
 }
