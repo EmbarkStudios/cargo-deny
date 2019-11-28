@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "ansi_term 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "anyhow 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
