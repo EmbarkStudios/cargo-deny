@@ -12,7 +12,7 @@ pub struct Args {
 }
 
 const DENY_TOML: &str = "deny.toml";
-const CONTENTS: &[u8] = include_bytes!("../../resources/example.toml");
+const CONTENTS: &[u8] = include_bytes!("../../resources/template.toml");
 
 pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     let cfg_file = args
