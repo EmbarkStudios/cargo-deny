@@ -162,7 +162,7 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     let config: InitConfig = args.into();
     let content = toml::to_string(&config).context("unable to create config (toml) file")?;
 
-    let _ = std::fs::write(cfg_file, content).context("unable to write config file")?;
+    std::fs::write(cfg_file, content).context("unable to write config file")?;
 
     Ok(())
 }
