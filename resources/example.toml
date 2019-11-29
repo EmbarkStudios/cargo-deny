@@ -1,0 +1,146 @@
+# -- cargo-deny configuration
+# --
+# -- documentation: https://github.com/EmbarkStudios/cargo-deny#-cargo-deny
+# --
+# -- Comments starting with `--` are here to guide you through this configuration file.
+# -- Comments which don't start with the above pattern provide example configurations and can be used
+# -- by uncommenting (removing the `#` character at the front of the line) the respective lines.
+
+[licenses]
+# -- This section is considered when running `cargo deny check license`
+# -- More documentation for the licenses section can be found here:
+# -- https://github.com/EmbarkStudios/cargo-deny#the-licenses-section
+
+# -- :: Unlicensed
+# -- Determines what happens when a crate has not explicitly specified its license terms, and no
+# -- license information could be easily detected via LICENSE* files in the crate's source.
+# -- Possible values: "deny", "allow" or "warn".
+#unlicensed = "deny"
+
+# -- :: Allow / Deny specific licenses
+# -- The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either,
+# -- be in version 3.6 of the SPDX License List*, with an optional exception** specified by WITH <exception-id>,
+# -- or else a user defined license reference denoted by LicenseRef-<idstring> for a license not on the SPDX License List.
+# --
+# -- NOTE: The same license cannot appear in both the allow and deny lists.
+# --
+# -- *) SPDX License List: https://spdx.org/licenses/
+# -- **) SPDX License Exceptions: https://spdx.org/licenses/exceptions-index.html
+#allow = [
+#    "Apache-2.0",
+#    "Apache-2.0 WITH LLVM-exception",
+#    "BSD-3-Clause",
+#    "MIT",
+#    "Zlib",
+#]
+
+#deny = [
+#    "GPL-3.0-or-later",
+#]
+
+# -- :: Copyleft
+# -- Determines what happens when a license that is considered copyleft* is encountered.
+# -- Possible values: "deny" or "allow" or "warn".
+# --
+# -- *) Learn more about copyleft: https://en.wikipedia.org/wiki/Copyleft
+#copyleft = "warn"
+
+# -- :: OSI approvided or FSF Free/Libre licenses
+# -- Determines what happens when licenses aren't explicitly allowed or denied, but are marked as OSI Approved* or
+# -- FSF Free/Libre** in the currently supported version of the SPDX License List***.
+# -- Possible values: "both", "either", "osi-only", "fsf-only" or "neither".
+# --
+# -- *) OSI Approved licenses & sandards: https://opensource.org/licenses
+# -- **) FSF Free/Libre: https://www.gnu.org/licenses/license-list.en.html
+# -- ***) SPDX License List: https://spdx.org/licenses/
+#allow-osi-fsf-free = "neither"
+
+# -- :: Confidence Threshold
+# -- cargo-deny uses askalono* to determine the license of a license file, the confidence threshold value determines
+# -- if askalono's determination meets your minimum requirements. The higher the value, the more closely the license
+# -- text must be to the canonical license text of a valid SPDX license file.
+# -- Possible values: a value between 0.0 and 1.0
+#confidence-threshold = 0.8
+
+# -- :: Clarification
+# -- In some exceptional cases, the crate does not have easily machine readable license information, and would by
+# -- default be considered "unlicensed" by cargo-deny. As a (hopefully) temporary patch for using the crate,
+# -- you can specify a clarification for a crate where you can specify the license expression based on your
+# -- understanding of the requirements as described by the license holder.
+# --
+# -- ::: Example use case: ring
+# -- Ring has a rather complicated license file, and unfortunately does not provide an SPDX expression in the
+# -- `license` toml.
+# --
+# -- The 'expression' field below is based on the following considerations:
+# -- > SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses: https://spdx.org/licenses/OpenSSL.html
+# -- > ISC - Both BoringSSL and ring use this for their new files
+# -- > MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
+# -- > license, for third_party/fiat, which, unlike other third_party directories, is
+# -- > compiled into non-test libraries, is included below."
+# -- > OpenSSL - Obviously
+#[[licenses.clarify]]
+#name = "ring"
+#expression = "ISC AND MIT AND OpenSSL"
+#license-files = [
+#    { path = "LICENSE", hash = 0xbd0eed23 },
+#]
+
+[bans]
+# -- This section is considered when running `cargo deny check ban`.
+# -- More documentation about the 'bans' section can be found here:
+# -- https://github.com/EmbarkStudios/cargo-deny#crate-bans---cargo-deny-check-ban
+
+# -- :: Multiple versions
+# -- Determines what happens when multiple versions of the same crate are encountered.
+# -- Possible values: "deny", "warn" or "allow"
+#multiple-versions = "warn"
+
+# -- :: Highlighting multiple versions
+# -- When multiple versions of the same crate are encountered, and the multiple-versions is set to warn or deny, using
+# -- the -g <dir> option will print out a dotgraph* of each of the versions and how they were included into the graph.
+# -- This field determines how the graph will be colored to help you quickly spot good candidates for removal or updating.
+# -- Possible values: "lowest-version", "simplest-path" or "all"
+# --
+# -- *) Read more about dot graphs: https://www.graphviz.org
+#highlight = "all"
+
+# -- :: Allow/deny/skip/skip-tree
+# -- The allow, deny, skip, and skip-tree fields all use a crate identifier to specify what crate(s) they want to match against.
+# -- The name field must specify the name of the crate, i.e. against what crate the ban rule will be matched.
+# -- The (optional) version field constraints the range of versions that will match. Defaults to all versions.
+# --
+# -- allow field: allow specific (versions of) crates.
+# -- deny field: deny specific (versions of) crates.
+# -- skip field: ignore specific (versions of) crates.
+# -- skip-tree field: skip-tree entries are similar to skip in that they are used to specify a crate name and version
+# --   range that will be skipped, but they also have an additional depth field that can be used to specify the depth
+# --   from that root crate that will also be ignored when checking for duplicates. By default, the depth is infinite.
+# --
+# -- ::: Examples
+#allow = [
+#   { name = "bitflags" },
+#]
+#deny = [
+#   { name = "openssl" },
+#]
+#skip = [
+#    # askalono 0.3.0 uses an ancient regex version which pulls
+#    # in other duplicates
+#    { name = "regex", version = "=0.2.11" },
+#    { name = "regex-syntax", version = "=0.5.6" },
+#    { name = "aho-corasick", version = "=0.6.10" },
+#
+#    # some macro crates use the pre 1.0 syn dependencies
+#    { name = "syn", version = "<=0.15" },
+#    { name = "proc-macro2", version = "<=0.4" },
+#    { name = "quote", version = "<=0.6" },
+#    { name = "unicode-xid", version = "=0.1" },
+#]
+#skip-tree = [
+#    # tonic is in alpha right now, and pulls in many alpha versions of tokio/tower
+#    # crates, so ignore all of them for now until things stabilize
+#    { name = "tonic", version = "0.1.0-alpha.4" },
+#    # ignore older rand as many crates still use it instead of the newer 0.7+ version
+#    { name = "rand", version = "=0.6.5", depth = 2 },
+#]
