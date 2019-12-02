@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-const LICENSE_CACHE: &[u8] = include_bytes!("../spdx_cache.bin.zstd");
+const LICENSE_CACHE: &[u8] = include_bytes!("../resources/spdx_cache.bin.zstd");
 
 const fn lint_deny() -> LintLevel {
     LintLevel::Deny
