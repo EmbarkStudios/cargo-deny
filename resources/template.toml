@@ -1,0 +1,48 @@
+[licenses]
+# This section is considered when running `cargo deny check license`
+# More documentation for the licenses section can be found here:
+# https://github.com/EmbarkStudios/cargo-deny#the-licenses-section
+
+# Uncomment the following line to change the lint level for unlicensed crates [possible values: "deny", "allow" or "warn"].
+#unlicensed = "deny"
+
+# Uncomment the following line to explictly allow certain licenses [possible values: any SPDX 2.1 identifier].
+#allow = []
+
+# Uncomment the following line to explictly disallow certain licenses [possible values: any SPDX 2.1 identifier].
+#deny = []
+
+# Uncomment the following line to change the lint level for licenses considered copyleft [possible values: "deny", "allow" or "warn"].
+#copyleft = "warn"
+
+# Uncomment the following line to approve or deny OSI-approved or FSF Free/Libre licenses [possible values: "both", "either", "osi-only", "fsf-only" or "neither"].
+#allow-osi-fsf-free = "neither"
+
+# Uncomment the following line to change the confidence threshold. [possible values: any between 0.0 and 1.0].
+# The higher the value, the more closely the license text must be to the canonical license text of a valid SPDX license file.
+#confidence-threshold = 0.8
+
+[bans]
+# This section is considered when running `cargo deny check ban`.
+# More documentation about the 'bans' section can be found here:
+# https://github.com/EmbarkStudios/cargo-deny#crate-bans-cargo-deny-check-ban
+
+# Uncomment the following line to change what happens when multiple versions of the same crate are encountered [possible values: "deny", "warn" or "allow"].
+#multiple-versions = "warn"
+
+# Uncomment the following line to change the highlighting variant used to  multiple versions of the same crate when creating
+# a dotgraph of your crates dependencies [possible values: "lowest-version", "simplest-path" or "all"].
+#highlight = "all"
+
+# Uncomment the following line to allow specific crates.
+#allow = []
+
+# Uncomment the following line to deny specific crates.
+#deny = []
+
+# Uncomment the following line to skip specific crates.
+#skip = []
+
+# Uncomment the following line to skip specific crates (including different versions of the same crate down the dependency
+# tree). By default, the depth is infinite. If however desired, the depth can be ajusted.
+#skip-tree = []

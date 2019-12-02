@@ -8,6 +8,7 @@ use structopt::StructOpt;
 
 mod check;
 mod common;
+mod init;
 mod list;
 
 #[derive(StructOpt, Debug)]
@@ -18,6 +19,9 @@ enum Command {
     /// Checks your dependency graph based on the configuration you specify
     #[structopt(name = "check")]
     Check(check::Args),
+    /// Initialize an empty deny.toml file in your current crate.
+    #[structopt(name = "init")]
+    Init(init::Args),
 }
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
@@ -141,6 +145,7 @@ fn real_main() -> Result<(), Error> {
             all_crates,
             license_store,
         ),
+        Command::Init(init) => init::cmd(init, context_dir),
     }
 }
 

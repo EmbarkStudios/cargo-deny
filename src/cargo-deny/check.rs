@@ -6,6 +6,8 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
+use crate::common::make_absolute_path;
+
 arg_enum! {
     #[derive(Debug, PartialEq)]
     pub enum WhichCheck {
@@ -87,14 +89,8 @@ pub fn cmd(
 ) -> Result<(), Error> {
     let cfg_path = args
         .config
-        .or_else(|| Some("deny.toml".to_owned().into()))
-        .map(|p| {
-            if p.is_absolute() {
-                p
-            } else {
-                context_dir.join(p)
-            }
-        })
+        .or_else(|| Some("deny.toml".into()))
+        .map(|p| make_absolute_path(p, context_dir))
         .context("unable to determine config path")?;
 
     let mut files = codespan::Files::new();
