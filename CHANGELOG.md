@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2019-12-02
+### Added
+- [PR#48](https://github.com/EmbarkStudios/cargo-deny/pull/48) Added an `init` subcommand to generate a
+cargo-deny template file with guiding comments. Thanks [@foresterre](https://github.com/foresterre)!
+
 ## [0.4.1] - 2019-11-28
 ### Fixed
 - [PR#46](https://github.com/EmbarkStudios/cargo-deny/pull/46) Fixed issue where `license-file` was not being
@@ -80,7 +85,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 ### Added
 - Initial implementation release
 
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0-beta...0.3.0

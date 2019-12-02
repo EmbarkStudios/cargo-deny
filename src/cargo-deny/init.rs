@@ -25,17 +25,19 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     // make sure the file does not exist yet
     ensure!(
         std::fs::metadata(&cfg_file).is_err(),
-        "unable to initialize cargo deny config file ; the provided path already exists"
+        "unable to initialize cargo-deny config: '{}' already exists",
+        cfg_file.display(),
     );
+
     // make sure the path does not terminate in '..'; we need a file name.
     ensure!(
-        &cfg_file.file_name().is_some(),
-        "unable to create a config file with the given name ; the given file path is not valid"
+        cfg_file.file_name().is_some(),
+        "unable to create cargo-deny config: '{}' has an invalid filename",
+        cfg_file.display(),
     );
 
-    log::info!("saving config file to: {}", &cfg_file.display());
-
-    std::fs::write(cfg_file, CONTENTS).context("unable to write config file")?;
+    std::fs::write(&cfg_file, CONTENTS).context("unable to write config file")?;
+    log::info!("saved config file to: {}", cfg_file.display());
 
     Ok(())
 }
