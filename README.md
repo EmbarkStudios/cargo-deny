@@ -222,7 +222,7 @@ Note that by default, the `depth` is infinite.
 multiple-versions = "deny"
 deny = [
     # You can never be too sure
-    { name = "openssl" },
+    { name = "openssl-sys" },
 ]
 skip = [
     # askalono 0.3.0 uses an ancient regex version which pulls
