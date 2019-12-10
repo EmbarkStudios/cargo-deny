@@ -178,7 +178,7 @@ pub fn cmd(
         move || {
             if let Some((summary, lic_cfg)) = lic_cfg {
                 log::info!("checking licenses...");
-                licenses::check_licenses(summary, &lic_cfg, send.clone());
+                licenses::check(summary, &lic_cfg, send.clone());
             }
 
             if let Some(bans) = ban_cfg {
@@ -199,7 +199,7 @@ pub fn cmd(
                 });
 
                 log::info!("checking bans...");
-                return ban::check_bans(
+                return ban::check(
                     krates,
                     bans,
                     (lock_id.unwrap(), &lock_contents.unwrap()),

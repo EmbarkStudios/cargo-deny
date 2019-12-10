@@ -217,7 +217,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub use codespan_reporting::diagnostic::Label;
+pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 
 pub mod ban;
 pub mod inclusion_graph;
