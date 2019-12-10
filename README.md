@@ -245,6 +245,26 @@ skip-tree = [
 `cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all
 your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config.
 
+### Github Actions
+
+You can add the following lines in your Github Actions setup to run a `cargo deny check`.
+
+```yml
+license-check:
+    name: license-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-deny
+      - uses: actions-rs/cargo@v1
+        with:
+          command: deny
+          args: check
+```
+
 ## List - `cargo deny list`
 
 Similarly to [cargo-license](https://github.com/onur/cargo-license), print out the licenses and crates
