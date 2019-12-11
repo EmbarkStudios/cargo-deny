@@ -1,5 +1,5 @@
 use anyhow::{Context, Error};
-use cargo_deny::{ban, licenses};
+use cargo_deny::{bans, licenses};
 use clap::arg_enum;
 use codespan_reporting::diagnostic::Diagnostic;
 use serde::Deserialize;
@@ -49,12 +49,12 @@ impl Args {
 #[derive(Deserialize)]
 struct Config {
     licenses: Option<licenses::Config>,
-    bans: Option<ban::Config>,
+    bans: Option<bans::Config>,
 }
 
 struct ValidatedConfig {
     licenses: Option<licenses::ValidConfig>,
-    bans: Option<ban::ValidConfig>,
+    bans: Option<bans::ValidConfig>,
 }
 
 impl Config {
@@ -192,7 +192,7 @@ pub fn cmd(
 
                     std::fs::create_dir_all(&output_dir).unwrap();
 
-                    move |dup_graph: ban::DupGraph| {
+                    move |dup_graph: bans::DupGraph| {
                         std::fs::write(
                             output_dir.join(format!("{}.dot", dup_graph.duplicate)),
                             dup_graph.graph.as_bytes(),
@@ -203,7 +203,7 @@ pub fn cmd(
                 });
 
                 log::info!("checking bans...");
-                return ban::check(
+                return bans::check(
                     krates,
                     bans,
                     (lock_id.unwrap(), &lock_contents.unwrap()),

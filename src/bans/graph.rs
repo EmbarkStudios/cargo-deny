@@ -1,4 +1,4 @@
-use crate::ban::cfg::GraphHighlight;
+use super::cfg::GraphHighlight;
 use anyhow::{Context, Error};
 use petgraph::Graph;
 use semver::Version;

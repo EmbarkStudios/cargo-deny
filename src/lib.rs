@@ -219,7 +219,7 @@ use std::{
 
 pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 
-pub mod ban;
+pub mod bans;
 pub mod inclusion_graph;
 pub mod licenses;
 
