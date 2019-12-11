@@ -11,8 +11,8 @@ use crate::common::make_absolute_path;
 arg_enum! {
     #[derive(Debug, PartialEq)]
     pub enum WhichCheck {
-        License,
-        Ban,
+        Licenses,
+        Bans,
         All,
     }
 }
@@ -42,7 +42,7 @@ pub struct Args {
 
 impl Args {
     pub fn needs_license_store(&self) -> bool {
-        self.which != WhichCheck::Ban
+        self.which != WhichCheck::Bans
     }
 }
 
@@ -127,7 +127,7 @@ pub fn cmd(
         }
     };
 
-    let lic_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::License {
+    let lic_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::Licenses {
         if let Some(licenses) = cfg.licenses {
             let gatherer = licenses::Gatherer::default()
                 .with_store(std::sync::Arc::new(
@@ -147,7 +147,7 @@ pub fn cmd(
     };
 
     let (ban_cfg, lock_id, lock_contents) =
-        if args.which == WhichCheck::All || args.which == WhichCheck::Ban {
+        if args.which == WhichCheck::All || args.which == WhichCheck::Bans {
             let lock_contents = std::fs::read_to_string(&krates.lock_file)?;
             let lock_id = files.add(krates.lock_file.to_string_lossy(), lock_contents.clone());
 

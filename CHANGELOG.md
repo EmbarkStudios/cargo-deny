@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [PR#58](https://github.com/EmbarkStudios/cargo-deny/pull/58) Fixed [#55](https://github.com/EmbarkStudios/cargo-deny/issues/55) to handle license requirements for GPL, AGPL, LGPL, and GFDL better. Thank for reporting [@pikajude](https://github.com/pikajude)!
 
+### Changed
+- Renamed the `<which>` options for `cargo deny check <which>` from `ban` => `bans` and `license` => `licenses`
+
 ## [0.4.2] - 2019-12-02
 ### Added
 - [PR#48](https://github.com/EmbarkStudios/cargo-deny/pull/48) Added an `init` subcommand to generate a cargo-deny template file with guiding comments. Thanks [@foresterre](https://github.com/foresterre)!

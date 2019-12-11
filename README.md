@@ -23,11 +23,11 @@ cargo install cargo-deny
 
 ## tl;dr
 
-* `cargo deny check <license|all>` - verify crate graph only contains acceptable license requirements
-* `cargo deny check <ban|all>` - verify crate graph doesn't contain certain crates
+* `cargo deny check <licenses|all>` - verify crate graph only contains acceptable license requirements
+* `cargo deny check <bans|all>` - verify crate graph doesn't contain certain crates
 * `cargo deny list` - list all of the licenses for all crates in a project
 
-## Licenses - `cargo deny check license`
+## Licenses - `cargo deny check licenses`
 
 One important aspect that one must always keep in mind when using code from other people is what the licensing of that code is and whether it fits the requirements of your project. Luckily, most of the crates in the Rust ecosystem tend to follow the example set forth by Rust itself, namely dual-license `MIT OR Apache-2.0`, but of course, that is not always the case.
 
@@ -143,7 +143,7 @@ license-files = [
 ]
 ```
 
-## Crate bans - `cargo deny check ban`
+## Crate bans - `cargo deny check bans`
 
 ### Use Case - Keeping certain crates out of your dependency graph
 
