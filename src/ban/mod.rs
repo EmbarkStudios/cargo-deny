@@ -167,7 +167,7 @@ pub fn check<OG>(
 where
     OG: Fn(DupGraph) -> Result<(), Error>,
 {
-    use codespan_reporting::diagnostic::{Label, Severity};
+    use crate::{Label, Severity};
 
     // Get the offset of the beginning of the metadata section
     let metadata_start = lock_contents
@@ -219,6 +219,8 @@ where
         roots: Vec<SkipRoot>,
     }
 
+    let file_id = cfg.file_id;
+
     // If trees are being skipped, walk each one down to the specified depth and add
     // each dependency as a skipped crate at the specific version
     let mut tree_skip = if !cfg.tree_skipped.is_empty() {
@@ -235,6 +237,21 @@ where
                     }
                 }
 
+                sender
+                    .send(crate::DiagPack {
+                        krate_id: None,
+                        diagnostics: vec![Diagnostic::new(
+                            Severity::Warning,
+                            "skip tree root was not found in the dependency graph",
+                            Label::new(
+                                file_id,
+                                ts.start() as u32..ts.end() as u32,
+                                "no crate matched these criteria",
+                            ),
+                        )],
+                    })
+                    .unwrap();
+
                 None
             })
             .collect();
@@ -243,8 +260,6 @@ where
     } else {
         None
     };
-
-    let file_id = cfg.file_id;
 
     let mut check_root_filters = |krate: &crate::KrateDetails, diags: &mut Vec<Diagnostic>| {
         if let Some(ref mut tree_skipper) = tree_skip {
@@ -450,8 +465,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::cfg::CrateId;
-    use super::*;
+    use super::{cfg::CrateId, *};
 
     #[test]
     fn binary_search_() {
