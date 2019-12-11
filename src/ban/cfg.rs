@@ -4,6 +4,7 @@ use semver::VersionReq;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateId {
     // The name of the crate
     pub name: String,
@@ -13,6 +14,7 @@ pub struct CrateId {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct TreeSkip {
     #[serde(flatten)]
     pub id: CrateId,
@@ -32,7 +34,7 @@ const fn highlight() -> GraphHighlight {
 }
 
 #[derive(Deserialize, PartialEq, Eq, Copy, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum GraphHighlight {
     /// Highlights the path to a duplicate dependency with the fewest number
     /// of total edges, which tends to make it the best candidate for removing
@@ -56,7 +58,7 @@ impl GraphHighlight {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// Disallow multiple versions of the same crate
     #[serde(default = "lint_warn")]

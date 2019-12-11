@@ -20,7 +20,7 @@ const fn confidence_threshold() -> f32 {
 /// [OSI Approved](https://opensource.org/licenses) or [considered free](
 /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
 #[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BlanketAgreement {
     /// The license must be both OSI Approved and FSF/Free Libre
     Both,
@@ -41,6 +41,7 @@ impl Default for BlanketAgreement {
 }
 
 #[derive(PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct FileSource {
     /// The crate relative path of the LICENSE file
     pub path: PathBuf,
@@ -49,16 +50,16 @@ pub struct FileSource {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Clarification {
     pub name: String,
     pub version: Option<VersionReq>,
     pub expression: toml::Spanned<String>,
-    #[serde(default, rename = "license-files")]
     pub license_files: Vec<FileSource>,
 }
 
 #[derive(Deserialize, Default)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// Determines what happens when license information cannot be
     /// determined for a crate

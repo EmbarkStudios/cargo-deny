@@ -99,8 +99,12 @@ pub fn cmd(
         let cfg_contents = std::fs::read_to_string(&cfg_path)
             .with_context(|| format!("failed to read config from {}", cfg_path.display()))?;
 
-        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
-            format!("failed to deserialize config from {}", cfg_path.display(),)
+        let cfg: Config = toml::from_str(&cfg_contents).map_err(|e| {
+            anyhow::anyhow!(
+                "failed to deserialize config from {}: {}",
+                cfg_path.display(),
+                e
+            )
         })?;
 
         match cfg.validate(&mut files, &cfg_path, cfg_contents) {
