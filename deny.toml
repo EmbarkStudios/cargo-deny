@@ -11,7 +11,6 @@ skip = [
 
 [licenses]
 unlicensed = "deny"
-unknown = "deny"
 allow-osi-fsf-free = "neither"
 copyleft = "deny"
 # We want really high confidence when inferring licenses from text
