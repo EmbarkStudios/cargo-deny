@@ -1010,7 +1010,7 @@ pub fn check_licenses(
                             deny!(Denied);
                         }
                     }
-                    
+
                     // 2. A license that is specifically allowed will of course mean
                     // that the requirement is met.
                     for allow in &cfg.allowed {
