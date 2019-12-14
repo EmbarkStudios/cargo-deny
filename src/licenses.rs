@@ -1005,21 +1005,16 @@ pub fn check_licenses(
                     // "Apache-2.0 OR MIT" used in by a lot crates means that
                     // banning Apache-2.0, but allowing MIT, will allow the crate
                     // to be used as you are upholding at least one license requirement
-                    if let Ok(maybe_denied) =
-                        cfg.denied.binary_search_by(|a| a.partial_cmp(req).unwrap())
-                    {
-                        if cfg.denied[maybe_denied].satisfies(req) {
+                    for deny in &cfg.denied {
+                        if deny.satisfies(req) {
                             deny!(Denied);
                         }
                     }
-
+                    
                     // 2. A license that is specifically allowed will of course mean
                     // that the requirement is met.
-                    if let Ok(maybe_allowed) = cfg
-                        .allowed
-                        .binary_search_by(|a| a.partial_cmp(req).unwrap())
-                    {
-                        if cfg.allowed[maybe_allowed].satisfies(req) {
+                    for allow in &cfg.allowed {
+                        if allow.satisfies(req) {
                             allow!(ExplicitAllowance);
                         }
                     }
