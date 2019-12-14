@@ -1,0 +1,10 @@
+[package]
+name = "gnu-licenses"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+license = "GPL-2.0-or-later AND LGPL-3.0-only"
+edition = "2018"
+
+[[bin]]
+name = "gnu-license"
+path = "main.rs"
