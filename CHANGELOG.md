@@ -5,18 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [PR#58](https://github.com/EmbarkStudios/cargo-deny/pull/58) Fixed [#55](https://github.com/EmbarkStudios/cargo-deny/issues/55) to handle license requirements for GPL, AGPL, LGPL, and GFDL better. Thank for reporting [@pikajude](https://github.com/pikajude)!
 
 ## [0.4.2] - 2019-12-02
 ### Added
-- [PR#48](https://github.com/EmbarkStudios/cargo-deny/pull/48) Added an `init` subcommand to generate a
-cargo-deny template file with guiding comments. Thanks [@foresterre](https://github.com/foresterre)!
+- [PR#48](https://github.com/EmbarkStudios/cargo-deny/pull/48) Added an `init` subcommand to generate a cargo-deny template file with guiding comments. Thanks [@foresterre](https://github.com/foresterre)!
 
 ## [0.4.1] - 2019-11-28
 ### Fixed
-- [PR#46](https://github.com/EmbarkStudios/cargo-deny/pull/46) Fixed issue where `license-file` was not being
-turned into an absolute path like the normal license file scanning, causing a crash. Thanks [@foresterre](https://github.com/foresterre)!
-- Fixed an out of bounds panic when skipping a crate which wasn't present in the crate graph, that would
-have been sorted last if it had existed
+- [PR#46](https://github.com/EmbarkStudios/cargo-deny/pull/46) Fixed issue where `license-file` was not being turned into an absolute path like the normal license file scanning, causing a crash. Thanks [@foresterre](https://github.com/foresterre)!
+- Fixed an out of bounds panic when skipping a crate which wasn't present in the crate graph, that would have been sorted last if it had existed
 
 ## [0.4.0] - 2019-11-07
 ### Changed
@@ -34,23 +33,18 @@ have been sorted last if it had existed
 ## [0.3.0-beta] - 2019-10-07
 ### Added
 - Output that pertains to a particular crate now outputs the inclusion graph for that crate, similarly to how [cargo tree](https://github.com/sfackler/cargo-tree) shows the inverse dependency graph. This can be turned off with the `--hide-inclusion-graphs` flag on the `check` subcommand.
-- All configuration problems that aren't directly related to actual toml parsing now pretty print the location and cause(s)
-of the problem so that you can more easily fix the issue.
-- Added the ``[licenses.clarify]]` key to the configuration, which allows users to specify the license expression
-for a crate that will be used as long as the version requirements are met, and the hash of the license file(s) are the same
+- All configuration problems that aren't directly related to actual toml parsing now pretty print the location and cause(s) of the problem so that you can more easily fix the issue.
+- Added the ``[licenses.clarify]]` key to the configuration, which allows users to specify the license expression for a crate that will be used as long as the version requirements are met, and the hash of the license file(s) are the same
 - Added the `licenses.allow-osi-fsf-free` key, which can be used to specify blanket allowance of licenses based on whether they are [OSI Approved](https://opensource.org/licenses) or [FSF/Free Libre](https://www.gnu.org/licenses/license-list.en.html). It defaults to `neither`.
 
 ### Changed
-- The output of the tool as a whole is dramatically different. Previously, all logging was done via `slog`, which is
-great for structured logging of high volume output, but wasn't really appropriate for a user facing tool. Some normal log output still exists, but almost all output is now done with the excellent [codespan](https://github.com/brendanzab/codespan) crate to give more user-friendly output.
+- The output of the tool as a whole is dramatically different. Previously, all logging was done via `slog`, which is great for structured logging of high volume output, but wasn't really appropriate for a user facing tool. Some normal log output still exists, but almost all output is now done with the excellent [codespan](https://github.com/brendanzab/codespan) crate to give more user-friendly output.
 - All configuration keys are now `kebab-case` instead of `snake_case`
-- Improved the checking of [SPDX license expressions](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60),
-previously the expression was just lexed and all the requirements that could be understood were required, but now the operators in the expression are actually respected.
+- Improved the checking of [SPDX license expressions](https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60), previously the expression was just lexed and all the requirements that could be understood were required, but now the operators in the expression are actually respected.
 - Added proper support for license exceptions, you must now allow or deny licenses including their exception, which treated as a different case than the same license without the exception. eg `allow = [ "Apache-2.0 WITH LLVM-exception" ]` will not also allow `Apache-2.0` without the exception.
 - The usage of `+` is now properly supported, eg. `Apache-2.0+` will now match `Apache-2.0` or a hypothetical `Apache-3.0` in the future.
 - The `list` subcommand now treats licenses with exceptions as unique licenses.
-- When `bans.multiple-versions` is either `deny` or `warn`, duplicates are printed out, including their particular
-inclusion graphs, in addition to optionally writing a dotgraph to a file on disk for more thorough inspection.
+- When `bans.multiple-versions` is either `deny` or `warn`, duplicates are printed out, including their particular inclusion graphs, in addition to optionally writing a dotgraph to a file on disk for more thorough inspection.
 - LICENSE(-*)? files are no longer eagerly evaluated, rather the crate's license expression is retrieved via
   1. `license`
   2. Matching user override as specified via `licenses.clarify`
