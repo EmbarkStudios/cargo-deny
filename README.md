@@ -15,6 +15,12 @@ track of certain things, especially as a project evolves over time, which is wha
 * [Licenses](#licenses---cargo-deny-check-license) - Configure which license terms you accept
 * [Bans](#crate-bans---cargo-deny-check-ban) - Configure whether particular crates are allowed in your dependency graph
 
+## Install
+
+```
+cargo install cargo-deny
+```
+
 ## tl;dr
 
 * `cargo deny check <license|all>` - verify crate graph only contains acceptable license requirements
