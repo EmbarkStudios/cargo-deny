@@ -223,7 +223,7 @@ pub mod bans;
 pub mod diag;
 pub mod licenses;
 
-#[derive(serde::Deserialize, PartialEq, Eq)]
+#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum LintLevel {
     Allow,
@@ -235,6 +235,14 @@ impl Default for LintLevel {
     fn default() -> Self {
         LintLevel::Warn
     }
+}
+
+const fn lint_warn() -> LintLevel {
+    LintLevel::Warn
+}
+
+const fn lint_deny() -> LintLevel {
+    LintLevel::Deny
 }
 
 pub type Pid = cargo_metadata::PackageId;

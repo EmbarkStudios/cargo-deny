@@ -4,14 +4,6 @@ use serde::Deserialize;
 use spdx::Licensee;
 use std::path::PathBuf;
 
-const fn lint_deny() -> LintLevel {
-    LintLevel::Deny
-}
-
-const fn lint_warn() -> LintLevel {
-    LintLevel::Warn
-}
-
 const fn confidence_threshold() -> f32 {
     0.8
 }
@@ -58,19 +50,19 @@ pub struct Clarification {
     pub license_files: Vec<FileSource>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// Determines what happens when license information cannot be
     /// determined for a crate
-    #[serde(default = "lint_deny")]
+    #[serde(default = "crate::lint_deny")]
     pub unlicensed: LintLevel,
     /// Agrees to licenses based on whether they are OSI Approved
     /// or FSF/Free Libre
     #[serde(default)]
     pub allow_osi_fsf_free: BlanketAgreement,
     /// Determines what happens when a copyleft license is detected
-    #[serde(default = "lint_warn")]
+    #[serde(default = "crate::lint_warn")]
     pub copyleft: LintLevel,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale

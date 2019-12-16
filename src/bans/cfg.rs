@@ -21,10 +21,6 @@ pub struct TreeSkip {
     pub depth: Option<usize>,
 }
 
-const fn lint_warn() -> LintLevel {
-    LintLevel::Warn
-}
-
 fn any() -> VersionReq {
     VersionReq::any()
 }
@@ -60,8 +56,8 @@ impl GraphHighlight {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// Disallow multiple versions of the same crate
-    #[serde(default = "lint_warn")]
+    /// How to handle multiple versions of the same crate
+    #[serde(default = "crate::lint_warn")]
     pub multiple_versions: LintLevel,
     /// How the duplicate graphs are highlighted
     #[serde(default = "highlight")]
