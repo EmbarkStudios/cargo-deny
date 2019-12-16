@@ -1,8 +1,9 @@
 use ansi_term::Color;
-use anyhow::Error;
-use cargo_deny::licenses;
+use anyhow::{Context, Error};
+use cargo_deny::{licenses, Pid};
 use clap::arg_enum;
 use serde::Serialize;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 arg_enum! {
@@ -70,25 +71,26 @@ pub struct Args {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(
-    args: Args,
-    crates: cargo_deny::Krates,
-    store: Option<licenses::LicenseStore>,
-) -> Result<(), Error> {
+pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     use licenses::LicenseInfo;
-    type Pid = cargo_metadata::PackageId;
 
     use std::{collections::BTreeMap, fmt::Write};
 
+    let (krates, store) = rayon::join(
+        || crate::common::gather_krates(context_dir),
+        crate::common::load_license_store,
+    );
+
+    let krates = krates.context("failed to gather crates")?;
+    let store = store.context("failed to load license store")?;
+
     let gatherer = licenses::Gatherer::default()
-        .with_store(std::sync::Arc::new(
-            store.expect("we should have a license store"),
-        ))
+        .with_store(std::sync::Arc::new(store))
         .with_confidence_threshold(args.threshold);
 
     let mut files = codespan::Files::new();
 
-    let summary = gatherer.gather(crates.as_ref(), &mut files, None);
+    let summary = gatherer.gather(krates.as_ref(), &mut files, None);
 
     #[derive(Serialize)]
     struct Crate {

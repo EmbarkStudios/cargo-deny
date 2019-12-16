@@ -2,7 +2,6 @@
 #![warn(rust_2018_idioms)]
 
 use anyhow::{bail, Context, Error};
-use cargo_deny::licenses;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -94,7 +93,9 @@ fn real_main() -> Result<(), Error> {
             })
         });
 
-    setup_logger(args.log_level)?;
+    let log_level = args.log_level;
+
+    setup_logger(log_level)?;
 
     let context_dir = args
         .context
@@ -110,42 +111,10 @@ fn real_main() -> Result<(), Error> {
         bail!("context {} is not a directory", context_dir.display());
     }
 
-    let (all_crates, store) = rayon::join(
-        || {
-            log::info!("gathering crates for {}", context_dir.display());
-            cargo_deny::get_all_crates(&context_dir)
-        },
-        || {
-            if let Command::Check(ref check) = args.cmd {
-                if !check.needs_license_store() {
-                    return None;
-                }
-            }
-
-            log::info!("loading license store");
-            Some(licenses::LicenseStore::from_cache())
-        },
-    );
-
-    let all_crates = all_crates?;
-
-    log::info!("gathered {} crates", all_crates.krates.len());
-
-    let license_store = match store {
-        Some(res) => Some(res?),
-        None => None,
-    };
-
     match args.cmd {
-        Command::List(list) => list::cmd(list, all_crates, license_store),
-        Command::Check(check) => check::cmd(
-            args.log_level,
-            context_dir,
-            check,
-            all_crates,
-            license_store,
-        ),
-        Command::Init(init) => init::cmd(init, context_dir),
+        Command::Check(cargs) => check::cmd(log_level, cargs, context_dir),
+        Command::List(largs) => list::cmd(largs, context_dir),
+        Command::Init(iargs) => init::cmd(iargs, context_dir),
     }
 }
 
@@ -153,7 +122,7 @@ fn main() {
     match real_main() {
         Ok(_) => {}
         Err(e) => {
-            log::error!("{}", e);
+            log::error!("{:#}", e);
             std::process::exit(1);
         }
     }

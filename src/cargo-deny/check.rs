@@ -46,12 +46,6 @@ pub struct Args {
     which: Vec<WhichCheck>,
 }
 
-impl Args {
-    pub fn needs_license_store(&self) -> bool {
-        self.which != WhichCheck::Bans
-    }
-}
-
 #[derive(Deserialize)]
 struct Config {
     advisories: Option<advisories::cfg::Config>,
