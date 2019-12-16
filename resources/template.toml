@@ -1,8 +1,21 @@
-[licenses]
-# This section is considered when running `cargo deny check license`
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://github.com/EmbarkStudios/cargo-deny#the-advisories-section
+[advisories]
+# Uncomment the following line to change the lint level for security vulnerabilities
+# [possible values: "deny", "allow" or "warn"].
+#vulnerability = "warn"
+# Uncomment the following line to change the lint level for unmaintained crates
+# [possible values: "deny", "allow" or "warn"].
+#unmaintained = "deny"
+# Uncomment the following line to change the lint level for crates with security notices
+# [possible values: "deny", "allow" or "warn"].
+#notice = "deny"
+
+# This section is considered when running `cargo deny check licenses`
 # More documentation for the licenses section can be found here:
 # https://github.com/EmbarkStudios/cargo-deny#the-licenses-section
-
+[licenses]
 # Uncomment the following line to change the lint level for unlicensed crates
 # [possible values: "deny", "allow" or "warn"].
 #unlicensed = "deny"
@@ -31,11 +44,10 @@
 # [possible values: any between 0.0 and 1.0].
 #confidence-threshold = 0.8
 
-[bans]
-# This section is considered when running `cargo deny check ban`.
+# This section is considered when running `cargo deny check bans`.
 # More documentation about the 'bans' section can be found here:
 # https://github.com/EmbarkStudios/cargo-deny#crate-bans-cargo-deny-check-ban
-
+[bans]
 # Uncomment the following line to change what happens when multiple versions of the same 
 # crate are encountered
 # [possible values: "deny", "warn" or "allow"].

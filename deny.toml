@@ -1,8 +1,11 @@
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+notice = "deny"
+
 [bans]
 multiple-versions = "deny"
 deny = [
-    # You can never be too sure
-    { name = "openssl" },
 ]
 skip = [
     # clap uses an older version of ansi_term
