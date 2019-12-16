@@ -1,9 +1,7 @@
 mod cfg;
 mod graph;
 
-use self::cfg::TreeSkip;
-use crate::{Diagnostic, LintLevel};
-use anyhow::{Context, Error};
+use crate::{LintLevel, Pid};
 use semver::{Version, VersionReq};
 use std::cmp::Ordering;
 
@@ -157,63 +155,26 @@ pub struct DupGraph {
     pub graph: String,
 }
 
-pub fn check<OG>(
-    krates: &crate::Krates,
+pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
+
+use crate::diag::{self, Diagnostic, Label, Pack, Severity};
+
+pub fn check(
     cfg: ValidConfig,
-    (lock_id, lock_contents): (codespan::FileId, &str),
-    output_graph: Option<OG>,
-    sender: crossbeam::channel::Sender<crate::DiagPack>,
-) -> Result<(), Error>
-where
-    OG: Fn(DupGraph) -> Result<(), Error>,
-{
-    use crate::{Label, Severity};
-
-    // Get the offset of the beginning of the metadata section
-    let metadata_start = lock_contents
-        .rfind("[metadata]")
-        .context("unable to find metadata section in Cargo.lock")?
-        + 10;
-
-    let mut krate_spans: Vec<Option<std::ops::Range<u32>>> = vec![None; krates.krates.len()];
-
-    let mut cur_offset = metadata_start;
-
-    for (i, krate) in krates.iter().enumerate() {
-        // Local crates don't have metadata entries, and it would also be kind of weird to
-        // ban your own local crates...
-        if krate.source.is_none() {
-            continue;
-        }
-
-        let krate_start = lock_contents[cur_offset..]
-            .find("\"checksum ")
-            .with_context(|| format!("unable to find metadata entry for krate {}", krate.id))?;
-
-        let id_end = lock_contents[cur_offset + krate_start..]
-            .find("\" = \"")
-            .context("invalid metadata format")?;
-
-        let lock_id =
-            &lock_contents[cur_offset + krate_start + 10..cur_offset + krate_start + id_end - 1];
-
-        // Git ids can differ, but they have to start the same
-        if &krate.id.repr[..lock_id.len()] != lock_id {
-            anyhow::bail!(
-                "invalid metadata for package '{}' != '{}'",
-                krate.id,
-                lock_id
-            );
-        }
-
-        let krate_end = lock_contents[cur_offset + krate_start..]
-            .find('\n')
-            .with_context(|| format!("unable to find end for krate {}", krate.id))?;
-
-        krate_spans[i] =
-            Some((cur_offset + krate_start) as u32..(cur_offset + krate_start + krate_end) as u32);
-        cur_offset = cur_offset + krate_start + krate_end;
-    }
+    krates: &crate::Krates,
+    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
+    output_graph: Option<Box<OutputGraph>>,
+    sender: crossbeam::channel::Sender<Pack>,
+) {
+    let ValidConfig {
+        file_id,
+        denied,
+        allowed,
+        skipped,
+        multiple_versions,
+        highlight,
+        ..
+    } = cfg;
 
     struct TreeSkipper {
         roots: Vec<SkipRoot>,

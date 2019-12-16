@@ -1,4 +1,4 @@
-use crate::{Diagnostic, Label, LintLevel};
+use crate::LintLevel;
 use semver::VersionReq;
 use serde::Deserialize;
 use spdx::Licensee;
@@ -93,6 +93,7 @@ impl Config {
         self,
         cfg_file: codespan::FileId,
     ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
+        use crate::diag::{Diagnostic, Label};
         use rayon::prelude::*;
 
         let mut diagnostics = Vec::new();

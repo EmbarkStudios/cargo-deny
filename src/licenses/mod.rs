@@ -1,6 +1,6 @@
 mod cfg;
 
-use crate::{Diagnostic, KrateDetails, Label, LintLevel, Severity};
+use crate::{diag, KrateDetails, LintLevel};
 use anyhow::Error;
 use cfg::{BlanketAgreement, FileSource, ValidClarification};
 use rayon::prelude::*;
@@ -208,7 +208,8 @@ impl LicensePack {
         file: codespan::FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
-    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
+    ) -> Result<(String, spdx::Expression), (String, Vec<diag::Label>)> {
+        use diag::Label;
         use std::fmt::Write;
 
         let mut expr = String::new();
@@ -389,7 +390,7 @@ pub struct KrateLicense<'a> {
 
     // Reasons for why the license was determined (or not!) when
     // gathering the license information
-    labels: SmallVec<[Label; 1]>,
+    labels: SmallVec<[diag::Label; 1]>,
 }
 
 pub struct Summary<'a> {
@@ -483,6 +484,8 @@ impl Gatherer {
         files: &mut codespan::Files,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
+        use diag::Label;
+
         let mut summary = Summary::new(self.store);
 
         let threshold = self.threshold;
@@ -737,10 +740,12 @@ impl Gatherer {
 }
 
 pub fn check(
-    summary: Summary<'_>,
     cfg: &ValidConfig,
-    sender: crossbeam::channel::Sender<crate::DiagPack>,
+    summary: Summary<'_>,
+    sender: crossbeam::channel::Sender<crate::diag::Pack>,
 ) {
+    use diag::{Diagnostic, Label, Severity};
+
     for mut krate_lic_nfo in summary.nfos {
         let mut diagnostics = Vec::new();
 
@@ -932,7 +937,7 @@ pub fn check(
         }
 
         if !diagnostics.is_empty() {
-            let pack = crate::DiagPack {
+            let pack = diag::Pack {
                 krate_id: Some(krate_lic_nfo.krate.id.clone()),
                 diagnostics,
             };

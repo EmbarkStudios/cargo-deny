@@ -220,7 +220,7 @@ use std::{
 pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 
 pub mod bans;
-pub mod inclusion_graph;
+pub mod diag;
 pub mod licenses;
 
 #[derive(serde::Deserialize, PartialEq, Eq)]
@@ -237,10 +237,12 @@ impl Default for LintLevel {
     }
 }
 
+pub type Pid = cargo_metadata::PackageId;
+
 #[derive(Debug)]
 pub struct KrateDetails {
     pub name: String,
-    pub id: cargo_metadata::PackageId,
+    pub id: Pid,
     pub version: Version,
     pub source: Option<cargo_metadata::Source>,
     pub authors: Vec<String>,
@@ -420,9 +422,3 @@ pub fn hash(data: &[u8]) -> u32 {
 }
 
 pub struct CrateVersion<'a>(pub &'a semver::Version);
-
-pub struct DiagPack {
-    // The particular package that the diagnostics pertain to
-    pub krate_id: Option<cargo_metadata::PackageId>,
-    pub diagnostics: Vec<codespan_reporting::diagnostic::Diagnostic>,
-}

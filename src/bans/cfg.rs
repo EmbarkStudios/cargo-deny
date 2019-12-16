@@ -85,9 +85,8 @@ impl Config {
     pub fn validate(
         self,
         cfg_file: codespan::FileId,
-        _contents: &str,
-    ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
-        use crate::{Diagnostic, Label};
+    ) -> Result<ValidConfig, Vec<crate::diag::Diagnostic>> {
+        use crate::diag::{Diagnostic, Label};
         use rayon::prelude::*;
 
         let from = |s: toml::Spanned<CrateId>| {
