@@ -292,36 +292,36 @@ pub fn check(
 
                     #[allow(clippy::needless_range_loop)]
                     for dup in multi_detector.dupes.iter().cloned() {
-                        if let Some(ref span) = krate_spans[dup] {
-                            if span.start < all_start {
-                                all_start = span.start
-                            }
+                        let span = &krate_spans[dup];
 
-                            if span.end > all_end {
-                                all_end = span.end
-                            }
-
-                            let krate = &krates.krates[dup];
-
-                            dupes.push(crate::DiagPack {
-                                krate_id: Some(krate.id.clone()),
-                                diagnostics: vec![Diagnostic::new(
-                                    severity,
-                                    format!(
-                                        "duplicate #{} ({}) {} = {}",
-                                        dupes.len() + 1,
-                                        dup,
-                                        krate.name,
-                                        krate.version
-                                    ),
-                                    Label::new(lock_id, span.clone(), "lock entry"),
-                                )],
-                            });
+                        if span.start < all_start {
+                            all_start = span.start
                         }
+
+                        if span.end > all_end {
+                            all_end = span.end
+                        }
+
+                        let krate = &krates.krates[dup];
+
+                        dupes.push(Pack {
+                            krate_id: Some(krate.id.clone()),
+                            diagnostics: vec![Diagnostic::new(
+                                severity,
+                                format!(
+                                    "duplicate #{} ({}) {} = {}",
+                                    dupes.len() + 1,
+                                    dup,
+                                    krate.name,
+                                    krate.version
+                                ),
+                                Label::new(spans_id, span.clone(), "lock entry"),
+                            )],
+                        });
                     }
 
                     sender
-                        .send(crate::DiagPack {
+                        .send(Pack {
                             krate_id: None,
                             diagnostics: vec![Diagnostic::new(
                                 severity,
@@ -330,7 +330,7 @@ pub fn check(
                                     dupes.len(),
                                     multi_detector.name
                                 ),
-                                Label::new(lock_id, all_start..all_end, "lock entries"),
+                                Label::new(spans_id, all_start..all_end, "lock entries"),
                             )],
                         })
                         .unwrap();
