@@ -221,6 +221,7 @@ pub mod advisories;
 pub mod bans;
 pub mod diag;
 pub mod licenses;
+mod utils;
 
 #[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
@@ -352,6 +353,14 @@ impl Krates {
 
     pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
         self.krates.iter()
+    }
+
+    pub(crate) fn search_match(&self, name: &str, req: &semver::VersionReq) -> Option<usize> {
+        utils::search_match(&self.krates, name, req)
+    }
+
+    pub(crate) fn search_name(&self, name: &str) -> Result<std::ops::Range<usize>, usize> {
+        utils::search_name(&self.krates, name)
     }
 }
 
