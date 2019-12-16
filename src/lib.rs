@@ -217,8 +217,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
-
+pub mod advisories;
 pub mod bans;
 pub mod diag;
 pub mod licenses;

@@ -1,18 +1,20 @@
 use anyhow::{Context, Error};
-use cargo_deny::{bans, licenses};
+use cargo_deny::{advisories, bans, licenses};
 use clap::arg_enum;
 use codespan_reporting::diagnostic::Diagnostic;
+use log::error;
 use serde::Deserialize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 use crate::common::make_absolute_path;
 
 arg_enum! {
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Copy, Clone)]
     pub enum WhichCheck {
-        Licenses,
+        Advisories,
         Bans,
+        Licenses,
         All,
     }
 }
@@ -21,8 +23,8 @@ arg_enum! {
 pub struct Args {
     /// The path to the config file used to determine which crates are
     /// allowed or denied. Will default to <context>/deny.toml if not specified.
-    #[structopt(short, long, parse(from_os_str))]
-    config: Option<PathBuf>,
+    #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
+    config: PathBuf,
     /// A root directory to place dotviz graphs into when duplicate crate
     /// versions are detected. Will be <dir>/graph_output/<crate_name>.dot.
     /// The /graph_output/* is deleted and recreated each run.
@@ -31,13 +33,17 @@ pub struct Args {
     /// Hides the inclusion graph when printing out info for a crate
     #[structopt(short, long)]
     hide_inclusion_graph: bool,
+    /// Disables fetching of the security advisory database, if would be loaded.
+    /// If this disabled, and there is not already an existing advisory database
+    /// locally, an error will occur.
+    #[structopt(short, long)]
+    disable_fetch: bool,
     /// The check(s) to perform
     #[structopt(
-        default_value = "all",
         possible_values = &WhichCheck::variants(),
         case_insensitive = true,
     )]
-    which: WhichCheck,
+    which: Vec<WhichCheck>,
 }
 
 impl Args {
@@ -48,11 +54,13 @@ impl Args {
 
 #[derive(Deserialize)]
 struct Config {
+    advisories: Option<advisories::cfg::Config>,
+    bans: Option<bans::cfg::Config>,
     licenses: Option<licenses::Config>,
-    bans: Option<bans::Config>,
 }
 
 struct ValidConfig {
+    advisories: advisories::cfg::ValidConfig,
     bans: bans::cfg::ValidConfig,
     licenses: licenses::ValidConfig,
 }

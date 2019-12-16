@@ -1,15 +1,6 @@
-use clap::arg_enum;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-arg_enum! {
-    #[derive(Copy, Clone, Debug)]
-    pub enum MessageFormat {
-        Human,
-        Json,
-    }
-}
-
-pub(crate) fn make_absolute_path(path: PathBuf, context_dir: PathBuf) -> PathBuf {
+pub(crate) fn make_absolute_path(path: PathBuf, context_dir: &Path) -> PathBuf {
     if path.is_absolute() {
         path
     } else {

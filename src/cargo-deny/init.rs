@@ -19,7 +19,7 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
         .config
         .clone()
         .or_else(|| Some(DENY_TOML.into()))
-        .map(|path| make_absolute_path(path, context_dir))
+        .map(|path| make_absolute_path(path, &context_dir))
         .context("unable to determine config path")?;
 
     // make sure the file does not exist yet
