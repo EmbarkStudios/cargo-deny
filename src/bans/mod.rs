@@ -338,17 +338,28 @@ pub fn check(
                     }
 
                     if let Some(ref og) = output_graph {
-                        let graph = graph::create_graph(
+                        match graph::create_graph(
                             multi_detector.name,
-                            cfg.highlight,
+                            highlight,
                             krates,
                             &multi_detector.dupes,
-                        )?;
-
-                        og(DupGraph {
-                            duplicate: multi_detector.name.to_owned(),
-                            graph,
-                        })?;
+                        ) {
+                            Ok(graph) => {
+                                if let Err(e) = og(DupGraph {
+                                    duplicate: multi_detector.name.to_owned(),
+                                    graph,
+                                }) {
+                                    log::error!("{}", e);
+                                }
+                            }
+                            Err(e) => {
+                                log::error!(
+                                    "unable to create graph for {}: {}",
+                                    multi_detector.name,
+                                    e
+                                );
+                            }
+                        };
                     }
                 }
 
@@ -382,8 +393,6 @@ pub fn check(
                 .unwrap();
         }
     }
-
-    Ok(())
 }
 
 #[cfg(test)]
