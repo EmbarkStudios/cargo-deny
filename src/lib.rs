@@ -404,7 +404,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
         krates: crate_infos,
         krate_map: map,
         resolved,
-        lock_file: root.as_ref().join("Cargo.lock"),
+        lock_file: metadata.workspace_root.join("Cargo.lock"),
     })
 }
 
