@@ -80,6 +80,20 @@ pub struct Config {
     pub clarify: Vec<Clarification>,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            unlicensed: LintLevel::Deny,
+            allow_osi_fsf_free: BlanketAgreement::default(),
+            copyleft: LintLevel::Warn,
+            confidence_threshold: confidence_threshold(),
+            deny: Vec::new(),
+            allow: Vec::new(),
+            clarify: Vec::new(),
+        }
+    }
+}
+
 impl Config {
     pub fn validate(
         self,

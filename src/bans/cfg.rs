@@ -77,6 +77,19 @@ pub struct Config {
     pub skip_tree: Vec<toml::Spanned<TreeSkip>>,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            multiple_versions: LintLevel::Warn,
+            highlight: GraphHighlight::All,
+            deny: Vec::new(),
+            allow: Vec::new(),
+            skip: Vec::new(),
+            skip_tree: Vec::new(),
+        }
+    }
+}
+
 impl Config {
     pub fn validate(
         self,

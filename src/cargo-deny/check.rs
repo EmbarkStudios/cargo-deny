@@ -52,63 +52,44 @@ struct Config {
     bans: Option<bans::Config>,
 }
 
-struct ValidatedConfig {
-    licenses: Option<licenses::ValidConfig>,
-    bans: Option<bans::ValidConfig>,
+struct ValidConfig {
+    bans: bans::cfg::ValidConfig,
+    licenses: licenses::ValidConfig,
 }
 
-impl Config {
-    fn validate(
-        self,
-        files: &mut codespan::Files,
-        path: &Path,
-        contents: String,
-    ) -> Result<ValidatedConfig, Vec<Diagnostic>> {
-        let id = files.add(path.to_string_lossy(), contents.clone());
-
-        let licenses = match self.licenses {
-            Some(lc) => Some(lc.validate(id)?),
-            None => None,
+impl ValidConfig {
+    fn load(cfg_path: PathBuf, files: &mut codespan::Files) -> Result<Self, Error> {
+        let cfg_contents = if cfg_path.exists() {
+            std::fs::read_to_string(&cfg_path)
+                .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
+        } else {
+            log::warn!(
+                "config path '{}' doesn't exist, falling back to default config",
+                cfg_path.display()
+            );
+            String::new()
         };
 
-        let bans = match self.bans {
-            Some(b) => Some(b.validate(id, &contents)?),
-            None => None,
-        };
-
-        Ok(ValidatedConfig { licenses, bans })
-    }
-}
-
-pub fn cmd(
-    log_level: log::LevelFilter,
-    context_dir: PathBuf,
-    args: Args,
-    krates: cargo_deny::Krates,
-    store: Option<licenses::LicenseStore>,
-) -> Result<(), Error> {
-    let cfg_path = args
-        .config
-        .or_else(|| Some("deny.toml".into()))
-        .map(|p| make_absolute_path(p, context_dir))
-        .context("unable to determine config path")?;
-
-    let mut files = codespan::Files::new();
-
-    let cfg = {
-        let cfg_contents = std::fs::read_to_string(&cfg_path)
-            .with_context(|| format!("failed to read config from {}", cfg_path.display()))?;
-
-        let cfg: Config = toml::from_str(&cfg_contents).map_err(|e| {
-            anyhow::anyhow!(
-                "failed to deserialize config from {}: {}",
-                cfg_path.display(),
-                e
-            )
+        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
+            format!("failed to deserialize config from '{}'", cfg_path.display())
         })?;
 
-        match cfg.validate(&mut files, &cfg_path, cfg_contents) {
-            Ok(vcfg) => vcfg,
+        let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
+
+        let validate = || -> Result<Self, Vec<Diagnostic>> {
+            let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
+            let bans = cfg.bans.unwrap_or_default().validate(id)?;
+            let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
+
+            Ok(Self {
+                advisories,
+                bans,
+                licenses,
+            })
+        };
+
+        match validate() {
+            Ok(vc) => Ok(vc),
             Err(diags) => {
                 use codespan_reporting::term;
 
@@ -125,15 +106,15 @@ pub fn cmd(
                 );
             }
         }
-    };
+    }
+}
 
-    let lic_cfg = if args.which == WhichCheck::All || args.which == WhichCheck::Licenses {
-        if let Some(licenses) = cfg.licenses {
-            let gatherer = licenses::Gatherer::default()
-                .with_store(std::sync::Arc::new(
-                    store.expect("we should have a license store"),
-                ))
-                .with_confidence_threshold(licenses.confidence_threshold);
+pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Result<(), Error> {
+    let mut files = codespan::Files::new();
+    let cfg = ValidConfig::load(
+        make_absolute_path(args.config.clone(), &context_dir),
+        &mut files,
+    )?;
 
             Some((
                 gatherer.gather(krates.as_ref(), &mut files, Some(&licenses)),
