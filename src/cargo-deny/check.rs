@@ -118,135 +118,250 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
         &mut files,
     )?;
 
-            Some((
-                gatherer.gather(krates.as_ref(), &mut files, Some(&licenses)),
-                licenses,
-            ))
-        } else {
-            None
+    let check_advisories = args.which.is_empty()
+        || args
+            .which
+            .iter()
+            .any(|w| *w == WhichCheck::Advisories || *w == WhichCheck::All);
+
+    let check_bans = args.which.is_empty()
+        || args
+            .which
+            .iter()
+            .any(|w| *w == WhichCheck::Bans || *w == WhichCheck::All);
+
+    let check_licenses = args.which.is_empty()
+        || args
+            .which
+            .iter()
+            .any(|w| *w == WhichCheck::Licenses || *w == WhichCheck::All);
+
+    let mut krates = None;
+    let mut license_store = None;
+    let mut advisory_db = None;
+    let mut advisory_lockfile = None;
+    let mut krate_spans = None;
+
+    rayon::scope(|s| {
+        s.spawn(|_| {
+            let k = crate::common::gather_krates(context_dir);
+
+            if let Ok(ref k) = k {
+                rayon::scope(|s| {
+                    if check_advisories {
+                        s.spawn(|_| {
+                            advisory_lockfile = Some(advisories::load_lockfile(&k.lock_file))
+                        });
+                    }
+
+                    if check_advisories || check_bans {
+                        s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&k)));
+                    }
+                });
+            }
+
+            krates = Some(k);
+        });
+
+        if check_advisories {
+            s.spawn(|_| {
+                advisory_db = Some(advisories::load_db(
+                    &cfg.advisories,
+                    if args.disable_fetch {
+                        advisories::Fetch::Disallow
+                    } else {
+                        advisories::Fetch::Allow
+                    },
+                ));
+            });
         }
+
+        if check_licenses {
+            s.spawn(|_| license_store = Some(crate::common::load_license_store()));
+        }
+    });
+
+    let krates = krates.unwrap()?;
+
+    let advisory_ctx = if check_advisories {
+        let db = advisory_db.unwrap()?;
+        let lockfile = advisory_lockfile.unwrap()?;
+
+        Some((db, lockfile))
     } else {
         None
     };
 
-    let (ban_cfg, lock_id, lock_contents) =
-        if args.which == WhichCheck::All || args.which == WhichCheck::Bans {
-            let lock_contents = std::fs::read_to_string(&krates.lock_file)?;
-            let lock_id = files.add(krates.lock_file.to_string_lossy(), lock_contents.clone());
+    let krate_spans = krate_spans.map(|(spans, contents)| {
+        let id = files.add(krates.lock_file.to_string_lossy(), contents);
+        (spans, id)
+    });
 
-            (cfg.bans, Some(lock_id), Some(lock_contents))
-        } else {
-            (None, None, None)
-        };
+    let license_summary = if check_licenses {
+        let store = license_store.unwrap()?;
+        let gatherer = licenses::Gatherer::default()
+            .with_store(std::sync::Arc::new(store))
+            .with_confidence_threshold(cfg.licenses.confidence_threshold);
+
+        Some(gatherer.gather(krates.as_ref(), &mut files, Some(&cfg.licenses)))
+    } else {
+        None
+    };
 
     let graph_out_dir = args.graph;
 
-    let (send, recv) = crossbeam::channel::unbounded();
+    let (tx, rx) = crossbeam::channel::unbounded();
 
     let krates = &krates;
-    let mut inc_grapher = if args.hide_inclusion_graph {
+    let inc_grapher = if args.hide_inclusion_graph {
         None
     } else {
-        Some(cargo_deny::inclusion_graph::Grapher::new(krates))
+        Some(cargo_deny::diag::Grapher::new(krates))
     };
 
-    use codespan_reporting::diagnostic::Severity;
+    use cargo_deny::diag::Severity;
 
     let max_severity = match log_level {
         log::LevelFilter::Off => None,
-        log::LevelFilter::Debug => Some(Severity::Help),
         log::LevelFilter::Error => Some(Severity::Error),
-        log::LevelFilter::Info => Some(Severity::Note),
-        log::LevelFilter::Trace => Some(Severity::Help),
         log::LevelFilter::Warn => Some(Severity::Warning),
+        log::LevelFilter::Info => Some(Severity::Note),
+        log::LevelFilter::Debug => Some(Severity::Help),
+        log::LevelFilter::Trace => Some(Severity::Help),
     };
 
-    let (check_error, error) = rayon::join(
-        move || {
-            if let Some((summary, lic_cfg)) = lic_cfg {
+    let mut has_errors = None;
+
+    rayon::scope(|s| {
+        // Asynchronously displays messages sent from the checks
+        s.spawn(|_| {
+            has_errors = print_diagnostics(rx, inc_grapher, max_severity, files);
+        });
+
+        if let Some(summary) = license_summary {
+            let lic_tx = tx.clone();
+            let lic_cfg = cfg.licenses;
+            s.spawn(move |_| {
                 log::info!("checking licenses...");
-                licenses::check(summary, &lic_cfg, send.clone());
-            }
+                licenses::check(&lic_cfg, summary, lic_tx);
+            });
+        }
 
-            if let Some(bans) = ban_cfg {
-                let output_graph = graph_out_dir.map(|pb| {
-                    let output_dir = pb.join("graph_output");
-                    let _ = std::fs::remove_dir_all(&output_dir);
+        if check_bans {
+            let output_graph = graph_out_dir.map(|pb| -> Box<bans::OutputGraph> {
+                let output_dir = pb.join("graph_output");
+                let _ = std::fs::remove_dir_all(&output_dir);
 
-                    std::fs::create_dir_all(&output_dir).unwrap();
-
-                    move |dup_graph: bans::DupGraph| {
+                match std::fs::create_dir_all(&output_dir) {
+                    Ok(_) => Box::new(move |dup_graph: bans::DupGraph| {
                         std::fs::write(
                             output_dir.join(format!("{}.dot", dup_graph.duplicate)),
                             dup_graph.graph.as_bytes(),
                         )?;
 
                         Ok(())
+                    }),
+                    Err(e) => {
+                        error!(
+                            "unable to create directory '{}': {}",
+                            output_dir.display(),
+                            e
+                        );
+
+                        Box::new(move |dup_graph: bans::DupGraph| {
+                            anyhow::bail!(
+                                "unable to write {}.dot: could not create parent directory",
+                                dup_graph.duplicate
+                            );
+                        })
                     }
-                });
-
-                log::info!("checking bans...");
-                return bans::check(
-                    krates,
-                    bans,
-                    (lock_id.unwrap(), &lock_contents.unwrap()),
-                    output_graph,
-                    send.clone(),
-                );
-            }
-
-            Ok(())
-        },
-        move || {
-            use codespan_reporting::term;
-
-            let writer =
-                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
-            let config = term::Config::default();
-
-            let mut error_count = 0;
-
-            for pack in recv {
-                let mut note = pack
-                    .krate_id
-                    .and_then(|pid| inc_grapher.as_mut().map(|ig| (pid, ig)))
-                    .map(|(pid, ig)| ig.write_graph(&pid).unwrap());
-
-                for mut diag in pack.diagnostics.into_iter() {
-                    if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
-                        error_count += 1;
-                    }
-
-                    match max_severity {
-                        Some(max) => {
-                            if diag.severity < max {
-                                continue;
-                            }
-                        }
-                        None => continue,
-                    }
-
-                    if note.is_some() {
-                        diag = diag.with_notes(vec![note.take().unwrap()]);
-                    }
-
-                    term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
                 }
+            });
+
+            let ban_tx = tx.clone();
+            let ban_cfg = cfg.bans;
+
+            s.spawn(|_| {
+                log::info!("checking bans...");
+                bans::check(
+                    ban_cfg,
+                    krates,
+                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
+                    output_graph,
+                    ban_tx,
+                );
+            });
+        }
+
+        if let Some((db, lockfile)) = advisory_ctx {
+            let adv_cfg = cfg.advisories;
+            s.spawn(|_| {
+                log::info!("checking advisories...");
+                advisories::check(
+                    adv_cfg,
+                    krates,
+                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
+                    db,
+                    lockfile,
+                    tx,
+                );
+            });
+        }
+    });
+
+    match has_errors {
+        Some(errs) => Err(errs),
+        None => Ok(()),
+    }
+}
+
+fn print_diagnostics(
+    rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
+    mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
+    max_severity: Option<cargo_deny::diag::Severity>,
+    files: codespan::Files,
+) -> Option<Error> {
+    use codespan_reporting::term;
+
+    let writer = term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+    let config = term::Config::default();
+
+    let mut error_count = 0;
+
+    for pack in rx {
+        let mut inclusion_graph = pack
+            .krate_id
+            .and_then(|pid| inc_grapher.as_mut().map(|ig| (pid, ig)))
+            .map(|(pid, ig)| ig.write_graph(&pid).unwrap());
+
+        for mut diag in pack.diagnostics.into_iter() {
+            if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
+                error_count += 1;
             }
 
-            if error_count > 0 {
-                Some(anyhow::anyhow!("encountered {} errors", error_count))
-            } else {
-                None
+            match max_severity {
+                Some(max) => {
+                    if diag.severity < max {
+                        continue;
+                    }
+                }
+                None => continue,
             }
-        },
-    );
 
-    if let Some(err) = error {
-        Err(err)
-    } else if let Err(err) = check_error {
-        Err(err)
+            // Only add the dependency graph to the first diagnostic for a particular crate
+            if let Some(graph) = inclusion_graph.take() {
+                diag.notes.push(graph);
+            }
+
+            // We _could_ just take a single lock, but then normal log messages would
+            // not be displayed until after this thread exited
+            term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
+        }
+    }
+
+    if error_count > 0 {
+        Some(anyhow::anyhow!("encountered {} errors", error_count))
     } else {
-        Ok(())
+        None
     }
 }
