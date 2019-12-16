@@ -1,11 +1,11 @@
-mod cfg;
+pub mod cfg;
 mod graph;
 
+use self::cfg::{TreeSkip, ValidConfig};
 use crate::{LintLevel, Pid};
+use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::cmp::Ordering;
-
-pub use self::cfg::{Config, ValidConfig};
 
 #[derive(Eq)]
 pub struct KrateId {
@@ -148,8 +148,6 @@ pub fn check(
         roots: Vec<SkipRoot>,
     }
 
-    let file_id = cfg.file_id;
-
     // If trees are being skipped, walk each one down to the specified depth and add
     // each dependency as a skipped crate at the specific version
     let mut tree_skip = if !cfg.tree_skipped.is_empty() {
@@ -212,7 +210,7 @@ pub fn check(
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let mut skip_hit = bitvec![0; cfg.skipped.len()];
+    let mut skip_hit = bitvec![0; skipped.len()];
 
     struct MultiDetector<'a> {
         name: &'a str,
@@ -227,28 +225,28 @@ pub fn check(
     for (i, krate) in krates.iter().enumerate() {
         let mut diagnostics = Vec::new();
 
-        if let Ok((_, ban)) = binary_search(&cfg.denied, krate) {
+        if let Ok((_, ban)) = binary_search(&denied, krate) {
             diagnostics.push(Diagnostic::new(
                 Severity::Error,
                 format!("detected banned crate {} = {}", krate.name, krate.version),
-                Label::new(cfg.file_id, ban.span.clone(), "matching ban entry"),
+                Label::new(file_id, ban.span.clone(), "matching ban entry"),
             ));
         }
 
-        if !cfg.allowed.is_empty() {
+        if !allowed.is_empty() {
             // Since only allowing specific crates is pretty draconian,
             // also emit which allow filters actually passed each crate
-            match binary_search(&cfg.allowed, krate) {
+            match binary_search(&allowed, krate) {
                 Ok((_, allow)) => {
                     diagnostics.push(Diagnostic::new(
                         Severity::Note,
                         format!("allowed {} = {}", krate.name, krate.version),
-                        Label::new(cfg.file_id, allow.span.clone(), "matching allow entry"),
+                        Label::new(file_id, allow.span.clone(), "matching allow entry"),
                     ));
                 }
                 Err(mut ind) => {
-                    if ind >= cfg.allowed.len() {
-                        ind = cfg.allowed.len() - 1;
+                    if ind >= allowed.len() {
+                        ind = allowed.len() - 1;
                     }
 
                     diagnostics.push(Diagnostic::new(
@@ -257,17 +255,17 @@ pub fn check(
                             "detected crate not specifically allowed {} = {}",
                             krate.name, krate.version
                         ),
-                        Label::new(cfg.file_id, cfg.allowed[ind].span.clone(), "closest match"),
+                        Label::new(file_id, allowed[ind].span.clone(), "closest match"),
                     ));
                 }
             }
         }
 
-        if let Ok((index, skip)) = binary_search(&cfg.skipped, krate) {
+        if let Ok((index, skip)) = binary_search(&skipped, krate) {
             diagnostics.push(Diagnostic::new(
                 Severity::Help,
                 format!("skipping crate {} = {}", krate.name, krate.version),
-                Label::new(cfg.file_id, skip.span.clone(), "matched filter"),
+                Label::new(file_id, skip.span.clone(), "matched filter"),
             ));
 
             // Keep a count of the number of times each skip filter is hit
@@ -278,8 +276,8 @@ pub fn check(
             if multi_detector.name == krate.name {
                 multi_detector.dupes.push(i);
             } else {
-                if multi_detector.dupes.len() > 1 && cfg.multiple_versions != LintLevel::Allow {
-                    let severity = match cfg.multiple_versions {
+                if multi_detector.dupes.len() > 1 && multiple_versions != LintLevel::Allow {
+                    let severity = match multiple_versions {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
                         LintLevel::Allow => unreachable!(),
@@ -362,7 +360,7 @@ pub fn check(
 
         if !diagnostics.is_empty() {
             sender
-                .send(crate::DiagPack {
+                .send(Pack {
                     krate_id: Some(krate.id.clone()),
                     diagnostics,
                 })
@@ -370,10 +368,10 @@ pub fn check(
         }
     }
 
-    for (hit, skip) in skip_hit.into_iter().zip(cfg.skipped.into_iter()) {
+    for (hit, skip) in skip_hit.into_iter().zip(skipped.into_iter()) {
         if !hit {
             sender
-                .send(crate::DiagPack {
+                .send(Pack {
                     krate_id: None,
                     diagnostics: vec![Diagnostic::new(
                         Severity::Warning,
