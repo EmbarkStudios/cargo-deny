@@ -10,9 +10,6 @@ pub struct Config {
     pub db_path: Option<PathBuf>,
     /// URL to the advisory database's git repo (default: https://github.com/RustSec/advisory-db)
     pub db_url: Option<String>,
-    /// Ignore advisories for the given IDs
-    #[serde(default)]
-    pub ignore: Vec<advisory::Id>,
     /// How to handle crates that have a security vulnerability
     #[serde(default = "crate::lint_deny")]
     pub vulnerability: LintLevel,
@@ -22,6 +19,9 @@ pub struct Config {
     /// How to handle crates that have been marked with a notice in the advisory database
     #[serde(default = "crate::lint_warn")]
     pub notice: LintLevel,
+    /// Ignore advisories for the given IDs
+    #[serde(default)]
+    pub ignore: Vec<advisory::Id>,
     // How to handle crates that have been marked with an informational advisory
     // in the advisory database, which is NOT `unmaintained` or `notice`
     // #[serde(default = "lint_warn")]

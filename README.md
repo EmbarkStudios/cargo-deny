@@ -17,14 +17,13 @@ track of certain things, especially as a project evolves over time, which is wha
 
 ## Install
 
-```
-cargo install cargo-deny
-```
+`cargo install cargo-deny`
 
 ## tl;dr
 
-* `cargo deny check <licenses|all>` - verify crate graph only contains acceptable license requirements
-* `cargo deny check <bans|all>` - verify crate graph doesn't contain certain crates
+* `cargo deny check <licenses|all>` - check licenses for every crate
+* `cargo deny check <bans|all>` - check crate graph for certain crates, and multiple version of the same crate
+* `cargo deny check <advisories|all>` - check crate graph for security vulnerabilities and unmaintained crates
 * `cargo deny list` - list all of the licenses for all crates in a project
 
 ## Licenses - `cargo deny check licenses`
@@ -82,8 +81,7 @@ Determines what happens when licenses aren't explicitly allowed or denied, but a
 
 #### The `confidence-threshold` field
 
-`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the license of a license file, the confidence threshold value determines if askalono's determination meets your
-minimum requirements. The higher the value, the more closely the license text must be to the canonical license text of a valid SPDX license file.
+`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the license of a license file, the confidence threshold value determines if askalono's determination meets your minimum requirements. The higher the value, the more closely the license text must be to the canonical license text of a valid SPDX license file.
 
 `0.0` - `1.0` (default `0.8`)
 
@@ -147,13 +145,9 @@ license-files = [
 
 ### Use Case - Keeping certain crates out of your dependency graph
 
-Sometimes, certain crates just don't fit in your project, so you have to remove them. However,
-nothing really stops them from sneaking back in due to small changes, like updating a crate to
-a new version that happens to add it as a dependency, or an existing dependency just changing
-what crates are included in the default feature set.
+Sometimes, certain crates just don't fit in your project, so you have to remove them. However, nothing really stops them from sneaking back in due to small changes, like updating a crate to a new version that happens to add it as a dependency, or an existing dependency just changing what crates are included in the default feature set.
 
-For example, we previously depended on OpenSSL as it is the "default" for many crates that deal
-with HTTP traffic. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined `native-tls` and `ring` crates instead, and now we can make sure that OpenSSL doesn't return from the grave by being pulled in as a default feature of some future HTTP crate we might use.
+For example, we previously depended on OpenSSL as it is the "default" for many crates that deal with HTTP traffic. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined `native-tls` and `ring` crates instead, and now we can make sure that OpenSSL doesn't return from the grave by being pulled in as a default feature of some future HTTP crate we might use.
 
 ### Use Case - Get a handle on duplicate versions
 
@@ -245,6 +239,68 @@ skip-tree = [
     { name = "rand", version = "=0.6.5" },
 ]
 ```
+
+## Crate advisories - `cargo deny check advisories`
+
+### Use Case - Detecting security vulnerabilities
+
+Security vulnerabilities are generally considered "not great" by most people, luckily rust has a great [advisory database](https://github.com/RustSec/advisory-db) which cargo-deny can use to check that you don't have any crates with (known) security vulnerabilities.
+
+### Use Case - Detecting unmaintained crates
+
+The [advisory database](https://github.com/RustSec/advisory-db) also contains advisories for unmaintained crates which in most cases users will want to avoid in favor of more active crates.
+
+### The `[advisories]` section
+
+Contains all of the configuration for `cargo deny check advisories`
+
+#### The `db-path` field
+
+Path to the local copy of advisory database's git repo (default: ~/.cargo/advisory-db)
+
+#### The `db-url` field
+
+URL to the advisory database's git repo (default: https://github.com/RustSec/advisory-db)
+
+#### The `vulnerability` field
+
+Determines what happens when a crate with a security vulnerability is encountered.
+
+* `deny` (default) - Will emit an error with details about each vulnerability, and fail the check.
+* `warn` - Prints a warning for each vulnerability, but does not fail the check.
+* `allow` - Prints a note about the security vulnerability, but does not fail the check.
+
+#### The `unmaintained` field
+
+Determines what happens when a crate with an `unmaintained` advisory is encountered.
+
+* `deny` - Will emit an error with details about the unmaintained advisory, and fail the check.
+* `warn` (default) - Prints a warning for each unmaintained advisory, but does not fail the check.
+* `allow` - Prints a note about the unmaintained advisory, but does not fail the check.
+
+#### The `notice` field
+
+Determines what happens when a crate with a `notice` advisory is encountered.
+
+**NOTE**: As of 2019-12-17 there are no `notice` advisories in https://github.com/RustSec/advisory-db
+
+* `deny` - Will emit an error with details about the notice advisory, and fail the check.
+* `warn` (default) - Prints a warning for each notice advisory, but does not fail the check.
+* `allow` - Prints a note about the notice advisory, but does not fail the check.
+
+#### The `ignore` field
+
+Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`, putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.
+
+#### The `severity-threshold` field
+
+The threshold for security vulnerabilities to be turned into notes instead of of warnings or errors, depending upon its [CVSS](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System) score. So having a high threshold means some vulnerabilities might not fail the check, but having a log level `>= info` will mean that a note will be printed instead of a warning or error depending on `[advisories.vulnerability]`.
+
+* `None` (default) - CVSS Score 0.0
+* `Low` - CVSS Score 0.1 - 3.9
+* `Medium` - CVSS Score 4.0 - 6.9
+* `High` - CVSS Score 7.0 - 8.9
+* `Critical` - CVSS Score 9.0 - 10.0
 
 ## CI Usage
 
