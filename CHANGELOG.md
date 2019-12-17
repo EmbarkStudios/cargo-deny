@@ -6,13 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added the `advisories` check and configuration section for checking crates against an advisory database to detect security vulnerabilities, unmaintained crates, and crates with security notices
 - A warning will now be emitted if a crate that isn't in the graph is specified in `[bans.skip-tree]`
 
 ### Fixed
 - [PR#58](https://github.com/EmbarkStudios/cargo-deny/pull/58) Fixed [#55](https://github.com/EmbarkStudios/cargo-deny/issues/55) to handle license requirements for GPL, AGPL, LGPL, and GFDL better. Thank for reporting [@pikajude](https://github.com/pikajude)!
+- [PR#62](https://github.com/EmbarkStudios/cargo-deny/pull/62) Fixed [#56](https://github.com/EmbarkStudios/cargo-deny/issues/56), the `[metadata]` section in `Cargo.lock` is now gone in nightly to improve merging, the previous reporting mechanism that required this section has been reworked.
 
 ### Changed
 - Renamed the `<which>` options for `cargo deny check <which>` from `ban` => `bans` and `license` => `licenses`
+- The `check` subcommand now takes multiple values eg `cargo deny check bans advisories`
+- Specifying either `cargo deny check` or `cargo deny check all` will now run the additional `advisories` check
+- Previously, if you hadn't specified the `[licenses]` or `[bans]` section then running that check would have done nothing. Now if any section (including `[advisories]`) is not specified, the default configuration will be used.
 
 ## [0.4.2] - 2019-12-02
 ### Added
