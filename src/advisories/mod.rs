@@ -76,7 +76,8 @@ pub fn check(
     let settings = rustsec::report::Settings {
         target_arch: None,
         target_os: None,
-        severity: cfg.severity_threshold,
+        // We handle the severity ourselves
+        severity: None,
         // We handle the ignoring of particular advisory ids ourselves
         ignore: Vec::new(),
         informational_warnings: vec![
@@ -130,17 +131,32 @@ pub fn check(
                         // advisory, but the user might have decided to ignore it
                         // for "reasons", but in that case we still emit it to the log
                         // so it doesn't just disappear into the aether
-                        let severity = if cfg.ignore.binary_search(id).is_ok() {
-                            Severity::Note
+                        let lint_level = if cfg.ignore.binary_search(id).is_ok() {
+                            LintLevel::Allow
+                        } else if let Some(severity_threshold) = cfg.severity_threshold {
+                            if let Some(advisory_severity) =
+                                advisory.cvss.as_ref().map(|cvss| cvss.severity())
+                            {
+                                if advisory_severity < severity_threshold {
+                                    LintLevel::Allow
+                                } else {
+                                    lint_level
+                                }
+                            } else {
+                                lint_level
+                            }
                         } else {
+                            lint_level
+                        };
+
+                        (
                             match lint_level {
                                 LintLevel::Warn => Severity::Warning,
                                 LintLevel::Deny => Severity::Error,
                                 LintLevel::Allow => Severity::Note,
-                            }
-                        };
-
-                        (severity, msg)
+                            },
+                            msg,
+                        )
                     };
 
                     let notes = {
