@@ -22,10 +22,6 @@ pub struct Config {
     /// Ignore advisories for the given IDs
     #[serde(default)]
     pub ignore: Vec<advisory::Id>,
-    // How to handle crates that have been marked with an informational advisory
-    // in the advisory database, which is NOT `unmaintained` or `notice`
-    // #[serde(default = "lint_warn")]
-    // pub other: LintLevel,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
     ///
     /// Vulnerabilities with explicit CVSS info which have a severity below
