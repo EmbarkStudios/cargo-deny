@@ -294,16 +294,10 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
         if let Some((db, lockfile)) = advisory_ctx {
             let adv_cfg = cfg.advisories;
-            s.spawn(|_| {
+            let krate_spans = krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap();
+            s.spawn(move |_| {
                 log::info!("checking advisories...");
-                advisories::check(
-                    adv_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    db,
-                    lockfile,
-                    tx,
-                );
+                advisories::check(adv_cfg, krates, krate_spans, &db, &lockfile, tx);
             });
         }
     });

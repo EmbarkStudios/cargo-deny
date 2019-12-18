@@ -125,8 +125,8 @@ pub fn check(
     cfg: cfg::ValidConfig,
     krates: &Krates,
     (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
-    advisory_db: Database,
-    lockfile: rustsec::lockfile::Lockfile,
+    advisory_db: &Database,
+    lockfile: &rustsec::lockfile::Lockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
 ) {
     use rustsec::{
