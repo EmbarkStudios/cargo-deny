@@ -47,8 +47,7 @@ Contains all of the configuration for `cargo deny check license`.
 
 #### The `unlicensed` field (optional)
 
-Determines what happens when a crate has not explicitly specified its license terms, and no license
-information could be easily detected via `LICENSE*` files in the crate's source.
+Determines what happens when a crate has not explicitly specified its license terms, and no license information could be easily detected via `LICENSE*` files in the crate's source.
 
 * `deny` (default) - All unlicensed crates will emit an error and fail the license check
 * `allow` - All unlicensed crates will show a note, but will not fail the license check
@@ -56,9 +55,26 @@ information could be easily detected via `LICENSE*` files in the crate's source.
 
 #### The `allow` and `deny` fields (optional)
 
-The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either be in version 3.6 of the [SPDX License List](https://spdx.org/licenses/), with an optional [exception](https://spdx.org/licenses/exceptions-index.html) specified by `WITH <exception-id>`, or else a user defined license reference denoted by `LicenseRef-<idstring>` for a license not on the SPDX License List.
+The licenses that should be allowed or denied. The license must be a valid SPDX v2.1 identifier, which must either be in version 3.7 of the [SPDX License List](https://spdx.org/licenses/), with an optional [exception](https://spdx.org/licenses/exceptions-index.html) specified by `WITH <exception-id>`, or else a user defined license reference denoted by `LicenseRef-<idstring>` for a license not on the SPDX License List.
 
 **NOTE:** The same license cannot appear in both the `allow` and `deny` lists.
+
+##### GNU licenses
+
+* GPL
+* AGPL
+* LGPL
+* GFDL
+
+The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either `allow` or `deny`, you must not use the suffixes `-only` or `-or-later`, as they can only be used by the license holder themselves to decide under which terms to license their code.
+
+So, for example, if you we wanted to disallow `GPL-2.0` licenses, but allow `GPL-3.0` licenses, we could use the following configuration.
+
+```toml
+[licenses]
+allow = [ "GPL-3.0" ]
+deny = [ "GPL-2.0" ]
+```
 
 #### The `copyleft` field (optional)
 
@@ -150,8 +166,7 @@ For example, we previously depended on OpenSSL as it is the "default" for many c
 
 ### Use Case - Get a handle on duplicate versions
 
-One thing that is part of the tradeoff of being able to use so many crates, is that they all won't
-necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily chug along compiling all of them.  This is great when just trying out a new dependency as quickly as possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased, but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware that you depend on multiple versions of the same crate, you at least have an opportunity to decide how you want to handle them.
+One thing that is part of the tradeoff of being able to use so many crates, is that they all won't necessarily agree on what versions of a dependency they want to use, and cargo and rust will happily chug along compiling all of them.  This is great when just trying out a new dependency as quickly as possible, but it does come with some long term costs. Crate fetch times (and disk space) are increased, but in particular, **compile times**, and ultimately your binary sizes, also increase. If you are made aware that you depend on multiple versions of the same crate, you at least have an opportunity to decide how you want to handle them.
 
 ### The `[bans]` section
 
@@ -170,8 +185,7 @@ Determines what happens when multiple versions of the same crate are encountered
 When multiple versions of the same crate are encountered and the `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
 
 * `lowest-version` - Highlights the path to the lowest duplicate version. Highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+)
-* `simplest-path` - Highlights the path to the duplicate version with the fewest number of total
-edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
+* `simplest-path` - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
 * `all` - Highlights both the `lowest-version` and `simplest-path`. If they are the same, they are only highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+).
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
@@ -196,7 +210,7 @@ As with `licenses`, these determine which specificy crates and version ranges ar
 
 #### The `skip` field (optional)
 
-When denying duplicate versions, it sometimes takes time to update versions in transitive dependencies, or big changes in core often used crates such as winapi and others to ripple through the rest of the ecosystem. In such cases, it can be ok to remove certain versions from consideration so that they won't trigger failures due to multiple versions, and can eventually be removed once all crates have update to the later version(s).
+When denying duplicate versions, it sometimes takes time to update versions in transitive dependencies, or big changes in core often used crates such as `winapi` and others to ripple through the rest of the ecosystem. In such cases, it can be ok to remove certain versions from consideration so that they won't trigger failures due to multiple versions, and can eventually be removed once all crates have update to the later version(s).
 
 Note entries in the `skip` field that never match a crate in your graph will have a warning printed that they never matched, allowing you to clean up your configuration as your crate graph changes over time.
 
@@ -307,13 +321,11 @@ The threshold for security vulnerabilities to be turned into notes instead of of
 
 ## CI Usage
 
-`cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all
-your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config.
+`cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config.
 
 ## List - `cargo deny list`
 
-Similarly to [cargo-license](https://github.com/onur/cargo-license), print out the licenses and crates
-that use them.
+Similarly to [cargo-license](https://github.com/onur/cargo-license), print out the licenses and crates that use them.
 
 * `layout = license, format = human` (default)
 
@@ -348,7 +360,4 @@ at your option.
 
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally
-submitted for inclusion in the work by you, as defined in the Apache-2.0
-license, shall be dual licensed as above, without any additional terms or
-conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
