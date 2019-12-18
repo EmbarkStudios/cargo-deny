@@ -364,6 +364,35 @@ impl Krates {
     }
 }
 
+impl From<cargo_metadata::Metadata> for Krates {
+    fn from(md: cargo_metadata::Metadata) -> Self {
+        let mut crate_infos: Vec<_> = md.packages.into_iter().map(KrateDetails::new).collect();
+
+        crate_infos.par_sort();
+
+        let map = crate_infos
+            .iter()
+            .enumerate()
+            .map(|(i, ci)| (ci.id.clone(), i))
+            .collect();
+
+        let mut resolved = md.resolve.unwrap();
+
+        resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
+        resolved
+            .nodes
+            .par_iter_mut()
+            .for_each(|nodes| nodes.dependencies.par_sort());
+
+        Self {
+            krates: crate_infos,
+            krate_map: map,
+            resolved,
+            lock_file: md.workspace_root.join("Cargo.lock"),
+        }
+    }
+}
+
 impl AsRef<[KrateDetails]> for Krates {
     fn as_ref(&self) -> &[KrateDetails] {
         &self.krates[..]
@@ -378,34 +407,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
         .exec()
         .context("failed to fetch metdata")?;
 
-    let mut crate_infos: Vec<_> = metadata
-        .packages
-        .into_iter()
-        .map(KrateDetails::new)
-        .collect();
-
-    crate_infos.par_sort();
-
-    let map = crate_infos
-        .iter()
-        .enumerate()
-        .map(|(i, ci)| (ci.id.clone(), i))
-        .collect();
-
-    let mut resolved = metadata.resolve.unwrap();
-
-    resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
-    resolved
-        .nodes
-        .par_iter_mut()
-        .for_each(|nodes| nodes.dependencies.par_sort());
-
-    Ok(Krates {
-        krates: crate_infos,
-        krate_map: map,
-        resolved,
-        lock_file: metadata.workspace_root.join("Cargo.lock"),
-    })
+    Ok(Krates::from(metadata))
 }
 
 #[inline]
