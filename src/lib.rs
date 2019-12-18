@@ -403,6 +403,12 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
     let cargo_toml = root.as_ref().join("Cargo.toml");
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(cargo_toml)
+        // We run cargo_metadata from the root path provided by the user
+        // so that any potential .cargo/config is picked up correctly,
+        // as eg. adding registries in the config that are used by one
+        // or more crates in the workspace/project will cause cargo_metadata
+        // to fail
+        .current_dir(root)
         .features(cargo_metadata::CargoOpt::AllFeatures)
         .exec()
         .context("failed to fetch metdata")?;
