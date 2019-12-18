@@ -150,7 +150,10 @@ pub fn check(
 
     let report = rustsec::Report::generate(&advisory_db, &lockfile, &settings);
 
-    let make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
+    use bitvec::prelude::*;
+    let mut ignore_hits = bitvec![0; cfg.ignore.len()];
+
+    let mut make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
         match krates.search_name(pkg.name.as_str()) {
             Ok(rng) => {
                 for i in rng {
@@ -192,23 +195,25 @@ pub fn check(
                         // advisory, but the user might have decided to ignore it
                         // for "reasons", but in that case we still emit it to the log
                         // so it doesn't just disappear into the aether
-                        let lint_level = if cfg.ignore.binary_search(id).is_ok() {
-                            LintLevel::Allow
-                        } else if let Some(severity_threshold) = cfg.severity_threshold {
-                            if let Some(advisory_severity) =
-                                advisory.cvss.as_ref().map(|cvss| cvss.severity())
-                            {
-                                if advisory_severity < severity_threshold {
-                                    LintLevel::Allow
+                        let lint_level =
+                            if let Ok(index) = cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
+                                ignore_hits.as_mut_bitslice().set(index, true);
+                                LintLevel::Allow
+                            } else if let Some(severity_threshold) = cfg.severity_threshold {
+                                if let Some(advisory_severity) =
+                                    advisory.cvss.as_ref().map(|cvss| cvss.severity())
+                                {
+                                    if advisory_severity < severity_threshold {
+                                        LintLevel::Allow
+                                    } else {
+                                        lint_level
+                                    }
                                 } else {
                                     lint_level
                                 }
                             } else {
                                 lint_level
-                            }
-                        } else {
-                            lint_level
-                        };
+                            };
 
                         (
                             match lint_level {
@@ -274,5 +279,28 @@ pub fn check(
         sender
             .send(make_diag(&warning.package, &warning.advisory))
             .unwrap();
+    }
+
+    // Check for advisory identifers that were set to be ignored, but
+    // were not actually encountered, for cases where a crate, or specific
+    // verison of that crate, has been removed or replaced and the advisory
+    // no longer applies to it so that users can cleanup their configuration
+    for (hit, ignore) in ignore_hits.into_iter().zip(cfg.ignore.into_iter()) {
+        if !hit {
+            sender
+                .send(diag::Pack {
+                    krate_id: None,
+                    diagnostics: vec![Diagnostic::new(
+                        Severity::Warning,
+                        "advisory was not encountered",
+                        Label::new(
+                            cfg.file_id,
+                            ignore.span,
+                            "no crate matched advisory criteria",
+                        ),
+                    )],
+                })
+                .unwrap();
+        }
     }
 }
