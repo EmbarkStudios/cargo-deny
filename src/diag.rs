@@ -1,10 +1,68 @@
-use crate::{KrateDetails, Krates};
+use crate::{KrateDetails, Krates, Pid};
 use anyhow::Error;
+pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
+
+pub struct Pack {
+    // The particular package that the diagnostics pertain to
+    pub krate_id: Option<Pid>,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub type Span = std::ops::Range<u32>;
+
+pub struct KrateSpan {
+    span: Span,
+}
+
+pub struct KrateSpans {
+    spans: Vec<KrateSpan>,
+}
+
+impl std::ops::Index<usize> for KrateSpans {
+    type Output = Span;
+
+    #[inline]
+    fn index(&self, i: usize) -> &Self::Output {
+        &self.spans[i].span
+    }
+}
+
+impl KrateSpans {
+    pub fn new(krates: &Krates) -> (Self, String) {
+        use std::fmt::Write;
+
+        let mut sl = String::with_capacity(4 * 1024);
+        let mut spans = Vec::with_capacity(krates.krates.len());
+        for krate in &krates.krates {
+            let span_start = sl.len();
+            match &krate.source {
+                Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src)
+                    .expect("unable to synthesize lockfile"),
+                None => writeln!(
+                    sl,
+                    "{} {} {}",
+                    krate.name,
+                    krate.version,
+                    krate.manifest_path.parent().unwrap().to_string_lossy()
+                )
+                .expect("unable to synthesize lockfile"),
+            };
+
+            let span_end = sl.len() - 1;
+
+            spans.push(KrateSpan {
+                span: span_start as u32..span_end as u32,
+            });
+        }
+
+        (Self { spans }, sl)
+    }
+}
+
 use petgraph::Graph;
 use rayon::prelude::*;
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-pub type Pid = cargo_metadata::PackageId;
 type Nid = petgraph::graph::NodeIndex<u32>;
 
 struct Node<'a> {

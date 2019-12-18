@@ -217,13 +217,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub use codespan_reporting::diagnostic::Label;
-
-pub mod ban;
-pub mod inclusion_graph;
+pub mod advisories;
+pub mod bans;
+pub mod diag;
 pub mod licenses;
+mod utils;
 
-#[derive(serde::Deserialize, PartialEq, Eq)]
+#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum LintLevel {
     Allow,
@@ -237,10 +237,20 @@ impl Default for LintLevel {
     }
 }
 
+const fn lint_warn() -> LintLevel {
+    LintLevel::Warn
+}
+
+const fn lint_deny() -> LintLevel {
+    LintLevel::Deny
+}
+
+pub type Pid = cargo_metadata::PackageId;
+
 #[derive(Debug)]
 pub struct KrateDetails {
     pub name: String,
-    pub id: cargo_metadata::PackageId,
+    pub id: Pid,
     pub version: Version,
     pub source: Option<cargo_metadata::Source>,
     pub authors: Vec<String>,
@@ -344,6 +354,43 @@ impl Krates {
     pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
         self.krates.iter()
     }
+
+    pub(crate) fn search_match(&self, name: &str, req: &semver::VersionReq) -> Option<usize> {
+        utils::search_match(&self.krates, name, req)
+    }
+
+    pub(crate) fn search_name(&self, name: &str) -> Result<std::ops::Range<usize>, usize> {
+        utils::search_name(&self.krates, name)
+    }
+}
+
+impl From<cargo_metadata::Metadata> for Krates {
+    fn from(md: cargo_metadata::Metadata) -> Self {
+        let mut crate_infos: Vec<_> = md.packages.into_iter().map(KrateDetails::new).collect();
+
+        crate_infos.par_sort();
+
+        let map = crate_infos
+            .iter()
+            .enumerate()
+            .map(|(i, ci)| (ci.id.clone(), i))
+            .collect();
+
+        let mut resolved = md.resolve.unwrap();
+
+        resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
+        resolved
+            .nodes
+            .par_iter_mut()
+            .for_each(|nodes| nodes.dependencies.par_sort());
+
+        Self {
+            krates: crate_infos,
+            krate_map: map,
+            resolved,
+            lock_file: md.workspace_root.join("Cargo.lock"),
+        }
+    }
 }
 
 impl AsRef<[KrateDetails]> for Krates {
@@ -356,38 +403,17 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
     let cargo_toml = root.as_ref().join("Cargo.toml");
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(cargo_toml)
+        // We run cargo_metadata from the root path provided by the user
+        // so that any potential .cargo/config is picked up correctly,
+        // as eg. adding registries in the config that are used by one
+        // or more crates in the workspace/project will cause cargo_metadata
+        // to fail
+        .current_dir(root)
         .features(cargo_metadata::CargoOpt::AllFeatures)
         .exec()
         .context("failed to fetch metdata")?;
 
-    let mut crate_infos: Vec<_> = metadata
-        .packages
-        .into_iter()
-        .map(KrateDetails::new)
-        .collect();
-
-    crate_infos.par_sort();
-
-    let map = crate_infos
-        .iter()
-        .enumerate()
-        .map(|(i, ci)| (ci.id.clone(), i))
-        .collect();
-
-    let mut resolved = metadata.resolve.unwrap();
-
-    resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
-    resolved
-        .nodes
-        .par_iter_mut()
-        .for_each(|nodes| nodes.dependencies.par_sort());
-
-    Ok(Krates {
-        krates: crate_infos,
-        krate_map: map,
-        resolved,
-        lock_file: root.as_ref().join("Cargo.lock"),
-    })
+    Ok(Krates::from(metadata))
 }
 
 #[inline]
@@ -420,9 +446,3 @@ pub fn hash(data: &[u8]) -> u32 {
 }
 
 pub struct CrateVersion<'a>(pub &'a semver::Version);
-
-pub struct DiagPack {
-    // The particular package that the diagnostics pertain to
-    pub krate_id: Option<cargo_metadata::PackageId>,
-    pub diagnostics: Vec<codespan_reporting::diagnostic::Diagnostic>,
-}
