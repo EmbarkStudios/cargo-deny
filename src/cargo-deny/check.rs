@@ -13,7 +13,9 @@ arg_enum! {
     #[derive(Debug, PartialEq, Copy, Clone)]
     pub enum WhichCheck {
         Advisories,
+        Ban,
         Bans,
+        License,
         Licenses,
         All,
     }
@@ -128,13 +130,12 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
         || args
             .which
             .iter()
-            .any(|w| *w == WhichCheck::Bans || *w == WhichCheck::All);
+            .any(|w| *w == WhichCheck::Bans || *w == WhichCheck::Ban || *w == WhichCheck::All);
 
     let check_licenses = args.which.is_empty()
-        || args
-            .which
-            .iter()
-            .any(|w| *w == WhichCheck::Licenses || *w == WhichCheck::All);
+        || args.which.iter().any(|w| {
+            *w == WhichCheck::Licenses || *w == WhichCheck::License || *w == WhichCheck::All
+        });
 
     let mut krates = None;
     let mut license_store = None;
