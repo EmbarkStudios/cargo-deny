@@ -164,7 +164,8 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
         if check_advisories {
             s.spawn(|_| {
                 advisory_db = Some(advisories::load_db(
-                    &cfg.advisories,
+                    cfg.advisories.db_url.as_ref().map(AsRef::as_ref),
+                    cfg.advisories.db_path.as_ref().cloned(),
                     if args.disable_fetch {
                         advisories::Fetch::Disallow
                     } else {

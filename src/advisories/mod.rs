@@ -8,7 +8,7 @@ use anyhow::{Context, Error};
 use log::info;
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database};
 use rustsec::{repository as repo, Repository};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
@@ -17,18 +17,13 @@ pub enum Fetch {
     Disallow,
 }
 
-pub fn load_db(cfg: &cfg::ValidConfig, fetch: Fetch) -> Result<Database, Error> {
-    let advisory_db_url = cfg
-        .db_url
-        .as_ref()
-        .map(AsRef::as_ref)
-        .unwrap_or(repo::DEFAULT_URL);
-
-    let advisory_db_path = cfg
-        .db_path
-        .as_ref()
-        .cloned()
-        .unwrap_or_else(Repository::default_path);
+pub fn load_db(
+    db_url: Option<&str>,
+    db_path: Option<PathBuf>,
+    fetch: Fetch,
+) -> Result<Database, Error> {
+    let advisory_db_url = db_url.unwrap_or(repo::DEFAULT_URL);
+    let advisory_db_path = db_path.unwrap_or_else(Repository::default_path);
 
     let advisory_db_repo = match fetch {
         Fetch::Allow => {
