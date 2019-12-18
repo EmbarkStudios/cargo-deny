@@ -87,7 +87,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
             name: krate.name.parse().unwrap(),
-            version: krate.version.clone().into(),
+            version: krate.version.clone(),
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
             source: krate.source.as_ref().map(|s| im_so_sorry(s)),
