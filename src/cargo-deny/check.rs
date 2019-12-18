@@ -149,9 +149,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             if let Ok(ref k) = k {
                 rayon::scope(|s| {
                     if check_advisories {
-                        s.spawn(|_| {
-                            advisory_lockfile = Some(advisories::load_lockfile(&k.lock_file))
-                        });
+                        s.spawn(|_| advisory_lockfile = Some(advisories::generate_lockfile(&k)));
                     }
 
                     if check_advisories || check_bans {
@@ -185,7 +183,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
     let advisory_ctx = if check_advisories {
         let db = advisory_db.unwrap()?;
-        let lockfile = advisory_lockfile.unwrap()?;
+        let lockfile = advisory_lockfile.unwrap();
 
         Some((db, lockfile))
     } else {

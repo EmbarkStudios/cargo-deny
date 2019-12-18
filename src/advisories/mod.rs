@@ -2,7 +2,7 @@ pub mod cfg;
 
 use crate::{
     diag::{self, Diagnostic, Label, Severity},
-    LintLevel,
+    Krates, LintLevel,
 };
 use anyhow::{Context, Error};
 use log::info;
@@ -55,14 +55,80 @@ pub fn load_db(cfg: &cfg::ValidConfig, fetch: Fetch) -> Result<Database, Error> 
 }
 
 pub fn load_lockfile(path: &Path) -> Result<Lockfile, Error> {
-    Ok(Lockfile::load(path)?)
+    let mut lockfile = Lockfile::load(path)?;
+
+    // Remove the metadata as it is irrelevant
+    lockfile.metadata = Default::default();
+
+    Ok(lockfile)
+}
+
+/// Generates rustsec::lockfile::Lockfile from the crates gathered via cargo_metadata,
+/// rather than deserializing them from the lockfile again
+pub fn generate_lockfile(krates: &Krates) -> Lockfile {
+    use rustsec::{
+        cargo_lock::{dependency::Dependency, package::Source},
+        package::Package,
+    };
+
+    let mut packages = Vec::with_capacity(krates.krates.len());
+
+    fn im_so_sorry(s: &cargo_metadata::Source) -> Source {
+        // cargo_metadata::Source(String) doesn't have as_str()/as_ref()/into() :(
+        let oh_no = format!("{}", s);
+
+        // cargo_lock::package::Source(String) doesn't have from()/new() :(
+        oh_no.parse().expect("guess this is no longer infallible")
+    }
+
+    for krate in &krates.krates {
+        let resolved_deps = &krates.resolved.nodes[krates
+            .resolved
+            .nodes
+            .binary_search_by(|node| node.id.cmp(&krate.id))
+            .unwrap()];
+
+        packages.push(Package {
+            // This will hide errors if the FromStr implementation
+            // begins to fail at some point, but right now it is infallible
+            name: krate.name.parse().unwrap(),
+            version: krate.version.clone().into(),
+            // This will hide errors if the FromStr implementation
+            // begins to fail at some point, but right now it is infallible
+            source: krate.source.as_ref().map(|s| im_so_sorry(s)),
+            dependencies: resolved_deps
+                .dependencies
+                .iter()
+                .map(|did| {
+                    let mut iter = did.repr.splitn(3, char::is_whitespace);
+
+                    Dependency {
+                        // This will hide errors if the FromStr implementation
+                        // begins to fail at some point, but right now it is infallible
+                        name: iter.next().unwrap().parse().unwrap(),
+                        version: Some(
+                            rustsec::cargo_lock::Version::parse(iter.next().unwrap()).unwrap(),
+                        ),
+                        // This will hide errors if the FromStr implementation
+                        // begins to fail at some point, but right now it is infallible
+                        source: iter.next().and_then(|s| (&s[1..s.len() - 1]).parse().ok()),
+                    }
+                })
+                .collect(),
+        });
+    }
+
+    Lockfile {
+        packages,
+        metadata: Default::default(),
+    }
 }
 
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
 pub fn check(
     cfg: cfg::ValidConfig,
-    krates: &crate::Krates,
+    krates: &Krates,
     (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
     advisory_db: Database,
     lockfile: rustsec::lockfile::Lockfile,
