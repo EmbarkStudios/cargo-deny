@@ -321,7 +321,24 @@ The threshold for security vulnerabilities to be turned into notes instead of of
 
 ## CI Usage
 
-`cargo-deny` is primarily meant to be used in your CI so it can do automatic verification for all your changes, for an example of this, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/master/.travis.yml#L77-L87) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config.
+We now have a Github Action for running `cargo-deny` on your Github repositories, check it out [here](https://github.com/EmbarkStudios/cargo-deny-action).
+
+If you don't want to, or can't, use the action, you can look at the [self check](https://github.com/EmbarkStudios/cargo-deny/blob/a3c1ef8d29d5132e477e06a51bb3c17c4c604375/.github/workflows/ci.yaml#L60-L101) job for this repository, which just checks `cargo-deny` itself using the [deny.toml](deny.toml) config for how you run it in on your own code.
+
+Also note, that while you can install cargo-deny via the normal `cargo install` process, we prebuild binaries for Linux, MacOS, and Windows for every release which you can use something like this.
+
+```sh
+#!/bin/bash
+set -eu
+
+mkdir /tmp/cargo-deny
+
+curl -L -o /tmp/cargo-deny/archive.tar.gz https://github.com/EmbarkStudios/cargo-deny/releases/download/0.5.1/cargo-deny-0.5.1-x86_64-unknown-linux-musl.tar.gz
+
+tar -xzvf /tmp/cargo-deny/archive.tar.gz --strip-components=1 -C /tmp/cargo-deny
+
+/tmp/cargo-deny/cargo-deny --context . -L debug check bans licenses advisories
+```
 
 ## List - `cargo deny list`
 
