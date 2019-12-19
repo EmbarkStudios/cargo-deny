@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2019-12-19
+### Fixed
+- Fixed issue where both `--manifest-path` and working directory were set when executing `cargo-metadata`, causing it to fail if a executed in a subdirectory.
+
 ## [0.5.0] - 2019-12-18
 ### Added
 - Added the `advisories` check and configuration section for checking crates against an advisory database to detect security vulnerabilities, unmaintained crates, and crates with security notices
