@@ -248,12 +248,10 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
                 Layout::Crate => {
                     for (id, krate) in crate_layout.crates {
                         if color {
-                            let color = if krate.licenses.len() > 1 {
-                                Color::Yellow
-                            } else if krate.licenses.len() == 1 {
-                                Color::White
-                            } else {
-                                Color::Red
+                            let color = match krate.licenses.len() {
+                                1 => Color::White,
+                                0 => Color::Red,
+                                _ => Color::Yellow,
                             };
 
                             let parts = get_parts(&id);
