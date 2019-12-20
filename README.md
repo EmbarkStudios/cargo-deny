@@ -76,6 +76,36 @@ allow = [ "GPL-3.0" ]
 deny = [ "GPL-2.0" ]
 ```
 
+#### The `exceptions` field (optional)
+
+The license configuration generally applies the entire crate graph, but this means that, allowing a specific license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow licenses only for particular crates, so as to make a clear distinction between licenses are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.
+
+##### The `name` field
+
+The name of the crate that you are adding an exception for
+
+##### The `version` field (optional)
+
+An optional version constraint specifying the range of crate versions you are excepting. Defaults to all versions (`*`).
+
+##### The `allow` field
+
+This is the exact same as the general `allow` field.
+
+```toml
+[licenses]
+allow = [
+    "Apache-2.0",
+    "MIT",
+]
+exceptions = [
+    # This is the only crate that cannot be licensed with either Apache-2.0
+    # or MIT, so we just add an exception for it, meaning we'll get a warning
+    # if we add another crate that also requires this license
+    { name = "cloudabi", allow = ["BSD-2-Clause"] },
+]
+```
+
 #### The `copyleft` field (optional)
 
 Determines what happens when a license that is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft) is encountered.
