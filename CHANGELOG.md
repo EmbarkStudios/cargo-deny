@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+<!-- next-header -->
+
+## [Unreleased] - ReleaseDate
+### Added
+- Resolved [#53](https://github.com/EmbarkStudios/cargo-deny/issues/53) by adding `[licenses.exceptions]`, which lets you allow 1 or more licenses only for a particular crate. Thanks for reporting [@iliana](https://github.com/iliana)!
 
 ## [0.5.1] - 2019-12-19
 ### Fixed
@@ -99,7 +103,10 @@ Now each license has to be explicitly approved, either by listing them in `licen
 ### Added
 - Initial implementation release
 
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...HEAD
+<!-- next-url -->
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0

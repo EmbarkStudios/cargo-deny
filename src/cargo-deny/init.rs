@@ -17,7 +17,6 @@ const CONTENTS: &[u8] = include_bytes!("../../resources/template.toml");
 pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     let cfg_file = args
         .config
-        .clone()
         .or_else(|| Some(DENY_TOML.into()))
         .map(|path| make_absolute_path(path, &context_dir))
         .context("unable to determine config path")?;
