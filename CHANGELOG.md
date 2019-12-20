@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2019-12-20
+### Added
+- Resolved [#53](https://github.com/EmbarkStudios/cargo-deny/issues/53) by adding `[licenses.exceptions]`, which lets you allow 1 or more licenses only for a particular crate. Thanks for reporting [@iliana](https://github.com/iliana)!
+
 ## [0.5.1] - 2019-12-19
 ### Fixed
 - Fixed issue where both `--manifest-path` and working directory were set when executing `cargo-metadata`, causing it to fail if a executed in a subdirectory.
