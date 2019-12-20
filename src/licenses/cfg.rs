@@ -52,6 +52,14 @@ pub struct Clarification {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct Exception {
+    pub name: String,
+    pub version: Option<VersionReq>,
+    pub allow: Vec<toml::Spanned<String>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// Determines what happens when license information cannot be
     /// determined for a crate
@@ -78,6 +86,10 @@ pub struct Config {
     /// exactly matches the specified license files and hashes
     #[serde(default)]
     pub clarify: Vec<Clarification>,
+    /// Allow 1 or more licenses on a per-crate basis, so particular licenses
+    /// aren't accepted for every possible crate and must be opted into
+    #[serde(default)]
+    pub exceptions: Vec<Exception>,
 }
 
 impl Default for Config {
@@ -90,6 +102,7 @@ impl Default for Config {
             deny: Vec::new(),
             allow: Vec::new(),
             clarify: Vec::new(),
+            exceptions: Vec::new(),
         }
     }
 }
@@ -131,6 +144,23 @@ impl Config {
 
         denied.par_sort();
         allowed.par_sort();
+
+        let mut exceptions = Vec::with_capacity(self.exceptions.len());
+        for exc in self.exceptions {
+            let mut allowed = Vec::with_capacity(exc.allow.len());
+
+            for allow in &exc.allow {
+                parse_license(allow, &mut allowed);
+            }
+
+            exceptions.push(ValidException {
+                name: exc.name,
+                version: exc.version.unwrap_or_else(VersionReq::any),
+                allowed,
+            });
+        }
+
+        exceptions.par_sort();
 
         // Ensure the config doesn't contain the same exact license as
         // both denied and allowed, that's confusing and probably
@@ -209,6 +239,7 @@ impl Config {
                 allow_osi_fsf_free: self.allow_osi_fsf_free,
                 confidence_threshold: self.confidence_threshold,
                 clarifications,
+                exceptions,
                 denied,
                 allowed,
             })
@@ -224,6 +255,13 @@ pub struct ValidClarification {
     pub license_files: Vec<FileSource>,
 }
 
+#[derive(Debug)]
+pub struct ValidException {
+    pub name: String,
+    pub version: VersionReq,
+    pub allowed: Vec<Licensee>,
+}
+
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
     pub unlicensed: LintLevel,
@@ -233,4 +271,5 @@ pub struct ValidConfig {
     pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
     pub clarifications: Vec<ValidClarification>,
+    pub exceptions: Vec<ValidException>,
 }
