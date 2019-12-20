@@ -103,7 +103,9 @@ Now each license has to be explicitly approved, either by listing them in `licen
 ### Added
 - Initial implementation release
 
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0
