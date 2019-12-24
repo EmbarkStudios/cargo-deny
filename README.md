@@ -13,6 +13,7 @@ track of certain things, especially as a project evolves over time, which is wha
 * [Licenses](#licenses---cargo-deny-check-licenses) - Configure which license terms you accept
 * [Bans](#crate-bans---cargo-deny-check-bans) - Configure whether particular crates are allowed in your dependency graph
 * [Advisories](#crate-advisories---cargo-deny-check-advisories) - Configure how security vulnerabilities and unmaintained crates are handled
+* [Sources](#crate-sources---cargo-deny-check-sources) - Configure which crate registries and Git repositories are sources you trust
 
 ## Install
 
@@ -23,6 +24,7 @@ track of certain things, especially as a project evolves over time, which is wha
 * `cargo deny check <licenses|all>` - check licenses for every crate
 * `cargo deny check <bans|all>` - check crate graph for certain crates, and multiple version of the same crate
 * `cargo deny check <advisories|all>` - check crate graph for security vulnerabilities and unmaintained crates
+* `cargo deny check <sources|all>` - check that all crates are from allowed sources
 * `cargo deny list` - list all of the licenses for all crates in a project
 
 ## Licenses - `cargo deny check licenses`

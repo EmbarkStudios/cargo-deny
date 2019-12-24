@@ -12,6 +12,14 @@ skip = [
     { name = "ansi_term", version = "=0.11.0" },
 ]
 
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = [
+    "https://github.com/RustSec/rustsec-crate.git"
+]
+
+
 [licenses]
 unlicensed = "deny"
 allow-osi-fsf-free = "neither"
