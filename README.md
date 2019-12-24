@@ -384,7 +384,7 @@ Determines what happens when a crate from a git repository not in the allow list
 * `warn` - Prints a warning for each crate, but does not fail the check.
 * `allow` (default) - Prints a note for each crate, but does not fail the check.
 
-#### The `allow_registry` field (optional)
+#### The `allow-registry` field (optional)
 
 Configure which crate registries that are known and allowed.
 
