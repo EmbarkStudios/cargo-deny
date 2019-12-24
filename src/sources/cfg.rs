@@ -28,7 +28,7 @@ impl Default for Config {
         Self {
             unknown_registry: LintLevel::Warn,
             unknown_git: LintLevel::Warn,
-            allow_registry: Vec::new(),
+            allow_registry: default_allow_registry(),
             allow_git: Vec::new(),
         }
     }
