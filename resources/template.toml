@@ -94,3 +94,17 @@ skip = [
 skip-tree = [
     #{ name = "ansi_term", version = "=0.11.0", depth = 20 },
 ]
+
+
+# This section is considered when running `cargo deny check sources`.
+# More documentation about the 'sources' section can be found here:
+# https://github.com/EmbarkStudios/cargo-deny#crate-sources-cargo-deny-check-sources
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is not in the allow list is encountered
+unknown-registry = "warn"
+# Lint level for what to happen when a crate from a git repository that is not in the allow list is encountered
+unknown-git = "warn"
+# List of URLs for allowed crate registries, by default https://github.com/rust-lang/crates.io-index is included
+#allow-registry = []
+# List of URLs for allowed Git repositories
+allow-git = []
