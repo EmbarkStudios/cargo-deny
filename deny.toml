@@ -19,6 +19,9 @@ allow-git = [
     "https://github.com/RustSec/rustsec-crate.git"
 ]
 
+[builds]
+custom-builds = "allow"
+proc-macros = "allow"
 
 [licenses]
 unlicensed = "deny"

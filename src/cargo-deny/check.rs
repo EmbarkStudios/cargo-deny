@@ -1,5 +1,5 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, licenses, sources};
+use cargo_deny::{advisories, bans, builds, licenses, sources};
 use clap::arg_enum;
 use codespan_reporting::diagnostic::Diagnostic;
 use log::error;
@@ -18,6 +18,7 @@ arg_enum! {
         License,
         Licenses,
         Sources,
+        Builds,
         All,
     }
 }
@@ -55,6 +56,7 @@ struct Config {
     bans: Option<bans::cfg::Config>,
     licenses: Option<licenses::Config>,
     sources: Option<sources::Config>,
+    builds: Option<builds::Config>,
 }
 
 struct ValidConfig {
@@ -62,6 +64,7 @@ struct ValidConfig {
     bans: bans::cfg::ValidConfig,
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
+    builds: builds::ValidConfig,
 }
 
 impl ValidConfig {
@@ -88,12 +91,14 @@ impl ValidConfig {
             let bans = cfg.bans.unwrap_or_default().validate(id)?;
             let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
             let sources = cfg.sources.unwrap_or_default().validate(id)?;
+            let builds = cfg.builds.unwrap_or_default().validate(id)?;
 
             Ok(Self {
                 advisories,
                 bans,
                 licenses,
                 sources,
+                builds,
             })
         };
 
@@ -148,6 +153,12 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             .iter()
             .any(|w| *w == WhichCheck::Sources || *w == WhichCheck::All);
 
+    let check_builds = args.which.is_empty()
+        || args
+            .which
+            .iter()
+            .any(|w| *w == WhichCheck::Builds || *w == WhichCheck::All);
+
     let mut krates = None;
     let mut license_store = None;
     let mut advisory_db = None;
@@ -164,7 +175,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
                         s.spawn(|_| advisory_lockfile = Some(advisories::generate_lockfile(&k)));
                     }
 
-                    if check_advisories || check_bans || check_sources {
+                    if check_advisories || check_bans || check_sources || check_builds {
                         s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&k)));
                     }
                 });
@@ -315,6 +326,21 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
                     krates,
                     krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
                     sources_tx,
+                );
+            });
+        }
+
+        if check_builds {
+            let builds_tx = tx.clone();
+            let builds_cfg = cfg.builds;
+
+            s.spawn(|_| {
+                log::info!("checking builds...");
+                builds::check(
+                    builds_cfg,
+                    krates,
+                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
+                    builds_tx,
                 );
             });
         }

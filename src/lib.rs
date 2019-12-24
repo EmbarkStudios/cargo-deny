@@ -219,6 +219,7 @@ use std::{
 
 pub mod advisories;
 pub mod bans;
+pub mod builds;
 pub mod diag;
 pub mod licenses;
 pub mod sources;
@@ -236,6 +237,10 @@ impl Default for LintLevel {
     fn default() -> Self {
         LintLevel::Warn
     }
+}
+
+const fn lint_allow() -> LintLevel {
+    LintLevel::Allow
 }
 
 const fn lint_warn() -> LintLevel {
