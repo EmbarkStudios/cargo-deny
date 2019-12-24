@@ -373,16 +373,16 @@ Contains all of the configuration for `cargo deny check sources`
 Determines what happens when a crate from a crate registry that is not in the allow list is encountered.
 
 * `deny` - Will emit an error with the URL of the source, and fail the check.
-* `warn` - Prints a warning for each crate, but does not fail the check.
-* `allow` (default) - Prints a note for each crate, but does not fail the check.
+* `warn` (default) - Prints a warning for each crate, but does not fail the check.
+* `allow` - Prints a note for each crate, but does not fail the check.
 
 #### The `unknown-git` field (optional)
 
 Determines what happens when a crate from a git repository not in the allow list is encountered.
 
 * `deny` - Will emit an error with the URL of the repository, and fail the check.
-* `warn` - Prints a warning for each crate, but does not fail the check.
-* `allow` (default) - Prints a note for each crate, but does not fail the check.
+* `warn` (default) - Prints a warning for each crate, but does not fail the check.
+* `allow` - Prints a note for each crate, but does not fail the check.
 
 #### The `allow-registry` field (optional)
 

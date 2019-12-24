@@ -26,8 +26,8 @@ fn default_allow_registry() -> Vec<String> {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            unknown_registry: LintLevel::Allow,
-            unknown_git: LintLevel::Allow,
+            unknown_registry: LintLevel::Warn,
+            unknown_git: LintLevel::Warn,
             allow_registry: Vec::new(),
             allow_git: Vec::new(),
         }
