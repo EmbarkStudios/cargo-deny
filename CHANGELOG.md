@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+### Added
+- Added the `sources` check and configuration checking for checking where crates are sourced from and allowing specific crate registries and Git repositories.
+
 ## [0.5.2] - 2019-12-20
 ### Added
 - Resolved [#53](https://github.com/EmbarkStudios/cargo-deny/issues/53) by adding `[licenses.exceptions]`, which lets you allow 1 or more licenses only for a particular crate. Thanks for reporting [@iliana](https://github.com/iliana)!

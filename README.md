@@ -13,6 +13,7 @@ track of certain things, especially as a project evolves over time, which is wha
 * [Licenses](#licenses---cargo-deny-check-licenses) - Configure which license terms you accept
 * [Bans](#crate-bans---cargo-deny-check-bans) - Configure whether particular crates are allowed in your dependency graph
 * [Advisories](#crate-advisories---cargo-deny-check-advisories) - Configure how security vulnerabilities and unmaintained crates are handled
+* [Sources](#crate-sources---cargo-deny-check-sources) - Configure which crate registries and Git repositories are sources you trust
 
 ## Install
 
@@ -23,6 +24,7 @@ track of certain things, especially as a project evolves over time, which is wha
 * `cargo deny check <licenses|all>` - check licenses for every crate
 * `cargo deny check <bans|all>` - check crate graph for certain crates, and multiple version of the same crate
 * `cargo deny check <advisories|all>` - check crate graph for security vulnerabilities and unmaintained crates
+* `cargo deny check <sources|all>` - check that all crates are from allowed sources
 * `cargo deny list` - list all of the licenses for all crates in a project
 
 ## Licenses - `cargo deny check licenses`
@@ -348,6 +350,76 @@ The threshold for security vulnerabilities to be turned into notes instead of of
 * `Medium` - CVSS Score 4.0 - 6.9
 * `High` - CVSS Score 7.0 - 8.9
 * `Critical` - CVSS Score 9.0 - 10.0
+
+
+## Crate sources - `cargo deny check sources`
+
+### Use Case - Only allowing known/trusted sources
+
+Cargo is very flexible in where it can retrieve crates from, multiple registries, git repositories, file paths. This is great in general and very flexible for development. But esp. re-routing dependencies to git repositories increases the amount of sources that one would have to trust and may be something a repository want explicitly opt-in to. 
+
+Related: [Why npm lockfiles can be a security blindspot for injecting malicious modules](https://snyk.io/blog/why-npm-lockfiles-can-be-a-security-blindspot-for-injecting-malicious-modules/)
+
+### Use Case - Only using vendored file dependencies
+
+A crate repository may want to only support local file dependencies, such as having all dependencies vendored into the repository for full control and offline building. That is easy to enforce with this check.
+
+### The `[sources]` section
+
+Contains all of the configuration for `cargo deny check sources`
+
+#### The `unknown-registry` field (optional)
+
+Determines what happens when a crate from a crate registry that is not in the allow list is encountered.
+
+* `deny` - Will emit an error with the URL of the source, and fail the check.
+* `warn` (default) - Prints a warning for each crate, but does not fail the check.
+* `allow` - Prints a note for each crate, but does not fail the check.
+
+#### The `unknown-git` field (optional)
+
+Determines what happens when a crate from a git repository not in the allow list is encountered.
+
+* `deny` - Will emit an error with the URL of the repository, and fail the check.
+* `warn` (default) - Prints a warning for each crate, but does not fail the check.
+* `allow` - Prints a note for each crate, but does not fail the check.
+
+#### The `allow-registry` field (optional)
+
+Configure which crate registries that are known and allowed.
+
+If a crate is not found in the list. Then `unknown-registry` setting will determine how it is handled.
+
+If not specified this list will by default contain the [crates.io](http://crates.io) registry, equivalent to this:
+
+```toml
+[sources]
+allow-registry = [
+    "https://github.com/rust-lang/crates.io-index"
+]
+```
+
+To not allow any crates registries, set to empty:
+
+```toml
+[sources]
+unknown-registry = "deny"
+allow-registry = []
+```
+
+
+#### The `allow-git` field
+
+Configure which crate registries that are known and allowed.
+
+```toml
+[sources]
+unknown-git = "deny"
+allow-git = [
+    "https://github.com/rust-lang/crates.io-index"
+]
+```
+
 
 ## CI Usage
 

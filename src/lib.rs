@@ -221,6 +221,7 @@ pub mod advisories;
 pub mod bans;
 pub mod diag;
 pub mod licenses;
+pub mod sources;
 mod utils;
 
 #[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]

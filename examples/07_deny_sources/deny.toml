@@ -1,0 +1,18 @@
+[licenses]
+allow = [ "MIT" ]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+# here we can explicitly enable registries we allow,
+# crates.io is already added by default though - so this is not needed
+#allow-registry = [
+#    "https://github.com/rust-lang/crates.io-index"
+#]
+
+
+# uncomment this to explicitly allow the bitflags repo and not fail
+#allow-git = [
+#    "https://github.com/bitflags/bitflags.git"
+#]
