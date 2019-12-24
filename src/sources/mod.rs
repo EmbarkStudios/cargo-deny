@@ -31,7 +31,7 @@ impl FromStr for Source {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts = s.split("+").collect::<Vec<_>>();
+        let parts = s.split('+').collect::<Vec<_>>();
 
         if let (Some(source_type), Some(url)) = (parts.get(0), parts.get(1)) {
             let url = Url::parse(url).context("Couldn't parse URL")?;
