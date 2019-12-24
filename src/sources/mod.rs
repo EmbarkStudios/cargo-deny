@@ -3,8 +3,8 @@ pub use cfg::{Config, ValidConfig};
 
 use crate::diag::{self, Diagnostic, Label, Pack, Severity};
 use crate::LintLevel;
-use anyhow::{bail, Context, Error};
-use std::str::FromStr;
+use anyhow::{bail, ensure, Context, Error};
+use std::convert::TryFrom;
 use url::Url;
 
 enum Source {
@@ -27,11 +27,17 @@ impl Source {
     }
 }
 
-impl FromStr for Source {
-    type Err = Error;
+impl TryFrom<&cargo_metadata::Source> for Source {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn try_from(source: &cargo_metadata::Source) -> Result<Self, Self::Error> {
+        // registry sources are in either of these formats:
+        // git+https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
+        // registry+https://github.com/rust-lang/crates.io-index
+
+        let s = source.to_string();
         let parts = s.split('+').collect::<Vec<_>>();
+        ensure!(parts.len() == 2, "Invalid amount of parts: {}", parts.len());
 
         if let (Some(source_type), Some(url)) = (parts.get(0), parts.get(1)) {
             let url = Url::parse(url).context("Couldn't parse URL")?;
@@ -63,23 +69,24 @@ pub fn check(
         // determine source of crate
 
         let source = match &krate.source {
-            Some(source) => match Source::from_str(&format!("{}", source)) {
-                Ok(source) => source,
-                Err(_err) => {
-                    sender
-                        .send(Pack {
-                            krate_id: Some(krate.id.clone()),
-                            diagnostics: vec![Diagnostic::new(
-                                Severity::Error,
-                                "detected unknown or unsupported crate source",
-                                Label::new(spans_id, krate_spans[i].clone(), "source"),
-                            )],
-                        })
-                        .unwrap();
-                    continue;
-                }
-            },
+            Some(source) => source,
             None => continue,
+        };
+        let source = match Source::try_from(source) {
+            Ok(source) => source,
+            Err(_err) => {
+                sender
+                    .send(Pack {
+                        krate_id: Some(krate.id.clone()),
+                        diagnostics: vec![Diagnostic::new(
+                            Severity::Error,
+                            "detected unknown or unsupported crate source",
+                            Label::new(spans_id, krate_spans[i].clone(), "source"),
+                        )],
+                    })
+                    .unwrap();
+                continue;
+            }
         };
 
         // get allowed list of sources to check
