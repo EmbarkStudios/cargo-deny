@@ -408,7 +408,7 @@ allow-registry = []
 ```
 
 
-#### The `allow_git` field
+#### The `allow-git` field
 
 Configure which crate registries that are known and allowed.
 
