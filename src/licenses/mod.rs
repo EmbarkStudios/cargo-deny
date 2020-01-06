@@ -502,6 +502,7 @@ impl Gatherer {
 
     pub fn gather<'k>(
         self,
+        krates: &'k crate::Krates,
         files: &mut codespan::Files<String>,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
@@ -545,8 +546,9 @@ impl Gatherer {
         // 4. `license-file` + all LICENSE(-*)? files - Due to the prevalance
         // of dual-licensing in the rust ecosystem, many people forgo setting
         // license-file, so we use it and/or any LICENSE files
-        krates
-            .par_iter()
+        summary.nfos = krates
+            .krates()
+            .par_bridge()
             .map(|krate| {
                 // Attempt an SPDX expression that we can validate the user's acceptable
                 // license terms with
@@ -752,7 +754,7 @@ impl Gatherer {
                     labels,
                 }
             })
-            .collect_into_vec(&mut summary.nfos);
+            .collect();
 
         summary
     }

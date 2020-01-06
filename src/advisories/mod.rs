@@ -66,7 +66,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
         package::Package,
     };
 
-    let mut packages = Vec::with_capacity(krates.krates.len());
+    let mut packages = Vec::with_capacity(krates.krates_count());
 
     fn im_so_sorry(s: &cargo_metadata::Source) -> Source {
         // cargo_metadata::Source(String) doesn't have as_str()/as_ref()/into() :(
@@ -76,13 +76,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
         oh_no.parse().expect("guess this is no longer infallible")
     }
 
-    for krate in &krates.krates {
-        let resolved_deps = &krates.resolved.nodes[krates
-            .resolved
-            .nodes
-            .binary_search_by(|node| node.id.cmp(&krate.id))
-            .unwrap()];
-
+    for krate in krates.krates() {
         packages.push(Package {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
@@ -91,22 +85,17 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
             source: krate.source.as_ref().map(|s| im_so_sorry(s)),
-            dependencies: resolved_deps
-                .dependencies
-                .iter()
-                .map(|did| {
-                    let mut iter = did.repr.splitn(3, char::is_whitespace);
-
+            dependencies: krates
+                .get_deps(&krate.id)
+                .map(|(dep, _)| {
                     Dependency {
                         // This will hide errors if the FromStr implementation
                         // begins to fail at some point, but right now it is infallible
-                        name: iter.next().unwrap().parse().unwrap(),
-                        version: Some(
-                            rustsec::cargo_lock::Version::parse(iter.next().unwrap()).unwrap(),
-                        ),
+                        name: dep.name.parse().unwrap(),
+                        version: Some(dep.version.clone()),
                         // This will hide errors if the FromStr implementation
                         // begins to fail at some point, but right now it is infallible
-                        source: iter.next().and_then(|s| (&s[1..s.len() - 1]).parse().ok()),
+                        source: dep.source.as_ref().map(|s| im_so_sorry(s)),
                     }
                 })
                 .collect(),
@@ -154,108 +143,98 @@ pub fn check(
     let mut ignore_hits = bitvec![0; cfg.ignore.len()];
 
     let mut make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
-        match krates.search_name(pkg.name.as_str()) {
-            Ok(rng) => {
-                for i in rng {
-                    let krate = &krates.krates[i];
-                    if pkg.version != krate.version {
-                        continue;
-                    }
+        match krates
+            .get_krate_by_name(pkg.name.as_str())
+            .find(|(_, krate)| pkg.version == krate.version)
+        {
+            Some((i, krate)) => {
+                let id = &advisory.id;
 
-                    let id = &advisory.id;
-
-                    let (severity, message) = {
-                        let (lint_level, msg) = match &advisory.informational {
-                            // Everything that isn't an informational advisory is a vulnerability
-                            None => (
-                                cfg.vulnerability,
-                                "security vulnerability detected".to_owned(),
+                let (severity, message) = {
+                    let (lint_level, msg) = match &advisory.informational {
+                        // Everything that isn't an informational advisory is a vulnerability
+                        None => (
+                            cfg.vulnerability,
+                            "security vulnerability detected".to_owned(),
+                        ),
+                        Some(info) => match info {
+                            // Security notices for a crate which are published on https://rustsec.org
+                            // but don't represent a vulnerability in a crate itself.
+                            Informational::Notice => {
+                                (cfg.notice, "notice advisory detected".to_owned())
+                            }
+                            // Crate is unmaintained / abandoned
+                            Informational::Unmaintained => (
+                                cfg.unmaintained,
+                                "unmaintained advisory detected".to_owned(),
                             ),
-                            Some(info) => match info {
-                                // Security notices for a crate which are published on https://rustsec.org
-                                // but don't represent a vulnerability in a crate itself.
-                                Informational::Notice => {
-                                    (cfg.notice, "notice advisory detected".to_owned())
-                                }
-                                // Crate is unmaintained / abandoned
-                                Informational::Unmaintained => (
-                                    cfg.unmaintained,
-                                    "unmaintained advisory detected".to_owned(),
-                                ),
-                                // Other types of informational advisories: left open-ended to add
-                                // more of them in the future.
-                                Informational::Other(_) => {
-                                    unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
-                                    //(cfg.other, format!("{} advisory detected", kind))
-                                }
-                            },
-                        };
+                            // Other types of informational advisories: left open-ended to add
+                            // more of them in the future.
+                            Informational::Other(_) => {
+                                unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
+                                //(cfg.other, format!("{} advisory detected", kind))
+                            }
+                        },
+                    };
 
-                        // Ok, we found a crate whose version lies within the range of an
-                        // advisory, but the user might have decided to ignore it
-                        // for "reasons", but in that case we still emit it to the log
-                        // so it doesn't just disappear into the aether
-                        let lint_level =
-                            if let Ok(index) = cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
-                                ignore_hits.as_mut_bitslice().set(index, true);
-                                LintLevel::Allow
-                            } else if let Some(severity_threshold) = cfg.severity_threshold {
-                                if let Some(advisory_severity) =
-                                    advisory.cvss.as_ref().map(|cvss| cvss.severity())
-                                {
-                                    if advisory_severity < severity_threshold {
-                                        LintLevel::Allow
-                                    } else {
-                                        lint_level
-                                    }
+                    // Ok, we found a crate whose version lies within the range of an
+                    // advisory, but the user might have decided to ignore it
+                    // for "reasons", but in that case we still emit it to the log
+                    // so it doesn't just disappear into the aether
+                    let lint_level =
+                        if let Ok(index) = cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
+                            ignore_hits.as_mut_bitslice().set(index, true);
+                            LintLevel::Allow
+                        } else if let Some(severity_threshold) = cfg.severity_threshold {
+                            if let Some(advisory_severity) =
+                                advisory.cvss.as_ref().map(|cvss| cvss.severity())
+                            {
+                                if advisory_severity < severity_threshold {
+                                    LintLevel::Allow
                                 } else {
                                     lint_level
                                 }
                             } else {
                                 lint_level
-                            };
+                            }
+                        } else {
+                            lint_level
+                        };
 
-                        (
-                            match lint_level {
-                                LintLevel::Warn => Severity::Warning,
-                                LintLevel::Deny => Severity::Error,
-                                LintLevel::Allow => Severity::Note,
-                            },
-                            msg,
-                        )
-                    };
+                    (
+                        match lint_level {
+                            LintLevel::Warn => Severity::Warning,
+                            LintLevel::Deny => Severity::Error,
+                            LintLevel::Allow => Severity::Note,
+                        },
+                        msg,
+                    )
+                };
 
-                    let notes = {
-                        let mut n = Vec::new();
+                let notes = {
+                    let mut n = Vec::new();
 
-                        n.push(advisory.description.clone());
+                    n.push(advisory.description.clone());
 
-                        if let Some(ref url) = advisory.url {
-                            n.push(format!("URL: {}", url));
-                        }
+                    if let Some(ref url) = advisory.url {
+                        n.push(format!("URL: {}", url));
+                    }
 
-                        n
-                    };
+                    n
+                };
 
-                    return diag::Pack {
-                        krate_id: Some(krate.id.clone()),
-                        diagnostics: vec![Diagnostic::new(
-                            severity,
-                            advisory.title.clone(),
-                            Label::new(spans_id, krate_spans[i].clone(), message),
-                        )
-                        .with_code(id.as_str().to_owned())
-                        .with_notes(notes)],
-                    };
+                diag::Pack {
+                    krate_id: Some(krate.id.clone()),
+                    diagnostics: vec![Diagnostic::new(
+                        severity,
+                        advisory.title.clone(),
+                        Label::new(spans_id, krate_spans[i].clone(), message),
+                    )
+                    .with_code(id.as_str().to_owned())
+                    .with_notes(notes)],
                 }
-
-                unreachable!(
-                    "the advisory database report contained an advisory 
-                    that somehow matched a crate we don't know about:\n{:#?}",
-                    advisory
-                );
             }
-            Err(_) => {
+            None => {
                 unreachable!(
                     "the advisory database report contained an advisory 
                     that somehow matched a crate we don't know about:\n{:#?}",

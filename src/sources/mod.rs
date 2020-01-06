@@ -65,7 +65,7 @@ pub fn check(
 
     // scan through each crate and check the source of it
 
-    for (i, krate) in krates.krates.iter().enumerate() {
+    for (i, krate) in krates.krates().enumerate() {
         // determine source of crate
 
         let source = match &krate.source {

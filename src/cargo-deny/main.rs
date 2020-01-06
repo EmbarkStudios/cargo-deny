@@ -28,7 +28,15 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
         .with_context(|| format!("failed to parse level '{}'", s))
 }
 
-#[derive(Debug, StructOpt)]
+// fn parse_target(t: &str) -> Result<&'static cargo_deny::prune::TargetInfo, Error> {
+//     use cargo_deny::prune::ALL_TARGETS as all;
+
+//     all.binary_search_by(|ti| ti.triple.cmp(t))
+//         .map(|i| &all[i])
+//         .map_err(|i| anyhow::anyhow!("unknown target specified, did you mean {}?", all[i].triple))
+// }
+
+#[derive(StructOpt)]
 struct Opts {
     /// The log level for messages, only log messages at or above
     /// the level will be emitted.
@@ -50,8 +58,10 @@ Possible values:
     log_level: log::LevelFilter,
     /// The directory used as the context for the deny, if not specified,
     /// the current working directory is used instead. Must contain a Cargo.toml file.
-    #[structopt(long = "context", parse(from_os_str))]
+    #[structopt(long, parse(from_os_str))]
     context: Option<PathBuf>,
+    #[structopt(short, long)]
+    target: Vec<String>,
     #[structopt(subcommand)]
     cmd: Command,
 }
@@ -112,8 +122,8 @@ fn real_main() -> Result<(), Error> {
     }
 
     match args.cmd {
-        Command::Check(cargs) => check::cmd(log_level, cargs, context_dir),
-        Command::List(largs) => list::cmd(largs, context_dir),
+        Command::Check(cargs) => check::cmd(log_level, cargs, args.target, context_dir),
+        Command::List(largs) => list::cmd(largs, args.target, context_dir),
         Command::Init(iargs) => init::cmd(iargs, context_dir),
     }
 }

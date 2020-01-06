@@ -1,6 +1,6 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
-use cargo_deny::{licenses, Pid};
+use cargo_deny::{licenses, prune, Pid};
 use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -71,13 +71,37 @@ pub struct Args {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(), Error> {
     use licenses::LicenseInfo;
 
     use std::{collections::BTreeMap, fmt::Write};
 
     let (krates, store) = rayon::join(
-        || crate::common::gather_krates(context_dir),
+        || {
+            crate::common::gather_krates(
+                context_dir,
+                targets.into_iter().map(|t| (t, Vec::new())).collect(),
+            )
+
+            // crate::common::gather_krates(context_dir).and_then(|mut k| {
+            //     if !targets.is_empty() {
+            //         let targets: Vec<_> = targets
+            //             .iter()
+            //             .map(|ti| prune::Target {
+            //                 target: &ti,
+            //                 features: Vec::new(),
+            //             })
+            //             .collect();
+
+            //         crate::common::prune_krates_by_target(
+            //             &mut k,
+            //             Some(prune::Prune::Except(&targets)),
+            //         )?;
+            //     }
+
+            //     Ok(k)
+            // })
+        },
         crate::common::load_license_store,
     );
 
@@ -90,7 +114,7 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
 
     let mut files = codespan::Files::new();
 
-    let summary = gatherer.gather(krates.as_ref(), &mut files, None);
+    let summary = gatherer.gather(&krates, &mut files, None);
 
     #[derive(Serialize)]
     struct Crate {

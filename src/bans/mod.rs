@@ -80,7 +80,7 @@ use bitvec::prelude::*;
 
 fn build_skip_root(
     ts: toml::Spanned<TreeSkip>,
-    krate: &crate::KrateDetails,
+    krate_id: crate::graph::NodeId,
     krates: &crate::Krates,
 ) -> SkipRoot {
     let span = ts.start() as u32..ts.end() as u32;
@@ -88,26 +88,34 @@ fn build_skip_root(
 
     let max_depth = ts.depth.unwrap_or(std::usize::MAX);
 
-    let mut pending = smallvec::SmallVec::<[(Pid, usize); 10]>::new();
-    pending.push((krate.id.clone(), 0));
+    // let mut pending = smallvec::SmallVec::<[(Pid, usize); 10]>::new();
+    // pending.push((krate.id.clone(), 0));
 
     let mut skip_crates = Vec::with_capacity(10);
-    while let Some((pkg_id, depth)) = pending.pop() {
-        if depth < max_depth {
-            let node = &krates.resolved.nodes[krates
-                .resolved
-                .nodes
-                .binary_search_by(|n| n.id.cmp(&pkg_id))
-                .unwrap()];
-            for dep in &node.dependencies {
-                pending.push((dep.clone(), depth + 1));
-            }
-        }
 
-        if let Err(i) = skip_crates.binary_search(&pkg_id) {
-            skip_crates.insert(i, pkg_id);
+    let mut dfs = petgraph::visit::Dfs::new(&krates.graph, krate_id);
+    while let Some(nix) = dfs.next(&krates.graph) {
+        if let Err(i) = skip_crates.binary_search(&krates.graph[nix].id) {
+            skip_crates.insert(i, krates.graph[nix].id.clone());
         }
     }
+
+    // while let Some((pkg_id, depth)) = pending.pop() {
+    //     if depth < max_depth {
+    //         let node = &krates.resolved.nodes[krates
+    //             .resolved
+    //             .nodes
+    //             .binary_search_by(|n| n.id.cmp(&pkg_id))
+    //             .unwrap()];
+    //         for dep in &node.dependencies {
+    //             pending.push((dep.clone(), depth + 1));
+    //         }
+    //     }
+
+    //     if let Err(i) = skip_crates.binary_search(&pkg_id) {
+    //         skip_crates.insert(i, pkg_id);
+    //     }
+    // }
 
     let skip_hits = bitvec![0; skip_crates.len()];
 
@@ -156,7 +164,7 @@ pub fn check(
             .into_iter()
             .filter_map(|ts| {
                 match krates.search_match(&ts.get_ref().id.name, &ts.get_ref().id.version) {
-                    Some(ind) => Some(build_skip_root(ts, &krates.krates[ind], krates)),
+                    Some(matched) => Some(build_skip_root(ts, matched.1, krates)),
                     None => {
                         sender
                             .send(Pack {
@@ -218,11 +226,11 @@ pub fn check(
     }
 
     let mut multi_detector = MultiDetector {
-        name: &krates.as_ref()[0].name,
+        name: &krates.krates().next().unwrap().name,
         dupes: smallvec::SmallVec::new(),
     };
 
-    for (i, krate) in krates.iter().enumerate() {
+    for (i, krate) in krates.krates().enumerate() {
         let mut diagnostics = Vec::new();
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
@@ -300,7 +308,7 @@ pub fn check(
                             all_end = span.end
                         }
 
-                        let krate = &krates.krates[dup];
+                        let krate = &krates[dup];
 
                         dupes.push(Pack {
                             krate_id: Some(krate.id.clone()),

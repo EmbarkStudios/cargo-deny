@@ -220,9 +220,13 @@ use std::{
 pub mod advisories;
 pub mod bans;
 pub mod diag;
+pub mod graph;
 pub mod licenses;
+pub mod prune;
 pub mod sources;
 mod utils;
+
+pub use graph::Krates2 as Krates;
 
 #[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
@@ -247,6 +251,36 @@ const fn lint_deny() -> LintLevel {
 }
 
 pub type Pid = cargo_metadata::PackageId;
+
+#[derive(Debug, Copy, Clone)]
+pub enum DepKind {
+    Normal,
+    Build,
+    Dev,
+}
+
+impl From<cargo_metadata::DependencyKind> for DepKind {
+    fn from(dk: cargo_metadata::DependencyKind) -> Self {
+        match dk {
+            cargo_metadata::DependencyKind::Normal => Self::Normal,
+            cargo_metadata::DependencyKind::Build => Self::Build,
+            cargo_metadata::DependencyKind::Development => Self::Dev,
+            _ => unreachable!(),
+        }
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for DepKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Normal => Ok(()),
+            Self::Build => f.write_str("build"),
+            Self::Dev => f.write_str("dev"),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct KrateDetails {
@@ -322,7 +356,7 @@ impl KrateDetails {
                 // cargo used to allow / in place of OR which is not valid
                 // in SPDX expression, we force correct it here
                 if lf.contains('/') {
-                    lf.replace("/", " OR ")
+                    lf.replace('/', " OR ")
                 } else {
                     lf
                 }
@@ -332,6 +366,19 @@ impl KrateDetails {
             manifest_path: pkg.manifest_path,
             deps: {
                 let mut deps = pkg.dependencies;
+
+                // Dependency names/renames are as entered by the user,
+                // but resolved nodes use the names after transforming
+                // to the _ version, so we override the rename field on
+                // dependency to always be the _ version and use that
+                // when doing checks against the resolved nodes
+                for dep in &mut deps {
+                    match &mut dep.rename {
+                        Some(rn) => dep.rename = Some(rn.replace('-', "_")),
+                        None => dep.rename = Some(dep.name.replace('-', "_")),
+                    }
+                }
+
                 deps.par_sort_by(|a, b| a.name.cmp(&b.name));
                 deps
             },
@@ -340,67 +387,97 @@ impl KrateDetails {
     }
 }
 
-pub struct Krates {
-    pub krates: Vec<KrateDetails>,
-    pub krate_map: HashMap<cargo_metadata::PackageId, usize>,
-    pub resolved: cargo_metadata::Resolve,
-    pub lock_file: PathBuf,
-}
+// pub struct Krates {
+//     pub krates: Vec<KrateDetails>,
+//     pub krate_map: HashMap<cargo_metadata::PackageId, usize>,
+//     pub resolved: cargo_metadata::Resolve,
+//     pub lock_file: PathBuf,
+// }
 
-impl Krates {
-    pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&KrateDetails> {
-        self.krate_map.get(id).map(|i| &self.krates[*i])
-    }
+// impl Krates {
+//     pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&KrateDetails> {
+//         self.krate_map.get(id).map(|i| &self.krates[*i])
+//     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
-        self.krates.iter()
-    }
+//     pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
+//         self.krates.iter()
+//     }
 
-    pub(crate) fn search_match(&self, name: &str, req: &semver::VersionReq) -> Option<usize> {
-        utils::search_match(&self.krates, name, req)
-    }
+//     pub(crate) fn search_match(&self, name: &str, req: &semver::VersionReq) -> Option<usize> {
+//         utils::search_match(&self.krates, name, req)
+//     }
 
-    pub(crate) fn search_name(&self, name: &str) -> Result<std::ops::Range<usize>, usize> {
-        utils::search_name(&self.krates, name)
-    }
-}
+//     pub(crate) fn search_name(&self, name: &str) -> Result<std::ops::Range<usize>, usize> {
+//         utils::search_name(&self.krates, name)
+//     }
+// }
 
-impl From<cargo_metadata::Metadata> for Krates {
-    fn from(md: cargo_metadata::Metadata) -> Self {
-        let mut crate_infos: Vec<_> = md.packages.into_iter().map(KrateDetails::new).collect();
+// impl From<cargo_metadata::Metadata> for Krates {
+//     fn from(md: cargo_metadata::Metadata) -> Self {
+//         let mut crate_infos: Vec<_> = md.packages.into_iter().map(KrateDetails::new).collect();
 
-        crate_infos.par_sort();
+//         crate_infos.par_sort();
 
-        let map = crate_infos
-            .iter()
-            .enumerate()
-            .map(|(i, ci)| (ci.id.clone(), i))
-            .collect();
+//         let map = crate_infos
+//             .iter()
+//             .enumerate()
+//             .map(|(i, ci)| (ci.id.clone(), i))
+//             .collect();
 
-        let mut resolved = md.resolve.unwrap();
+//         let workspace_members = md.workspace_members;
+//         let mut resolved = md.resolve.unwrap();
 
-        resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
-        resolved
-            .nodes
-            .par_iter_mut()
-            .for_each(|nodes| nodes.dependencies.par_sort());
+//         resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
+//         resolved
+//             .nodes
+//             .par_iter_mut()
+//             .for_each(|nodes| nodes.dependencies.par_sort());
 
-        Self {
-            krates: crate_infos,
-            krate_map: map,
-            resolved,
-            lock_file: md.workspace_root.join("Cargo.lock"),
-        }
-    }
-}
+//         // Remove dev-dependencies for all non-workspace crates since
+//         // we don't actually interact with them
+//         crate_infos.par_iter_mut().for_each(|krate| {
+//             let is_in_workspace = workspace_members.contains(&krate.id);
 
-impl AsRef<[KrateDetails]> for Krates {
-    fn as_ref(&self) -> &[KrateDetails] {
-        &self.krates[..]
-    }
-}
+//             // Get the resolved node for this crate, which contains the dependencies
+//             // that are actually used based on their kind, toggled features etc.
+//             // Normally, this will not include dev dependencies, but it is possible
+//             // to have the same dependency declared as both a normal and build dependency
+//             // at the same time, so we have to check both
 
-pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
+//             // There is also an interesting case with optional dependencies, where
+//             // cargo allows you to declare a dependency as optional, without actually
+//             // giving a warning when no feature actually ever enables it
+//             let rnode = &resolved.nodes[resolved
+//                 .nodes
+//                 .binary_search_by(|n| n.id.cmp(&krate.id))
+//                 .unwrap()];
+
+//             krate.deps.retain(|dep| {
+//                 if !is_in_workspace && dep.kind == cargo_metadata::DependencyKind::Development {
+//                     return false;
+//                 }
+
+//                 let name = dep.rename.as_ref().unwrap_or(&dep.name);
+//                 rnode.deps.iter().any(|d| d.name == *name)
+//             });
+//         });
+
+//         Self {
+//             krates: crate_infos,
+//             krate_map: map,
+//             resolved,
+//             lock_file: md.workspace_root.join("Cargo.lock"),
+//         }
+//     }
+// }
+
+// impl AsRef<[KrateDetails]> for Krates {
+//     fn as_ref(&self) -> &[KrateDetails] {
+//         &self.krates[..]
+//     }
+// }
+
+pub fn get_krates_metadata<P: AsRef<Path>>(root: P) -> Result<cargo_metadata::Metadata, Error> {
     //let cargo_toml = root.as_ref().join("Cargo.toml");
     let metadata = cargo_metadata::MetadataCommand::new()
         //.manifest_path(cargo_toml)
@@ -414,7 +491,7 @@ pub fn get_all_crates<P: AsRef<Path>>(root: P) -> Result<Krates, Error> {
         .exec()
         .context("failed to fetch metdata")?;
 
-    Ok(Krates::from(metadata))
+    Ok(metadata)
 }
 
 #[inline]

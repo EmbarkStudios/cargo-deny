@@ -30,6 +30,7 @@ askalono = "0.4.1"
 atty = "0.2.13"
 bitvec = { version = "0.16.1", features = ["alloc"] }
 cargo_metadata = "0.9.1"
+cfg-expr = { path = "../cfg-expr" }
 chrono = "0.4.10"
 clap = "2.33.0"
 codespan = "0.7.0"
@@ -39,7 +40,7 @@ erased-serde = "0.3.9"
 fern = "0.5.9"
 log = "0.4.8"
 parking_lot = "0.10.0"
-petgraph = "0.4.13"
+petgraph = "0.5.0"
 rayon = "1.3.0"
 regex = { version = "1.3.1", default-features = true }
 rustsec = { version = "0.16.0", features = ["vendored-openssl"] }
