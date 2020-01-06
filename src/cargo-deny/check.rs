@@ -65,7 +65,7 @@ struct ValidConfig {
 }
 
 impl ValidConfig {
-    fn load(cfg_path: PathBuf, files: &mut codespan::Files) -> Result<Self, Error> {
+    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
         let cfg_contents = if cfg_path.exists() {
             std::fs::read_to_string(&cfg_path)
                 .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
@@ -339,7 +339,7 @@ fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
     max_severity: Option<cargo_deny::diag::Severity>,
-    files: codespan::Files,
+    files: codespan::Files<String>,
 ) -> Option<Error> {
     use codespan_reporting::term;
 

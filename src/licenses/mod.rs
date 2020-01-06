@@ -502,8 +502,7 @@ impl Gatherer {
 
     pub fn gather<'k>(
         self,
-        krates: &'k [crate::KrateDetails],
-        files: &mut codespan::Files,
+        files: &mut codespan::Files<String>,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
