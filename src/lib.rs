@@ -366,19 +366,6 @@ impl KrateDetails {
             manifest_path: pkg.manifest_path,
             deps: {
                 let mut deps = pkg.dependencies;
-
-                // Dependency names/renames are as entered by the user,
-                // but resolved nodes use the names after transforming
-                // to the _ version, so we override the rename field on
-                // dependency to always be the _ version and use that
-                // when doing checks against the resolved nodes
-                for dep in &mut deps {
-                    match &mut dep.rename {
-                        Some(rn) => dep.rename = Some(rn.replace('-', "_")),
-                        None => dep.rename = Some(dep.name.replace('-', "_")),
-                    }
-                }
-
                 deps.par_sort_by(|a, b| a.name.cmp(&b.name));
                 deps
             },
