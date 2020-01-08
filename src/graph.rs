@@ -193,10 +193,10 @@ impl GraphBuilder {
             DepKind::Build => 0x10,
         };
 
-        self.ignore_kinds &= kind_flag;
-        
+        self.ignore_kinds |= kind_flag;
+
         if unless.into() {
-            self.ignore_kinds &= kind_flag << 1;
+            self.ignore_kinds |= kind_flag << 1;
         }
 
         self
@@ -239,6 +239,24 @@ impl GraphBuilder {
         let mut pid_stack = Vec::with_capacity(workspace_members.len());
         pid_stack.extend(workspace_members.iter().cloned());
 
+        struct PD<'a>(&'a Pid);
+
+        use std::fmt;
+        impl<'a> fmt::Display for PD<'a> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let mut i = self.0.repr.splitn(3, ' ');
+                let name = i.next().unwrap();
+                let version = i.next().unwrap();
+                let source = i.next().unwrap();
+
+                if source == "(registry+https://github.com/rust-lang/crates.io-index)" {
+                    write!(f, "{} {}", name, version)
+                } else {
+                    write!(f, "{} {} {}", name, version, source)
+                }
+            }
+        }
+
         while let Some(pid) = pid_stack.pop() {
             let is_in_workspace = workspace_members.binary_search(&pid).is_ok();
 
@@ -247,33 +265,35 @@ impl GraphBuilder {
             let rnode = &resolved.nodes[krate_index];
             let krate = &packages[krate_index];
 
+            debug_assert!(rnode.id == krate.id);
+
+            // TODO: Once 1.41 comes out, this won't be necessary as the dependency
+            // info will be filled out in the node already, but until then we fill it
+            // out ourselves
+
+            // Though each unique dependency can only be resolved once, it's possible
+            // for the crate to list the same dependency multiple times, with different
+            // dependency kinds, or different target configurations
             let edges: Vec<_> = krate.dependencies.iter().filter_map(|dep| {
                 let kind = DepKind::from(dep.kind);
 
                 let ignore_kind = match kind {
                     DepKind::Normal => {
-                        ignore_kinds & 0x1 != 0 && ignore_kinds & 0x2 != 0 && is_in_workspace
+                        ignore_kinds & 0x1 != 0 && ignore_kinds & 0x2 != 0 && !is_in_workspace
                     }
                     DepKind::Dev => {
-                        ignore_kinds & 0x4 != 0 && ignore_kinds & 0x8 != 0 && is_in_workspace
+                        ignore_kinds & 0x4 != 0 && ignore_kinds & 0x8 != 0 && !is_in_workspace
                     }
                     DepKind::Build => {
-                        ignore_kinds & 0x10 != 0 && ignore_kinds & 0x20 != 0 && is_in_workspace
+                        ignore_kinds & 0x10 != 0 && ignore_kinds & 0x20 != 0 && !is_in_workspace
                     }
                 };
 
                 if ignore_kind {
-                    log::debug!("ignoring dependency {}({}) from {}", dep.name, kind, krate.id);
+                    log::trace!("ignoring {}({}) <- {}", dep.name, kind, PD(&krate.id));
                     return None;
                 }
 
-                // if krate.name.contains("cpal") {
-                //     panic!("WHAT HAVE WE HERE!?!? {:#?} {:#?}", krate, rnode);
-                // }
-
-                // TODO: Once 1.41 comes out, this won't be necessary as the dependency
-                // info will be filled out in the node already, but until then we fill it
-                // out ourselves
                 rnode.deps.iter().find(|d| {
                     // We have to get the name from the package id, the name for the node
                     // itself can in fact differ, for example, the crate can be named
@@ -290,65 +310,63 @@ impl GraphBuilder {
                                     return Some((kind, rdep.pkg.clone()));
                                 }
 
-                                // cargo_metdata::Platform only implements Display :(
+                                // cargo_metadata::Platform only implements Display :(
                                 let target_cfg = format!("{}", cfg);
                                 let matched = if target_cfg.starts_with("cfg(") {
                                     match cfg_expr::Expression::parse(&target_cfg) {
                                         Ok(expr) => {
                                             // We only need to focus on target predicates because they are
-                                            // the only kind allowed by cargo, at least for now
-                                            let matched = expr.eval(|pred| match pred {
-                                                cfg_expr::expr::Predicate::Target(tp) => {
-                                                    for t in targets.iter().filter_map(|tf| {
-                                                        match tf {
-                                                            TargetFilter::Known(ti, _) => Some(ti),
-                                                            _ => None,
-                                                        }
-                                                     }) {
-                                                        if tp.matches(t) {
-                                                            return true;
-                                                        }
-                                                    }
+                                            // the only type of predicate allowed by cargo at the moment
 
-                                                    false
-                                                }
-                                                cfg_expr::expr::Predicate::TargetFeature(feat) => {
-                                                    for f in targets.iter().filter_map(|tf| {
-                                                        match tf {
-                                                            TargetFilter::Known(_, f) => Some(f),
-                                                            TargetFilter::Unknown(_, f) => Some(f),
-                                                            _ => None,
+                                            // While it might be nicer to evaluate all the targets for each predicate
+                                            // it would lead to weird situations where an expression could evaluate to true
+                                            // (or false) with a combination of platform, that would otherwise by impossible,
+                                            // eg cfg(all(windows, target_env = "musl")) could evaluate to true
+                                            targets.iter().any(|target| {
+                                                expr.eval(|pred| match pred {
+                                                    cfg_expr::expr::Predicate::Target(tp) => {
+                                                        if let TargetFilter::Known(ti, _) = target {
+                                                            tp.matches(ti)
+                                                        } else {
+                                                            false
                                                         }
-                                                     }) {
-                                                        if f.iter().find(|f| f == feat).is_some() {
-                                                            return true;
-                                                        }
-                                                    }
-        
-                                                    // If we don't actually find the feature, print out a debug
-                                                    // message that we encountered a target_feature due to their
-                                                    // relative rarity and "specialness" to hopefully reduce confusion
-                                                    // about why the dependency *might* be pruned (if no other predicate
-                                                    // matches)
-                                                    log::debug!(
-                                                        "encountered target_feature = '{}' for dependency '{}' -> '{}'",
-                                                        feat,
-                                                        krate.id,
-                                                        rdep.pkg,
-                                                    );
-                                                    false
-                                                }
-                                                _ => false,
-                                            });
+                                                    },
+                                                    cfg_expr::expr::Predicate::TargetFeature(feat) => {
+                                                        let features = match target {
+                                                            TargetFilter::Known(_, f) => f,
+                                                            TargetFilter::Unknown(_, f) => f,
+                                                        };
 
-                                            matched
+                                                        let has_feature = features.iter().any(|f| f == feat);
+
+                                                        // If we don't actually find the feature, print out a debug
+                                                        // message that we encountered a target_feature due to their
+                                                        // relative rarity and "specialness" to hopefully reduce confusion
+                                                        // about why the dependency *might* be pruned (if no other predicate
+                                                        // matches)
+                                                        if !has_feature {
+                                                            log::debug!(
+                                                                "encountered target_feature = '{}' for '{}' <- '{}'",
+                                                                feat,
+                                                                PD(&rdep.pkg),
+                                                                PD(&krate.id),
+                                                            );
+                                                        }
+
+                                                        has_feature
+                                                    }
+                                                    // We *could* warn here about an invalid expression, but
+                                                    // presumably cargo will be responsible for that so don't bother
+                                                    _ => false,
+                                                })
+                                            })
                                         }
                                         Err(pe) => {
                                             log::warn!(
-                                                "failed to parse '{}' for '{}' -> '{}': {}",
+                                                "failed to parse '{}' for '{}' <- '{}': {}",
                                                 target_cfg,
-                                                krate.id,
-                                                rdep.pkg,
+                                                PD(&rdep.pkg),
+                                                PD(&krate.id),
                                                 pe
                                             );
         
@@ -356,29 +374,21 @@ impl GraphBuilder {
                                         }
                                     }
                                 } else {
-                                    let mut matched = false;
-                                    for triple in targets.iter().map(|tf| {
-                                        match tf {
-                                            TargetFilter::Unknown(t, _) => t,
-                                            TargetFilter::Known(ti, _) => ti.triple,
+                                    targets.iter().any(|target| {
+                                        match target {
+                                            TargetFilter::Known(ti, _) => ti.triple == target_cfg,
+                                            TargetFilter::Unknown(t, _) => t.as_str() == target_cfg,
                                         }
-                                    }) {
-                                        if triple == target_cfg {
-                                            matched = true;
-                                            break;
-                                        }
-                                    }
-
-                                    matched
+                                    })
                                 };
 
                                 if matched {
                                     Some((kind, rdep.pkg.clone()))
                                 } else {
                                     log::debug!(
-                                        "ignoring dependency {} from {}, no match for {}",
-                                        rdep.pkg,
-                                        krate.id,
+                                        "ignoring {} <- {}, no match for {}",
+                                        PD(&rdep.pkg),
+                                        PD(&krate.id),
                                         target_cfg,
                                     );
 
