@@ -6,9 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
-
 ### Added
-- Added the `sources` check and configuration checking for checking where crates are sourced from and allowing specific crate registries and Git repositories.
+- Added the `sources` check and configuration, which allows linting of crate sources
 
 ## [0.5.2] - 2019-12-20
 ### Added
