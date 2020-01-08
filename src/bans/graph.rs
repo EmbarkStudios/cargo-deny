@@ -337,8 +337,14 @@ pub(crate) fn create_graph(
             let source = i.next().unwrap();
 
             if dupe_nodes.contains_key(name) {
+                let label = if source != "(registry+https://github.com/rust-lang/crates.io-index)" {
+                    &repr[name.len() + 1..]
+                } else {
+                    &repr[name.len() + 1..repr.len() - source.len() - 1]
+                };
+
                 NodeAttributes {
-                    label: Some(&repr[name.len() + 1..]),
+                    label: Some(label),
                     shape: Some(Shape::r#box),
                     color: Some("red"),
                     style: Some(Style::rounded),
