@@ -1,5 +1,5 @@
 pub(crate) fn search_match(
-    krates: &[crate::KrateDetails],
+    krates: &[crate::Krate],
     name: &str,
     req: &semver::VersionReq,
 ) -> Option<usize> {
@@ -19,7 +19,7 @@ pub(crate) fn search_match(
 }
 
 pub(crate) fn search_name(
-    krates: &[crate::KrateDetails],
+    krates: &[crate::Krate],
     name: &str,
 ) -> Result<std::ops::Range<usize>, usize> {
     let lowest = semver::Version::new(0, 0, 0);
@@ -56,7 +56,7 @@ pub(crate) fn search_name(
 mod test {
     macro_rules! kd {
         ($name:expr, $vs:expr) => {
-            crate::KrateDetails {
+            crate::Krate {
                 name: $name.to_owned(),
                 version: semver::Version::parse($vs).unwrap(),
                 ..Default::default()

@@ -22,33 +22,33 @@ pub(crate) fn gather_krates(
     log::info!("gathering crates for {}", context_dir.display());
     let krates_md = cargo_deny::get_krates_metadata(&context_dir)?;
 
-    let mut gb = cargo_deny::graph::GraphBuilder::new();
+    use krates::{Builder, DepKind};
+
+    let mut gb = Builder::new();
 
     for target in targets {
         gb.include_target(target.0, target.1);
     }
 
-    gb.ignore_kind(
-        cargo_deny::DepKind::Dev,
-        cargo_deny::graph::Unless::IsWorkspace,
-    );
+    gb.ignore_kind(DepKind::Dev, krates::Unless::IsWorkspace);
 
-    let graph = gb.build_with_metadata(krates_md);
+    let graph = gb.build_with_metadata(
+        krates_md,
+        Some(|filtered: krates::cm::Package| match filtered.source {
+            Some(src) => {
+                if src.is_crates_io() {
+                    log::debug!("filtered {} {}", filtered.name, filtered.version);
+                } else {
+                    log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
+                }
+            }
+            None => log::debug!("filtered crate {} {}", filtered.name, filtered.version),
+        }),
+    );
 
     if let Ok(ref krates) = graph {
         log::info!("gathered {} crates", krates.krates_count());
     }
 
-    graph
+    Ok(graph?)
 }
-
-// pub(crate) fn prune_krates_by_target(
-//     krates: &mut cargo_deny::Krates,
-//     which: Option<cargo_deny::prune::Prune<'_>>,
-// ) -> Result<usize, anyhow::Error> {
-//     log::info!("pruning crate graph of {} crates...", krates.krates.len());
-//     let pruned = krates.prune(which)?;
-//     log::info!("pruned {} crates", pruned);
-
-//     Ok(pruned)
-// }

@@ -209,7 +209,6 @@
 //! conditions.
 
 use anyhow::{Context, Error};
-use rayon::prelude::*;
 pub use semver::Version;
 use std::{
     cmp,
@@ -220,13 +219,12 @@ use std::{
 pub mod advisories;
 pub mod bans;
 pub mod diag;
-pub mod graph;
 pub mod licenses;
-pub mod prune;
 pub mod sources;
 mod utils;
 
-pub use graph::Krates2 as Krates;
+use krates::cm;
+pub use krates::{DepKind, Kid};
 
 #[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
@@ -250,63 +248,31 @@ const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
 
-pub type Pid = cargo_metadata::PackageId;
-
-#[derive(Debug, Copy, Clone)]
-pub enum DepKind {
-    Normal,
-    Build,
-    Dev,
-}
-
-impl From<cargo_metadata::DependencyKind> for DepKind {
-    fn from(dk: cargo_metadata::DependencyKind) -> Self {
-        match dk {
-            cargo_metadata::DependencyKind::Normal => Self::Normal,
-            cargo_metadata::DependencyKind::Build => Self::Build,
-            cargo_metadata::DependencyKind::Development => Self::Dev,
-            _ => unreachable!(),
-        }
-    }
-}
-
-use std::fmt;
-
-impl fmt::Display for DepKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Normal => Ok(()),
-            Self::Build => f.write_str("build"),
-            Self::Dev => f.write_str("dev"),
-        }
-    }
-}
-
 #[derive(Debug)]
-pub struct KrateDetails {
+pub struct Krate {
     pub name: String,
-    pub id: Pid,
+    pub id: Kid,
     pub version: Version,
-    pub source: Option<cargo_metadata::Source>,
+    pub source: Option<cm::Source>,
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
     pub manifest_path: PathBuf,
     pub license: Option<String>,
     pub license_file: Option<PathBuf>,
-    pub deps: Vec<cargo_metadata::Dependency>,
+    pub deps: Vec<cm::Dependency>,
     pub features: HashMap<String, Vec<String>>,
-    pub targets: Vec<cargo_metadata::Target>,
+    pub targets: Vec<cm::Target>,
 }
 
 #[cfg(test)]
-impl Default for KrateDetails {
+impl Default for Krate {
     fn default() -> Self {
         Self {
             name: "".to_owned(),
             version: Version::new(0, 1, 0),
             authors: Vec::new(),
-            id: cargo_metadata::PackageId {
+            id: Kid {
                 repr: "".to_owned(),
             },
             source: None,
@@ -322,28 +288,38 @@ impl Default for KrateDetails {
     }
 }
 
-impl PartialOrd for KrateDetails {
+impl PartialOrd for Krate {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for KrateDetails {
+impl Ord for Krate {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.id.cmp(&other.id)
     }
 }
 
-impl PartialEq for KrateDetails {
+impl PartialEq for Krate {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl Eq for KrateDetails {}
+impl Eq for Krate {}
 
-impl KrateDetails {
-    pub fn new(pkg: cargo_metadata::Package) -> Self {
+impl krates::KrateDetails for Krate {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn version(&self) -> &semver::Version {
+        &self.version
+    }
+}
+
+impl From<cm::Package> for Krate {
+    fn from(pkg: cm::Package) -> Self {
         Self {
             name: pkg.name,
             id: pkg.id,
@@ -366,7 +342,7 @@ impl KrateDetails {
             manifest_path: pkg.manifest_path,
             deps: {
                 let mut deps = pkg.dependencies;
-                deps.par_sort_by(|a, b| a.name.cmp(&b.name));
+                deps.sort_by(|a, b| a.name.cmp(&b.name));
                 deps
             },
             features: pkg.features,
@@ -374,99 +350,11 @@ impl KrateDetails {
     }
 }
 
-// pub struct Krates {
-//     pub krates: Vec<KrateDetails>,
-//     pub krate_map: HashMap<cargo_metadata::PackageId, usize>,
-//     pub resolved: cargo_metadata::Resolve,
-//     pub lock_file: PathBuf,
-// }
+pub type Krates = krates::Krates<Krate>;
 
-// impl Krates {
-//     pub fn crate_by_id(&self, id: &cargo_metadata::PackageId) -> Option<&KrateDetails> {
-//         self.krate_map.get(id).map(|i| &self.krates[*i])
-//     }
-
-//     pub fn iter(&self) -> impl Iterator<Item = &KrateDetails> {
-//         self.krates.iter()
-//     }
-
-//     pub(crate) fn search_match(&self, name: &str, req: &semver::VersionReq) -> Option<usize> {
-//         utils::search_match(&self.krates, name, req)
-//     }
-
-//     pub(crate) fn search_name(&self, name: &str) -> Result<std::ops::Range<usize>, usize> {
-//         utils::search_name(&self.krates, name)
-//     }
-// }
-
-// impl From<cargo_metadata::Metadata> for Krates {
-//     fn from(md: cargo_metadata::Metadata) -> Self {
-//         let mut crate_infos: Vec<_> = md.packages.into_iter().map(KrateDetails::new).collect();
-
-//         crate_infos.par_sort();
-
-//         let map = crate_infos
-//             .iter()
-//             .enumerate()
-//             .map(|(i, ci)| (ci.id.clone(), i))
-//             .collect();
-
-//         let workspace_members = md.workspace_members;
-//         let mut resolved = md.resolve.unwrap();
-
-//         resolved.nodes.par_sort_by(|a, b| a.id.cmp(&b.id));
-//         resolved
-//             .nodes
-//             .par_iter_mut()
-//             .for_each(|nodes| nodes.dependencies.par_sort());
-
-//         // Remove dev-dependencies for all non-workspace crates since
-//         // we don't actually interact with them
-//         crate_infos.par_iter_mut().for_each(|krate| {
-//             let is_in_workspace = workspace_members.contains(&krate.id);
-
-//             // Get the resolved node for this crate, which contains the dependencies
-//             // that are actually used based on their kind, toggled features etc.
-//             // Normally, this will not include dev dependencies, but it is possible
-//             // to have the same dependency declared as both a normal and build dependency
-//             // at the same time, so we have to check both
-
-//             // There is also an interesting case with optional dependencies, where
-//             // cargo allows you to declare a dependency as optional, without actually
-//             // giving a warning when no feature actually ever enables it
-//             let rnode = &resolved.nodes[resolved
-//                 .nodes
-//                 .binary_search_by(|n| n.id.cmp(&krate.id))
-//                 .unwrap()];
-
-//             krate.deps.retain(|dep| {
-//                 if !is_in_workspace && dep.kind == cargo_metadata::DependencyKind::Development {
-//                     return false;
-//                 }
-
-//                 let name = dep.rename.as_ref().unwrap_or(&dep.name);
-//                 rnode.deps.iter().any(|d| d.name == *name)
-//             });
-//         });
-
-//         Self {
-//             krates: crate_infos,
-//             krate_map: map,
-//             resolved,
-//             lock_file: md.workspace_root.join("Cargo.lock"),
-//         }
-//     }
-// }
-
-// impl AsRef<[KrateDetails]> for Krates {
-//     fn as_ref(&self) -> &[KrateDetails] {
-//         &self.krates[..]
-//     }
-// }
-
-pub fn get_krates_metadata<P: AsRef<Path>>(root: P) -> Result<cargo_metadata::Metadata, Error> {
+pub fn get_krates_metadata<P: AsRef<Path>>(root: P) -> Result<cm::Metadata, Error> {
     //let cargo_toml = root.as_ref().join("Cargo.toml");
-    let metadata = cargo_metadata::MetadataCommand::new()
+    let metadata = cm::MetadataCommand::new()
         //.manifest_path(cargo_toml)
         // We run cargo_metadata from the root path provided by the user
         // so that any potential .cargo/config is picked up correctly,
@@ -474,7 +362,7 @@ pub fn get_krates_metadata<P: AsRef<Path>>(root: P) -> Result<cargo_metadata::Me
         // or more crates in the workspace/project will cause cargo_metadata
         // to fail
         .current_dir(root)
-        .features(cargo_metadata::CargoOpt::AllFeatures)
+        .features(cm::CargoOpt::AllFeatures)
         .exec()
         .context("failed to fetch metdata")?;
 

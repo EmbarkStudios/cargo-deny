@@ -1,5 +1,5 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, prune, sources};
+use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources};
 use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
@@ -98,20 +98,18 @@ impl ValidConfig {
             let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
             let sources = cfg.sources.unwrap_or_default().validate(id)?;
 
-            use cfg_expr::targets::ALL_TARGETS as all;
-
             let mut targets = Vec::with_capacity(cfg.targets.len());
             let mut diagnostics = Vec::new();
             for target in cfg.targets {
                 let triple = target.triple.get_ref();
 
-                if let Err(i) = all.binary_search_by(|ti| ti.triple.cmp(triple)) {
+                if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
                     diagnostics.push(Diagnostic::new_warning(
                         format!("unknown target `{}` specified", triple),
                         cargo_deny::diag::Label::new(
                             id,
                             target.triple.span().0 as u32..target.triple.span().1 as u32,
-                            format!("did you mean `{}`?", all[i].triple),
+                            "the triple won't be evaluated against cfg() sections, just explicit triples"
                         ),
                     ));
                 }
@@ -301,7 +299,7 @@ pub fn cmd(
     };
 
     let krate_spans = krate_spans.map(|(spans, contents)| {
-        let id = files.add(krates.lock_file.to_string_lossy(), contents);
+        let id = files.add(krates.lock_path().to_string_lossy(), contents);
         (spans, id)
     });
 

@@ -1,6 +1,6 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
-use cargo_deny::{licenses, prune, Pid};
+use cargo_deny::{licenses, Kid};
 use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -123,16 +123,16 @@ pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(),
 
     #[derive(Serialize)]
     struct LicenseLayout<'a> {
-        licenses: Vec<(String, Vec<&'a Pid>)>,
-        unlicensed: Vec<&'a Pid>,
+        licenses: Vec<(String, Vec<&'a Kid>)>,
+        unlicensed: Vec<&'a Kid>,
     }
 
     struct CrateLayout {
-        crates: BTreeMap<Pid, Crate>,
+        crates: BTreeMap<Kid, Crate>,
     }
 
     impl CrateLayout {
-        fn search(&self, id: &Pid) -> &Crate {
+        fn search(&self, id: &Kid) -> &Crate {
             self.crates.get(id).expect("unable to find crate")
         }
     }
@@ -186,13 +186,13 @@ pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(),
         }
     }
 
-    fn get_parts(pid: &Pid) -> (&str, &str) {
+    fn get_parts(pid: &Kid) -> (&str, &str) {
         let mut it = pid.repr.split(' ');
 
         (it.next().unwrap(), it.next().unwrap())
     }
 
-    fn write_pid(out: &mut String, pid: &Pid) -> Result<(), Error> {
+    fn write_pid(out: &mut String, pid: &Kid) -> Result<(), Error> {
         let parts = get_parts(pid);
 
         Ok(write!(out, "{}@{}", parts.0, parts.1)?)

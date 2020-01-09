@@ -2,7 +2,7 @@ pub mod cfg;
 mod graph;
 
 use self::cfg::{TreeSkip, ValidConfig};
-use crate::{LintLevel, Pid};
+use crate::{Kid, Krate, LintLevel};
 use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::cmp::Ordering;
@@ -35,10 +35,7 @@ impl PartialEq for KrateId {
     }
 }
 
-fn binary_search<'a>(
-    arr: &'a [KrateId],
-    details: &crate::KrateDetails,
-) -> Result<(usize, &'a KrateId), usize> {
+fn binary_search<'a>(arr: &'a [KrateId], details: &Krate) -> Result<(usize, &'a KrateId), usize> {
     let lowest = VersionReq::exact(&Version::new(0, 0, 0));
 
     match arr.binary_search_by(|i| match i.name.cmp(&details.name) {
@@ -72,7 +69,7 @@ fn binary_search<'a>(
 
 struct SkipRoot {
     span: std::ops::Range<u32>,
-    skip_crates: Vec<Pid>,
+    skip_crates: Vec<Kid>,
     skip_hits: bitvec::vec::BitVec,
 }
 
@@ -80,23 +77,23 @@ use bitvec::prelude::*;
 
 fn build_skip_root(
     ts: toml::Spanned<TreeSkip>,
-    krate_id: crate::graph::NodeId,
+    krate_id: krates::NodeId,
     krates: &crate::Krates,
 ) -> SkipRoot {
+    use krates::petgraph::visit::Dfs;
+
     let span = ts.start() as u32..ts.end() as u32;
     let ts = ts.into_inner();
 
     let max_depth = ts.depth.unwrap_or(std::usize::MAX);
-
-    // let mut pending = smallvec::SmallVec::<[(Pid, usize); 10]>::new();
-    // pending.push((krate.id.clone(), 0));
-
     let mut skip_crates = Vec::with_capacity(10);
 
-    let mut dfs = petgraph::visit::Dfs::new(&krates.graph, krate_id);
-    while let Some(nix) = dfs.next(&krates.graph) {
-        if let Err(i) = skip_crates.binary_search(&krates.graph[nix].id) {
-            skip_crates.insert(i, krates.graph[nix].id.clone());
+    let graph = krates.graph();
+    let mut dfs = Dfs::new(graph, krate_id);
+    while let Some(nix) = dfs.next(graph) {
+        // TODO: DEPTH!
+        if let Err(i) = skip_crates.binary_search(&krates[nix].id) {
+            skip_crates.insert(i, krates[nix].id.clone());
         }
     }
 
@@ -159,40 +156,39 @@ pub fn check(
     // If trees are being skipped, walk each one down to the specified depth and add
     // each dependency as a skipped crate at the specific version
     let mut tree_skip = if !cfg.tree_skipped.is_empty() {
-        let roots: Vec<_> = cfg
-            .tree_skipped
-            .into_iter()
-            .filter_map(|ts| {
-                match krates.search_match(&ts.get_ref().id.name, &ts.get_ref().id.version) {
-                    Some(matched) => Some(build_skip_root(ts, matched.1, krates)),
-                    None => {
-                        sender
-                            .send(Pack {
-                                krate_id: None,
-                                diagnostics: vec![Diagnostic::new(
-                                    Severity::Warning,
-                                    "skip tree root was not found in the dependency graph",
-                                    Label::new(
-                                        file_id,
-                                        ts.start() as u32..ts.end() as u32,
-                                        "no crate matched these criteria",
-                                    ),
-                                )],
-                            })
-                            .unwrap();
+        let mut roots = Vec::with_capacity(cfg.tree_skipped.len());
 
-                        None
-                    }
-                }
-            })
-            .collect();
+        for ts in cfg.tree_skipped {
+            let num_roots = roots.len();
+
+            for krate in krates.search_matches(&ts.get_ref().id.name, &ts.get_ref().id.version) {
+                roots.push(build_skip_root(ts.clone(), krate.0, krates));
+            }
+
+            if roots.len() == num_roots {
+                sender
+                    .send(Pack {
+                        krate_id: None,
+                        diagnostics: vec![Diagnostic::new(
+                            Severity::Warning,
+                            "skip tree root was not found in the dependency graph",
+                            Label::new(
+                                file_id,
+                                ts.start() as u32..ts.end() as u32,
+                                "no crate matched these criteria",
+                            ),
+                        )],
+                    })
+                    .unwrap();
+            }
+        }
 
         Some(TreeSkipper { roots })
     } else {
         None
     };
 
-    let mut check_root_filters = |krate: &crate::KrateDetails, diags: &mut Vec<Diagnostic>| {
+    let mut check_root_filters = |krate: &Krate, diags: &mut Vec<Diagnostic>| {
         if let Some(ref mut tree_skipper) = tree_skip {
             let mut skip = false;
 
@@ -226,11 +222,11 @@ pub fn check(
     }
 
     let mut multi_detector = MultiDetector {
-        name: &krates.krates().next().unwrap().name,
+        name: &krates.krates().next().unwrap().krate.name,
         dupes: smallvec::SmallVec::new(),
     };
 
-    for (i, krate) in krates.krates().enumerate() {
+    for (i, krate) in krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut diagnostics = Vec::new();
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
@@ -506,7 +502,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "rand_core".to_owned(),
                     version: Version::parse("0.3.1").unwrap(),
                     ..Default::default()
@@ -520,7 +516,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "serde".to_owned(),
                     version: Version::parse("1.0.94").unwrap(),
                     ..Default::default()
@@ -533,7 +529,7 @@ mod test {
 
         assert!(binary_search(
             &versions,
-            &crate::KrateDetails {
+            &crate::Krate {
                 name: "nope".to_owned(),
                 version: Version::parse("1.0.0").unwrap(),
                 ..Default::default()
@@ -544,7 +540,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.43").unwrap(),
                     ..Default::default()
@@ -558,7 +554,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.1.2").unwrap(),
                     ..Default::default()
@@ -572,7 +568,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.2.0").unwrap(),
                     ..Default::default()
@@ -586,7 +582,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "num-traits".to_owned(),
                     version: Version::parse("0.0.99").unwrap(),
                     ..Default::default()
@@ -600,7 +596,7 @@ mod test {
         assert_eq!(
             binary_search(
                 &versions,
-                &crate::KrateDetails {
+                &crate::Krate {
                     name: "winapi".to_owned(),
                     version: Version::parse("0.2.8").unwrap(),
                     ..Default::default()
@@ -613,7 +609,7 @@ mod test {
 
         assert!(binary_search(
             &versions,
-            &crate::KrateDetails {
+            &crate::Krate {
                 name: "winapi".to_owned(),
                 version: Version::parse("0.3.8").unwrap(),
                 ..Default::default()

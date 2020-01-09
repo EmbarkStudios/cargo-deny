@@ -1,6 +1,7 @@
 pub mod cfg;
 
 use crate::{
+    cm,
     diag::{self, Diagnostic, Label, Severity},
     Krates, LintLevel,
 };
@@ -68,7 +69,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
 
     let mut packages = Vec::with_capacity(krates.krates_count());
 
-    fn im_so_sorry(s: &cargo_metadata::Source) -> Source {
+    fn im_so_sorry(s: &cm::Source) -> Source {
         // cargo_metadata::Source(String) doesn't have as_str()/as_ref()/into() :(
         let oh_no = format!("{}", s);
 
@@ -76,7 +77,10 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
         oh_no.parse().expect("guess this is no longer infallible")
     }
 
-    for krate in krates.krates() {
+    for (nid, krate) in krates
+        .krates()
+        .map(|kn| (krates.nid_for_kid(&kn.id).unwrap(), &kn.krate))
+    {
         packages.push(Package {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
@@ -86,8 +90,9 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
             // begins to fail at some point, but right now it is infallible
             source: krate.source.as_ref().map(|s| im_so_sorry(s)),
             dependencies: krates
-                .get_deps(&krate.id)
+                .get_deps(nid)
                 .map(|(dep, _)| {
+                    let dep = &dep.krate;
                     Dependency {
                         // This will hide errors if the FromStr implementation
                         // begins to fail at some point, but right now it is infallible
@@ -144,8 +149,8 @@ pub fn check(
 
     let mut make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
         match krates
-            .get_krate_by_name(pkg.name.as_str())
-            .find(|(_, krate)| pkg.version == krate.version)
+            .krates_by_name(pkg.name.as_str())
+            .find(|(_, kn)| pkg.version == kn.krate.version)
         {
             Some((i, krate)) => {
                 let id = &advisory.id;
@@ -228,7 +233,7 @@ pub fn check(
                     diagnostics: vec![Diagnostic::new(
                         severity,
                         advisory.title.clone(),
-                        Label::new(spans_id, krate_spans[i].clone(), message),
+                        Label::new(spans_id, krate_spans[i.index()].clone(), message),
                     )
                     .with_code(id.as_str().to_owned())
                     .with_notes(notes)],

@@ -1,8 +1,11 @@
 mod cfg;
 pub use cfg::{Config, ValidConfig};
 
-use crate::diag::{self, Diagnostic, Label, Pack, Severity};
-use crate::LintLevel;
+use crate::{
+    cm,
+    diag::{self, Diagnostic, Label, Pack, Severity},
+    LintLevel,
+};
 use anyhow::{bail, ensure, Context, Error};
 use std::convert::TryFrom;
 use url::Url;
@@ -27,10 +30,10 @@ impl Source {
     }
 }
 
-impl TryFrom<&cargo_metadata::Source> for Source {
+impl TryFrom<&cm::Source> for Source {
     type Error = Error;
 
-    fn try_from(source: &cargo_metadata::Source) -> Result<Self, Self::Error> {
+    fn try_from(source: &cm::Source) -> Result<Self, Self::Error> {
         // registry sources are in either of these formats:
         // git+https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
         // registry+https://github.com/rust-lang/crates.io-index
@@ -65,7 +68,7 @@ pub fn check(
 
     // scan through each crate and check the source of it
 
-    for (i, krate) in krates.krates().enumerate() {
+    for (i, krate) in krates.krates().map(|kn| &kn.krate).enumerate() {
         // determine source of crate
 
         let source = match &krate.source {

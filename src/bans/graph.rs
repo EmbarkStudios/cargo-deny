@@ -1,6 +1,7 @@
 use super::cfg::GraphHighlight;
+use crate::{DepKind, Kid, Krate};
 use anyhow::{Context, Error};
-use petgraph::Graph;
+use krates::petgraph as pg;
 use semver::Version;
 use std::{cmp::Ordering, collections::HashMap, fmt};
 
@@ -10,8 +11,8 @@ struct Node<'a> {
     version: &'a Version,
 }
 
-impl<'a, 'b: 'a> From<&'b crate::KrateDetails> for Node<'a> {
-    fn from(d: &'b crate::KrateDetails) -> Self {
+impl<'a, 'b: 'a> From<&'b Krate> for Node<'a> {
+    fn from(d: &'b Krate) -> Self {
         Self {
             name: &d.name,
             version: &d.version,
@@ -31,81 +32,7 @@ impl<'a> fmt::Display for Node<'a> {
     }
 }
 
-type Id = petgraph::graph::NodeIndex<u32>;
-
-// fn append_dependency_chain<'a>(
-//     crates: &'a crate::Krates,
-//     start: usize,
-//     graph: &mut Graph<Node<'a>, &'a str>,
-//     node_map: &mut HashMap<Node<'a>, Id>,
-// ) {
-//     use rayon::prelude::*;
-
-//     let cd = &crates.krates[start];
-
-//     let root_node = Node::from(cd);
-//     let root_id = graph.add_node(root_node);
-
-//     node_map.insert(root_node, root_id);
-
-//     let mut node_stack = vec![(root_node, root_id)];
-
-//     while let Some(node) = node_stack.pop() {
-//         let parents: Vec<_> = crates
-//             .as_ref()
-//             .par_iter()
-//             .filter_map(|cd| {
-//                 crates
-//                     .resolved
-//                     .nodes
-//                     .binary_search_by(|rp| rp.id.cmp(&cd.id))
-//                     .ok()
-//                     .and_then(|i| {
-//                         crates.resolved.nodes[i]
-//                             .dependencies
-//                             .binary_search_by(|did| {
-//                                 let mut iter = did.repr.splitn(3, char::is_whitespace);
-//                                 match iter.next() {
-//                                     Some(n) => match n.cmp(&node.0.name) {
-//                                         Ordering::Equal => iter
-//                                             .next()
-//                                             .and_then(|version| {
-//                                                 version
-//                                                     .parse::<Version>()
-//                                                     .ok()
-//                                                     .map(|v| v.cmp(node.0.version))
-//                                             })
-//                                             .unwrap_or(Ordering::Less),
-//                                         o => o,
-//                                     },
-//                                     None => Ordering::Less,
-//                                 }
-//                             })
-//                             .ok()
-//                             .and_then(|_| crates.crate_by_id(&crates.resolved.nodes[i].id))
-//                     })
-//             })
-//             .collect();
-
-//         for parent in parents.into_iter().map(Node::from) {
-//             match node_map.get(&parent) {
-//                 Some(id) => {
-//                     if !graph.contains_edge(*id, node.1) {
-//                         graph.add_edge(*id, node.1, "");
-//                     }
-//                 }
-//                 None => {
-//                     let id = graph.add_node(parent);
-
-//                     node_map.insert(parent, id);
-//                     graph.add_edge(id, node.1, "");
-
-//                     node_stack.push((parent, id));
-//                 }
-//             }
-//         }
-//     }
-// }
+type Id = pg::graph::NodeIndex<u32>;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
@@ -228,9 +155,9 @@ pub(crate) fn create_graph(
     krates: &crate::Krates,
     duplicates: &[usize],
 ) -> Result<String, Error> {
-    use petgraph::visit::{EdgeRef, NodeRef};
+    use pg::visit::{EdgeRef, NodeRef};
 
-    let mut graph = Graph::new();
+    let mut graph = pg::Graph::new();
     let mut node_map = HashMap::new();
 
     let mut node_stack = Vec::new();
@@ -245,19 +172,17 @@ pub(crate) fn create_graph(
 
     while let Some(pid) = node_stack.pop() {
         let target = node_map[pid];
-        for incoming in krates
-            .graph
-            .edges_directed(krates[pid], petgraph::Direction::Incoming)
-        {
+        let tid = krates.nid_for_kid(pid).context("unable to find crate")?;
+        for incoming in krates.graph().edges_directed(tid, pg::Direction::Incoming) {
             let parent = &krates[incoming.source()];
             match node_map.get(&parent.id) {
                 Some(pindex) => {
-                    graph.update_edge(*pindex, target, *incoming.weight());
+                    graph.update_edge(*pindex, target, incoming.weight().kind);
                 }
                 None => {
                     let pindex = graph.add_node(&parent.id);
 
-                    graph.update_edge(pindex, target, *incoming.weight());
+                    graph.update_edge(pindex, target, incoming.weight().kind);
 
                     node_map.insert(&parent.id, pindex);
                     node_stack.push(&parent.id);
@@ -296,7 +221,7 @@ pub(crate) fn create_graph(
                 }
             }
 
-            for edge in graph.edges_directed(nid, petgraph::Direction::Incoming) {
+            for edge in graph.edges_directed(nid, pg::Direction::Incoming) {
                 set.insert(edge.id());
 
                 node_stack.push(edge.source());
@@ -362,10 +287,10 @@ pub(crate) fn create_graph(
         |edge| {
             // Color edges if they are part of the lowest or smollest path,
             // based on the graph highlighting configuration
-            let label = match *edge.weight() {
-                crate::DepKind::Normal => None,
-                crate::DepKind::Dev => Some("dev"),
-                crate::DepKind::Build => Some("build"),
+            let label = match edge.weight() {
+                DepKind::Normal => None,
+                DepKind::Dev => Some("dev"),
+                DepKind::Build => Some("build"),
             };
             if highlight.simplest() && smollest.contains(&edge.id()) {
                 EdgeAttributes {
@@ -412,17 +337,17 @@ pub(crate) fn create_graph(
 }
 
 fn print_graph<'a: 'b, 'b, NP, EP, SG>(
-    graph: &'a Graph<&'a crate::Pid, crate::DepKind>,
+    graph: &'a pg::Graph<&'a crate::Kid, DepKind>,
     node_print: NP,
     edge_print: EP,
     subgraphs: SG,
 ) -> Result<String, Error>
 where
-    NP: Fn((Id, &'b &'a crate::Pid)) -> NodeAttributes<'b>,
-    EP: Fn(&petgraph::graph::EdgeReference<'_, crate::DepKind, u32>) -> EdgeAttributes<'b>,
+    NP: Fn((Id, &'b &'a Kid)) -> NodeAttributes<'b>,
+    EP: Fn(&pg::graph::EdgeReference<'_, DepKind, u32>) -> EdgeAttributes<'b>,
     SG: Fn(&mut String) -> Result<(), Error>,
 {
-    use petgraph::visit::{EdgeRef, IntoNodeReferences, NodeIndexable, NodeRef};
+    use pg::visit::{EdgeRef, IntoNodeReferences, NodeIndexable, NodeRef};
     use std::fmt::Write;
     let mut output = String::with_capacity(1024);
     writeln!(output, "digraph {{",)?;

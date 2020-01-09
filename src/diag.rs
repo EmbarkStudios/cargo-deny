@@ -1,10 +1,11 @@
-use crate::{KrateDetails, Krates, Pid};
-use anyhow::Error;
+use crate::{DepKind, Kid, Krate, Krates};
+use anyhow::{Context, Error};
 pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
+use krates::petgraph as pg;
 
 pub struct Pack {
     // The particular package that the diagnostics pertain to
-    pub krate_id: Option<Pid>,
+    pub krate_id: Option<Kid>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -33,7 +34,7 @@ impl KrateSpans {
 
         let mut sl = String::with_capacity(4 * 1024);
         let mut spans = Vec::with_capacity(krates.krates_count());
-        for krate in krates.krates() {
+        for krate in krates.krates().map(|kn| &kn.krate) {
             let span_start = sl.len();
             match &krate.source {
                 Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src)
@@ -61,11 +62,7 @@ impl KrateSpans {
 
 //use petgraph::Graph;
 //use rayon::prelude::*;
-use std::collections::{hash_map::Entry, HashMap, HashSet};
-
-struct Node<'a> {
-    metadata: &'a KrateDetails,
-}
+use std::collections::HashSet;
 
 /// Simplified copy of what cargo tree does to display dependency graphs.
 /// In our case, we only care about the inverted form, ie, not what the
@@ -83,8 +80,8 @@ const ELL: char = '└';
 const RGT: char = '─';
 
 struct NodePrint<'a> {
-    krate: &'a crate::graph::Node,
-    id: crate::graph::NodeId,
+    krate: &'a Krate,
+    id: krates::NodeId,
     kind: &'static str,
 }
 
@@ -97,18 +94,19 @@ impl<'a> Grapher<'a> {
         }
     }
 
-    pub fn write_graph(&mut self, id: &Pid) -> Result<String, Error> {
+    pub fn write_graph(&mut self, id: &Kid) -> Result<String, Error> {
         //self.build_graph_to_package(id)?;
 
         let mut out = String::with_capacity(1024);
         let mut levels = Vec::new();
         let mut visited = HashSet::new();
 
-        let node = self.krates.get_node(id);
+        let node_id = self.krates.nid_for_kid(id).context("unable to find node")?;
+        let krate = &self.krates[node_id];
 
         let np = NodePrint {
-            krate: node.0,
-            id: node.1,
+            krate: krate,
+            id: node_id,
             kind: "",
         };
 
@@ -121,10 +119,10 @@ impl<'a> Grapher<'a> {
         &self,
         np: NodePrint<'a>,
         out: &mut String,
-        visited: &mut HashSet<crate::graph::NodeId>,
+        visited: &mut HashSet<krates::NodeId>,
         levels_continue: &mut Vec<bool>,
     ) -> Result<(), Error> {
-        use petgraph::visit::EdgeRef;
+        use pg::visit::EdgeRef;
         use std::fmt::Write;
 
         let new = visited.insert(np.id);
@@ -154,22 +152,19 @@ impl<'a> Grapher<'a> {
         }
 
         let mut parents = smallvec::SmallVec::<[NodePrint<'a>; 10]>::new();
-        for edge in self
-            .krates
-            .graph
-            .edges_directed(np.id, petgraph::Direction::Incoming)
-        {
+        let graph = self.krates.graph();
+        for edge in graph.edges_directed(np.id, pg::Direction::Incoming) {
             let parent_id = edge.source();
-            let parent = &self.krates.graph[parent_id];
+            let parent = &graph[parent_id];
 
-            let kind = match edge.weight() {
-                crate::DepKind::Normal => "",
-                crate::DepKind::Dev => "dev",
-                crate::DepKind::Build => "build",
+            let kind = match edge.weight().kind {
+                DepKind::Normal => "",
+                DepKind::Dev => "dev",
+                DepKind::Build => "build",
             };
 
             parents.push(NodePrint {
-                krate: parent,
+                krate: &parent.krate,
                 id: parent_id,
                 kind,
             });
@@ -188,10 +183,10 @@ impl<'a> Grapher<'a> {
         &self,
         parents: smallvec::SmallVec<[NodePrint<'a>; 10]>,
         out: &mut String,
-        visited: &mut HashSet<crate::graph::NodeId>,
+        visited: &mut HashSet<krates::NodeId>,
         levels_continue: &mut Vec<bool>,
     ) -> Result<(), Error> {
-        let mut it = parents.iter().peekable();
+        //let mut it = parents.iter().peekable();
 
         let cont = parents.len() - 1;
 
