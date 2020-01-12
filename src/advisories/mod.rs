@@ -67,7 +67,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
         package::Package,
     };
 
-    let mut packages = Vec::with_capacity(krates.krates_count());
+    let mut packages = Vec::with_capacity(krates.len());
 
     fn im_so_sorry(s: &cm::Source) -> Source {
         // cargo_metadata::Source(String) doesn't have as_str()/as_ref()/into() :(

@@ -33,7 +33,7 @@ impl KrateSpans {
         use std::fmt::Write;
 
         let mut sl = String::with_capacity(4 * 1024);
-        let mut spans = Vec::with_capacity(krates.krates_count());
+        let mut spans = Vec::with_capacity(krates.len());
         for krate in krates.krates().map(|kn| &kn.krate) {
             let span_start = sl.len();
             match &krate.source {

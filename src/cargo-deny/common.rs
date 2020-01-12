@@ -20,20 +20,21 @@ pub(crate) fn gather_krates(
     targets: Vec<(String, Vec<String>)>,
 ) -> Result<cargo_deny::Krates, anyhow::Error> {
     log::info!("gathering crates for {}", context_dir.display());
-    let krates_md = cargo_deny::get_krates_metadata(&context_dir)?;
+
+    let mut mdc = krates::Cmd::new();
+
+    mdc.all_features();
+    mdc.manifest_path(context_dir.join("Cargo.toml"));
 
     use krates::{Builder, DepKind};
 
     let mut gb = Builder::new();
 
-    for target in targets {
-        gb.include_target(target.0, target.1);
-    }
+    gb.include_targets(targets);
+    gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
 
-    gb.ignore_kind(DepKind::Dev, krates::Unless::IsWorkspace);
-
-    let graph = gb.build_with_metadata(
-        krates_md,
+    let graph = gb.build(
+        mdc,
         Some(|filtered: krates::cm::Package| match filtered.source {
             Some(src) => {
                 if src.is_crates_io() {
@@ -47,7 +48,7 @@ pub(crate) fn gather_krates(
     );
 
     if let Ok(ref krates) = graph {
-        log::info!("gathered {} crates", krates.krates_count());
+        log::info!("gathered {} crates", krates.len());
     }
 
     Ok(graph?)

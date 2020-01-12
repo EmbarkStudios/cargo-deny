@@ -352,23 +352,6 @@ impl From<cm::Package> for Krate {
 
 pub type Krates = krates::Krates<Krate>;
 
-pub fn get_krates_metadata<P: AsRef<Path>>(root: P) -> Result<cm::Metadata, Error> {
-    //let cargo_toml = root.as_ref().join("Cargo.toml");
-    let metadata = cm::MetadataCommand::new()
-        //.manifest_path(cargo_toml)
-        // We run cargo_metadata from the root path provided by the user
-        // so that any potential .cargo/config is picked up correctly,
-        // as eg. adding registries in the config that are used by one
-        // or more crates in the workspace/project will cause cargo_metadata
-        // to fail
-        .current_dir(root)
-        .features(cm::CargoOpt::AllFeatures)
-        .exec()
-        .context("failed to fetch metdata")?;
-
-    Ok(metadata)
-}
-
 #[inline]
 pub fn binary_search<T, Q>(s: &[T], query: &Q) -> Result<usize, usize>
 where
