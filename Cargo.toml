@@ -51,7 +51,7 @@ spdx = "0.3.0"
 structopt = "0.3.5"
 toml = "0.5.5"
 twox-hash = { version = "1.5.0", default-features = false }
-url = "2.1.0"
+url = "2.1.1"
 
 [dev-dependencies]
 # We use this for pretty printing errors
