@@ -81,6 +81,37 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
         .krates()
         .map(|kn| (krates.nid_for_kid(&kn.id).unwrap(), &kn.krate))
     {
+        let mut dependencies: Vec<_> = krates
+            .get_deps(nid)
+            .map(|(dep, _)| {
+                let dep = &dep.krate;
+                Dependency {
+                    // This will hide errors if the FromStr implementation
+                    // begins to fail at some point, but right now it is infallible
+                    name: dep.name.parse().unwrap(),
+                    version: Some(dep.version.clone()),
+                    // This will hide errors if the FromStr implementation
+                    // begins to fail at some point, but right now it is infallible
+                    source: dep.source.as_ref().map(|s| im_so_sorry(s)),
+                }
+            })
+            .collect();
+
+        use std::cmp::Ordering;
+
+        // Sort the dependencies as they would be in the Cargo.lock
+        dependencies.sort_by(|a, b| match a.name.cmp(&b.name) {
+            Ordering::Equal => match a.version.cmp(&b.version) {
+                Ordering::Equal => a.source.cmp(&b.source),
+                other => other,
+            },
+            other => other,
+        });
+
+        // Remove duplicates, this can occur if there are eg a normal and build dependency
+        // on the same crate, Cargo.lock only records unique crates once
+        dependencies.dedup();
+
         packages.push(Package {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
@@ -89,21 +120,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
             // This will hide errors if the FromStr implementation
             // begins to fail at some point, but right now it is infallible
             source: krate.source.as_ref().map(|s| im_so_sorry(s)),
-            dependencies: krates
-                .get_deps(nid)
-                .map(|(dep, _)| {
-                    let dep = &dep.krate;
-                    Dependency {
-                        // This will hide errors if the FromStr implementation
-                        // begins to fail at some point, but right now it is infallible
-                        name: dep.name.parse().unwrap(),
-                        version: Some(dep.version.clone()),
-                        // This will hide errors if the FromStr implementation
-                        // begins to fail at some point, but right now it is infallible
-                        source: dep.source.as_ref().map(|s| im_so_sorry(s)),
-                    }
-                })
-                .collect(),
+            dependencies,
         });
     }
 

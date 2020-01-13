@@ -80,8 +80,6 @@ fn build_skip_root(
     krate_id: krates::NodeId,
     krates: &crate::Krates,
 ) -> SkipRoot {
-    use krates::petgraph::visit::Dfs;
-
     let span = ts.start() as u32..ts.end() as u32;
     let ts = ts.into_inner();
 
@@ -89,30 +87,21 @@ fn build_skip_root(
     let mut skip_crates = Vec::with_capacity(10);
 
     let graph = krates.graph();
-    let mut dfs = Dfs::new(graph, krate_id);
-    while let Some(nix) = dfs.next(graph) {
-        // TODO: DEPTH!
-        if let Err(i) = skip_crates.binary_search(&krates[nix].id) {
-            skip_crates.insert(i, krates[nix].id.clone());
+
+    let mut pending = vec![(krate_id, 1)];
+    while let Some((node_id, depth)) = pending.pop() {
+        if depth < max_depth {
+            use krates::petgraph::visit::EdgeRef;
+            for dep in graph.edges_directed(node_id, krates::petgraph::Direction::Outgoing) {
+                pending.push((dep.target(), depth + 1));
+            }
+        }
+
+        let pkg_id = &krates[node_id].id;
+        if let Err(i) = skip_crates.binary_search(pkg_id) {
+            skip_crates.insert(i, pkg_id.clone());
         }
     }
-
-    // while let Some((pkg_id, depth)) = pending.pop() {
-    //     if depth < max_depth {
-    //         let node = &krates.resolved.nodes[krates
-    //             .resolved
-    //             .nodes
-    //             .binary_search_by(|n| n.id.cmp(&pkg_id))
-    //             .unwrap()];
-    //         for dep in &node.dependencies {
-    //             pending.push((dep.clone(), depth + 1));
-    //         }
-    //     }
-
-    //     if let Err(i) = skip_crates.binary_search(&pkg_id) {
-    //         skip_crates.insert(i, pkg_id);
-    //     }
-    // }
 
     let skip_hits = bitvec![0; skip_crates.len()];
 

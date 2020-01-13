@@ -67,10 +67,8 @@ use std::collections::HashSet;
 /// Simplified copy of what cargo tree does to display dependency graphs.
 /// In our case, we only care about the inverted form, ie, not what the
 /// dependencies of a package are, but rather how a particular package
-/// is actually pulled into the root project
+/// is actually pulled in via 1 or more root crates
 pub struct Grapher<'a> {
-    //graph: Graph<Node<'a>, &'a str>,
-    //node_map: HashMap<Pid, Nid>,
     krates: &'a Krates,
 }
 
@@ -87,16 +85,10 @@ struct NodePrint<'a> {
 
 impl<'a> Grapher<'a> {
     pub fn new(krates: &'a Krates) -> Self {
-        Self {
-            //graph: Graph::new(),
-            //node_map: HashMap::new(),
-            krates,
-        }
+        Self { krates }
     }
 
     pub fn write_graph(&mut self, id: &Kid) -> Result<String, Error> {
-        //self.build_graph_to_package(id)?;
-
         let mut out = String::with_capacity(1024);
         let mut levels = Vec::new();
         let mut visited = HashSet::new();
@@ -105,7 +97,7 @@ impl<'a> Grapher<'a> {
         let krate = &self.krates[node_id];
 
         let np = NodePrint {
-            krate: krate,
+            krate,
             id: node_id,
             kind: "",
         };
@@ -186,8 +178,6 @@ impl<'a> Grapher<'a> {
         visited: &mut HashSet<krates::NodeId>,
         levels_continue: &mut Vec<bool>,
     ) -> Result<(), Error> {
-        //let mut it = parents.iter().peekable();
-
         let cont = parents.len() - 1;
 
         for (i, parent) in parents.into_iter().enumerate() {

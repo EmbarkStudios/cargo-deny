@@ -3,21 +3,25 @@ use cargo_deny::{
     advisories::{self, cfg},
     diag, Krates,
 };
+use krates::cm::Metadata;
 
 struct Ctx {
     krates: Krates,
     spans: (diag::KrateSpans, codespan::FileId),
     db: advisories::Database,
     lock: advisories::Lockfile,
-    files: parking_lot::RwLock<codespan::Files>,
+    files: parking_lot::RwLock<codespan::Files<String>>,
 }
 
 fn load() -> Ctx {
-    let md: cargo_metadata::Metadata =
+    let md: Metadata =
         serde_json::from_str(&std::fs::read_to_string("tests/06_advisories.json").unwrap())
             .unwrap();
 
-    let krates = Krates::from(md);
+    let krates: Krates = krates::Builder::new()
+        .build_with_metadata(md, krates::NoneFilter)
+        .unwrap();
+
     let spans = diag::KrateSpans::new(&krates);
     let lock = advisories::generate_lockfile(&krates);
 
@@ -48,6 +52,8 @@ fn generates_same_lockfile(ctx: &Ctx) -> Result<(), Error> {
             &format!("{:#?}", lockfile),
             "\n",
         );
+
+        //        let diff = "by a lot";
 
         anyhow::bail!("lock files differ\n{}", diff);
     } else {

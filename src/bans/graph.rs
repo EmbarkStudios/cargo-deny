@@ -3,7 +3,7 @@ use crate::{DepKind, Kid, Krate};
 use anyhow::{Context, Error};
 use krates::petgraph as pg;
 use semver::Version;
-use std::{cmp::Ordering, collections::HashMap, fmt};
+use std::{collections::HashMap, fmt};
 
 #[derive(Hash, Copy, Clone, PartialEq, Eq)]
 struct Node<'a> {
@@ -431,7 +431,7 @@ where
 
         if let Some(color) = attrs.color {
             write!(output, "{}color={}", if append { ", " } else { "" }, color)?;
-            append = true;
+            //append = true;
         }
 
         writeln!(output, "]")?;

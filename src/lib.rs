@@ -208,20 +208,14 @@
 //! license, shall be dual licensed as above, without any additional terms or
 //! conditions.
 
-use anyhow::{Context, Error};
 pub use semver::Version;
-use std::{
-    cmp,
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{cmp, collections::HashMap, path::PathBuf};
 
 pub mod advisories;
 pub mod bans;
 pub mod diag;
 pub mod licenses;
 pub mod sources;
-mod utils;
 
 use krates::cm;
 pub use krates::{DepKind, Kid};

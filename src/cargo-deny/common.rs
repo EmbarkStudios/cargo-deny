@@ -33,19 +33,16 @@ pub(crate) fn gather_krates(
     gb.include_targets(targets);
     gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
 
-    let graph = gb.build(
-        mdc,
-        Some(|filtered: krates::cm::Package| match filtered.source {
-            Some(src) => {
-                if src.is_crates_io() {
-                    log::debug!("filtered {} {}", filtered.name, filtered.version);
-                } else {
-                    log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
-                }
+    let graph = gb.build(mdc, |filtered: krates::cm::Package| match filtered.source {
+        Some(src) => {
+            if src.is_crates_io() {
+                log::debug!("filtered {} {}", filtered.name, filtered.version);
+            } else {
+                log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
             }
-            None => log::debug!("filtered crate {} {}", filtered.name, filtered.version),
-        }),
-    );
+        }
+        None => log::debug!("filtered crate {} {}", filtered.name, filtered.version),
+    });
 
     if let Ok(ref krates) = graph {
         log::info!("gathered {} crates", krates.len());
