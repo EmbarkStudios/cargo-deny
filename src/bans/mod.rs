@@ -2,7 +2,7 @@ pub mod cfg;
 mod graph;
 
 use self::cfg::{TreeSkip, ValidConfig};
-use crate::{Kid, Krate, LintLevel};
+use crate::{Kid, Krate, Krates, LintLevel};
 use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::cmp::Ordering;
@@ -75,83 +75,27 @@ struct SkipRoot {
 
 use bitvec::prelude::*;
 
-fn build_skip_root(
-    ts: toml::Spanned<TreeSkip>,
-    krate_id: krates::NodeId,
-    krates: &crate::Krates,
-) -> SkipRoot {
-    let span = ts.start() as u32..ts.end() as u32;
-    let ts = ts.into_inner();
-
-    let max_depth = ts.depth.unwrap_or(std::usize::MAX);
-    let mut skip_crates = Vec::with_capacity(10);
-
-    let graph = krates.graph();
-
-    let mut pending = vec![(krate_id, 1)];
-    while let Some((node_id, depth)) = pending.pop() {
-        if depth < max_depth {
-            use krates::petgraph::visit::EdgeRef;
-            for dep in graph.edges_directed(node_id, krates::petgraph::Direction::Outgoing) {
-                pending.push((dep.target(), depth + 1));
-            }
-        }
-
-        let pkg_id = &krates[node_id].id;
-        if let Err(i) = skip_crates.binary_search(pkg_id) {
-            skip_crates.insert(i, pkg_id.clone());
-        }
-    }
-
-    let skip_hits = bitvec![0; skip_crates.len()];
-
-    SkipRoot {
-        span,
-        skip_crates,
-        skip_hits,
-    }
+// If trees are being skipped, walk each one down to the specified depth and add
+// each dependency as a skipped crate at the specific version
+struct TreeSkipper {
+    roots: Vec<SkipRoot>,
+    file_id: codespan::FileId,
 }
 
-pub struct DupGraph {
-    pub duplicate: String,
-    pub graph: String,
-}
+impl TreeSkipper {
+    fn build(
+        skip_roots: Vec<toml::Spanned<TreeSkip>>,
+        krates: &Krates,
+        file_id: codespan::FileId,
+        sender: crossbeam::channel::Sender<Pack>,
+    ) -> Self {
+        let mut roots = Vec::with_capacity(skip_roots.len());
 
-pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
-
-use crate::diag::{self, Diagnostic, Label, Pack, Severity};
-
-pub fn check(
-    cfg: ValidConfig,
-    krates: &crate::Krates,
-    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
-    output_graph: Option<Box<OutputGraph>>,
-    sender: crossbeam::channel::Sender<Pack>,
-) {
-    let ValidConfig {
-        file_id,
-        denied,
-        allowed,
-        skipped,
-        multiple_versions,
-        highlight,
-        ..
-    } = cfg;
-
-    struct TreeSkipper {
-        roots: Vec<SkipRoot>,
-    }
-
-    // If trees are being skipped, walk each one down to the specified depth and add
-    // each dependency as a skipped crate at the specific version
-    let mut tree_skip = if !cfg.tree_skipped.is_empty() {
-        let mut roots = Vec::with_capacity(cfg.tree_skipped.len());
-
-        for ts in cfg.tree_skipped {
+        for ts in skip_roots {
             let num_roots = roots.len();
 
             for krate in krates.search_matches(&ts.get_ref().id.name, &ts.get_ref().id.version) {
-                roots.push(build_skip_root(ts.clone(), krate.0, krates));
+                roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 
             if roots.len() == num_roots {
@@ -172,33 +116,94 @@ pub fn check(
             }
         }
 
-        Some(TreeSkipper { roots })
-    } else {
-        None
-    };
+        Self { roots, file_id }
+    }
 
-    let mut check_root_filters = |krate: &Krate, diags: &mut Vec<Diagnostic>| {
-        if let Some(ref mut tree_skipper) = tree_skip {
-            let mut skip = false;
+    fn build_skip_root(
+        ts: toml::Spanned<TreeSkip>,
+        krate_id: krates::NodeId,
+        krates: &Krates,
+    ) -> SkipRoot {
+        let span = ts.start() as u32..ts.end() as u32;
+        let ts = ts.into_inner();
 
-            for root in &mut tree_skipper.roots {
-                if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
-                    diags.push(Diagnostic::new(
-                        Severity::Help,
-                        format!("skipping crate {} = {}", krate.name, krate.version),
-                        Label::new(file_id, root.span.clone(), "matched root filter"),
-                    ));
+        let max_depth = ts.depth.unwrap_or(std::usize::MAX);
+        let mut skip_crates = Vec::with_capacity(10);
 
-                    root.skip_hits.as_mut_bitslice().set(i, true);
-                    skip = true;
+        let graph = krates.graph();
+
+        let mut pending = vec![(krate_id, 1)];
+        while let Some((node_id, depth)) = pending.pop() {
+            if depth < max_depth {
+                use krates::petgraph::visit::EdgeRef;
+                for dep in graph.edges_directed(node_id, krates::petgraph::Direction::Outgoing) {
+                    pending.push((dep.target(), depth + 1));
                 }
             }
 
-            skip
-        } else {
-            false
+            let pkg_id = &krates[node_id].id;
+            if let Err(i) = skip_crates.binary_search(pkg_id) {
+                skip_crates.insert(i, pkg_id.clone());
+            }
         }
-    };
+
+        let skip_hits = bitvec![0; skip_crates.len()];
+
+        SkipRoot {
+            span,
+            skip_crates,
+            skip_hits,
+        }
+    }
+
+    fn matches(&mut self, krate: &Krate, diags: &mut Vec<Diagnostic>) -> bool {
+        let mut skip = false;
+
+        for root in &mut self.roots {
+            if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
+                diags.push(Diagnostic::new(
+                    Severity::Help,
+                    format!("skipping crate {} = {}", krate.name, krate.version),
+                    Label::new(self.file_id, root.span.clone(), "matched root filter"),
+                ));
+
+                root.skip_hits.as_mut_bitslice().set(i, true);
+                skip = true;
+            }
+        }
+
+        skip
+    }
+}
+
+pub struct DupGraph {
+    pub duplicate: String,
+    pub graph: String,
+}
+
+pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
+
+use crate::diag::{self, Diagnostic, Label, Pack, Severity};
+
+pub fn check(
+    cfg: ValidConfig,
+    krates: &Krates,
+    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
+    output_graph: Option<Box<OutputGraph>>,
+    sender: crossbeam::channel::Sender<Pack>,
+) {
+    let ValidConfig {
+        file_id,
+        denied,
+        allowed,
+        skipped,
+        multiple_versions,
+        highlight,
+        tree_skipped,
+        ..
+    } = cfg;
+
+    let mut tree_skipper = TreeSkipper::build(tree_skipped, krates, file_id, sender.clone());
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -265,7 +270,7 @@ pub fn check(
             // so that we can report unused filters to the user so that they
             // can cleanup their configs as their dependency graph changes over time
             skip_hit.as_mut_bitslice().set(index, true);
-        } else if !check_root_filters(krate, &mut diagnostics) {
+        } else if !tree_skipper.matches(krate, &mut diagnostics) {
             if multi_detector.name == krate.name {
                 multi_detector.dupes.push(i);
             } else {
