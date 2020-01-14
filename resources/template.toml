@@ -5,6 +5,24 @@
 # * warn - A warning will be produced, but the check will not fail
 # * allow - No warning or error will be produced, though in some cases a note will be
 
+# If 1 or more target triples (and optionally, target_features) are specified, only
+# the specified targets will be checked when running `cargo deny check`. This means,
+# if a particular package is only ever used as a target specific dependency, such
+# as, for example, the `nix` crate only being used via the `target_family = "unix"`
+# configuration, that only having windows targets in this list would mean the nix
+# crate, as well as any of its exclusive dependencies not shared by any other
+# crates, would be ignored, as the target list here is effectively saying which
+# targets you are building for.
+targets = [
+    # The triple can be any string, but only the target triples built in to
+    # rustc (as of 1.40) can be checked against actual config expressions
+    #{ triple = "x86_64-unknown-linux-musl" },
+    # You can also specify which target_features you promise are enabled for a particular
+    # target. target_features are currently not validated against the actual valid
+    # features supported by the target architecture.
+    #{ triple = "wasm32-unknown-unknown", features = ["atomics"] },
+]
+
 # This section is considered when running `cargo deny check advisories`
 # More documentation for the advisories section can be found here:
 # https://github.com/EmbarkStudios/cargo-deny#the-advisories-section
