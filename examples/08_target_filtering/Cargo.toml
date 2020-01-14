@@ -3,14 +3,18 @@ name = "target-filtering"
 version = "0.1.0"
 authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
+license = "Apache-2.0 OR MIT"
 
 build = "build.rs"
 
 [dependencies]
-leftpad = "0.2.0"
 
-# These target specific dependency examples were copied from ring
-[target.'cfg(all(any(target_arch = "aarch64", target_arch = "arm", target_arch = "x86", target_arch = "x86_64"), not(target_os = "ios")))'.dependencies]
+[target.'cfg(target_os = "fuchsia")'.dependencies]
+# Oh no, this has a GPL-3.0+ license, which we don't allow!
+gtp = "0.1.1"
+
+# Spin is unmaintained, but this config expression won't eval to true for any of our targets, so it's ok!
+[target.'cfg(all(any(target_arch = "aarch64", target_arch = "arm", target_arch = "x86", target_arch = "x86_64"), not(target_os = "linux")))'.dependencies]
 spin = { version = "0.5.2", default-features = false }
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
@@ -26,17 +30,13 @@ web-sys = { version = "0.3.25", default-features = false, features = ["Crypto", 
 winapi = { version = "0.2.8", default-features = false }
 
 # You can also use full target triples isntead of a cfg expression
-[target.x86_64-unknown-linux-gnu.dependencies]
+# We actually **ban** the nix package, but since we aren't targetting
+# musl, the crate is ignored :)
+[target.x86_64-unknown-linux-musl.dependencies]
 nix-xy = { package = "nix", version = "0.16.1" }
 
 [dev-dependencies]
 difference = "2.0.0"
 
-[target.'cfg(target_arch = "x86_64")'.dev-dependencies]
-ring = "0.16.9"
-
-[target.'cfg(target_feature = "atomics")'.dependencies]
+[target.'cfg(all(target_arch = "wasm32", target_feature = "atomics"))'.dependencies]
 wasm-bindgen-futures = "0.4.6"
-
-# coreaudio is a weird case, the name of the crate is coreaudio-rs,
-# but its library name is coreaudio, so the resol
