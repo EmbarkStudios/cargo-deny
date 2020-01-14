@@ -53,8 +53,6 @@ fn generates_same_lockfile(ctx: &Ctx) -> Result<(), Error> {
             "\n",
         );
 
-        //        let diff = "by a lot";
-
         anyhow::bail!("lock files differ\n{}", diff);
     } else {
         Ok(())

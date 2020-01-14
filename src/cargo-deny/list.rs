@@ -82,25 +82,6 @@ pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(),
                 context_dir,
                 targets.into_iter().map(|t| (t, Vec::new())).collect(),
             )
-
-            // crate::common::gather_krates(context_dir).and_then(|mut k| {
-            //     if !targets.is_empty() {
-            //         let targets: Vec<_> = targets
-            //             .iter()
-            //             .map(|ti| prune::Target {
-            //                 target: &ti,
-            //                 features: Vec::new(),
-            //             })
-            //             .collect();
-
-            //         crate::common::prune_krates_by_target(
-            //             &mut k,
-            //             Some(prune::Prune::Except(&targets)),
-            //         )?;
-            //     }
-
-            //     Ok(k)
-            // })
         },
         crate::common::load_license_store,
     );

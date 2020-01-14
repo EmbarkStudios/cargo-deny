@@ -28,14 +28,6 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
         .with_context(|| format!("failed to parse level '{}'", s))
 }
 
-// fn parse_target(t: &str) -> Result<&'static cargo_deny::prune::TargetInfo, Error> {
-//     use cargo_deny::prune::ALL_TARGETS as all;
-
-//     all.binary_search_by(|ti| ti.triple.cmp(t))
-//         .map(|i| &all[i])
-//         .map_err(|i| anyhow::anyhow!("unknown target specified, did you mean {}?", all[i].triple))
-// }
-
 #[derive(StructOpt)]
 struct Opts {
     /// The log level for messages, only log messages at or above

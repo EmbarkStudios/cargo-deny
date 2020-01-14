@@ -217,39 +217,6 @@ pub fn cmd(
             };
 
             let gathered = crate::common::gather_krates(context_dir, targets);
-            // let k = crate::common::gather_krates(context_dir).and_then(|mut k| {
-            //     // Prune the crate graph if the user has specified certain targets
-            //     // either via the cmd line or configuration
-            //     let prune: Option<Vec<_>> = if !targets.is_empty() {
-            //         Some(
-            //             targets
-            //                 .into_iter()
-            //                 .map(|ti| prune::Target {
-            //                     target: ti,
-            //                     features: Vec::new(),
-            //                 })
-            //                 .collect(),
-            //         )
-            //     } else if !cfg.targets.is_empty() {
-            //         Some(
-            //             cfg.targets
-            //                 .iter()
-            //                 .map(|(t, features)| prune::Target {
-            //                     target: t,
-            //                     features: features.clone(),
-            //                 })
-            //                 .collect(),
-            //         )
-            //     } else {
-            //         None
-            //     };
-
-            //     crate::common::prune_krates_by_target(
-            //         &mut k,
-            //         prune.as_ref().map(|targets| prune::Prune::Except(&targets)),
-            //     )?;
-            //     Ok(k)
-            // });
 
             if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
