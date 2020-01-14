@@ -1,7 +1,6 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, licenses, sources};
+use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources};
 use clap::arg_enum;
-use codespan_reporting::diagnostic::Diagnostic;
 use log::error;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -50,11 +49,20 @@ pub struct Args {
 }
 
 #[derive(Deserialize)]
+struct Target {
+    triple: toml::Spanned<String>,
+    #[serde(default)]
+    features: Vec<String>,
+}
+
+#[derive(Deserialize)]
 struct Config {
     advisories: Option<advisories::cfg::Config>,
     bans: Option<bans::cfg::Config>,
     licenses: Option<licenses::Config>,
     sources: Option<sources::Config>,
+    #[serde(default)]
+    targets: Vec<Target>,
 }
 
 struct ValidConfig {
@@ -62,10 +70,11 @@ struct ValidConfig {
     bans: bans::cfg::ValidConfig,
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
+    targets: Vec<(String, Vec<String>)>,
 }
 
 impl ValidConfig {
-    fn load(cfg_path: PathBuf, files: &mut codespan::Files) -> Result<Self, Error> {
+    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
         let cfg_contents = if cfg_path.exists() {
             std::fs::read_to_string(&cfg_path)
                 .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
@@ -83,31 +92,66 @@ impl ValidConfig {
 
         let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
 
-        let validate = || -> Result<Self, Vec<Diagnostic>> {
+        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
             let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
             let bans = cfg.bans.unwrap_or_default().validate(id)?;
             let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
             let sources = cfg.sources.unwrap_or_default().validate(id)?;
 
-            Ok(Self {
-                advisories,
-                bans,
-                licenses,
-                sources,
-            })
+            let mut targets = Vec::with_capacity(cfg.targets.len());
+            let mut diagnostics = Vec::new();
+            for target in cfg.targets {
+                let triple = target.triple.get_ref();
+
+                if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
+                    diagnostics.push(Diagnostic::new_warning(
+                        format!("unknown target `{}` specified", triple),
+                        cargo_deny::diag::Label::new(
+                            id,
+                            target.triple.span().0 as u32..target.triple.span().1 as u32,
+                            "the triple won't be evaluated against cfg() sections, just explicit triples"
+                        ),
+                    ));
+                }
+
+                targets.push((triple.into(), target.features));
+            }
+
+            Ok((
+                diagnostics,
+                Self {
+                    advisories,
+                    bans,
+                    licenses,
+                    sources,
+                    targets,
+                },
+            ))
+        };
+
+        let print = |diags: Vec<Diagnostic>| {
+            use codespan_reporting::term;
+
+            if diags.is_empty() {
+                return;
+            }
+
+            let writer =
+                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+            let config = term::Config::default();
+            let mut writer = writer.lock();
+            for diag in &diags {
+                term::emit(&mut writer, &config, &files, &diag).unwrap();
+            }
         };
 
         match validate() {
-            Ok(vc) => Ok(vc),
+            Ok((diags, vc)) => {
+                print(diags);
+                Ok(vc)
+            }
             Err(diags) => {
-                use codespan_reporting::term;
-
-                let writer =
-                    term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
-                let config = term::Config::default();
-                for diag in &diags {
-                    term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
-                }
+                print(diags);
 
                 anyhow::bail!(
                     "failed to validate configuration file {}",
@@ -118,7 +162,12 @@ impl ValidConfig {
     }
 }
 
-pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(
+    log_level: log::LevelFilter,
+    args: Args,
+    targets: Vec<String>,
+    context_dir: PathBuf,
+) -> Result<(), Error> {
     let mut files = codespan::Files::new();
     let cfg = ValidConfig::load(
         make_absolute_path(args.config.clone(), &context_dir),
@@ -156,21 +205,34 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
     rayon::scope(|s| {
         s.spawn(|_| {
-            let k = crate::common::gather_krates(context_dir);
+            let targets = if !targets.is_empty() {
+                targets.into_iter().map(|name| (name, Vec::new())).collect()
+            } else if !cfg.targets.is_empty() {
+                cfg.targets
+                    .iter()
+                    .map(|(name, features)| (name.clone(), features.clone()))
+                    .collect()
+            } else {
+                Vec::new()
+            };
 
-            if let Ok(ref k) = k {
+            let gathered = crate::common::gather_krates(context_dir, targets);
+
+            if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
                     if check_advisories {
-                        s.spawn(|_| advisory_lockfile = Some(advisories::generate_lockfile(&k)));
+                        s.spawn(|_| {
+                            advisory_lockfile = Some(advisories::generate_lockfile(&krates))
+                        });
                     }
 
                     if check_advisories || check_bans || check_sources {
-                        s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&k)));
+                        s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
                     }
                 });
             }
 
-            krates = Some(k);
+            krates = Some(gathered);
         });
 
         if check_advisories {
@@ -204,7 +266,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
     };
 
     let krate_spans = krate_spans.map(|(spans, contents)| {
-        let id = files.add(krates.lock_file.to_string_lossy(), contents);
+        let id = files.add(krates.lock_path().to_string_lossy(), contents);
         (spans, id)
     });
 
@@ -214,7 +276,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             .with_store(std::sync::Arc::new(store))
             .with_confidence_threshold(cfg.licenses.confidence_threshold);
 
-        Some(gatherer.gather(krates.as_ref(), &mut files, Some(&cfg.licenses)))
+        Some(gatherer.gather(&krates, &mut files, Some(&cfg.licenses)))
     } else {
         None
     };
@@ -339,7 +401,7 @@ fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
     max_severity: Option<cargo_deny::diag::Severity>,
-    files: codespan::Files,
+    files: codespan::Files<String>,
 ) -> Option<Error> {
     use codespan_reporting::term;
 

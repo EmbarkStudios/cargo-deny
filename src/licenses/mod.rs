@@ -1,6 +1,6 @@
 mod cfg;
 
-use crate::{diag, KrateDetails, LintLevel};
+use crate::{diag, Krate, LintLevel};
 use anyhow::Error;
 use cfg::{BlanketAgreement, FileSource, ValidClarification, ValidException};
 use rayon::prelude::*;
@@ -64,7 +64,7 @@ impl Eq for ValidException {}
 #[inline]
 fn iter_clarifications<'a>(
     all: &'a [ValidClarification],
-    krate: &'a KrateDetails,
+    krate: &'a Krate,
 ) -> impl Iterator<Item = &'a ValidClarification> {
     all.iter().filter(move |vc| {
         if vc.name == krate.name {
@@ -165,7 +165,7 @@ struct LicensePack {
 }
 
 impl LicensePack {
-    fn read(krate: &KrateDetails) -> Self {
+    fn read(krate: &Krate) -> Self {
         let root_path = krate.manifest_path.parent().unwrap();
 
         let mut lic_paths = match find_license_files(root_path) {
@@ -227,7 +227,7 @@ impl LicensePack {
 
     fn get_expression(
         &self,
-        krate: &KrateDetails,
+        krate: &Krate,
         file: codespan::FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
@@ -407,7 +407,7 @@ pub enum LicenseInfo {
 
 #[derive(Debug)]
 pub struct KrateLicense<'a> {
-    pub krate: &'a KrateDetails,
+    pub krate: &'a Krate,
     pub lic_info: LicenseInfo,
 
     // Reasons for why the license was determined (or not!) when
@@ -502,8 +502,8 @@ impl Gatherer {
 
     pub fn gather<'k>(
         self,
-        krates: &'k [crate::KrateDetails],
-        files: &mut codespan::Files,
+        krates: &'k crate::Krates,
+        files: &mut codespan::Files<String>,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
@@ -546,9 +546,12 @@ impl Gatherer {
         // 4. `license-file` + all LICENSE(-*)? files - Due to the prevalance
         // of dual-licensing in the rust ecosystem, many people forgo setting
         // license-file, so we use it and/or any LICENSE files
-        krates
-            .par_iter()
-            .map(|krate| {
+        summary.nfos = krates
+            .krates()
+            .par_bridge()
+            .map(|kn| {
+                let krate = &kn.krate;
+
                 // Attempt an SPDX expression that we can validate the user's acceptable
                 // license terms with
                 let mut synth_id = None;
@@ -753,7 +756,7 @@ impl Gatherer {
                     labels,
                 }
             })
-            .collect_into_vec(&mut summary.nfos);
+            .collect();
 
         summary
     }

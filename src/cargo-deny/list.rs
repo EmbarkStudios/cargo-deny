@@ -1,6 +1,6 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
-use cargo_deny::{licenses, Pid};
+use cargo_deny::{licenses, Kid};
 use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -71,13 +71,18 @@ pub struct Args {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(), Error> {
     use licenses::LicenseInfo;
 
     use std::{collections::BTreeMap, fmt::Write};
 
     let (krates, store) = rayon::join(
-        || crate::common::gather_krates(context_dir),
+        || {
+            crate::common::gather_krates(
+                context_dir,
+                targets.into_iter().map(|t| (t, Vec::new())).collect(),
+            )
+        },
         crate::common::load_license_store,
     );
 
@@ -90,7 +95,7 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
 
     let mut files = codespan::Files::new();
 
-    let summary = gatherer.gather(krates.as_ref(), &mut files, None);
+    let summary = gatherer.gather(&krates, &mut files, None);
 
     #[derive(Serialize)]
     struct Crate {
@@ -99,16 +104,16 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
 
     #[derive(Serialize)]
     struct LicenseLayout<'a> {
-        licenses: Vec<(String, Vec<&'a Pid>)>,
-        unlicensed: Vec<&'a Pid>,
+        licenses: Vec<(String, Vec<&'a Kid>)>,
+        unlicensed: Vec<&'a Kid>,
     }
 
     struct CrateLayout {
-        crates: BTreeMap<Pid, Crate>,
+        crates: BTreeMap<Kid, Crate>,
     }
 
     impl CrateLayout {
-        fn search(&self, id: &Pid) -> &Crate {
+        fn search(&self, id: &Kid) -> &Crate {
             self.crates.get(id).expect("unable to find crate")
         }
     }
@@ -162,13 +167,13 @@ pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
         }
     }
 
-    fn get_parts(pid: &Pid) -> (&str, &str) {
+    fn get_parts(pid: &Kid) -> (&str, &str) {
         let mut it = pid.repr.split(' ');
 
         (it.next().unwrap(), it.next().unwrap())
     }
 
-    fn write_pid(out: &mut String, pid: &Pid) -> Result<(), Error> {
+    fn write_pid(out: &mut String, pid: &Kid) -> Result<(), Error> {
         let parts = get_parts(pid);
 
         Ok(write!(out, "{}@{}", parts.0, parts.1)?)

@@ -3,7 +3,7 @@ use crate::LintLevel;
 use semver::VersionReq;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateId {
     // The name of the crate
@@ -13,7 +13,7 @@ pub struct CrateId {
     pub version: VersionReq,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct TreeSkip {
     #[serde(flatten)]

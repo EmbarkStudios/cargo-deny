@@ -15,14 +15,38 @@ pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     LicenseStore::from_cache()
 }
 
-pub(crate) fn gather_krates(context_dir: PathBuf) -> Result<cargo_deny::Krates, anyhow::Error> {
+pub(crate) fn gather_krates(
+    context_dir: PathBuf,
+    targets: Vec<(String, Vec<String>)>,
+) -> Result<cargo_deny::Krates, anyhow::Error> {
     log::info!("gathering crates for {}", context_dir.display());
 
-    let krates = cargo_deny::get_all_crates(&context_dir);
+    let mut mdc = krates::Cmd::new();
 
-    if let Ok(ref krates) = krates {
-        log::info!("gathered {} crates", krates.krates.len());
+    mdc.all_features();
+    mdc.manifest_path(context_dir.join("Cargo.toml"));
+
+    use krates::{Builder, DepKind};
+
+    let mut gb = Builder::new();
+
+    gb.include_targets(targets);
+    gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
+
+    let graph = gb.build(mdc, |filtered: krates::cm::Package| match filtered.source {
+        Some(src) => {
+            if src.is_crates_io() {
+                log::debug!("filtered {} {}", filtered.name, filtered.version);
+            } else {
+                log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
+            }
+        }
+        None => log::debug!("filtered crate {} {}", filtered.name, filtered.version),
+    });
+
+    if let Ok(ref krates) = graph {
+        log::info!("gathered {} crates", krates.len());
     }
 
-    krates
+    Ok(graph?)
 }
