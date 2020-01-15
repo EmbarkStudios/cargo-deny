@@ -5,10 +5,10 @@
 [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.7-blue.svg)](https://shields.io/)
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
-[![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.games)
+[![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.dev)
 
-One of the key selling points of Rust is the ever growing and improving ecosystem of crates available that can be easily added to your project incredibly easily via `cargo`. This is great! However, the larger the project is and the more dependencies you have, the harder it is to keep
-track of certain things, especially as a project evolves over time, which is what `cargo-deny` tries to help you with.
+`cargo-deny` is a cargo plugin for linting your dependencies
+
 
 * [Licenses](#licenses---cargo-deny-check-licenses) - Configure which license terms you accept
 * [Bans](#crate-bans---cargo-deny-check-bans) - Configure whether particular crates are allowed in your dependency graph
