@@ -7,7 +7,7 @@ use crate::common::make_absolute_path;
 #[derive(StructOpt, Debug, Clone)]
 pub struct Args {
     /// The path to the config file. Defaults to <context>/deny.toml
-    #[structopt(short, long, parse(from_os_str))]
+    #[structopt(parse(from_os_str))]
     config: Option<PathBuf>,
 }
 
