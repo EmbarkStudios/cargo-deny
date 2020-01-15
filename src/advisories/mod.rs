@@ -24,7 +24,24 @@ pub fn load_db(
     fetch: Fetch,
 ) -> Result<Database, Error> {
     let advisory_db_url = db_url.unwrap_or(repo::DEFAULT_URL);
-    let advisory_db_path = db_path.unwrap_or_else(Repository::default_path);
+    let advisory_db_path = db_path
+        .and_then(|path| {
+            if path.starts_with("~") {
+                match home::home_dir() {
+                    Some(home) => Some(home.join(path.strip_prefix("~").unwrap())),
+                    None => {
+                        log::warn!(
+                            "unable to resolve path '{}', falling back to the default advisory path",
+                            path.display()
+                        );
+                        None
+                    }
+                }
+            } else {
+                Some(path)
+            }
+        })
+        .unwrap_or_else(Repository::default_path);
 
     let advisory_db_repo = match fetch {
         Fetch::Allow => {
@@ -47,6 +64,10 @@ pub fn load_db(
         }
     };
 
+    info!(
+        "loading advisory database from {}",
+        advisory_db_path.display()
+    );
     Ok(Database::load(&advisory_db_repo).context("failed to load advisory database")?)
 }
 
