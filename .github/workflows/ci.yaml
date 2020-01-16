@@ -100,6 +100,22 @@ jobs:
           command: deny
           args: -L debug check
 
+  # Build `mdBook` documentation and upload it as a temporary build artifact
+  doc-book:
+    name: Doc - build the book
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: |
+        set -e
+        curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
+        echo ::add-path::`pwd`
+    - run: (cd docs && mdbook build)
+    - uses: actions/upload-artifact@v1
+      with:
+        name: doc-book
+        path: docs/book
+
   # publish-check:
   #   name: Publish Check
   #   runs-on: ubuntu-latest
@@ -218,3 +234,30 @@ jobs:
           files: 'cargo-deny*'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish
+    needs: [doc-book]
+    runs-on: ubuntu-latest
+    # github.ref == 'refs/heads/master'
+    if: github.event_name == 'push'
+    #if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - name: Download book
+      uses: actions/download-artifact@v1
+      with:
+        name: doc-book
+    - name: Assemble gh-pages
+      run: |
+        mv doc-book gh-pages
+    # If this is a push to the master branch push to the `gh-pages` using a
+    # deploy key. Note that a deploy key is necessary for now because otherwise
+    # using the default token for github actions doesn't actually trigger a page
+    # rebuild.
+    - name: Push to gh-pages
+      # Uses a rust script to setup and push to the gh-pages branch
+      run: curl -LsSf https://git.io/fhJ8n | rustc - && (cd gh-pages && ../rust_out)
+      env:
+        GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
+        BUILD_REPOSITORY_ID: ${{ github.repository }}
+        BUILD_SOURCEVERSION: ${{ github.sha }}
