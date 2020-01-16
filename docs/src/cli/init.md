@@ -10,15 +10,20 @@ The `init` command is used like this:
 cargo deny init
 ```
 
-A `deny.toml` file will be created in the current working directory which gives
-you a skeleton of a configuration file with comments about what certain values
-mean.
-
-#### Specify a path
+### Specify a path
 
 The `init` command can take a path as an argument to use as path of the config
 instead of the default which is `<cwd>/deny.toml`.
 
 ```bash
 cargo deny init path/to/config.toml
+```
+
+### Template
+
+A `deny.toml` file will be created in the current working directory that is
+a direct copy of [this template](https://github.com/EmbarkStudios/cargo-deny/blob/master/resources/template.toml).
+
+```ini
+{{#include ../../../resources/template.toml}}
 ```

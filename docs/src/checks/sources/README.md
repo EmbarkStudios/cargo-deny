@@ -1,5 +1,7 @@
 # sources
 
+The sources check ensures crates only come from sources you trust.
+
 ## Use Case - Only allowing known/trusted sources
 
 Cargo can retrieve crates from a variety of sources, namely registries, 

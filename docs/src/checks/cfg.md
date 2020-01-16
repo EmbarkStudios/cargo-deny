@@ -2,51 +2,10 @@
 
 The top level config for cargo-deny, by default called `deny.toml`.
 
-## Example
+## Example - cargo-deny's own configuration
 
 ```ini
-# cargo-deny is really only ever intended to run on the "normal" tier-1 targets
-targets = [
-    { triple = "x86_64-unknown-linux-gnu" },
-    { triple = "x86_64-unknown-linux-musl" },
-    { triple = "x86_64-apple-darwin" },
-    { triple = "x86_64-pc-windows-msvc" },
-]
-
-[advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-notice = "deny"
-
-[bans]
-multiple-versions = "deny"
-deny = [
-]
-skip = [
-    # clap uses an older version of ansi_term
-    { name = "ansi_term", version = "=0.11.0" },
-    # crossbeam (but also openssl-sys!) use pre-1.0 versions of autocfg
-    { name = "autocfg", version = "=0.1.7" },
-]
-
-[sources]
-unknown-registry = "deny"
-unknown-git = "deny"
-allow-git = [
-    "https://github.com/RustSec/rustsec-crate.git"
-]
-
-
-[licenses]
-unlicensed = "deny"
-allow-osi-fsf-free = "neither"
-copyleft = "deny"
-# We want really high confidence when inferring licenses from text
-confidence-threshold = 0.93
-allow = [
-    "Apache-2.0",
-    "MIT",
-]
+{{#include ../../../deny.toml}}
 ```
 
 ### The `targets` field (optional)

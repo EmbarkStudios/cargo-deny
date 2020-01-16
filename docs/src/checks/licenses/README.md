@@ -2,8 +2,8 @@
 
 The licenses check is used to verify that every crate you use has license terms
 you find acceptable. cargo-deny does this by evaluating the license requirements
-specified by each crate against the configuration you've specified to determine
-if your project meets that crate's license requirements.
+specified by each crate against the [configuration](cfg.md) you've specified to 
+determine if your project meets that crate's license requirements.
 
 ### SPDX
 

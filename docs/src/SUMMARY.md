@@ -5,6 +5,7 @@
   - [common](cli/common.md)
   - [init](cli/init.md)
   - [check](cli/check.md)
+  - [list](cli/list.md)
 - [Checks](checks/README.md)
   - [config](checks/cfg.md)
   - [licenses](checks/licenses/README.md)
