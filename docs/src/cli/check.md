@@ -11,7 +11,7 @@ configuration.
 The check(s) to perform. By default, **all** checks will be performed, unless 
 one or more specific checks are specified.
 
-See [checks](../checks/README.md) for the possible checks available.
+See [checks](../checks/index.html) for the possible checks available.
 
 ## Flags
 

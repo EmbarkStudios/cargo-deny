@@ -1,12 +1,14 @@
-# config
+# The `[licenses]` section
+
+Contains all of the configuration for `cargo deny check license`.
 
 ## Example
 
-```toml
+```ini
 [licenses]
 unlicensed = "deny"
 allow-osi-fsf-free = "either"
-copyleft = "ignore"
+copyleft = "warn"
 confidence-threshold = 0.92
 deny = [
     "GPL-3.0",
@@ -16,8 +18,12 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-3-Clause",
     "MIT",
-    "Zlib",
 ]
+exceptions = [
+    # Zlib is only used by this one crate
+    { allow = ["Zlib"], name = "adler32" },
+    # ring is the only crate that uses the ISC and OpenSSL licenses
+    { allow = ["ISC", "MIT", "OpenSSL"], name = "ring" },
 
 # ring has a rather complicated license file, and unfortunately does not
 # provide an SPDX expression in the `license` toml
@@ -35,10 +41,6 @@ license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 ```
-
-## The `[licenses]` section
-
-Contains all of the configuration for `cargo deny check license`.
 
 ### The `unlicensed` field (optional)
 

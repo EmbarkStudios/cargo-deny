@@ -1,8 +1,8 @@
 # Command Line Tool
 
-cargo-deny can be used either as a command line tool or a [Rust
-crate](https://crates.io/crates/cargo-deny). Let's focus on the command line 
-tool capabilities first.
+cargo-deny can be used either as a command line tool or a
+[Rust crate](https://crates.io/crates/cargo-deny). Let's focus on the command 
+line tool capabilities first.
 
 ## Install From Binaries
 
