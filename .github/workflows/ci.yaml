@@ -116,6 +116,7 @@ jobs:
         name: doc-book
         path: docs/book
 
+  # Temporarily disabled until a new rustsec has been released
   # publish-check:
   #   name: Publish Check
   #   runs-on: ubuntu-latest
