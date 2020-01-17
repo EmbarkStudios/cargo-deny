@@ -6,20 +6,17 @@ use crate::common::make_absolute_path;
 
 #[derive(StructOpt, Debug, Clone)]
 pub struct Args {
-    /// The path to the config file. Defaults to <context>/deny.toml
-    #[structopt(parse(from_os_str))]
-    config: Option<PathBuf>,
+    /// The path to create
+    ///
+    /// Defaults to <context>/deny.toml
+    #[structopt(parse(from_os_str), default_value = "deny.toml")]
+    config: PathBuf,
 }
 
-const DENY_TOML: &str = "deny.toml";
 const CONTENTS: &[u8] = include_bytes!("../../resources/template.toml");
 
 pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
-    let cfg_file = args
-        .config
-        .or_else(|| Some(DENY_TOML.into()))
-        .map(|path| make_absolute_path(path, &context_dir))
-        .context("unable to determine config path")?;
+    let cfg_file = make_absolute_path(args.config.clone(), &context_dir);
 
     // make sure the file does not exist yet
     ensure!(

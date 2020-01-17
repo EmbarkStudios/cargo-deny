@@ -23,21 +23,24 @@ arg_enum! {
 
 #[derive(StructOpt, Debug)]
 pub struct Args {
-    /// The path to the config file used to determine which crates are
-    /// allowed or denied. Will default to <context>/deny.toml if not specified.
+    /// Path to the config to use
+    ///
+    /// Defaults to <context>/deny.toml if not specified
     #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
     config: PathBuf,
-    /// A root directory to place dotviz graphs into when duplicate crate
-    /// versions are detected. Will be <dir>/graph_output/<crate_name>.dot.
-    /// The /graph_output/* is deleted and recreated each run.
+    /// Path to graph_output root directory
+    ///
+    /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
+    ///
+    /// Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
     graph: Option<PathBuf>,
     /// Hides the inclusion graph when printing out info for a crate
-    #[structopt(short, long)]
+    #[structopt(long)]
     hide_inclusion_graph: bool,
-    /// Disables fetching of the security advisory database, if would be loaded.
-    /// If this disabled, and there is not already an existing advisory database
-    /// locally, an error will occur.
+    /// Disable fetching of the advisory database
+    ///
+    /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
     disable_fetch: bool,
     /// The check(s) to perform

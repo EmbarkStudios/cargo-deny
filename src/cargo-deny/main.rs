@@ -15,10 +15,10 @@ enum Command {
     /// Outputs a listing of all licenses and the crates that use them
     #[structopt(name = "list")]
     List(list::Args),
-    /// Checks your dependency graph based on the configuration you specify
+    /// Checks a project's crate graph
     #[structopt(name = "check")]
     Check(check::Args),
-    /// Initialize an empty deny.toml file in your current crate.
+    /// Creates a cargo-deny config from a template
     #[structopt(name = "init")]
     Init(init::Args),
 }
@@ -28,16 +28,19 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
         .with_context(|| format!("failed to parse level '{}'", s))
 }
 
+/// Lints your project's crate graph
 #[derive(StructOpt)]
+#[structopt(max_term_width = 80)]
 struct Opts {
-    /// The log level for messages, only log messages at or above
-    /// the level will be emitted.
+    /// The log level for messages
     #[structopt(
         short = "L",
         long = "log-level",
         default_value = "warn",
         parse(try_from_str = parse_level),
-        long_help = "The log level for messages, only log messages at or above the level will be emitted.
+        long_help = "The log level for messages
+
+Only log messages at or above the level will be emitted.
 
 Possible values:
 * off
@@ -45,16 +48,17 @@ Possible values:
 * warn
 * info
 * debug
-* trace"
-    )]
+* trace
+")]
     log_level: log::LevelFilter,
-    /// The directory used as the context for the deny, if not specified,
-    /// the current working directory is used instead. Must contain a Cargo.toml file.
+    /// The directory used as the root context
+    ///
+    /// If not specified, the current working directory is used instead. The directory must contain a Cargo.toml file
     #[structopt(long, parse(from_os_str))]
     context: Option<PathBuf>,
-    /// One or more platforms to filter crates with. If a dependency is target
-    /// specific, it will be ignored if it does match 1 or more of the specified
-    /// targets. This overrides the top-level `targets = []` configuration value.
+    /// One or more platforms to filter crates by
+    ///
+    /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
     #[structopt(short, long)]
     target: Vec<String>,
     #[structopt(subcommand)]
