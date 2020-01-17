@@ -997,35 +997,65 @@ pub fn check(
         exceptions: bitvec![0; ctx.cfg.exceptions.len()],
     };
 
+    let private_registries: Vec<_> = ctx
+        .cfg
+        .private_registries
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+
     for mut krate_lic_nfo in summary.nfos {
         let mut diagnostics = Vec::new();
 
-        match &krate_lic_nfo.lic_info {
-            LicenseInfo::SPDXExpression { expr, nfo } => {
-                diagnostics.push(evaluate_expression(
-                    &ctx.cfg,
-                    &krate_lic_nfo,
-                    &expr,
-                    &nfo,
-                    &mut hits,
-                ));
+        loop {
+            // If the user has set this, check if it's a private workspace
+            // crate and just print out a help message that we skipped it
+            if ctx.cfg.skip_private {
+                if ctx
+                    .krates
+                    .workspace_members()
+                    .any(|wm| wm.id == krate_lic_nfo.krate.id)
+                    && krate_lic_nfo.krate.is_private(&private_registries)
+                {
+                    let i = ctx.krates.nid_for_kid(&krate_lic_nfo.krate.id).unwrap();
+                    diagnostics.push(Diagnostic::new(
+                        Severity::Help,
+                        "skipping private workspace crate",
+                        ctx.label_for_span(i.index(), "workspace crate"),
+                    ));
+                    break;
+                }
             }
-            LicenseInfo::Unlicensed => {
-                let severity = match ctx.cfg.unlicensed {
-                    LintLevel::Allow => Severity::Note,
-                    LintLevel::Warn => Severity::Warning,
-                    LintLevel::Deny => Severity::Error,
-                };
 
-                diagnostics.push(
-                    Diagnostic::new(
-                        severity,
-                        format!("{} is unlicensed", krate_lic_nfo.krate.id),
-                        krate_lic_nfo.labels.pop().unwrap(),
-                    )
-                    .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
-                );
+            match &krate_lic_nfo.lic_info {
+                LicenseInfo::SPDXExpression { expr, nfo } => {
+                    diagnostics.push(evaluate_expression(
+                        &ctx.cfg,
+                        &krate_lic_nfo,
+                        &expr,
+                        &nfo,
+                        &mut hits,
+                    ));
+                }
+                LicenseInfo::Unlicensed => {
+                    let severity = match ctx.cfg.unlicensed {
+                        LintLevel::Allow => Severity::Note,
+                        LintLevel::Warn => Severity::Warning,
+                        LintLevel::Deny => Severity::Error,
+                    };
+
+                    diagnostics.push(
+                        Diagnostic::new(
+                            severity,
+                            format!("{} is unlicensed", krate_lic_nfo.krate.id),
+                            krate_lic_nfo.labels.pop().unwrap(),
+                        )
+                        .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                    );
+                }
             }
+
+            break;
         }
 
         if !diagnostics.is_empty() {
