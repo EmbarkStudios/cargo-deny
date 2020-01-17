@@ -197,4 +197,40 @@ An opaque hash calculated from the file contents. This hash can be obtained
 from the output of the license check when cargo-deny can't determine the license
 of the file in question.
 
+### The `ignore-private` field
+
+If `true`, workspace members will not have their license expression checked if
+they are not published.
+
+```ini
+[package]
+name = "sekret"
+license = "¯\_(ツ)_/¯"
+publish = false
+```
+
+```ini
+[licenses]
+ignore-private = true # The sekret package would be ignored now
+```
+
+### The `private-registries` field
+
+A list of private registries you may publish your workspace crates to. If a
+workspace member **only** publishes to private registries, it will also be 
+ignored if `ignore-private = true`
+
+```ini
+[package]
+name = "sekret"
+license = "¯\_(ツ)_/¯"
+publish = ["sauce"]
+```
+
+```ini
+[licenses]
+ignore-private = true
+private-registries = ["sauce"] # Still ignored!
+```
+
 [SPDX-expr]: https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60

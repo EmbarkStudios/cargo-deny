@@ -109,9 +109,10 @@ pub struct Exception {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// If enabled, skips workspace crates that have been set to `publish = false`
+    /// If enabled, ignores workspace crates that aren't published, or are
+    /// only published to private registries
     #[serde(default)]
-    skip_private: bool,
+    pub ignore_private: bool,
     /// One or more private registries that you might publish crates to
     #[serde(default)]
     pub private_registries: Vec<String>,
@@ -149,7 +150,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            skip_private: false,
+            ignore_private: false,
             private_registries: Vec::new(),
             unlicensed: LintLevel::Deny,
             allow_osi_fsf_free: BlanketAgreement::default(),
@@ -299,7 +300,7 @@ impl Config {
         } else {
             Ok(ValidConfig {
                 file_id: cfg_file,
-                skip_private: self.skip_private,
+                ignore_private: self.ignore_private,
                 private_registries: self.private_registries,
                 unlicensed: self.unlicensed,
                 copyleft: self.copyleft,
@@ -336,7 +337,7 @@ pub type Licensee = crate::Spanned<spdx::Licensee>;
 #[doc(hidden)]
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
-    pub skip_private: bool,
+    pub ignore_private: bool,
     pub private_registries: Vec<String>,
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,
