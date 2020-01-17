@@ -56,12 +56,18 @@ impl TryFrom<&cm::Source> for Source {
 }
 
 pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
+    use bitvec::prelude::*;
+
     // early out if everything is allowed
     if ctx.cfg.unknown_registry == LintLevel::Allow && ctx.cfg.unknown_git == LintLevel::Allow {
         return;
     }
 
     // scan through each crate and check the source of it
+
+    // keep track of which sources are actually encountered, so we can emit a
+    // warning if the user has listed a source that no crates are actually using
+    let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         // determine source of crate
@@ -141,8 +147,23 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             }
         }
     }
+
+    for (hit, src) in source_hits
+        .into_iter()
+        .zip(ctx.cfg.allowed_sources.into_iter())
+    {
+        if !hit {
+            sender
+                .send(Pack {
+                    krate_id: None,
+                    diagnostics: vec![Diagnostic::new(
+                        Severity::Warning,
+                        "allowed source was not encountered",
+                        Label::new(
+                            ctx.cfg.file_id,
+                            src.span,
+                            "no crate source matched these criteria",
                         ),
-                        Label::new(spans_id, krate_spans[i].clone(), "source"),
                     )],
                 })
                 .unwrap();
