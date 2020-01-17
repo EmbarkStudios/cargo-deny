@@ -40,17 +40,33 @@ cargo deny check
 
 The licenses check is used to verify that every crate you use has license terms you find acceptable.
 
+```bash
+cargo deny check licenses
+```
+
 #### [Bans](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)
 
 The bans check is used to deny (or allow) specific crates, as well as detect and handle multiple versions of the same crate.
+
+```bash
+cargo deny check bans
+```
 
 #### [Advisories](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)
 
 The advisories check is used to detect issues for crates by looking in an advisory database.
 
+```bash
+cargo deny check advisories
+```
+
 #### [Sources](https://embarkstudios.github.io/cargo-deny/checks/sources/index.html)
 
 The sources check ensures crates only come from sources you trust.
+
+```bash
+cargo deny check sources
+```
 
 ## Contributing
 
