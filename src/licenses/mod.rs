@@ -972,7 +972,7 @@ fn evaluate_expression(
 }
 
 pub fn check(
-    cfg: &ValidConfig,
+    ctx: crate::CheckCtx<'_, ValidConfig>,
     summary: Summary<'_>,
     sender: crossbeam::channel::Sender<crate::diag::Pack>,
 ) {
@@ -981,10 +981,10 @@ pub fn check(
 
         match &krate_lic_nfo.lic_info {
             LicenseInfo::SPDXExpression { expr, nfo } => {
-                diagnostics.push(evaluate_expression(&cfg, &krate_lic_nfo, &expr, &nfo));
+                diagnostics.push(evaluate_expression(&ctx.cfg, &krate_lic_nfo, &expr, &nfo));
             }
             LicenseInfo::Unlicensed => {
-                let severity = match cfg.unlicensed {
+                let severity = match ctx.cfg.unlicensed {
                     LintLevel::Allow => Severity::Note,
                     LintLevel::Warn => Severity::Warning,
                     LintLevel::Deny => Severity::Error,
