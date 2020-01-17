@@ -1,5 +1,5 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources};
+use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources, CheckCtx};
 use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
@@ -96,7 +96,15 @@ impl ValidConfig {
             let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
             let bans = cfg.bans.unwrap_or_default().validate(id)?;
             let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
-            let sources = cfg.sources.unwrap_or_default().validate(id)?;
+
+            // Sources has a special case where it has a default value if one isn't specified,
+            // which doesn't play nicely with the toml::Spanned type, so we pass in the
+            // file contents as well so that sources validation can scan the contents itself
+            // if needed.
+            let sources = cfg
+                .sources
+                .unwrap_or_default()
+                .validate(id, files.source(id))?;
 
             let mut targets = Vec::with_capacity(cfg.targets.len());
             let mut diagnostics = Vec::new();
@@ -226,9 +234,7 @@ pub fn cmd(
                         });
                     }
 
-                    if check_advisories || check_bans || check_sources {
-                        s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
-                    }
+                    s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
                 });
             }
 
@@ -265,10 +271,12 @@ pub fn cmd(
         None
     };
 
-    let krate_spans = krate_spans.map(|(spans, contents)| {
-        let id = files.add(krates.lock_path().to_string_lossy(), contents);
-        (spans, id)
-    });
+    let (krate_spans, spans_id) = krate_spans
+        .map(|(spans, contents)| {
+            let id = files.add(krates.lock_path().to_string_lossy(), contents);
+            (spans, id)
+        })
+        .unwrap();
 
     let license_summary = if check_licenses {
         let store = license_store.unwrap()?;
@@ -314,9 +322,17 @@ pub fn cmd(
         if let Some(summary) = license_summary {
             let lic_tx = tx.clone();
             let lic_cfg = cfg.licenses;
+
+            let ctx = CheckCtx {
+                cfg: lic_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(move |_| {
                 log::info!("checking licenses...");
-                licenses::check(&lic_cfg, summary, lic_tx);
+                licenses::check(ctx, summary, lic_tx);
             });
         }
 
@@ -354,15 +370,16 @@ pub fn cmd(
             let ban_tx = tx.clone();
             let ban_cfg = cfg.bans;
 
+            let ctx = CheckCtx {
+                cfg: ban_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(|_| {
                 log::info!("checking bans...");
-                bans::check(
-                    ban_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    output_graph,
-                    ban_tx,
-                );
+                bans::check(ctx, output_graph, ban_tx);
             });
         }
 
@@ -370,23 +387,32 @@ pub fn cmd(
             let sources_tx = tx.clone();
             let sources_cfg = cfg.sources;
 
+            let ctx = CheckCtx {
+                cfg: sources_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(|_| {
                 log::info!("checking sources...");
-                sources::check(
-                    sources_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    sources_tx,
-                );
+                sources::check(ctx, sources_tx);
             });
         }
 
         if let Some((db, lockfile)) = advisory_ctx {
             let adv_cfg = cfg.advisories;
-            let krate_spans = krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap();
+
+            let ctx = CheckCtx {
+                cfg: adv_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(move |_| {
                 log::info!("checking advisories...");
-                advisories::check(adv_cfg, krates, krate_spans, &db, &lockfile, tx);
+                advisories::check(ctx, &db, &lockfile, tx);
             });
         }
     });

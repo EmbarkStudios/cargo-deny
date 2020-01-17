@@ -154,9 +154,7 @@ pub fn generate_lockfile(krates: &Krates) -> Lockfile {
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
 pub fn check(
-    cfg: cfg::ValidConfig,
-    krates: &Krates,
-    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
+    ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_db: &Database,
     lockfile: &rustsec::lockfile::Lockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
@@ -183,10 +181,11 @@ pub fn check(
     let report = rustsec::Report::generate(&advisory_db, &lockfile, &settings);
 
     use bitvec::prelude::*;
-    let mut ignore_hits = bitvec![0; cfg.ignore.len()];
+    let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
 
     let mut make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
-        match krates
+        match ctx
+            .krates
             .krates_by_name(pkg.name.as_str())
             .find(|(_, kn)| pkg.version == kn.krate.version)
         {
@@ -197,18 +196,18 @@ pub fn check(
                     let (lint_level, msg) = match &advisory.informational {
                         // Everything that isn't an informational advisory is a vulnerability
                         None => (
-                            cfg.vulnerability,
+                            ctx.cfg.vulnerability,
                             "security vulnerability detected".to_owned(),
                         ),
                         Some(info) => match info {
                             // Security notices for a crate which are published on https://rustsec.org
                             // but don't represent a vulnerability in a crate itself.
                             Informational::Notice => {
-                                (cfg.notice, "notice advisory detected".to_owned())
+                                (ctx.cfg.notice, "notice advisory detected".to_owned())
                             }
                             // Crate is unmaintained / abandoned
                             Informational::Unmaintained => (
-                                cfg.unmaintained,
+                                ctx.cfg.unmaintained,
                                 "unmaintained advisory detected".to_owned(),
                             ),
                             // Other types of informational advisories: left open-ended to add
@@ -225,10 +224,10 @@ pub fn check(
                     // for "reasons", but in that case we still emit it to the log
                     // so it doesn't just disappear into the aether
                     let lint_level =
-                        if let Ok(index) = cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
+                        if let Ok(index) = ctx.cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
                             ignore_hits.as_mut_bitslice().set(index, true);
                             LintLevel::Allow
-                        } else if let Some(severity_threshold) = cfg.severity_threshold {
+                        } else if let Some(severity_threshold) = ctx.cfg.severity_threshold {
                             if let Some(advisory_severity) =
                                 advisory.cvss.as_ref().map(|cvss| cvss.severity())
                             {
@@ -271,7 +270,7 @@ pub fn check(
                     diagnostics: vec![Diagnostic::new(
                         severity,
                         advisory.title.clone(),
-                        Label::new(spans_id, krate_spans[i.index()].clone(), message),
+                        ctx.label_for_span(i.index(), message),
                     )
                     .with_code(id.as_str().to_owned())
                     .with_notes(notes)],
@@ -307,7 +306,7 @@ pub fn check(
     // were not actually encountered, for cases where a crate, or specific
     // verison of that crate, has been removed or replaced and the advisory
     // no longer applies to it so that users can cleanup their configuration
-    for (hit, ignore) in ignore_hits.into_iter().zip(cfg.ignore.into_iter()) {
+    for (hit, ignore) in ignore_hits.into_iter().zip(ctx.cfg.ignore.into_iter()) {
         if !hit {
             sender
                 .send(diag::Pack {
@@ -316,7 +315,7 @@ pub fn check(
                         Severity::Warning,
                         "advisory was not encountered",
                         Label::new(
-                            cfg.file_id,
+                            ctx.cfg.file_id,
                             ignore.span,
                             "no crate matched advisory criteria",
                         ),

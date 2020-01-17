@@ -183,12 +183,10 @@ pub struct DupGraph {
 
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
-use crate::diag::{self, Diagnostic, Label, Pack, Severity};
+use crate::diag::{Diagnostic, Label, Pack, Severity};
 
 pub fn check(
-    cfg: ValidConfig,
-    krates: &Krates,
-    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
+    ctx: crate::CheckCtx<'_, ValidConfig>,
     output_graph: Option<Box<OutputGraph>>,
     sender: crossbeam::channel::Sender<Pack>,
 ) {
@@ -201,9 +199,9 @@ pub fn check(
         highlight,
         tree_skipped,
         ..
-    } = cfg;
+    } = ctx.cfg;
 
-    let mut tree_skipper = TreeSkipper::build(tree_skipped, krates, file_id, sender.clone());
+    let mut tree_skipper = TreeSkipper::build(tree_skipped, ctx.krates, file_id, sender.clone());
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -216,11 +214,11 @@ pub fn check(
     }
 
     let mut multi_detector = MultiDetector {
-        name: &krates.krates().next().unwrap().krate.name,
+        name: &ctx.krates.krates().next().unwrap().krate.name,
         dupes: smallvec::SmallVec::new(),
     };
 
-    for (i, krate) in krates.krates().map(|kn| &kn.krate).enumerate() {
+    for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut diagnostics = Vec::new();
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
@@ -288,7 +286,7 @@ pub fn check(
 
                     #[allow(clippy::needless_range_loop)]
                     for dup in multi_detector.dupes.iter().cloned() {
-                        let span = &krate_spans[dup];
+                        let span = &ctx.krate_spans[dup];
 
                         if span.start < all_start {
                             all_start = span.start
@@ -298,7 +296,7 @@ pub fn check(
                             all_end = span.end
                         }
 
-                        let krate = &krates[dup];
+                        let krate = &ctx.krates[dup];
 
                         dupes.push(Pack {
                             krate_id: Some(krate.id.clone()),
@@ -311,7 +309,7 @@ pub fn check(
                                     krate.name,
                                     krate.version
                                 ),
-                                Label::new(spans_id, span.clone(), "lock entry"),
+                                Label::new(ctx.spans_id, span.clone(), "lock entry"),
                             )],
                         });
                     }
@@ -326,7 +324,7 @@ pub fn check(
                                     dupes.len(),
                                     multi_detector.name
                                 ),
-                                Label::new(spans_id, all_start..all_end, "lock entries"),
+                                Label::new(ctx.spans_id, all_start..all_end, "lock entries"),
                             )],
                         })
                         .unwrap();
@@ -339,7 +337,7 @@ pub fn check(
                         match graph::create_graph(
                             multi_detector.name,
                             highlight,
-                            krates,
+                            ctx.krates,
                             &multi_detector.dupes,
                         ) {
                             Ok(graph) => {
@@ -385,7 +383,11 @@ pub fn check(
                     diagnostics: vec![Diagnostic::new(
                         Severity::Warning,
                         "skipped crate was not encountered",
-                        Label::new(cfg.file_id, skip.span, "no crate matched these criteria"),
+                        Label::new(
+                            ctx.cfg.file_id,
+                            skip.span,
+                            "no crate matched these criteria",
+                        ),
                     )],
                 })
                 .unwrap();

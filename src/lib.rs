@@ -387,4 +387,21 @@ pub fn hash(data: &[u8]) -> u32 {
     xx.finish() as u32
 }
 
-pub struct CrateVersion<'a>(pub &'a semver::Version);
+/// Common context for the various checks. Some checks
+/// require additional information though.
+pub struct CheckCtx<'ctx, T> {
+    /// The configuration for the check
+    pub cfg: T,
+    /// The krates graph to check
+    pub krates: &'ctx Krates,
+    /// The spans for each unique crate in a synthesized "lock file"
+    pub krate_spans: &'ctx diag::KrateSpans,
+    /// The codespan file id for the synthesized krate_spans
+    pub spans_id: codespan::FileId,
+}
+
+impl<'ctx, T> CheckCtx<'ctx, T> {
+    pub(crate) fn label_for_span(&self, krate_index: usize, msg: impl Into<String>) -> diag::Label {
+        diag::Label::new(self.spans_id, self.krate_spans[krate_index].clone(), msg)
+    }
+}

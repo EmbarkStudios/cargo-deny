@@ -3,7 +3,7 @@ pub use cfg::{Config, ValidConfig};
 
 use crate::{
     cm,
-    diag::{self, Diagnostic, Label, Pack, Severity},
+    diag::{Diagnostic, Label, Pack, Severity},
     LintLevel,
 };
 use anyhow::{bail, ensure, Context, Error};
@@ -55,20 +55,15 @@ impl TryFrom<&cm::Source> for Source {
     }
 }
 
-pub fn check(
-    cfg: ValidConfig,
-    krates: &crate::Krates,
-    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
-    sender: crossbeam::channel::Sender<Pack>,
-) {
+pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
     // early out if everything is allowed
-    if cfg.unknown_registry == LintLevel::Allow && cfg.unknown_git == LintLevel::Allow {
+    if ctx.cfg.unknown_registry == LintLevel::Allow && ctx.cfg.unknown_git == LintLevel::Allow {
         return;
     }
 
     // scan through each crate and check the source of it
 
-    for (i, krate) in krates.krates().map(|kn| &kn.krate).enumerate() {
+    for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         // determine source of crate
 
         let source = match &krate.source {
@@ -84,7 +79,7 @@ pub fn check(
                         diagnostics: vec![Diagnostic::new(
                             Severity::Error,
                             "detected unknown or unsupported crate source",
-                            Label::new(spans_id, krate_spans[i].clone(), "source"),
+                            ctx.label_for_span(i, "source"),
                         )],
                     })
                     .unwrap();

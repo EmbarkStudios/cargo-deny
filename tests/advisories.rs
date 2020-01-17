@@ -79,14 +79,14 @@ fn detects_vulnerabilities(ctx: &Ctx) -> Result<(), Error> {
 
     let (_, vuln_res) = rayon::join(
         || {
-            advisories::check(
+            let ctx2 = cargo_deny::CheckCtx {
                 cfg,
-                &ctx.krates,
-                (&ctx.spans.0, ctx.spans.1),
-                &ctx.db,
-                &ctx.lock,
-                tx,
-            );
+                krates: &ctx.krates,
+                krate_spans: &ctx.spans.0,
+                spans_id: ctx.spans.1,
+            };
+
+            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -133,14 +133,14 @@ fn detects_unmaintained(ctx: &Ctx) -> Result<(), Error> {
 
     let (_, vuln_res) = rayon::join(
         || {
-            advisories::check(
+            let ctx2 = cargo_deny::CheckCtx {
                 cfg,
-                &ctx.krates,
-                (&ctx.spans.0, ctx.spans.1),
-                &ctx.db,
-                &ctx.lock,
-                tx,
-            );
+                krates: &ctx.krates,
+                krate_spans: &ctx.spans.0,
+                spans_id: ctx.spans.1,
+            };
+
+            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -187,14 +187,14 @@ fn downgrades(ctx: &Ctx) -> Result<(), Error> {
 
     let (_, vuln_res) = rayon::join(
         || {
-            advisories::check(
+            let ctx2 = cargo_deny::CheckCtx {
                 cfg,
-                &ctx.krates,
-                (&ctx.spans.0, ctx.spans.1),
-                &ctx.db,
-                &ctx.lock,
-                tx,
-            );
+                krates: &ctx.krates,
+                krate_spans: &ctx.spans.0,
+                spans_id: ctx.spans.1,
+            };
+
+            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
         },
         || {
             let mut got_ammonia_vuln = false;
