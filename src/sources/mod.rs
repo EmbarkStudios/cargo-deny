@@ -87,38 +87,60 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             }
         };
 
-        // get allowed list of sources to check
-
-        let (allowed_sources, lint_level) = match source {
-            Source::Registry(_) => (&cfg.allow_registry, cfg.unknown_registry),
-            Source::Git(_) => (&cfg.allow_git, cfg.unknown_git),
-        };
-
         // get URL without git revision (query & fragment)
         // example URL in Cargo.lock: https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
         // where we only want:        https://github.com/RustSec/rustsec-crate.git
-        let source_url_str = {
+        let source_url = {
             let mut url = source.url().clone();
             url.set_query(None);
             url.set_fragment(None);
-            url.as_str().to_owned()
+            url
+        };
+
+        // get allowed list of sources to check
+
+        let lint_level = match source {
+            Source::Registry(_) => ctx.cfg.unknown_registry,
+            Source::Git(_) => ctx.cfg.unknown_git,
         };
 
         // check if the source URL is list of allowed sources
-        if !allowed_sources.contains(&source_url_str) {
-            sender
-                .send(Pack {
-                    krate_id: Some(krate.id.clone()),
-                    diagnostics: vec![Diagnostic::new(
-                        match lint_level {
-                            LintLevel::Warn => Severity::Warning,
-                            LintLevel::Deny => Severity::Error,
-                            LintLevel::Allow => Severity::Note,
-                        },
-                        format!(
-                            "detected crate {} source \"{}\" not specifically allowed",
-                            source.type_name(),
-                            source_url_str,
+        match ctx
+            .cfg
+            .allowed_sources
+            .iter()
+            .position(|src| src.url == source_url)
+        {
+            Some(ind) => source_hits.as_mut_bitslice().set(ind, true),
+            None => {
+                let mut span = ctx.krate_spans[i].clone();
+
+                // The krate span is the complete id, but we only want
+                // to highlight the source component
+                let last_space = krate.id.repr.rfind(' ').unwrap();
+
+                span.start = span.start + last_space as u32 + 1;
+
+                sender
+                    .send(Pack {
+                        krate_id: Some(krate.id.clone()),
+                        diagnostics: vec![Diagnostic::new(
+                            match lint_level {
+                                LintLevel::Warn => Severity::Warning,
+                                LintLevel::Deny => Severity::Error,
+                                LintLevel::Allow => Severity::Note,
+                            },
+                            format!(
+                                "detected '{}' source not specifically allowed",
+                                source.type_name(),
+                            ),
+                            Label::new(ctx.spans_id, span, "source"),
+                        )],
+                    })
+                    .unwrap();
+            }
+        }
+    }
                         ),
                         Label::new(spans_id, krate_spans[i].clone(), "source"),
                     )],
