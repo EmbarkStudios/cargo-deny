@@ -34,8 +34,11 @@ arg_enum! {
 
 #[derive(StructOpt, Debug)]
 pub struct Args {
-    /// The confidence threshold required for license files
-    /// to be positively identified: 0.0 - 1.0
+    /// Minimum confidence threshold for license text
+    ///
+    /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
+    ///
+    /// [possible values: 0.0 - 1.0]
     #[structopt(short, long, default_value = "0.8")]
     threshold: f32,
     /// The format of the output
@@ -55,8 +58,9 @@ pub struct Args {
         case_insensitive = true,
     )]
     color: ColorWhen,
-    /// This just determines if log messages are emitted, the log level specified
-    /// at the top level still applies
+    /// Determines if log messages are emitted
+    ///
+    /// The log level specified at the top level still applies
     #[structopt(short, long)]
     verbose: bool,
     /// The layout for the output, does not apply to TSV
