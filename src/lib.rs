@@ -1,11 +1,15 @@
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
+#![cfg_attr(docsrs, feature(external_doc))]
 
 //! # ❌ cargo-deny
 //!
-//! [![Build Status](https://travis-ci.com/EmbarkStudios/cargo-deny.svg?branch=master)](https://travis-ci.com/EmbarkStudios/cargo-deny)
+//! [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
 //! [![Latest version](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 //! [![Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
+//! [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.7-blue.svg)](https://shields.io/)
+//! [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+//! [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.dev)
 //!
 //! One of the key selling points of Rust is the ever growing and improving ecosystem of crates
 //! available that can be easily added to your project incredibly easily via `cargo`. This is great!
@@ -214,17 +218,25 @@ use std::{cmp, collections::HashMap, path::PathBuf};
 pub mod advisories;
 pub mod bans;
 pub mod diag;
+/// Configuration and logic for checking crate licenses
 pub mod licenses;
 pub mod sources;
 
 use krates::cm;
 pub use krates::{DepKind, Kid};
 
-#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy)]
+/// The possible lint levels for the various lints. These function similarly
+/// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
+#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum LintLevel {
+    /// A debug or info diagnostic _may_ be emitted if the lint is violated
     Allow,
+    /// A warning will be emitted if the lint is violated, but the command
+    /// will succeed
     Warn,
+    /// An error will be emitted if the lint is violated, and the command
+    /// will fail with a non-zero exit code
     Deny,
 }
 

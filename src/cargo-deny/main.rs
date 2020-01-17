@@ -52,6 +52,9 @@ Possible values:
     /// the current working directory is used instead. Must contain a Cargo.toml file.
     #[structopt(long, parse(from_os_str))]
     context: Option<PathBuf>,
+    /// One or more platforms to filter crates with. If a dependency is target
+    /// specific, it will be ignored if it does match 1 or more of the specified
+    /// targets. This overrides the top-level `targets = []` configuration value.
     #[structopt(short, long)]
     target: Vec<String>,
     #[structopt(subcommand)]

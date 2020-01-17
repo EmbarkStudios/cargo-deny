@@ -1,4 +1,20 @@
-mod cfg;
+//! ## `cargo deny check licenses`
+//!
+//! One important aspect that one must always keep in mind when using code from
+//! other people is what the licensing of that code is and whether it fits the
+//! requirements of your project. Luckily, most of the crates in the Rust
+//! ecosystem tend to follow the example set forth by Rust itself, namely
+//! dual-license `MIT OR Apache-2.0`, but of course, that is not always the case.
+//!
+//! `cargo-deny` allows you to ensure that all of your dependencies have license
+//! requirements that are satisfied by the licenses you choose to use for your
+//! project, and notifies you via warnings or errors if the license requirements
+//! for any crate aren't compatible with your configuration.
+//!
+//!
+
+/// Configuration for license checking
+pub mod cfg;
 
 use crate::{diag, Krate, LintLevel};
 use anyhow::Error;

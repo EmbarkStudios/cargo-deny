@@ -1,3 +1,26 @@
+#![cfg_attr(docsrs, doc(include = "../../docs/licenses/cfg.md"))]
+
+//! If a `[license]` configuration section, cargo-deny will use the default
+//! configuration.
+//!
+//! ```
+//! use cargo_deny::{LintLevel, licenses::Config};
+//!
+//! let dc = Config::default();
+//!
+//! assert_eq!(dc.unlicensed, LintLevel::Deny);
+//! assert_eq!(
+//!     dc.allow_osi_fsf_free,
+//!     cargo_deny::licenses::cfg::BlanketAgreement::Neither
+//! );
+//! assert_eq!(dc.copyleft, LintLevel::Warn);
+//! assert_eq!(dc.confidence_threshold, 0.8);
+//! assert!(dc.deny.is_empty());
+//! assert!(dc.allow.is_empty());
+//! assert!(dc.clarify.is_empty());
+//! assert!(dc.exceptions.is_empty());
+//! ```
+
 use crate::LintLevel;
 use semver::VersionReq;
 use serde::Deserialize;
@@ -11,7 +34,7 @@ const fn confidence_threshold() -> f32 {
 /// Allows agreement of licensing terms based on whether the license is
 /// [OSI Approved](https://opensource.org/licenses) or [considered free](
 /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BlanketAgreement {
     /// The license must be both OSI Approved and FSF/Free Libre
@@ -32,41 +55,67 @@ impl Default for BlanketAgreement {
     }
 }
 
+/// The path and hash of a LICENSE file
 #[derive(PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct FileSource {
     /// The crate relative path of the LICENSE file
     pub path: PathBuf,
-    /// The hash of the LICENSE text
+    /// The hash of the LICENSE text. If the `path`'s hash
+    /// differs from the contents of the path, the file is
+    /// parsed to determine if the license(s) contained in
+    /// it are still the same
     pub hash: u32,
 }
 
+/// Some crates have complicated LICENSE files that eg contain multiple license
+/// texts in a single file, or are otherwise sufficiently different from the
+/// canonical license text that the confidence level cargo-deny can attribute to
+/// them falls below the `confidence-threshold` you want generally across all
+/// license texts. `Clarification`s allow you to manually assign the
+/// [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
+/// to use for a particular crate as well as 1 or more file sources used as the
+/// ground truth for that expression. If the files change in a future version
+/// of the crate, the clarification will be ignored and the crate will be checked
+/// as normal.
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Clarification {
+    /// The name of the crate that this clarification applies to
     pub name: String,
+    /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
+    /// The [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
+    /// to apply to the crate.
     pub expression: toml::Spanned<String>,
+    /// Files in the crate that are the ground truth for the expression.
     pub license_files: Vec<FileSource>,
 }
 
+/// An exception is a way for 1 or more licenses to be allowed only for a
+/// particular crate.
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Exception {
+    /// The name of the crate to apply the exception to.
     pub name: String,
+    /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
+    /// One or more [SPDX identifiers](https://spdx.org/licenses/) that are
+    /// allowed only for this crate.
     pub allow: Vec<toml::Spanned<String>>,
 }
 
+/// Top level configuration for the a license check
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// Determines what happens when license information cannot be
-    /// determined for a crate
+    /// Determines what happens when license information cannot be determined
+    /// for a crate
     #[serde(default = "crate::lint_deny")]
     pub unlicensed: LintLevel,
-    /// Agrees to licenses based on whether they are OSI Approved
-    /// or FSF/Free Libre
+    /// Accepts license requirements based on whether they are OSI Approved or
+    /// FSF/Free Libre
     #[serde(default)]
     pub allow_osi_fsf_free: BlanketAgreement,
     /// Determines what happens when a copyleft license is detected
@@ -82,8 +131,8 @@ pub struct Config {
     /// Licenses that will be allowed in a license expression
     #[serde(default)]
     pub allow: Vec<toml::Spanned<String>>,
-    /// Overrides the license expression used for a particular crate as long as it
-    /// exactly matches the specified license files and hashes
+    /// Overrides the license expression used for a particular crate as long as
+    /// it exactly matches the specified license files and hashes
     #[serde(default)]
     pub clarify: Vec<Clarification>,
     /// Allow 1 or more licenses on a per-crate basis, so particular licenses
@@ -108,6 +157,11 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Validates the configuration provided by the user.
+    ///
+    /// 1. Ensures all SPDX identifiers are valid
+    /// 1. Esnures all SPDX expressions are valid
+    /// 1. Ensures the same license is not both allowed and denied
     pub fn validate(
         self,
         cfg_file: codespan::FileId,
@@ -162,9 +216,9 @@ impl Config {
 
         exceptions.par_sort();
 
-        // Ensure the config doesn't contain the same exact license as
-        // both denied and allowed, that's confusing and probably
-        // not intended, so they should pick one
+        // Ensure the config doesn't contain the same exact license as both
+        // denied and allowed, that's confusing and probably not intended, so
+        // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(&d) {
                 let dlabel = Label::new(
@@ -247,6 +301,7 @@ impl Config {
     }
 }
 
+#[doc(hidden)]
 pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
@@ -255,6 +310,7 @@ pub struct ValidClarification {
     pub license_files: Vec<FileSource>,
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub struct ValidException {
     pub name: String,
@@ -262,6 +318,7 @@ pub struct ValidException {
     pub allowed: Vec<Licensee>,
 }
 
+#[doc(hidden)]
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
     pub unlicensed: LintLevel,
