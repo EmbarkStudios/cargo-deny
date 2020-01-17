@@ -265,3 +265,71 @@ impl<'ctx, T> CheckCtx<'ctx, T> {
         diag::Label::new(self.spans_id, self.krate_spans[krate_index].clone(), msg)
     }
 }
+
+pub struct Spanned<T> {
+    pub(crate) item: T,
+    pub(crate) span: std::ops::Range<u32>,
+}
+
+impl<T> Spanned<T> {
+    #[inline]
+    pub(crate) fn new(item: T, span: std::ops::Range<u32>) -> Self {
+        Self { item, span }
+    }
+
+    #[inline]
+    pub(crate) fn newu(item: T, span: std::ops::Range<usize>) -> Self {
+        Self {
+            item,
+            span: span.start as u32..span.end as u32,
+        }
+    }
+}
+
+impl<T> From<toml::Spanned<T>> for Spanned<T> {
+    fn from(ts: toml::Spanned<T>) -> Self {
+        let span = ts.start() as u32..ts.end() as u32;
+        Self {
+            item: ts.into_inner(),
+            span,
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for Spanned<T>
+where
+    T: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.item)
+    }
+}
+
+impl<T> PartialOrd for Spanned<T>
+where
+    T: PartialOrd,
+{
+    fn partial_cmp(&self, o: &Spanned<T>) -> Option<std::cmp::Ordering> {
+        self.item.partial_cmp(&o.item)
+    }
+}
+
+impl<T> Ord for Spanned<T>
+where
+    T: Ord,
+{
+    fn cmp(&self, o: &Spanned<T>) -> std::cmp::Ordering {
+        self.item.cmp(&o.item)
+    }
+}
+
+impl<T> PartialEq for Spanned<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, o: &Spanned<T>) -> bool {
+        self.item == o.item
+    }
+}
+
+impl<T> Eq for Spanned<T> where T: Eq {}

@@ -24,7 +24,6 @@
 use crate::LintLevel;
 use semver::VersionReq;
 use serde::Deserialize;
-use spdx::Licensee;
 use std::path::PathBuf;
 
 const fn confidence_threshold() -> f32 {
@@ -98,7 +97,7 @@ pub struct Clarification {
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Exception {
     /// The name of the crate to apply the exception to.
-    pub name: String,
+    pub name: toml::Spanned<String>,
     /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
     /// One or more [SPDX identifiers](https://spdx.org/licenses/) that are
@@ -172,10 +171,14 @@ impl Config {
         let mut diagnostics = Vec::new();
 
         let mut parse_license =
-            |l: &toml::Spanned<String>, v: &mut Vec<Licensee>| match Licensee::parse(l.get_ref()) {
-                Ok(l) => v.push(l),
+            |ls: &toml::Spanned<String>, v: &mut Vec<Licensee>| match spdx::Licensee::parse(
+                ls.get_ref(),
+            ) {
+                Ok(licensee) => {
+                    v.push(Licensee::newu(licensee, ls.start()..ls.end()));
+                }
                 Err(pe) => {
-                    let offset = (l.start() + 1) as u32;
+                    let offset = (ls.start() + 1) as u32;
                     let span = pe.span.start as u32 + offset..pe.span.end as u32 + offset;
                     let diag = Diagnostic::new_error(
                         "invalid licensee",
@@ -208,7 +211,7 @@ impl Config {
             }
 
             exceptions.push(ValidException {
-                name: exc.name,
+                name: crate::Spanned::from(exc.name),
                 version: exc.version.unwrap_or_else(VersionReq::any),
                 allowed,
             });
@@ -313,10 +316,12 @@ pub struct ValidClarification {
 #[doc(hidden)]
 #[derive(Debug)]
 pub struct ValidException {
-    pub name: String,
+    pub name: crate::Spanned<String>,
     pub version: VersionReq,
     pub allowed: Vec<Licensee>,
 }
+
+pub type Licensee = crate::Spanned<spdx::Licensee>;
 
 #[doc(hidden)]
 pub struct ValidConfig {

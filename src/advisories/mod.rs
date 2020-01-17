@@ -224,7 +224,7 @@ pub fn check(
                     // for "reasons", but in that case we still emit it to the log
                     // so it doesn't just disappear into the aether
                     let lint_level =
-                        if let Ok(index) = ctx.cfg.ignore.binary_search_by(|i| i.id.cmp(id)) {
+                        if let Ok(index) = ctx.cfg.ignore.binary_search_by(|i| i.item.cmp(id)) {
                             ignore_hits.as_mut_bitslice().set(index, true);
                             LintLevel::Allow
                         } else if let Some(severity_threshold) = ctx.cfg.severity_threshold {

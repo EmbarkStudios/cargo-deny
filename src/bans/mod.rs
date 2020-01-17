@@ -11,7 +11,6 @@ use std::cmp::Ordering;
 pub struct KrateId {
     name: String,
     version: VersionReq,
-    span: std::ops::Range<u32>,
 }
 
 impl Ord for KrateId {
@@ -35,29 +34,32 @@ impl PartialEq for KrateId {
     }
 }
 
-fn binary_search<'a>(arr: &'a [KrateId], details: &Krate) -> Result<(usize, &'a KrateId), usize> {
+fn binary_search<'a>(
+    arr: &'a [cfg::Skrate],
+    details: &Krate,
+) -> Result<(usize, &'a cfg::Skrate), usize> {
     let lowest = VersionReq::exact(&Version::new(0, 0, 0));
 
-    match arr.binary_search_by(|i| match i.name.cmp(&details.name) {
-        Ordering::Equal => i.version.cmp(&lowest),
+    match arr.binary_search_by(|i| match i.item.name.cmp(&details.name) {
+        Ordering::Equal => i.item.version.cmp(&lowest),
         o => o,
     }) {
         Ok(i) => Ok((i, &arr[i])),
         Err(i) => {
             // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
             // before the 0.0.0 version
-            let begin = if i > 0 && arr[i - 1].name == details.name {
+            let begin = if i > 0 && arr[i - 1].item.name == details.name {
                 i - 1
             } else {
                 i
             };
 
             for (j, krate) in arr[begin..].iter().enumerate() {
-                if krate.name != details.name {
+                if krate.item.name != details.name {
                     break;
                 }
 
-                if krate.version.matches(&details.version) {
+                if krate.item.version.matches(&details.version) {
                     return Ok((begin + j, krate));
                 }
             }
@@ -486,10 +488,14 @@ mod test {
 
         let mut versions: Vec<_> = versions
             .iter()
-            .map(|v| super::KrateId {
-                name: v.name.clone(),
-                version: v.version.clone(),
-                span: 0..0,
+            .map(|v| {
+                crate::Spanned::new(
+                    super::KrateId {
+                        name: v.name.clone(),
+                        version: v.version.clone(),
+                    },
+                    0..0,
+                )
             })
             .collect();
 
@@ -504,7 +510,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse("=0.3.1").unwrap())
         );
@@ -518,7 +524,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::any())
         );
@@ -542,7 +548,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse("=0.1.43").unwrap())
         );
@@ -556,7 +562,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse("<0.1.42").unwrap())
         );
@@ -570,7 +576,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse(">0.1.43").unwrap())
         );
@@ -584,7 +590,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse("<0.1").unwrap())
         );
@@ -598,7 +604,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.version)
+            .map(|(_, s)| &s.item.version)
             .unwrap(),
             &(VersionReq::parse("<0.3").unwrap())
         );

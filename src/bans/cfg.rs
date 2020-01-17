@@ -101,11 +101,13 @@ impl Config {
         let from = |s: toml::Spanned<CrateId>| {
             let span = s.start() as u32..s.end() as u32;
             let inner = s.into_inner();
-            KrateId {
-                name: inner.name,
-                version: inner.version,
+            Skrate::new(
+                KrateId {
+                    name: inner.name,
+                    version: inner.version,
+                },
                 span,
-            }
+            )
         };
 
         let mut diagnostics = Vec::new();
@@ -119,7 +121,7 @@ impl Config {
         let mut skipped: Vec<_> = self.skip.into_iter().map(from).collect();
         skipped.par_sort();
 
-        let mut add_diag = |first: (&KrateId, &str), second: (&KrateId, &str)| {
+        let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
             let flabel = Label::new(
                 cfg_file,
                 first.0.span.clone(),
@@ -187,12 +189,14 @@ impl Config {
     }
 }
 
+pub(crate) type Skrate = crate::Spanned<KrateId>;
+
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
-    pub(crate) denied: Vec<KrateId>,
-    pub(crate) allowed: Vec<KrateId>,
-    pub(crate) skipped: Vec<KrateId>,
+    pub(crate) denied: Vec<Skrate>,
+    pub(crate) allowed: Vec<Skrate>,
+    pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<toml::Spanned<TreeSkip>>,
 }
