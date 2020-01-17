@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the `sources` check and configuration, which allows linting of crate sources
 - Resolved [#63](https://github.com/EmbarkStudios/cargo-deny/issues/63) by adding a dependency on [`krates`](https://crates.io/crates/krates), which allows us to easily filter out dependencies that don't match a target specified by the user via the `targets` config value.
+- Resolved [#75](https://github.com/EmbarkStudios/cargo-deny/issues/75), a warning is now printed for license exceptions and allowed licenses, if they aren't encountered when checking crate license information.
 
 ### Changed
 - Resolved [#85](https://github.com/EmbarkStudios/cargo-deny/issues/85) by changing the max column width from 120 to 80 and reformatting some of the help text for the CLI.
