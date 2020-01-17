@@ -16,7 +16,7 @@ pub struct Args {
 const CONTENTS: &[u8] = include_bytes!("../../resources/template.toml");
 
 pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
-    let cfg_file = make_absolute_path(args.config.clone(), &context_dir);
+    let cfg_file = make_absolute_path(args.config, &context_dir);
 
     // make sure the file does not exist yet
     ensure!(
