@@ -55,7 +55,7 @@ impl Config {
 
             match url::Url::parse(&ar) {
                 Ok(url) => {
-                    allowed_sources.push(SourceSpan { url, span });
+                    allowed_sources.push(SourceSpan::new(url, span));
                 }
                 Err(pe) => {
                     diags.push(Diagnostic::new_error(
@@ -70,7 +70,7 @@ impl Config {
             let span = ag.start() as u32..ag.end() as u32;
             match url::Url::parse(ag.get_ref()) {
                 Ok(url) => {
-                    allowed_sources.push(SourceSpan { url, span });
+                    allowed_sources.push(SourceSpan::new(url, span));
                 }
                 Err(pe) => {
                     diags.push(Diagnostic::new_error(
@@ -94,11 +94,7 @@ impl Config {
     }
 }
 
-#[doc(hidden)]
-pub struct SourceSpan {
-    pub url: url::Url,
-    pub span: std::ops::Range<u32>,
-}
+pub type SourceSpan = crate::Spanned<url::Url>;
 
 #[doc(hidden)]
 pub struct ValidConfig {

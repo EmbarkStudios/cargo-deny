@@ -48,18 +48,9 @@ impl Config {
         self,
         cfg_file: codespan::FileId,
     ) -> Result<ValidConfig, Vec<crate::diag::Diagnostic>> {
-        let mut ignored: Vec<_> = self
-            .ignore
-            .into_iter()
-            .map(|ts| {
-                let span = ts.start() as u32..ts.end() as u32;
-                let inner = ts.into_inner();
+        let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
 
-                AdvisoryId { id: inner, span }
-            })
-            .collect();
-
-        ignored.sort_by(|a, b| a.id.cmp(&b.id));
+        ignored.sort();
 
         Ok(ValidConfig {
             file_id: cfg_file,
@@ -74,10 +65,7 @@ impl Config {
     }
 }
 
-pub(crate) struct AdvisoryId {
-    pub(crate) id: advisory::Id,
-    pub(crate) span: std::ops::Range<u32>,
-}
+pub(crate) type AdvisoryId = crate::Spanned<advisory::Id>;
 
 pub struct ValidConfig {
     pub file_id: codespan::FileId,

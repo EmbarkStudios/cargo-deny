@@ -778,13 +778,20 @@ impl Gatherer {
     }
 }
 
+use bitvec::prelude::*;
 use diag::{Diagnostic, Label, Severity};
+
+struct Hits {
+    allowed: BitVec<Local, usize>,
+    exceptions: BitVec<Local, usize>,
+}
 
 fn evaluate_expression(
     cfg: &ValidConfig,
     krate_lic_nfo: &KrateLicense<'_>,
     expr: &spdx::Expression,
     nfo: &LicenseExprInfo,
+    hits: &mut Hits,
 ) -> Diagnostic {
     // TODO: If an expression with the same hash is encountered
     // just use the same result as a memoized one
@@ -820,18 +827,26 @@ fn evaluate_expression(
 
     // Check to see if the crate matches an exception, which has its own
     // allow list separate from the general allow list
-    let eval_res = match cfg.exceptions.iter().find(|exc| {
-        exc.name == krate_lic_nfo.krate.name && exc.version.matches(&krate_lic_nfo.krate.version)
+    let eval_res = match cfg.exceptions.iter().position(|exc| {
+        exc.name.item == krate_lic_nfo.krate.name
+            && exc.version.matches(&krate_lic_nfo.krate.version)
     }) {
-        Some(exception) => expr.evaluate_with_failures(|req| {
-            for allow in &exception.allowed {
-                if allow.satisfies(req) {
-                    allow!(ExcplicitException);
-                }
-            }
+        Some(ind) => {
+            let exception = &cfg.exceptions[ind];
 
-            deny!(NotExplicitlyAllowed);
-        }),
+            // Note that hit the exception
+            hits.exceptions.as_mut_bitslice().set(ind, true);
+
+            expr.evaluate_with_failures(|req| {
+                for allow in &exception.allowed {
+                    if allow.item.satisfies(req) {
+                        allow!(ExcplicitException);
+                    }
+                }
+
+                deny!(NotExplicitlyAllowed);
+            })
+        }
         None => expr.evaluate_with_failures(|req| {
             // 1. Licenses explicitly denied are of course hard failures,
             // but failing one license in an expression is not necessarily
@@ -840,15 +855,16 @@ fn evaluate_expression(
             // banning Apache-2.0, but allowing MIT, will allow the crate
             // to be used as you are upholding at least one license requirement
             for deny in &cfg.denied {
-                if deny.satisfies(req) {
+                if deny.item.satisfies(req) {
                     deny!(Denied);
                 }
             }
 
             // 2. A license that is specifically allowed will of course mean
             // that the requirement is met.
-            for allow in &cfg.allowed {
-                if allow.satisfies(req) {
+            for (i, allow) in cfg.allowed.iter().enumerate() {
+                if allow.item.satisfies(req) {
+                    hits.allowed.as_mut_bitslice().set(i, true);
                     allow!(ExplicitAllowance);
                 }
             }
@@ -976,12 +992,23 @@ pub fn check(
     summary: Summary<'_>,
     sender: crossbeam::channel::Sender<crate::diag::Pack>,
 ) {
+    let mut hits = Hits {
+        allowed: bitvec![0; ctx.cfg.allowed.len()],
+        exceptions: bitvec![0; ctx.cfg.exceptions.len()],
+    };
+
     for mut krate_lic_nfo in summary.nfos {
         let mut diagnostics = Vec::new();
 
         match &krate_lic_nfo.lic_info {
             LicenseInfo::SPDXExpression { expr, nfo } => {
-                diagnostics.push(evaluate_expression(&ctx.cfg, &krate_lic_nfo, &expr, &nfo));
+                diagnostics.push(evaluate_expression(
+                    &ctx.cfg,
+                    &krate_lic_nfo,
+                    &expr,
+                    &nfo,
+                    &mut hits,
+                ));
             }
             LicenseInfo::Unlicensed => {
                 let severity = match ctx.cfg.unlicensed {
@@ -1008,6 +1035,48 @@ pub fn check(
             };
 
             sender.send(pack).unwrap();
+        }
+    }
+
+    // Print out warnings for exceptions that pertain to crates that
+    // weren't actually encountered
+    for (hit, exc) in hits
+        .exceptions
+        .into_iter()
+        .zip(ctx.cfg.exceptions.into_iter())
+    {
+        if !hit {
+            sender
+                .send(diag::Pack {
+                    krate_id: None,
+                    diagnostics: vec![Diagnostic::new(
+                        Severity::Warning,
+                        "crate license exception was not encountered",
+                        Label::new(
+                            ctx.cfg.file_id,
+                            exc.name.span,
+                            "no crate source matched these criteria",
+                        ),
+                    )],
+                })
+                .unwrap();
+        }
+    }
+
+    // Print out warnings for allowed licenses that weren't encountered.
+    // Note that we don't do the same for denied licenses
+    for (hit, allowed) in hits.allowed.into_iter().zip(ctx.cfg.allowed.into_iter()) {
+        if !hit {
+            sender
+                .send(diag::Pack {
+                    krate_id: None,
+                    diagnostics: vec![Diagnostic::new(
+                        Severity::Warning,
+                        "license was not encountered",
+                        Label::new(ctx.cfg.file_id, allowed.span, "no crate used this license"),
+                    )],
+                })
+                .unwrap();
         }
     }
 }
