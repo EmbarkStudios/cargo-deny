@@ -129,6 +129,7 @@ pub struct Krate {
     pub deps: Vec<cm::Dependency>,
     pub features: HashMap<String, Vec<String>>,
     pub targets: Vec<cm::Target>,
+    pub publish: Option<Vec<String>>,
 }
 
 #[cfg(test)]
@@ -150,6 +151,7 @@ impl Default for Krate {
             features: HashMap::new(),
             manifest_path: PathBuf::new(),
             repository: None,
+            publish: None,
         }
     }
 }
@@ -212,7 +214,26 @@ impl From<cm::Package> for Krate {
                 deps
             },
             features: pkg.features,
+            publish: pkg.publish,
         }
+    }
+}
+
+impl Krate {
+    /// Returns true if the crate is marked as `publish = false`, or
+    /// it is only published to the specified private registries
+    pub(crate) fn is_private(&self, private_registries: &[&str]) -> bool {
+        self.publish
+            .as_ref()
+            .map(|v| {
+                if v.is_empty() {
+                    true
+                } else {
+                    v.iter()
+                        .all(|reg| private_registries.contains(&reg.as_str()))
+                }
+            })
+            .unwrap_or(false)
     }
 }
 
