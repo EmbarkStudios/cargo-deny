@@ -10,6 +10,8 @@
 
 `cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📖](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
 
+To run on CI as a GitHub Action, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action).
+
 ## [Quickstart](https://embarkstudios.github.io/cargo-deny/)
 
 ```bash

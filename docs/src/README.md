@@ -29,3 +29,20 @@ options.
 cargo-deny is primarily meant to be used as a cargo plugin, but a majority of
 its functionality is within a library whose docs you view on
 [docs.rs](https://docs.rs/cargo-deny)
+
+## GitHub Action
+
+For GitHub projects one can run cargo-deny automatically as part of continous integration using a GitHub Action:
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: EmbarkStudios/cargo-deny-action@v0
+```
+
+For more information, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action) repository.
