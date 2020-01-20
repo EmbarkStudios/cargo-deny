@@ -440,33 +440,34 @@ fn print_diagnostics(
     let mut error_count = 0;
 
     for pack in rx {
-        let mut inclusion_graph = pack
-            .krate_id
-            .and_then(|pid| inc_grapher.as_mut().map(|ig| (pid, ig)))
-            .map(|(pid, ig)| ig.write_graph(&pid).unwrap());
+        let mut lock = writer.lock();
 
-        for mut diag in pack.diagnostics.into_iter() {
-            if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
+        for diag in pack.into_iter() {
+            let mut inner = diag.diag;
+            if inner.severity >= codespan_reporting::diagnostic::Severity::Error {
                 error_count += 1;
             }
 
             match max_severity {
                 Some(max) => {
-                    if diag.severity < max {
+                    if inner.severity < max {
                         continue;
                     }
                 }
                 None => continue,
             }
 
-            // Only add the dependency graph to the first diagnostic for a particular crate
-            if let Some(graph) = inclusion_graph.take() {
-                diag.notes.push(graph);
+            // Add an inclusion graph for each crate identifier attached to the
+            // diagnostic
+            if let Some(ref mut grapher) = inc_grapher {
+                for kid in diag.kids {
+                    inner.notes.push(grapher.write_graph(&kid).unwrap());
+                }
             }
 
             // We _could_ just take a single lock, but then normal log messages would
             // not be displayed until after this thread exited
-            term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
+            term::emit(&mut lock, &config, &files, &inner).unwrap();
         }
     }
 

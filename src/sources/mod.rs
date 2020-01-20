@@ -70,8 +70,6 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
     let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
-        // determine source of crate
-
         let source = match &krate.source {
             Some(source) => source,
             None => continue,
@@ -79,16 +77,13 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
         let source = match Source::try_from(source) {
             Ok(source) => source,
             Err(_err) => {
-                sender
-                    .send(Pack {
-                        krate_id: Some(krate.id.clone()),
-                        diagnostics: vec![Diagnostic::new(
-                            Severity::Error,
-                            "detected unknown or unsupported crate source",
-                            ctx.label_for_span(i, "source"),
-                        )],
-                    })
-                    .unwrap();
+                let mut pack = Pack::with_kid(krate.id.clone());
+                pack.push(Diagnostic::new(
+                    Severity::Error,
+                    "detected unknown or unsupported crate source",
+                    ctx.label_for_span(i, "source"),
+                ));
+                sender.send(pack).unwrap();
                 continue;
             }
         };
@@ -127,46 +122,43 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
 
                 span.start = span.start + last_space as u32 + 1;
 
-                sender
-                    .send(Pack {
-                        krate_id: Some(krate.id.clone()),
-                        diagnostics: vec![Diagnostic::new(
-                            match lint_level {
-                                LintLevel::Warn => Severity::Warning,
-                                LintLevel::Deny => Severity::Error,
-                                LintLevel::Allow => Severity::Note,
-                            },
-                            format!(
-                                "detected '{}' source not specifically allowed",
-                                source.type_name(),
-                            ),
-                            Label::new(ctx.spans_id, span, "source"),
-                        )],
-                    })
-                    .unwrap();
+                let mut pack = Pack::with_kid(krate.id.clone());
+                pack.push(Diagnostic::new(
+                    match lint_level {
+                        LintLevel::Warn => Severity::Warning,
+                        LintLevel::Deny => Severity::Error,
+                        LintLevel::Allow => Severity::Note,
+                    },
+                    format!(
+                        "detected '{}' source not specifically allowed",
+                        source.type_name(),
+                    ),
+                    Label::new(ctx.spans_id, span, "source"),
+                ));
+
+                sender.send(pack).unwrap();
             }
         }
     }
 
-    for (hit, src) in source_hits
+    for src in source_hits
         .into_iter()
         .zip(ctx.cfg.allowed_sources.into_iter())
+        .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
-        if !hit {
-            sender
-                .send(Pack {
-                    krate_id: None,
-                    diagnostics: vec![Diagnostic::new(
-                        Severity::Warning,
-                        "allowed source was not encountered",
-                        Label::new(
-                            ctx.cfg.file_id,
-                            src.span,
-                            "no crate source matched these criteria",
-                        ),
-                    )],
-                })
-                .unwrap();
-        }
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "allowed source was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        src.span,
+                        "no crate source matched these criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }

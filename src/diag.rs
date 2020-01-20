@@ -3,10 +3,82 @@ use anyhow::{Context, Error};
 pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use krates::petgraph as pg;
 
+pub struct Diag {
+    pub diag: Diagnostic,
+    pub kids: smallvec::SmallVec<[Kid; 2]>,
+}
+
+impl Diag {
+    pub(crate) fn new(diag: Diagnostic) -> Self {
+        Self {
+            diag,
+            kids: smallvec::SmallVec::new(),
+        }
+    }
+}
+
+impl From<Diagnostic> for Diag {
+    fn from(d: Diagnostic) -> Self {
+        Diag::new(d)
+    }
+}
+
 pub struct Pack {
-    // The particular package that the diagnostics pertain to
-    pub krate_id: Option<Kid>,
-    pub diagnostics: Vec<Diagnostic>,
+    diags: Vec<Diag>,
+    kid: Option<Kid>,
+}
+
+impl Pack {
+    pub(crate) fn new() -> Self {
+        Self {
+            diags: Vec::new(),
+            kid: None,
+        }
+    }
+
+    pub(crate) fn with_kid(kid: Kid) -> Self {
+        Self {
+            diags: Vec::new(),
+            kid: Some(kid),
+        }
+    }
+
+    pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Self {
+        let mut diag = diag.into();
+        if diag.kids.is_empty() {
+            if let Some(kid) = self.kid.take() {
+                diag.kids.push(kid);
+            }
+        }
+
+        self.diags.push(diag);
+        self
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.diags.is_empty()
+    }
+}
+
+impl IntoIterator for Pack {
+    type Item = Diag;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.diags.into_iter()
+    }
+}
+
+impl<T> From<T> for Pack
+where
+    T: Into<Diag>,
+{
+    fn from(t: T) -> Self {
+        Self {
+            diags: vec![t.into()],
+            kid: None,
+        }
+    }
 }
 
 pub type Span = std::ops::Range<u32>;
@@ -60,8 +132,6 @@ impl KrateSpans {
     }
 }
 
-//use petgraph::Graph;
-//use rayon::prelude::*;
 use std::collections::HashSet;
 
 /// Simplified copy of what cargo tree does to display dependency graphs.
