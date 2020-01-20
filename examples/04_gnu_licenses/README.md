@@ -4,13 +4,13 @@ This example shows how to deal with the GNU style licenses such as GPL, AGPL, LG
 
 ## Requirement
 
-```toml
+```ini
 license = "GPL-2.0-or-later AND LGPL-3.0-only"
 ```
 
 ## Config
 
-```toml
+```ini
 [licenses]
 allow = [ "GPL-3.0" ]
 copyleft = "deny"

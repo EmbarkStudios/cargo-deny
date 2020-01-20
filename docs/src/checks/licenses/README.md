@@ -5,6 +5,12 @@ you find acceptable. cargo-deny does this by evaluating the license requirements
 specified by each crate against the [configuration](cfg.md) you've specified to 
 determine if your project meets that crate's license requirements.
 
+```bash
+cargo deny check licenses
+```
+
+<img src="https://imgur.com/XMmvx9L.png"/>
+
 ### SPDX
 
 cargo-deny uses [SPDX license expressions][SPDX] as the source of truth for the 

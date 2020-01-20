@@ -2,13 +2,13 @@
 
 [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
 [![Latest version](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
-[![Docs](https://img.shields.io/badge/docs-The%20Book-green.svg)](https://embarkstudios.github.io/cargo-deny/)
+[![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![API Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.7-blue.svg)](https://spdx.org/licenses/)
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.dev)
 
-`cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📖](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
+`cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
 
 To run on CI as a GitHub Action, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action).
 
@@ -46,6 +46,8 @@ The licenses check is used to verify that every crate you use has license terms 
 cargo deny check licenses
 ```
 
+<img src="https://imgur.com/XMmvx9L.png"/>
+
 #### [Bans](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)
 
 The bans check is used to deny (or allow) specific crates, as well as detect and handle multiple versions of the same crate.
@@ -53,6 +55,8 @@ The bans check is used to deny (or allow) specific crates, as well as detect and
 ```bash
 cargo deny check bans
 ```
+
+<img src="https://imgur.com/K3UeXcR.png"/>
 
 #### [Advisories](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)
 
@@ -62,6 +66,8 @@ The advisories check is used to detect issues for crates by looking in an adviso
 cargo deny check advisories
 ```
 
+<img src="https://imgur.com/FK50XLb.png"/>
+
 #### [Sources](https://embarkstudios.github.io/cargo-deny/checks/sources/index.html)
 
 The sources check ensures crates only come from sources you trust.
@@ -69,6 +75,8 @@ The sources check ensures crates only come from sources you trust.
 ```bash
 cargo deny check sources
 ```
+
+<img src="https://imgur.com/xdHFDWS.png"/>
 
 ## Contributing
 

@@ -3,6 +3,12 @@
 The bans check is used to deny (or allow) specific crates, as well as detect
 and handle multiple versions of the same crate.
 
+```bash
+cargo deny check bans
+```
+
+<img src="https://imgur.com/K3UeXcR.png"/>
+
 ## Use Case - Denying specific crates
 
 Sometimes, certain crates just don't fit in your project, so you have to remove 

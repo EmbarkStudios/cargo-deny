@@ -3,6 +3,12 @@
 The advisories check is used to detect issues for crates by looking in an
 advisory database.
 
+```bash
+cargo deny check advisories
+```
+
+<img src="https://imgur.com/FK50XLb.png"/>
+
 ## Use Case - Detecting security vulnerabilities
 
 Security vulnerabilities are generally considered "not great" by most people, 

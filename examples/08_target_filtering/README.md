@@ -4,7 +4,7 @@ This example shows how to filter dependencies based upon their target configurat
 
 ## Config
 
-```toml
+```ini
 targets = [
     { triple = "x86_64-unknown-linux-gnu" },
     { triple = "wasm32-unknown-unknown", features = ["atomics"] },

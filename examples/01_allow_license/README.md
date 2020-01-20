@@ -5,13 +5,13 @@ the license requirements of every crate in your dependency graph.
 
 ## Requirement
 
-```toml
+```ini
 license = "MIT OR Apache-2.0"
 ```
 
 ## Config
 
-```toml
+```ini
 [license]
 allow = [ "MIT" ]
 ```
