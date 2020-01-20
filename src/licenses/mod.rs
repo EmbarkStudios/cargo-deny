@@ -999,17 +999,18 @@ pub fn check(
 
     let private_registries: Vec<_> = ctx
         .cfg
-        .private_registries
+        .private
+        .registries
         .iter()
         .map(|s| s.as_str())
         .collect();
 
     for mut krate_lic_nfo in summary.nfos {
-        let mut diagnostics = Vec::new();
+        let mut pack = diag::Pack::with_kid(krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
         // crate and just print out a help message that we skipped it
-        if ctx.cfg.ignore_private
+        if ctx.cfg.private.ignore
             && ctx
                 .krates
                 .workspace_members()
