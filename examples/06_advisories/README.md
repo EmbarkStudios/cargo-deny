@@ -4,7 +4,7 @@ This example shows cargo-deny's default behavior when checking security advisori
 
 ## Config
 
-```toml
+```ini
 [dependencies]
 # ammonia had a stack overflow < 2.1.0
 # https://github.com/RustSec/advisory-db/blob/01ac6725d549dbc7873250fe2a55e54d528fe945/crates/ammonia/RUSTSEC-2019-0001.toml
