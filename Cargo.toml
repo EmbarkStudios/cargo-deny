@@ -26,7 +26,7 @@ path = "src/cargo-deny/main.rs"
 [dependencies]
 ansi_term = "0.12.1"
 anyhow = "1.0.25"
-askalono = "0.4.1"
+askalono = "0.4.2"
 atty = "0.2.13"
 bitvec = { version = "0.17.1", features = ["alloc"] }
 chrono = "0.4.10"
