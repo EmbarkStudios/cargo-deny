@@ -54,6 +54,21 @@ impl Default for BlanketAgreement {
     }
 }
 
+/// Configures how private crates are handled and detected
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct Private {
+    /// If enabled, ignores workspace crates that aren't published, or are
+    /// only published to private registries
+    #[serde(default)]
+    pub ignore: bool,
+    /// One or more private registries that you might publish crates to, if
+    /// a crate it only published to private registries, and ignore is true
+    /// the crate will not have its license checked
+    #[serde(default)]
+    pub registries: Vec<String>,
+}
+
 /// The path and hash of a LICENSE file
 #[derive(PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
@@ -109,13 +124,8 @@ pub struct Exception {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// If enabled, ignores workspace crates that aren't published, or are
-    /// only published to private registries
     #[serde(default)]
-    pub ignore_private: bool,
-    /// One or more private registries that you might publish crates to
-    #[serde(default)]
-    pub private_registries: Vec<String>,
+    pub private: Private,
     /// Determines what happens when license information cannot be determined
     /// for a crate
     #[serde(default = "crate::lint_deny")]
@@ -150,8 +160,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            ignore_private: false,
-            private_registries: Vec::new(),
+            private: Private::default(),
             unlicensed: LintLevel::Deny,
             allow_osi_fsf_free: BlanketAgreement::default(),
             copyleft: LintLevel::Warn,
@@ -300,8 +309,7 @@ impl Config {
         } else {
             Ok(ValidConfig {
                 file_id: cfg_file,
-                ignore_private: self.ignore_private,
-                private_registries: self.private_registries,
+                private: self.private,
                 unlicensed: self.unlicensed,
                 copyleft: self.copyleft,
                 allow_osi_fsf_free: self.allow_osi_fsf_free,
@@ -337,8 +345,7 @@ pub type Licensee = crate::Spanned<spdx::Licensee>;
 #[doc(hidden)]
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
-    pub ignore_private: bool,
-    pub private_registries: Vec<String>,
+    pub private: Private,
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,
     pub allow_osi_fsf_free: BlanketAgreement,

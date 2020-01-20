@@ -265,16 +265,18 @@ pub fn check(
                     n
                 };
 
-                diag::Pack {
-                    krate_id: Some(krate.id.clone()),
-                    diagnostics: vec![Diagnostic::new(
+                let mut pack = diag::Pack::with_kid(krate.id.clone());
+                pack.push(
+                    Diagnostic::new(
                         severity,
                         advisory.title.clone(),
                         ctx.label_for_span(i.index(), message),
                     )
                     .with_code(id.as_str().to_owned())
-                    .with_notes(notes)],
-                }
+                    .with_notes(notes),
+                );
+
+                pack
             }
             None => {
                 unreachable!(
@@ -306,22 +308,24 @@ pub fn check(
     // were not actually encountered, for cases where a crate, or specific
     // verison of that crate, has been removed or replaced and the advisory
     // no longer applies to it so that users can cleanup their configuration
-    for (hit, ignore) in ignore_hits.into_iter().zip(ctx.cfg.ignore.into_iter()) {
-        if !hit {
-            sender
-                .send(diag::Pack {
-                    krate_id: None,
-                    diagnostics: vec![Diagnostic::new(
-                        Severity::Warning,
-                        "advisory was not encountered",
-                        Label::new(
-                            ctx.cfg.file_id,
-                            ignore.span,
-                            "no crate matched advisory criteria",
-                        ),
-                    )],
-                })
-                .unwrap();
-        }
+    for ignore in ignore_hits
+        .into_iter()
+        .zip(ctx.cfg.ignore.into_iter())
+        .filter_map(|(hit, ignore)| if !hit { Some(ignore) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "advisory was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        ignore.span,
+                        "no crate matched advisory criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }

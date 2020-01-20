@@ -102,9 +102,8 @@ impl TreeSkipper {
 
             if roots.len() == num_roots {
                 sender
-                    .send(Pack {
-                        krate_id: None,
-                        diagnostics: vec![Diagnostic::new(
+                    .send(
+                        Diagnostic::new(
                             Severity::Warning,
                             "skip tree root was not found in the dependency graph",
                             Label::new(
@@ -112,8 +111,9 @@ impl TreeSkipper {
                                 ts.start() as u32..ts.end() as u32,
                                 "no crate matched these criteria",
                             ),
-                        )],
-                    })
+                        )
+                        .into(),
+                    )
                     .unwrap();
             }
         }
@@ -158,12 +158,12 @@ impl TreeSkipper {
         }
     }
 
-    fn matches(&mut self, krate: &Krate, diags: &mut Vec<Diagnostic>) -> bool {
+    fn matches(&mut self, krate: &Krate, pack: &mut Pack) -> bool {
         let mut skip = false;
 
         for root in &mut self.roots {
             if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
-                diags.push(Diagnostic::new(
+                pack.push(Diagnostic::new(
                     Severity::Help,
                     format!("skipping crate {} = {}", krate.name, krate.version),
                     Label::new(self.file_id, root.span.clone(), "matched root filter"),
@@ -185,7 +185,7 @@ pub struct DupGraph {
 
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
-use crate::diag::{Diagnostic, Label, Pack, Severity};
+use crate::diag::{Diag, Diagnostic, Label, Pack, Severity};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
@@ -221,10 +221,10 @@ pub fn check(
     };
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
-        let mut diagnostics = Vec::new();
+        let mut pack = Pack::with_kid(krate.id.clone());
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
-            diagnostics.push(Diagnostic::new(
+            pack.push(Diagnostic::new(
                 Severity::Error,
                 format!("detected banned crate {} = {}", krate.name, krate.version),
                 Label::new(file_id, ban.span.clone(), "matching ban entry"),
@@ -236,7 +236,7 @@ pub fn check(
             // also emit which allow filters actually passed each crate
             match binary_search(&allowed, krate) {
                 Ok((_, allow)) => {
-                    diagnostics.push(Diagnostic::new(
+                    pack.push(Diagnostic::new(
                         Severity::Note,
                         format!("allowed {} = {}", krate.name, krate.version),
                         Label::new(file_id, allow.span.clone(), "matching allow entry"),
@@ -247,7 +247,7 @@ pub fn check(
                         ind = allowed.len() - 1;
                     }
 
-                    diagnostics.push(Diagnostic::new(
+                    pack.push(Diagnostic::new(
                         Severity::Error,
                         format!(
                             "detected crate not specifically allowed {} = {}",
@@ -260,7 +260,7 @@ pub fn check(
         }
 
         if let Ok((index, skip)) = binary_search(&skipped, krate) {
-            diagnostics.push(Diagnostic::new(
+            pack.push(Diagnostic::new(
                 Severity::Help,
                 format!("skipping crate {} = {}", krate.name, krate.version),
                 Label::new(file_id, skip.span.clone(), "matched filter"),
@@ -270,7 +270,7 @@ pub fn check(
             // so that we can report unused filters to the user so that they
             // can cleanup their configs as their dependency graph changes over time
             skip_hit.as_mut_bitslice().set(index, true);
-        } else if !tree_skipper.matches(krate, &mut diagnostics) {
+        } else if !tree_skipper.matches(krate, &mut pack) {
             if multi_detector.name == krate.name {
                 multi_detector.dupes.push(i);
             } else {
@@ -284,7 +284,7 @@ pub fn check(
                     let mut all_start = std::u32::MAX;
                     let mut all_end = 0;
 
-                    let mut dupes = Vec::with_capacity(multi_detector.dupes.len());
+                    let mut kids = smallvec::SmallVec::<[Kid; 2]>::new();
 
                     #[allow(clippy::needless_range_loop)]
                     for dup in multi_detector.dupes.iter().cloned() {
@@ -300,40 +300,25 @@ pub fn check(
 
                         let krate = &ctx.krates[dup];
 
-                        dupes.push(Pack {
-                            krate_id: Some(krate.id.clone()),
-                            diagnostics: vec![Diagnostic::new(
-                                severity,
-                                format!(
-                                    "duplicate #{} ({}) {} = {}",
-                                    dupes.len() + 1,
-                                    dup,
-                                    krate.name,
-                                    krate.version
-                                ),
-                                Label::new(ctx.spans_id, span.clone(), "lock entry"),
-                            )],
-                        });
+                        kids.push(krate.id.clone());
                     }
 
-                    sender
-                        .send(Pack {
-                            krate_id: None,
-                            diagnostics: vec![Diagnostic::new(
-                                severity,
-                                format!(
-                                    "found {} duplicate entries for crate '{}'",
-                                    dupes.len(),
-                                    multi_detector.name
-                                ),
-                                Label::new(ctx.spans_id, all_start..all_end, "lock entries"),
-                            )],
-                        })
-                        .unwrap();
+                    let mut diag = Diag::new(Diagnostic::new(
+                        severity,
+                        format!(
+                            "found {} duplicate entries for crate '{}'",
+                            kids.len(),
+                            multi_detector.name
+                        ),
+                        Label::new(ctx.spans_id, all_start..all_end, "lock entries"),
+                    ));
 
-                    for dup in dupes {
-                        sender.send(dup).unwrap();
-                    }
+                    diag.kids = kids;
+
+                    let mut pack = Pack::new();
+                    pack.push(diag);
+
+                    sender.send(pack).unwrap();
 
                     if let Some(ref og) = output_graph {
                         match graph::create_graph(
@@ -367,33 +352,30 @@ pub fn check(
             }
         }
 
-        if !diagnostics.is_empty() {
-            sender
-                .send(Pack {
-                    krate_id: Some(krate.id.clone()),
-                    diagnostics,
-                })
-                .unwrap();
+        if !pack.is_empty() {
+            sender.send(pack).unwrap();
         }
     }
 
-    for (hit, skip) in skip_hit.into_iter().zip(skipped.into_iter()) {
-        if !hit {
-            sender
-                .send(Pack {
-                    krate_id: None,
-                    diagnostics: vec![Diagnostic::new(
-                        Severity::Warning,
-                        "skipped crate was not encountered",
-                        Label::new(
-                            ctx.cfg.file_id,
-                            skip.span,
-                            "no crate matched these criteria",
-                        ),
-                    )],
-                })
-                .unwrap();
-        }
+    for skip in skip_hit
+        .into_iter()
+        .zip(skipped.into_iter())
+        .filter_map(|(hit, skip)| if !hit { Some(skip) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "skipped crate was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        skip.span,
+                        "no crate matched these criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }
 

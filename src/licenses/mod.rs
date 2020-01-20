@@ -999,17 +999,18 @@ pub fn check(
 
     let private_registries: Vec<_> = ctx
         .cfg
-        .private_registries
+        .private
+        .registries
         .iter()
         .map(|s| s.as_str())
         .collect();
 
     for mut krate_lic_nfo in summary.nfos {
-        let mut diagnostics = Vec::new();
+        let mut pack = diag::Pack::with_kid(krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
         // crate and just print out a help message that we skipped it
-        if ctx.cfg.ignore_private
+        if ctx.cfg.private.ignore
             && ctx
                 .krates
                 .workspace_members()
@@ -1017,16 +1018,11 @@ pub fn check(
             && krate_lic_nfo.krate.is_private(&private_registries)
         {
             let i = ctx.krates.nid_for_kid(&krate_lic_nfo.krate.id).unwrap();
-            diagnostics.push(Diagnostic::new(
+            pack.push(Diagnostic::new(
                 Severity::Help,
                 "skipping private workspace crate",
                 ctx.label_for_span(i.index(), "workspace crate"),
             ));
-
-            let pack = diag::Pack {
-                krate_id: Some(krate_lic_nfo.krate.id.clone()),
-                diagnostics,
-            };
 
             sender.send(pack).unwrap();
             continue;
@@ -1034,7 +1030,7 @@ pub fn check(
 
         match &krate_lic_nfo.lic_info {
             LicenseInfo::SPDXExpression { expr, nfo } => {
-                diagnostics.push(evaluate_expression(
+                pack.push(evaluate_expression(
                     &ctx.cfg,
                     &krate_lic_nfo,
                     &expr,
@@ -1049,7 +1045,7 @@ pub fn check(
                     LintLevel::Deny => Severity::Error,
                 };
 
-                diagnostics.push(
+                pack.push(
                     Diagnostic::new(
                         severity,
                         format!("{} is unlicensed", krate_lic_nfo.krate.id),
@@ -1060,56 +1056,53 @@ pub fn check(
             }
         }
 
-        if !diagnostics.is_empty() {
-            let pack = diag::Pack {
-                krate_id: Some(krate_lic_nfo.krate.id.clone()),
-                diagnostics,
-            };
-
+        if !pack.is_empty() {
             sender.send(pack).unwrap();
         }
     }
 
     // Print out warnings for exceptions that pertain to crates that
     // weren't actually encountered
-    for (hit, exc) in hits
+    for exc in hits
         .exceptions
         .into_iter()
         .zip(ctx.cfg.exceptions.into_iter())
+        .filter_map(|(hit, exc)| if !hit { Some(exc) } else { None })
     {
-        if !hit {
-            sender
-                .send(diag::Pack {
-                    krate_id: None,
-                    diagnostics: vec![Diagnostic::new(
-                        Severity::Warning,
-                        "crate license exception was not encountered",
-                        Label::new(
-                            ctx.cfg.file_id,
-                            exc.name.span,
-                            "no crate source matched these criteria",
-                        ),
-                    )],
-                })
-                .unwrap();
-        }
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "crate license exception was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        exc.name.span,
+                        "no crate source matched these criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 
     // Print out warnings for allowed licenses that weren't encountered.
     // Note that we don't do the same for denied licenses
-    for (hit, allowed) in hits.allowed.into_iter().zip(ctx.cfg.allowed.into_iter()) {
-        if !hit {
-            sender
-                .send(diag::Pack {
-                    krate_id: None,
-                    diagnostics: vec![Diagnostic::new(
-                        Severity::Warning,
-                        "license was not encountered",
-                        Label::new(ctx.cfg.file_id, allowed.span, "no crate used this license"),
-                    )],
-                })
-                .unwrap();
-        }
+    for allowed in hits
+        .allowed
+        .into_iter()
+        .zip(ctx.cfg.allowed.into_iter())
+        .filter_map(|(hit, allowed)| if !hit { Some(allowed) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "license was not encountered",
+                    Label::new(ctx.cfg.file_id, allowed.span, "no crate used this license"),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }
 
