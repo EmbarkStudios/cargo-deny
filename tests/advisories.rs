@@ -92,7 +92,8 @@ fn detects_vulnerabilities(ctx: &Ctx) -> Result<(), Error> {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
 
             for msg in rx {
-                for diag in msg.diagnostics {
+                for diag in msg.into_iter() {
+                    let diag = diag.diag;
                     if diag.code == Some("RUSTSEC-2019-0001".to_owned()) {
                         ensure!(
                             diag.severity == diag::Severity::Error,
@@ -146,7 +147,8 @@ fn detects_unmaintained(ctx: &Ctx) -> Result<(), Error> {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
 
             for msg in rx {
-                for diag in msg.diagnostics {
+                for diag in msg.into_iter() {
+                    let diag = diag.diag;
                     if diag.code == Some("RUSTSEC-2016-0004".to_owned()) {
                         ensure!(
                             diag.severity == diag::Severity::Warning,
@@ -201,7 +203,8 @@ fn downgrades(ctx: &Ctx) -> Result<(), Error> {
             let mut got_libusb_adv = false;
 
             for msg in rx {
-                for diag in msg.diagnostics {
+                for diag in msg.into_iter() {
+                    let diag = diag.diag;
                     if diag.code == Some("RUSTSEC-2019-0001".to_owned()) {
                         ensure!(
                             diag.severity == diag::Severity::Note,
