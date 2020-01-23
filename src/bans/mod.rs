@@ -8,9 +8,10 @@ use semver::{Version, VersionReq};
 use std::cmp::Ordering;
 
 #[derive(Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
-    name: String,
-    version: VersionReq,
+    pub(crate) name: String,
+    pub(crate) version: VersionReq,
 }
 
 impl Ord for KrateId {
@@ -86,7 +87,7 @@ struct TreeSkipper {
 
 impl TreeSkipper {
     fn build(
-        skip_roots: Vec<toml::Spanned<TreeSkip>>,
+        skip_roots: Vec<crate::Spanned<TreeSkip>>,
         krates: &Krates,
         file_id: codespan::FileId,
         sender: crossbeam::channel::Sender<Pack>,
@@ -96,7 +97,7 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for krate in krates.search_matches(&ts.get_ref().id.name, &ts.get_ref().id.version) {
+            for krate in krates.search_matches(&ts.item.id.name, &ts.item.id.version) {
                 roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 
@@ -106,11 +107,7 @@ impl TreeSkipper {
                         Diagnostic::new(
                             Severity::Warning,
                             "skip tree root was not found in the dependency graph",
-                            Label::new(
-                                file_id,
-                                ts.start() as u32..ts.end() as u32,
-                                "no crate matched these criteria",
-                            ),
+                            Label::new(file_id, ts.span, "no crate matched these criteria"),
                         )
                         .into(),
                     )
@@ -122,12 +119,12 @@ impl TreeSkipper {
     }
 
     fn build_skip_root(
-        ts: toml::Spanned<TreeSkip>,
+        ts: crate::Spanned<TreeSkip>,
         krate_id: krates::NodeId,
         krates: &Krates,
     ) -> SkipRoot {
-        let span = ts.start() as u32..ts.end() as u32;
-        let ts = ts.into_inner();
+        let span = ts.span;
+        let ts = ts.item;
 
         let max_depth = ts.depth.unwrap_or(std::usize::MAX);
         let mut skip_crates = Vec::with_capacity(10);

@@ -77,6 +77,7 @@ use std::{cmp, collections::HashMap, path::PathBuf};
 
 pub mod advisories;
 pub mod bans;
+mod cfg;
 pub mod diag;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
@@ -326,6 +327,18 @@ where
     }
 }
 
+impl<T> Clone for Spanned<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            item: self.item.clone(),
+            span: self.span.clone(),
+        }
+    }
+}
+
 impl<T> PartialOrd for Spanned<T>
 where
     T: PartialOrd,
@@ -354,3 +367,12 @@ where
 }
 
 impl<T> Eq for Spanned<T> where T: Eq {}
+
+impl<T> PartialEq<T> for Spanned<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, o: &T) -> bool {
+        &self.item == o
+    }
+}

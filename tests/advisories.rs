@@ -53,6 +53,7 @@ fn load_cfg(ctx: &Ctx, test_name: &str, cfg_str: String) -> Result<cfg::ValidCon
 }
 
 #[test]
+#[ignore]
 fn detects_vulnerabilities() {
     let (tx, rx) = crossbeam::channel::unbounded();
     let ctx = load();
@@ -111,6 +112,7 @@ fn detects_vulnerabilities() {
 }
 
 #[test]
+#[ignore]
 fn detects_unmaintained() {
     let (tx, rx) = crossbeam::channel::unbounded();
 
@@ -169,6 +171,7 @@ fn detects_unmaintained() {
 }
 
 #[test]
+#[ignore]
 fn downgrades() {
     let (tx, rx) = crossbeam::channel::unbounded();
 

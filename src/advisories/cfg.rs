@@ -53,7 +53,6 @@ impl Config {
         cfg_file: codespan::FileId,
     ) -> Result<ValidConfig, Vec<crate::diag::Diagnostic>> {
         let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
-
         ignored.sort();
 
         Ok(ValidConfig {
@@ -82,4 +81,46 @@ pub struct ValidConfig {
     pub yanked: LintLevel,
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::cfg::test::*;
+
+    #[test]
+    fn works() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Advisories {
+            advisories: Config,
+        }
+
+        let cd: ConfigData<Advisories> = load("tests/cfg/advisories.toml");
+        let validated = cd.config.advisories.validate(cd.id).unwrap();
+
+        assert_eq!(validated.file_id, cd.id);
+        assert_eq!(
+            validated.db_path.as_ref().map(|dp| dp.to_string_lossy()),
+            Some(std::borrow::Cow::Borrowed("~/.cargo/advisory-db"))
+        );
+        assert_eq!(
+            validated.db_url.as_ref().map(|s| s.as_str()),
+            Some("https://github.com/RustSec/advisory-db")
+        );
+        assert_eq!(validated.vulnerability, LintLevel::Deny);
+        assert_eq!(validated.unmaintained, LintLevel::Warn);
+        assert_eq!(validated.yanked, LintLevel::Warn);
+        assert_eq!(validated.notice, LintLevel::Warn);
+        assert_eq!(
+            validated.ignore,
+            vec!["RUSTSEC-0000-0000"
+                .parse::<rustsec::advisory::Id>()
+                .unwrap()]
+        );
+        assert_eq!(
+            validated.severity_threshold,
+            Some(rustsec::advisory::Severity::Medium)
+        );
+    }
 }

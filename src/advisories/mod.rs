@@ -98,10 +98,6 @@ fn krate_for_pkg<'a>(
         .map(|(ind, krate)| (ind.index(), &krate.krate))
 }
 
-/// Generates rustsec::lockfile::Lockfile from the crates gathered via cargo_metadata,
-/// rather than deserializing them from the lockfile again
-// c
-
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
 pub fn check(
