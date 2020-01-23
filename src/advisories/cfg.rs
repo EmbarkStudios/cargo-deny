@@ -16,6 +16,9 @@ pub struct Config {
     /// How to handle crates that have been marked as unmaintained in the advisory database
     #[serde(default = "crate::lint_warn")]
     pub unmaintained: LintLevel,
+    /// How to handle crates that have been yanked from eg crates.io
+    #[serde(default = "crate::lint_warn")]
+    pub yanked: LintLevel,
     /// How to handle crates that have been marked with a notice in the advisory database
     #[serde(default = "crate::lint_warn")]
     pub notice: LintLevel,
@@ -37,6 +40,7 @@ impl Default for Config {
             ignore: Vec::new(),
             vulnerability: LintLevel::Deny,
             unmaintained: LintLevel::Warn,
+            yanked: LintLevel::Warn,
             notice: LintLevel::Warn,
             severity_threshold: None,
         }
@@ -59,6 +63,7 @@ impl Config {
             ignore: ignored,
             vulnerability: self.vulnerability,
             unmaintained: self.unmaintained,
+            yanked: self.yanked,
             notice: self.notice,
             severity_threshold: self.severity_threshold,
         })
@@ -74,6 +79,7 @@ pub struct ValidConfig {
     pub(crate) ignore: Vec<AdvisoryId>,
     pub vulnerability: LintLevel,
     pub unmaintained: LintLevel,
+    pub yanked: LintLevel,
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
 }

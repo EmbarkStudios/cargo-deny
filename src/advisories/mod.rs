@@ -253,6 +253,26 @@ pub fn check(
         let diag = match warning.kind {
             Kind::Unmaintained { advisory, .. } => make_diag(&warning.package, &advisory),
             Kind::Informational { advisory, .. } => make_diag(&warning.package, &advisory),
+            Kind::Yanked => match krate_for_pkg(&ctx.krates, &warning.package) {
+                Some((ind, krate)) => {
+                    let mut pack = diag::Pack::with_kid(krate.id.clone());
+                    pack.push(Diagnostic::new(
+                        match ctx.cfg.yanked {
+                            LintLevel::Allow => Severity::Note,
+                            LintLevel::Deny => Severity::Error,
+                            LintLevel::Warn => Severity::Warning,
+                        },
+                        "detected yanked crate",
+                        ctx.label_for_span(ind, "yanked version"),
+                    ));
+
+                    pack
+                }
+                None => unreachable!(
+                    "the advisory database warned about yanked crate that we don't have: {:#?}",
+                    warning.package
+                ),
+            },
         };
 
         sender.send(diag).unwrap();
