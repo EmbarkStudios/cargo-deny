@@ -56,6 +56,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+      # Run the tests we usually don't want to run when
+      # testing locally
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -- --ignored
 
   self:
     name: Self Check
@@ -105,16 +112,16 @@ jobs:
     name: Build the book
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: |
-        set -e
-        curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
-        echo ::add-path::`pwd`
-    - run: (cd docs && mdbook build)
-    - uses: actions/upload-artifact@v1
-      with:
-        name: doc-book
-        path: docs/book
+      - uses: actions/checkout@v1
+      - run: |
+          set -e
+          curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
+          echo ::add-path::`pwd`
+      - run: (cd docs && mdbook build)
+      - uses: actions/upload-artifact@v1
+        with:
+          name: doc-book
+          path: docs/book
 
   # Temporarily disabled until a new rustsec has been released
   # publish-check:
@@ -232,7 +239,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          files: 'cargo-deny*'
+          files: "cargo-deny*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -242,21 +249,21 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
-    - name: Download book
-      uses: actions/download-artifact@v1
-      with:
-        name: doc-book
-    - name: Assemble gh-pages
-      run: |
-        mv doc-book gh-pages
-    # If this is a push to the master branch push to the `gh-pages` using a
-    # deploy key. Note that a deploy key is necessary for now because otherwise
-    # using the default token for github actions doesn't actually trigger a page
-    # rebuild.
-    - name: Push to gh-pages
-      # Uses a rust script to setup and push to the gh-pages branch
-      run: curl -LsSf https://git.io/fhJ8n | rustc - && (cd gh-pages && ../rust_out)
-      env:
-        GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
-        BUILD_REPOSITORY_ID: ${{ github.repository }}
-        BUILD_SOURCEVERSION: ${{ github.sha }}
+      - name: Download book
+        uses: actions/download-artifact@v1
+        with:
+          name: doc-book
+      - name: Assemble gh-pages
+        run: |
+          mv doc-book gh-pages
+      # If this is a push to the master branch push to the `gh-pages` using a
+      # deploy key. Note that a deploy key is necessary for now because otherwise
+      # using the default token for github actions doesn't actually trigger a page
+      # rebuild.
+      - name: Push to gh-pages
+        # Uses a rust script to setup and push to the gh-pages branch
+        run: curl -LsSf https://git.io/fhJ8n | rustc - && (cd gh-pages && ../rust_out)
+        env:
+          GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
+          BUILD_REPOSITORY_ID: ${{ github.repository }}
+          BUILD_SOURCEVERSION: ${{ github.sha }}
