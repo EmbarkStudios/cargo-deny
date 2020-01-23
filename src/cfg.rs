@@ -4,7 +4,7 @@ pub(crate) mod test {
 
     pub(crate) struct ConfigData<T> {
         pub(crate) config: T,
-        pub(crate) _files: codespan::Files<String>,
+        pub(crate) files: codespan::Files<String>,
         pub(crate) id: codespan::FileId,
     }
 
@@ -16,10 +16,6 @@ pub(crate) mod test {
         let mut files = codespan::Files::new();
         let id = files.add(path.to_string_lossy(), contents);
 
-        ConfigData {
-            config,
-            _files: files,
-            id,
-        }
+        ConfigData { config, files, id }
     }
 }

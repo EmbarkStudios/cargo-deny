@@ -355,3 +355,51 @@ pub struct ValidConfig {
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::cfg::test::*;
+
+    #[test]
+    fn works() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Licenses {
+            licenses: Config,
+        }
+
+        let cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
+
+        let validated = cd.config.licenses.validate(cd.id).unwrap();
+
+        assert_eq!(validated.file_id, cd.id);
+        assert_eq!(validated.private.ignore, true);
+        assert_eq!(validated.private.registries, vec!["sekrets".to_owned()]);
+        assert_eq!(validated.unlicensed, LintLevel::Warn);
+        assert_eq!(validated.copyleft, LintLevel::Deny);
+        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
+        assert_eq!(
+            validated.allowed,
+            vec![
+                spdx::Licensee::parse("Apache-2.0 WITH LLVM-exception").unwrap(),
+                spdx::Licensee::parse("EUPL-1.2").unwrap(),
+            ]
+        );
+        assert_eq!(
+            validated.denied,
+            vec![
+                spdx::Licensee::parse("BSD-2-Clause").unwrap(),
+                spdx::Licensee::parse("Nokia").unwrap(),
+            ]
+        );
+        // assert_eq!(
+        //     validated.exceptions,
+        //     vec![ValidException {
+        //         name: "adler32".to_owned(),
+        //         version: semver::VersionReq::any(),
+        //         allowed: vec![spdx::Licensee::parse("Apache-2.0 WITH LLVM-exception").unwrap()],
+        //     }]
+        // );
+    }
+}

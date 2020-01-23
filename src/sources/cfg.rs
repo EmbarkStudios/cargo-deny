@@ -104,3 +104,31 @@ pub struct ValidConfig {
     pub unknown_git: LintLevel,
     pub allowed_sources: Vec<SourceSpan>,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::cfg::test::*;
+
+    #[test]
+    fn works() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Sources {
+            sources: Config,
+        }
+
+        let cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
+
+        let validated = cd
+            .config
+            .sources
+            .validate(cd.id, cd.files.source(cd.id))
+            .unwrap();
+
+        assert_eq!(validated.file_id, cd.id);
+        assert_eq!(validated.unknown_registry, LintLevel::Allow);
+        assert_eq!(validated.unknown_git, LintLevel::Deny);
+        //assert_eq!(validated.allowed_sources, LintLevel::Deny);
+    }
+}
