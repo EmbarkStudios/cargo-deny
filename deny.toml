@@ -20,14 +20,14 @@ skip = [
     { name = "ansi_term", version = "=0.11.0" },
     # crossbeam (but also openssl-sys!) use pre-1.0 versions of autocfg
     { name = "autocfg", version = "=0.1.7" },
+    # in a surprise twist, semver uses an older version of semver-parser
+    { name = "semver-parser", version = "=0.7.0" },
 ]
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = [
-    "https://github.com/RustSec/rustsec-crate.git"
-]
+allow-git = []
 
 
 [licenses]
