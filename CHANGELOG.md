@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Added `[advisories.yanked]` field in [PR#114](https://github.com/EmbarkStudios/cargo-deny/pull/114) for linting yanked crates.
+
 ## [0.6.0] - 2020-01-20
 ### Added
 - Added the `sources` check and configuration, which allows linting of crate sources
