@@ -233,7 +233,7 @@ pub fn cmd(
                 rayon::scope(|s| {
                     if check_advisories {
                         s.spawn(|_| {
-                            advisory_lockfile = Some(advisories::generate_lockfile(&krates))
+                            advisory_lockfile = Some(advisories::load_lockfile(krates.lock_path()));
                         });
                     }
 
@@ -267,7 +267,7 @@ pub fn cmd(
 
     let advisory_ctx = if check_advisories {
         let db = advisory_db.unwrap()?;
-        let lockfile = advisory_lockfile.unwrap();
+        let lockfile = advisory_lockfile.unwrap()?;
 
         Some((db, lockfile))
     } else {

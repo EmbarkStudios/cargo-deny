@@ -23,7 +23,8 @@ fn load() -> Ctx {
         .unwrap();
 
     let spans = diag::KrateSpans::new(&krates);
-    let lock = advisories::generate_lockfile(&krates);
+    //let lock = advisories::generate_lockfile(&krates);
+    let lock = advisories::load_lockfile(&std::path::Path::new("tests/06_Cargo.lock")).unwrap();
 
     let db = {
         let tmp = tempfile::tempdir().unwrap();
@@ -42,23 +43,6 @@ fn load() -> Ctx {
     }
 }
 
-fn generates_same_lockfile(ctx: &Ctx) -> Result<(), Error> {
-    let lockfile =
-        advisories::load_lockfile(&std::path::Path::new("examples/06_advisories/Cargo.lock"))?;
-
-    if ctx.lock != lockfile {
-        let diff = difference::Changeset::new(
-            &format!("{:#?}", ctx.lock),
-            &format!("{:#?}", lockfile),
-            "\n",
-        );
-
-        anyhow::bail!("lock files differ\n{}", diff);
-    } else {
-        Ok(())
-    }
-}
-
 fn load_cfg(ctx: &Ctx, test_name: &str, cfg_str: String) -> Result<cfg::ValidConfig, Error> {
     let cfg: advisories::cfg::Config = toml::from_str(&cfg_str)?;
 
@@ -68,14 +52,17 @@ fn load_cfg(ctx: &Ctx, test_name: &str, cfg_str: String) -> Result<cfg::ValidCon
         .map_err(|_| anyhow::anyhow!("failed to load {}", test_name))
 }
 
-fn detects_vulnerabilities(ctx: &Ctx) -> Result<(), Error> {
+#[test]
+fn detects_vulnerabilities() {
     let (tx, rx) = crossbeam::channel::unbounded();
+    let ctx = load();
 
     let cfg = load_cfg(
-        ctx,
+        &ctx,
         "detects_vulnerabilities",
         "vulnerability = \"deny\"".into(),
-    )?;
+    )
+    .unwrap();
 
     let (_, vuln_res) = rayon::join(
         || {
@@ -120,19 +107,22 @@ fn detects_vulnerabilities(ctx: &Ctx) -> Result<(), Error> {
         },
     );
 
-    vuln_res
+    vuln_res.unwrap()
 }
 
-fn detects_unmaintained(ctx: &Ctx) -> Result<(), Error> {
+#[test]
+fn detects_unmaintained() {
     let (tx, rx) = crossbeam::channel::unbounded();
 
+    let ctx = load();
     let cfg = load_cfg(
-        ctx,
+        &ctx,
         "detects_unmaintained",
         "unmaintained = \"warn\"".into(),
-    )?;
+    )
+    .unwrap();
 
-    let (_, vuln_res) = rayon::join(
+    let (_, unmaintained_res) = rayon::join(
         || {
             let ctx2 = cargo_deny::CheckCtx {
                 cfg,
@@ -175,19 +165,22 @@ fn detects_unmaintained(ctx: &Ctx) -> Result<(), Error> {
         },
     );
 
-    vuln_res
+    unmaintained_res.unwrap()
 }
 
-fn downgrades(ctx: &Ctx) -> Result<(), Error> {
+#[test]
+fn downgrades() {
     let (tx, rx) = crossbeam::channel::unbounded();
 
+    let ctx = load();
     let cfg = load_cfg(
-        ctx,
+        &ctx,
         "downgrades",
         "unmaintained = \"warn\"\nignore = [\"RUSTSEC-2016-0004\",\"RUSTSEC-2019-0001\"]".into(),
-    )?;
+    )
+    .unwrap();
 
-    let (_, vuln_res) = rayon::join(
+    let (_, down_res) = rayon::join(
         || {
             let ctx2 = cargo_deny::CheckCtx {
                 cfg,
@@ -255,41 +248,5 @@ fn downgrades(ctx: &Ctx) -> Result<(), Error> {
         },
     );
 
-    vuln_res
-}
-
-#[test]
-fn test_advisories() {
-    // rustsec's Database is not really amenable to testing atm
-    // so we just load it once and reuse it to run tests, bit
-    // unfortunate but not a huge deal
-    let ctx = load();
-
-    let mut generates_same_lockfile_res =
-        Err(anyhow::anyhow!("no result from generates_same_lockfile"));
-    let mut detects_vulns_res = Err(anyhow::anyhow!("no result from detects_vulnerabilities"));
-    let mut detects_unmaintained_res = Err(anyhow::anyhow!("no result from detects_unmaintained"));
-    let mut downgrades_res = Err(anyhow::anyhow!("no result from downgrades"));
-
-    rayon::scope(|s| {
-        s.spawn(|_| {
-            generates_same_lockfile_res = generates_same_lockfile(&ctx);
-        });
-
-        s.spawn(|_| {
-            detects_vulns_res = detects_vulnerabilities(&ctx);
-        });
-
-        s.spawn(|_| {
-            detects_unmaintained_res = detects_unmaintained(&ctx);
-        });
-
-        s.spawn(|_| {
-            downgrades_res = downgrades(&ctx);
-        });
-    });
-
-    generates_same_lockfile_res.unwrap();
-    detects_vulns_res.unwrap();
-    detects_unmaintained_res.unwrap();
+    down_res.unwrap()
 }
