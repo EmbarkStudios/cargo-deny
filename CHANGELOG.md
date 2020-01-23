@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Resolved [#85](https://github.com/EmbarkStudios/cargo-deny/issues/85) by changing the max column width from 120 to 80 and reformatting some of the help text for the CLI.
-- Resolved [#109](https://github.com/EmbarkStudios/cargo-deny/issues/109) by only printing a single diagnostic message for each set of duplicate version
+- Resolved [#109](https://github.com/EmbarkStudios/cargo-deny/issues/109) by only printing a single diagnostic message for each set of duplicate versions
 
 ### Fixed
 - Fixed [#96](https://github.com/EmbarkStudios/cargo-deny/issues/96) by allowing expansion of '~' rooted paths for the `[advisories.db-path]` configuration variable.
