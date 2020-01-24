@@ -5,41 +5,7 @@ Contains all of the configuration for `cargo deny check license`.
 ## Example
 
 ```ini
-[licenses]
-unlicensed = "deny"
-allow-osi-fsf-free = "either"
-copyleft = "warn"
-confidence-threshold = 0.92
-deny = [
-    "GPL-3.0",
-]
-allow = [
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "BSD-3-Clause",
-    "MIT",
-]
-exceptions = [
-    # Zlib is only used by this one crate
-    { allow = ["Zlib"], name = "adler32" },
-    # ring is the only crate that uses the ISC and OpenSSL licenses
-    { allow = ["ISC", "MIT", "OpenSSL"], name = "ring" },
-
-# ring has a rather complicated license file, and unfortunately does not
-# provide an SPDX expression in the `license` toml
-[[licenses.clarify]]
-name = "ring"
-# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
-# https://spdx.org/licenses/OpenSSL.html
-# ISC - Both BoringSSL and ring use this for their new files
-# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
-# license, for third_party/fiat, which, unlike other third_party directories, is
-# compiled into non-test libraries, is included below."
-# OpenSSL - Obviously
-expression = "ISC AND MIT AND OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 },
-]
+{{#include ../../../../tests/cfg/licenses.toml}}
 ```
 
 ### The `unlicensed` field (optional)

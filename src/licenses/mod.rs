@@ -828,7 +828,7 @@ fn evaluate_expression(
     // Check to see if the crate matches an exception, which has its own
     // allow list separate from the general allow list
     let eval_res = match cfg.exceptions.iter().position(|exc| {
-        exc.name.item == krate_lic_nfo.krate.name
+        exc.name.as_ref() == &krate_lic_nfo.krate.name
             && exc.version.matches(&krate_lic_nfo.krate.version)
     }) {
         Some(ind) => {
@@ -839,7 +839,7 @@ fn evaluate_expression(
 
             expr.evaluate_with_failures(|req| {
                 for allow in &exception.allowed {
-                    if allow.item.satisfies(req) {
+                    if allow.value.satisfies(req) {
                         allow!(ExcplicitException);
                     }
                 }
@@ -855,7 +855,7 @@ fn evaluate_expression(
             // banning Apache-2.0, but allowing MIT, will allow the crate
             // to be used as you are upholding at least one license requirement
             for deny in &cfg.denied {
-                if deny.item.satisfies(req) {
+                if deny.value.satisfies(req) {
                     deny!(Denied);
                 }
             }
@@ -863,7 +863,7 @@ fn evaluate_expression(
             // 2. A license that is specifically allowed will of course mean
             // that the requirement is met.
             for (i, allow) in cfg.allowed.iter().enumerate() {
-                if allow.item.satisfies(req) {
+                if allow.value.satisfies(req) {
                     hits.allowed.as_mut_bitslice().set(i, true);
                     allow!(ExplicitAllowance);
                 }

@@ -1,9 +1,10 @@
 use super::KrateId;
-use crate::LintLevel;
+use crate::{LintLevel, Spanned};
 use semver::VersionReq;
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateId {
     // The name of the crate
@@ -14,6 +15,7 @@ pub struct CrateId {
 }
 
 #[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct TreeSkip {
     #[serde(flatten)]
@@ -30,6 +32,7 @@ const fn highlight() -> GraphHighlight {
 }
 
 #[derive(Deserialize, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum GraphHighlight {
     /// Highlights the path to a duplicate dependency with the fewest number
@@ -64,17 +67,17 @@ pub struct Config {
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
     #[serde(default)]
-    pub deny: Vec<toml::Spanned<CrateId>>,
+    pub deny: Vec<Spanned<CrateId>>,
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
-    pub allow: Vec<toml::Spanned<CrateId>>,
+    pub allow: Vec<Spanned<CrateId>>,
     /// If specified, disregards the crate completely
     #[serde(default)]
-    pub skip: Vec<toml::Spanned<CrateId>>,
+    pub skip: Vec<Spanned<CrateId>>,
     /// If specified, disregards the crate's transitive dependencies
     /// down to a certain depth
     #[serde(default)]
-    pub skip_tree: Vec<toml::Spanned<TreeSkip>>,
+    pub skip_tree: Vec<Spanned<TreeSkip>>,
 }
 
 impl Default for Config {
@@ -98,15 +101,13 @@ impl Config {
         use crate::diag::{Diagnostic, Label};
         use rayon::prelude::*;
 
-        let from = |s: toml::Spanned<CrateId>| {
-            let span = s.start() as u32..s.end() as u32;
-            let inner = s.into_inner();
+        let from = |s: Spanned<CrateId>| {
             Skrate::new(
                 KrateId {
-                    name: inner.name,
-                    version: inner.version,
+                    name: s.value.name,
+                    version: s.value.version,
                 },
-                span,
+                s.span,
             )
         };
 
@@ -183,13 +184,17 @@ impl Config {
                 denied,
                 allowed,
                 skipped,
-                tree_skipped: self.skip_tree,
+                tree_skipped: self
+                    .skip_tree
+                    .into_iter()
+                    .map(crate::Spanned::from)
+                    .collect(),
             })
         }
     }
 }
 
-pub(crate) type Skrate = crate::Spanned<KrateId>;
+pub(crate) type Skrate = Spanned<KrateId>;
 
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
@@ -198,5 +203,63 @@ pub struct ValidConfig {
     pub(crate) denied: Vec<Skrate>,
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) skipped: Vec<Skrate>,
-    pub(crate) tree_skipped: Vec<toml::Spanned<TreeSkip>>,
+    pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::cfg::test::*;
+
+    macro_rules! kid {
+        ($name:expr) => {
+            KrateId {
+                name: String::from($name),
+                version: semver::VersionReq::any(),
+            }
+        };
+
+        ($name:expr, $vs:expr) => {
+            KrateId {
+                name: String::from($name),
+                version: $vs.parse().unwrap(),
+            }
+        };
+    }
+
+    #[test]
+    fn works() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Bans {
+            bans: Config,
+        }
+
+        let cd: ConfigData<Bans> = load("tests/cfg/bans.toml");
+
+        let validated = cd.config.bans.validate(cd.id).unwrap();
+
+        assert_eq!(validated.file_id, cd.id);
+        assert_eq!(validated.multiple_versions, LintLevel::Deny);
+        assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
+        assert_eq!(
+            validated.allowed,
+            vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
+        );
+        assert_eq!(
+            validated.denied,
+            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
+        );
+        assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
+        assert_eq!(
+            validated.tree_skipped,
+            vec![TreeSkip {
+                id: CrateId {
+                    name: "blah".to_owned(),
+                    version: semver::VersionReq::any(),
+                },
+                depth: Some(20),
+            }]
+        );
+    }
 }

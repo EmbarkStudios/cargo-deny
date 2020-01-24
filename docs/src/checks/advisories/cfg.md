@@ -5,15 +5,7 @@ Contains all of the configuration for `cargo deny check advisories`
 ## Example Config
 
 ```ini
-[advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-ignore = [
-    # spin is unmaintained, but it has a couple of heavy users,
-    # particularly lazy_static that will probably take a while
-    # to get rid of
-    "RUSTSEC-2019-0031",
-]
+{{#include ../../../../tests/cfg/advisories.toml}}
 ```
 
 ### The `db-url` field (optional)
@@ -50,6 +42,17 @@ fail the check.
 not fail the check.
 * `allow` - Prints a note about the unmaintained advisory, but does not fail 
 the check.
+
+### The `yanked` field (optional)
+
+Determines what happens when a crate with a version that has been yanked from
+its source registry is encountered.
+
+* `deny` - Will emit an error with the crate name and version that was yanked,
+and fail the check.
+* `warn` (default) - Prints a warning with the crate name and version that was
+yanked, but does not fail the check.
+* `allow` - Prints a note about the yanked crate, but does not fail the check.
 
 ### The `notice` field (optional)
 

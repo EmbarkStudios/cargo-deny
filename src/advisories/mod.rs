@@ -1,9 +1,8 @@
 pub mod cfg;
 
 use crate::{
-    cm,
     diag::{self, Diagnostic, Label, Severity},
-    Krates, LintLevel,
+    Krate, Krates, LintLevel,
 };
 use anyhow::{Context, Error};
 use log::info;
@@ -68,7 +67,15 @@ pub fn load_db(
         "loading advisory database from {}",
         advisory_db_path.display()
     );
-    Ok(Database::load(&advisory_db_repo).context("failed to load advisory database")?)
+
+    let res = Database::load(&advisory_db_repo).context("failed to load advisory database");
+
+    info!(
+        "finished loading advisory database from {}",
+        advisory_db_path.display()
+    );
+
+    res
 }
 
 pub fn load_lockfile(path: &Path) -> Result<Lockfile, Error> {
@@ -80,75 +87,15 @@ pub fn load_lockfile(path: &Path) -> Result<Lockfile, Error> {
     Ok(lockfile)
 }
 
-/// Generates rustsec::lockfile::Lockfile from the crates gathered via cargo_metadata,
-/// rather than deserializing them from the lockfile again
-pub fn generate_lockfile(krates: &Krates) -> Lockfile {
-    use rustsec::{
-        cargo_lock::{dependency::Dependency, package::Source},
-        package::Package,
-    };
-
-    let mut packages = Vec::with_capacity(krates.len());
-
-    fn im_so_sorry(s: &cm::Source) -> Source {
-        // cargo_metadata::Source(String) doesn't have as_str()/as_ref()/into() :(
-        let oh_no = format!("{}", s);
-
-        // cargo_lock::package::Source(String) doesn't have from()/new() :(
-        oh_no.parse().expect("guess this is no longer infallible")
-    }
-
-    for (nid, krate) in krates
-        .krates()
-        .map(|kn| (krates.nid_for_kid(&kn.id).unwrap(), &kn.krate))
-    {
-        let mut dependencies: Vec<_> = krates
-            .get_deps(nid)
-            .map(|(dep, _)| {
-                let dep = &dep.krate;
-                Dependency {
-                    // This will hide errors if the FromStr implementation
-                    // begins to fail at some point, but right now it is infallible
-                    name: dep.name.parse().unwrap(),
-                    version: Some(dep.version.clone()),
-                    // This will hide errors if the FromStr implementation
-                    // begins to fail at some point, but right now it is infallible
-                    source: dep.source.as_ref().map(|s| im_so_sorry(s)),
-                }
-            })
-            .collect();
-
-        use std::cmp::Ordering;
-
-        // Sort the dependencies as they would be in the Cargo.lock
-        dependencies.sort_by(|a, b| match a.name.cmp(&b.name) {
-            Ordering::Equal => match a.version.cmp(&b.version) {
-                Ordering::Equal => a.source.cmp(&b.source),
-                other => other,
-            },
-            other => other,
-        });
-
-        // Remove duplicates, this can occur if there are eg a normal and build dependency
-        // on the same crate, Cargo.lock only records unique crates once
-        dependencies.dedup();
-
-        packages.push(Package {
-            // This will hide errors if the FromStr implementation
-            // begins to fail at some point, but right now it is infallible
-            name: krate.name.parse().unwrap(),
-            version: krate.version.clone(),
-            // This will hide errors if the FromStr implementation
-            // begins to fail at some point, but right now it is infallible
-            source: krate.source.as_ref().map(|s| im_so_sorry(s)),
-            dependencies,
-        });
-    }
-
-    Lockfile {
-        packages,
-        metadata: Default::default(),
-    }
+#[inline]
+fn krate_for_pkg<'a>(
+    krates: &'a Krates,
+    pkg: &rustsec::package::Package,
+) -> Option<(usize, &'a Krate)> {
+    krates
+        .krates_by_name(pkg.name.as_str())
+        .find(|(_, kn)| pkg.version == kn.krate.version)
+        .map(|(ind, krate)| (ind.index(), &krate.krate))
 }
 
 /// Check crates against the advisory database to detect vulnerabilities or
@@ -162,11 +109,15 @@ pub fn check(
     use rustsec::{
         advisory::{informational::Informational, metadata::Metadata},
         package::Package,
+        warning::Kind,
     };
 
     let settings = rustsec::report::Settings {
+        // We already prune packages we don't care about, so don't filter
+        // any here
         target_arch: None,
         target_os: None,
+        package_scope: None,
         // We handle the severity ourselves
         severity: None,
         // We handle the ignoring of particular advisory ids ourselves
@@ -184,11 +135,7 @@ pub fn check(
     let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
 
     let mut make_diag = |pkg: &Package, advisory: &Metadata| -> diag::Pack {
-        match ctx
-            .krates
-            .krates_by_name(pkg.name.as_str())
-            .find(|(_, kn)| pkg.version == kn.krate.version)
-        {
+        match krate_for_pkg(&ctx.krates, pkg) {
             Some((i, krate)) => {
                 let id = &advisory.id;
 
@@ -224,7 +171,7 @@ pub fn check(
                     // for "reasons", but in that case we still emit it to the log
                     // so it doesn't just disappear into the aether
                     let lint_level =
-                        if let Ok(index) = ctx.cfg.ignore.binary_search_by(|i| i.item.cmp(id)) {
+                        if let Ok(index) = ctx.cfg.ignore.binary_search_by(|i| i.value.cmp(id)) {
                             ignore_hits.as_mut_bitslice().set(index, true);
                             LintLevel::Allow
                         } else if let Some(severity_threshold) = ctx.cfg.severity_threshold {
@@ -270,7 +217,7 @@ pub fn check(
                     Diagnostic::new(
                         severity,
                         advisory.title.clone(),
-                        ctx.label_for_span(i.index(), message),
+                        ctx.label_for_span(i, message),
                     )
                     .with_code(id.as_str().to_owned())
                     .with_notes(notes),
@@ -299,9 +246,32 @@ pub fn check(
 
     // Check for informational advisories for crates, including unmaintained
     for warning in report.warnings {
-        sender
-            .send(make_diag(&warning.package, &warning.advisory))
-            .unwrap();
+        let diag = match warning.kind {
+            Kind::Unmaintained { advisory, .. } => make_diag(&warning.package, &advisory),
+            Kind::Informational { advisory, .. } => make_diag(&warning.package, &advisory),
+            Kind::Yanked => match krate_for_pkg(&ctx.krates, &warning.package) {
+                Some((ind, krate)) => {
+                    let mut pack = diag::Pack::with_kid(krate.id.clone());
+                    pack.push(Diagnostic::new(
+                        match ctx.cfg.yanked {
+                            LintLevel::Allow => Severity::Note,
+                            LintLevel::Deny => Severity::Error,
+                            LintLevel::Warn => Severity::Warning,
+                        },
+                        "detected yanked crate",
+                        ctx.label_for_span(ind, "yanked version"),
+                    ));
+
+                    pack
+                }
+                None => unreachable!(
+                    "the advisory database warned about yanked crate that we don't have: {:#?}",
+                    warning.package
+                ),
+            },
+        };
+
+        sender.send(diag).unwrap();
     }
 
     // Check for advisory identifers that were set to be ignored, but
