@@ -1,4 +1,4 @@
-use crate::LintLevel;
+use crate::{LintLevel, Spanned};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -16,7 +16,7 @@ pub struct Config {
     pub allow_registry: Vec<String>,
     /// The list of git repositories that crates can be sourced from.
     #[serde(default)]
-    pub allow_git: Vec<toml::Spanned<String>>,
+    pub allow_git: Vec<Spanned<String>>,
 }
 
 fn default_allow_registry() -> Vec<String> {
@@ -67,15 +67,17 @@ impl Config {
         }
 
         for ag in self.allow_git {
-            let span = ag.start() as u32..ag.end() as u32;
-            match url::Url::parse(ag.get_ref()) {
+            match url::Url::parse(ag.as_ref()) {
                 Ok(url) => {
-                    allowed_sources.push(SourceSpan::new(url, span));
+                    allowed_sources.push(SourceSpan {
+                        value: url,
+                        span: ag.span,
+                    });
                 }
                 Err(pe) => {
                     diags.push(Diagnostic::new_error(
                         "failed to parse url",
-                        Label::new(cfg_file, span, pe.to_string()),
+                        Label::new(cfg_file, ag.span, pe.to_string()),
                     ));
                 }
             }
@@ -94,7 +96,7 @@ impl Config {
     }
 }
 
-pub type SourceSpan = crate::Spanned<url::Url>;
+pub type SourceSpan = Spanned<url::Url>;
 
 #[doc(hidden)]
 pub struct ValidConfig {

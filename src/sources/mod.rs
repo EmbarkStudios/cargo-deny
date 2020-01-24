@@ -110,7 +110,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             .cfg
             .allowed_sources
             .iter()
-            .position(|src| src.item == source_url)
+            .position(|src| src == &source_url)
         {
             Some(ind) => source_hits.as_mut_bitslice().set(ind, true),
             None => {

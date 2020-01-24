@@ -53,7 +53,7 @@ pub struct Args {
 
 #[derive(Deserialize)]
 struct Target {
-    triple: toml::Spanned<String>,
+    triple: cargo_deny::Spanned<String>,
     #[serde(default)]
     features: Vec<String>,
 }
@@ -112,14 +112,14 @@ impl ValidConfig {
             let mut targets = Vec::with_capacity(cfg.targets.len());
             let mut diagnostics = Vec::new();
             for target in cfg.targets {
-                let triple = target.triple.get_ref();
+                let triple = target.triple.as_ref();
 
                 if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
                     diagnostics.push(Diagnostic::new_warning(
                         format!("unknown target `{}` specified", triple),
                         cargo_deny::diag::Label::new(
                             id,
-                            target.triple.span().0 as u32..target.triple.span().1 as u32,
+                            target.triple.span().clone(),
                             "the triple won't be evaluated against cfg() sections, just explicit triples"
                         ),
                     ));

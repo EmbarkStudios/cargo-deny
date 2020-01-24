@@ -1,5 +1,5 @@
 use super::KrateId;
-use crate::LintLevel;
+use crate::{LintLevel, Spanned};
 use semver::VersionReq;
 use serde::Deserialize;
 
@@ -67,17 +67,17 @@ pub struct Config {
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
     #[serde(default)]
-    pub deny: Vec<toml::Spanned<CrateId>>,
+    pub deny: Vec<Spanned<CrateId>>,
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
-    pub allow: Vec<toml::Spanned<CrateId>>,
+    pub allow: Vec<Spanned<CrateId>>,
     /// If specified, disregards the crate completely
     #[serde(default)]
-    pub skip: Vec<toml::Spanned<CrateId>>,
+    pub skip: Vec<Spanned<CrateId>>,
     /// If specified, disregards the crate's transitive dependencies
     /// down to a certain depth
     #[serde(default)]
-    pub skip_tree: Vec<toml::Spanned<TreeSkip>>,
+    pub skip_tree: Vec<Spanned<TreeSkip>>,
 }
 
 impl Default for Config {
@@ -101,15 +101,13 @@ impl Config {
         use crate::diag::{Diagnostic, Label};
         use rayon::prelude::*;
 
-        let from = |s: toml::Spanned<CrateId>| {
-            let span = s.start() as u32..s.end() as u32;
-            let inner = s.into_inner();
+        let from = |s: Spanned<CrateId>| {
             Skrate::new(
                 KrateId {
-                    name: inner.name,
-                    version: inner.version,
+                    name: s.value.name,
+                    version: s.value.version,
                 },
-                span,
+                s.span,
             )
         };
 
@@ -196,7 +194,7 @@ impl Config {
     }
 }
 
-pub(crate) type Skrate = crate::Spanned<KrateId>;
+pub(crate) type Skrate = Spanned<KrateId>;
 
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
@@ -205,7 +203,7 @@ pub struct ValidConfig {
     pub(crate) denied: Vec<Skrate>,
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) skipped: Vec<Skrate>,
-    pub(crate) tree_skipped: Vec<crate::Spanned<TreeSkip>>,
+    pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::LintLevel;
+use crate::{LintLevel, Spanned};
 use rustsec::advisory;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -24,7 +24,7 @@ pub struct Config {
     pub notice: LintLevel,
     /// Ignore advisories for the given IDs
     #[serde(default)]
-    pub ignore: Vec<toml::Spanned<advisory::Id>>,
+    pub ignore: Vec<Spanned<advisory::Id>>,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
     ///
     /// Vulnerabilities with explicit CVSS info which have a severity below
@@ -69,7 +69,7 @@ impl Config {
     }
 }
 
-pub(crate) type AdvisoryId = crate::Spanned<advisory::Id>;
+pub(crate) type AdvisoryId = Spanned<advisory::Id>;
 
 pub struct ValidConfig {
     pub file_id: codespan::FileId,

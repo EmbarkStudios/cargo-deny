@@ -41,26 +41,26 @@ fn binary_search<'a>(
 ) -> Result<(usize, &'a cfg::Skrate), usize> {
     let lowest = VersionReq::exact(&Version::new(0, 0, 0));
 
-    match arr.binary_search_by(|i| match i.item.name.cmp(&details.name) {
-        Ordering::Equal => i.item.version.cmp(&lowest),
+    match arr.binary_search_by(|i| match i.value.name.cmp(&details.name) {
+        Ordering::Equal => i.value.version.cmp(&lowest),
         o => o,
     }) {
         Ok(i) => Ok((i, &arr[i])),
         Err(i) => {
             // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
             // before the 0.0.0 version
-            let begin = if i > 0 && arr[i - 1].item.name == details.name {
+            let begin = if i > 0 && arr[i - 1].value.name == details.name {
                 i - 1
             } else {
                 i
             };
 
             for (j, krate) in arr[begin..].iter().enumerate() {
-                if krate.item.name != details.name {
+                if krate.value.name != details.name {
                     break;
                 }
 
-                if krate.item.version.matches(&details.version) {
+                if krate.value.version.matches(&details.version) {
                     return Ok((begin + j, krate));
                 }
             }
@@ -97,7 +97,7 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for krate in krates.search_matches(&ts.item.id.name, &ts.item.id.version) {
+            for krate in krates.search_matches(&ts.value.id.name, &ts.value.id.version) {
                 roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 
@@ -124,7 +124,7 @@ impl TreeSkipper {
         krates: &Krates,
     ) -> SkipRoot {
         let span = ts.span;
-        let ts = ts.item;
+        let ts = ts.value;
 
         let max_depth = ts.depth.unwrap_or(std::usize::MAX);
         let mut skip_crates = Vec::with_capacity(10);
@@ -489,7 +489,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse("=0.3.1").unwrap())
         );
@@ -503,7 +503,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::any())
         );
@@ -527,7 +527,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse("=0.1.43").unwrap())
         );
@@ -541,7 +541,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse("<0.1.42").unwrap())
         );
@@ -555,7 +555,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse(">0.1.43").unwrap())
         );
@@ -569,7 +569,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse("<0.1").unwrap())
         );
@@ -583,7 +583,7 @@ mod test {
                     ..Default::default()
                 }
             )
-            .map(|(_, s)| &s.item.version)
+            .map(|(_, s)| &s.value.version)
             .unwrap(),
             &(VersionReq::parse("<0.3").unwrap())
         );

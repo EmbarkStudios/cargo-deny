@@ -21,7 +21,7 @@
 //! assert!(dc.exceptions.is_empty());
 //! ```
 
-use crate::LintLevel;
+use crate::{LintLevel, Spanned};
 use semver::VersionReq;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -101,7 +101,7 @@ pub struct Clarification {
     pub version: Option<VersionReq>,
     /// The [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
     /// to apply to the crate.
-    pub expression: toml::Spanned<String>,
+    pub expression: Spanned<String>,
     /// Files in the crate that are the ground truth for the expression.
     pub license_files: Vec<FileSource>,
 }
@@ -112,12 +112,12 @@ pub struct Clarification {
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Exception {
     /// The name of the crate to apply the exception to.
-    pub name: toml::Spanned<String>,
+    pub name: Spanned<String>,
     /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
     /// One or more [SPDX identifiers](https://spdx.org/licenses/) that are
     /// allowed only for this crate.
-    pub allow: Vec<toml::Spanned<String>>,
+    pub allow: Vec<Spanned<String>>,
 }
 
 /// Top level configuration for the a license check
@@ -143,10 +143,10 @@ pub struct Config {
     pub confidence_threshold: f32,
     /// Licenses that will be rejected in a license expression
     #[serde(default)]
-    pub deny: Vec<toml::Spanned<String>>,
+    pub deny: Vec<Spanned<String>>,
     /// Licenses that will be allowed in a license expression
     #[serde(default)]
-    pub allow: Vec<toml::Spanned<String>>,
+    pub allow: Vec<Spanned<String>>,
     /// Overrides the license expression used for a particular crate as long as
     /// it exactly matches the specified license files and hashes
     #[serde(default)]
@@ -188,15 +188,13 @@ impl Config {
 
         let mut diagnostics = Vec::new();
 
-        let mut parse_license =
-            |ls: &toml::Spanned<String>, v: &mut Vec<Licensee>| match spdx::Licensee::parse(
-                ls.get_ref(),
-            ) {
+        let mut parse_license = |ls: &Spanned<String>, v: &mut Vec<Licensee>| {
+            match spdx::Licensee::parse(ls.as_ref()) {
                 Ok(licensee) => {
-                    v.push(Licensee::newu(licensee, ls.start()..ls.end()));
+                    v.push(Licensee::new(licensee, ls.span.clone()));
                 }
                 Err(pe) => {
-                    let offset = (ls.start() + 1) as u32;
+                    let offset = (ls.span.start + 1) as u32;
                     let span = pe.span.start as u32 + offset..pe.span.end as u32 + offset;
                     let diag = Diagnostic::new_error(
                         "invalid licensee",
@@ -205,7 +203,8 @@ impl Config {
 
                     diagnostics.push(diag);
                 }
-            };
+            }
+        };
 
         let mut denied = Vec::with_capacity(self.deny.len());
         for d in &self.deny {
@@ -229,7 +228,7 @@ impl Config {
             }
 
             exceptions.push(ValidException {
-                name: crate::Spanned::from(exc.name),
+                name: exc.name,
                 version: exc.version.unwrap_or_else(VersionReq::any),
                 allowed,
             });
@@ -242,16 +241,8 @@ impl Config {
         // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(&d) {
-                let dlabel = Label::new(
-                    cfg_file,
-                    self.deny[di].start() as u32..self.deny[di].end() as u32,
-                    "marked as `deny`",
-                );
-                let alabel = Label::new(
-                    cfg_file,
-                    self.allow[ai].start() as u32..self.allow[ai].end() as u32,
-                    "marked as `allow`",
-                );
+                let dlabel = Label::new(cfg_file, self.deny[di].span.clone(), "marked as `deny`");
+                let alabel = Label::new(cfg_file, self.allow[ai].span.clone(), "marked as `allow`");
 
                 // Put the one that occurs last as the primary label to make it clear
                 // that the first one was "ok" until we noticed this other one
@@ -275,10 +266,10 @@ impl Config {
 
         let mut clarifications = Vec::with_capacity(self.clarify.len());
         for c in self.clarify {
-            let expr = match spdx::Expression::parse(c.expression.get_ref()) {
+            let expr = match spdx::Expression::parse(c.expression.as_ref()) {
                 Ok(validated) => validated,
                 Err(err) => {
-                    let offset = (c.expression.start() + 1) as u32;
+                    let offset = (c.expression.span.start + 1) as u32;
                     let expr_span = offset + err.span.start as u32..offset + err.span.end as u32;
 
                     diagnostics.push(Diagnostic::new_error(
@@ -296,7 +287,7 @@ impl Config {
             clarifications.push(ValidClarification {
                 name: c.name,
                 version: c.version.unwrap_or_else(VersionReq::any),
-                expr_offset: (c.expression.start() + 1) as u32,
+                expr_offset: (c.expression.span.start + 1) as u32,
                 expression: expr,
                 license_files,
             });
@@ -324,6 +315,7 @@ impl Config {
 }
 
 #[doc(hidden)]
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
@@ -340,7 +332,7 @@ pub struct ValidException {
     pub allowed: Vec<Licensee>,
 }
 
-pub type Licensee = crate::Spanned<spdx::Licensee>;
+pub type Licensee = Spanned<spdx::Licensee>;
 
 #[doc(hidden)]
 pub struct ValidConfig {
