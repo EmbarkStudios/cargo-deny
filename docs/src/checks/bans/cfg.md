@@ -5,61 +5,7 @@ Contains all of the configuration for `cargo deny check bans`
 ## Example Config
 
 ```ini
-[bans]
-multiple-versions = "deny"
-deny = [
-    # "Problematic"
-    # we use rustls instead
-    { name = "openssl" },
-    { name = "openssl-sys" },
-    # we don't want to use any XML and some of these are 4 year old dependencies
-    { name = "RustyXml" },
-    { name = "serde-xml-rs" },
-    # sha2 crate has surprising amount of dependencies, 
-    # and we use ring instead in this project
-    { name = "sha2" },
-
-    # Library choices
-    # we use glam as math library, not nalgebra
-    { name = "nalgebra" },
-    { name = "nalgebra-glm" },
-
-    # deprecated/abandoned
-    # term is not fully maintained, and termcolor is replacing it
-    { name = "term" },
-    # explicitly deprecated
-    { name = "quickersort" },
-]
-skip = [
-    # multiple crates use old percent-encoding
-    { name = "percent-encoding", version = "<=1.0" },
-
-    # ignore, texture-synthesis use this older version
-    { name = "crossbeam-utils", version = "=0.6" },
-
-    # rustls uses old base64 (have been upgraded on master)
-    { name = "base64", version = "=0.10" },
-
-    # bindgen (via coreaudio-sys) uses an old version
-    { name = "version_check", version = "=0.1" },
-
-    # sentry uses old url 1.7.
-    # https://github.com/getsentry/rust-sentry-types/issues/39
-    { name = "url", version = "=1.7" },
-    { name = "idna", version = "=0.1" },
-]
-skip-tree = [
-    # several crates use older versions of parking_lot
-    { name = "parking_lot", version = "=0.9" },
-    # ignore older rand and its "fun" crate structure
-    { name = "rand", version = "=0.6.5" },
-    # tonic is in alpha right now, and pulls in many alpha versions of 
-    # tokio/tower crates, so ignore all of them for now until things stabilize
-    { name = "tonic", version = "0.1.0-alpha.4" },
-    # ignore winit 0.19 for now as it pulls in older crates, 
-    # wayland stuff in particular
-    { name = "winit", version = "= 0.19" },
-]
+{{#include ../../../../tests/cfg/bans.toml}}
 ```
 
 ### The `multiple-versions` field (optional)

@@ -5,18 +5,7 @@ Contains all of the configuration for `cargo deny check sources`
 ## Example Config
 
 ```ini
-[sources]
-unknown-registry = "deny"
-unknown-git = "deny"
-allow-git = [
-    "https://github.com/EmbarkStudios/cpal",
-    "https://github.com/EmbarkStudios/nfd-rs",
-    "https://github.com/EmbarkStudios/winit",
-    "https://github.com/EmbarkStudios/smush-rs.git",
-    "https://github.com/EmbarkStudios/shaderc-rs.git",
-    "https://github.com/EmbarkStudios/sentry-rust.git",
-    "https://github.com/EmbarkStudios/imgui-rs.git",
-]
+{{#include ../../../../tests/cfg/sources.toml}}
 ```
 
 ### The `unknown-registry` field (optional)

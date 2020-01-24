@@ -5,16 +5,7 @@ Contains all of the configuration for `cargo deny check advisories`
 ## Example Config
 
 ```ini
-[advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-yanked = "deny"
-ignore = [
-    # spin is unmaintained, but it has a couple of heavy users,
-    # particularly lazy_static that will probably take a while
-    # to get rid of
-    "RUSTSEC-2019-0031",
-]
+{{#include ../../../../tests/cfg/advisories.toml}}
 ```
 
 ### The `db-url` field (optional)
