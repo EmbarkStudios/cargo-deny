@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.1] - 2020-01-24
 ### Added
 - Added `[advisories.yanked]` field in [PR#114](https://github.com/EmbarkStudios/cargo-deny/pull/114) for linting yanked crates.
 
@@ -121,7 +122,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.0...0.5.1
