@@ -351,7 +351,7 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::test::*;
+    use crate::cfg::{test::*, *};
 
     #[test]
     fn works() {
@@ -385,13 +385,26 @@ mod test {
                 spdx::Licensee::parse("Nokia").unwrap(),
             ]
         );
-        // assert_eq!(
-        //     validated.exceptions,
-        //     vec![ValidException {
-        //         name: "adler32".to_owned(),
-        //         version: semver::VersionReq::any(),
-        //         allowed: vec![spdx::Licensee::parse("Apache-2.0 WITH LLVM-exception").unwrap()],
-        //     }]
-        // );
+        assert_eq!(
+            validated.exceptions,
+            vec![ValidException {
+                name: "adler32".to_owned().fake(),
+                allowed: vec![spdx::Licensee::parse("Zlib").unwrap().fake()],
+                version: semver::VersionReq::parse("0.1.1").unwrap(),
+            }]
+        );
+        assert_eq!(
+            validated.clarifications,
+            vec![ValidClarification {
+                name: "ring".to_owned(),
+                version: semver::VersionReq::parse("*").unwrap(),
+                expression: spdx::Expression::parse("MIT AND ISC AND OpenSSL").unwrap(),
+                license_files: vec![FileSource {
+                    path: "LICENSE".into(),
+                    hash: 0xbd0e_ed23,
+                }],
+                expr_offset: 415,
+            }]
+        );
     }
 }

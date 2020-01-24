@@ -110,7 +110,7 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::test::*;
+    use crate::cfg::{test::*, *};
 
     #[test]
     fn works() {
@@ -131,6 +131,17 @@ mod test {
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.unknown_registry, LintLevel::Allow);
         assert_eq!(validated.unknown_git, LintLevel::Deny);
-        //assert_eq!(validated.allowed_sources, LintLevel::Deny);
+
+        assert_eq!(
+            validated.allowed_sources,
+            vec![
+                url::Url::parse("https://sekretz.com/registry/index")
+                    .unwrap()
+                    .fake(),
+                url::Url::parse("https://notgithub.com/orgname/reponame")
+                    .unwrap()
+                    .fake()
+            ]
+        );
     }
 }
