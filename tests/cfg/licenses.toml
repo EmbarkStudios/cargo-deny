@@ -19,7 +19,7 @@ registries = ["sekrets"]
 [[licenses.exceptions]]
 allow = ["Zlib"]
 name = "adler32"
-version = "*"
+version = "0.1.1"
 
 [[licenses.clarify]]
 name = "ring"

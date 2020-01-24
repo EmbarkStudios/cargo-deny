@@ -29,7 +29,6 @@ unknown-registry = "deny"
 unknown-git = "deny"
 allow-git = []
 
-
 [licenses]
 unlicensed = "deny"
 allow-osi-fsf-free = "neither"
