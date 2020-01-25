@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.2] - 2020-01-25
 ### Added
 - Resolved [#116](https://github.com/EmbarkStudios/cargo-deny/issues/116) by adding the `[licenses.default]` field, which allows you to configure how to handle licenses that don't match any other predicate
 - Resolved [#117](https://github.com/EmbarkStudios/cargo-deny/issues/117) by allowing the `list` subcommand to also use the normal configuration used by the `check` subcommand. Only the `targets` field is used, to determine which crates have their licenses listed.
@@ -126,7 +127,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...HEAD
+[0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.1...0.5.2
