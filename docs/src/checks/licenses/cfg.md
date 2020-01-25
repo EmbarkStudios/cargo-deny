@@ -114,6 +114,20 @@ Determines what happens when licenses aren't explicitly allowed or denied, but
 * `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
 * `neither` (default) - No special consideration is given the license
 
+### The `default` field (optional)
+
+Determines what happens when a license is encountered that:
+
+1. Isn't in the `allow` or `deny` lists
+1. Isn't `copyleft`
+1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
+
+* `warn` - Will emit a warning that the license was detected, but will not fail 
+the license check
+* `deny` (default) - The license is not accepted, but the license check might 
+not fail if the expression still evaluates to true
+* `allow` - The license is accepted
+
 ### The `confidence-threshold` field (optional)
 
 `cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the 

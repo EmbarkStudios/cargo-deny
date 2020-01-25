@@ -29,7 +29,7 @@ cannot be gathered automatically.
 The source of the SPDX expression used to evaluate the crate by is obtained in 
 the following order.
 
-1. If the crate in question has a [Clarification](cfg.md#the-clarify-field)
+1. If the crate in question has a [Clarification](cfg.md#the-clarify-field-optional)
 applied to it, and the source file(s) in the crate's source still match, the
 expression from the clarification will be used.
 1. The [`license`][cargo-md] field from the crate's Cargo.toml manifest will be 
@@ -48,14 +48,15 @@ accepted or rejected is as follows:
 1. A license specified in the `allow` list is **always accepted**.
 1. If the license is considered
 [copyleft](https://en.wikipedia.org/wiki/Copyleft), the
-[`[licenses.copyleft]`](cfg.md#the-copyleft-field) configuration determines its
-status
+[`[licenses.copyleft]`](cfg.md#the-copyleft-field-optional) configuration 
+determines its status
 1. If the license is [OSI Approved](https://opensource.org/licenses) or
 [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html), the
-[`[licenses.allow-osi-fsf-free]`](cfg.md/#the-allow-osi-fsf-free-field) 
-configuration determines its status
-1. If the license does not match any of the above criteria, it is implicitly 
-**rejected**.
+[`[licenses.allow-osi-fsf-free]`](cfg.md#the-allow-osi-fsf-free-field-optional) 
+configuration determines its status, if it is `neither` the check continues
+1. If the license does not match any of the above criteria, the 
+[`[licenses.default]`](cfg.md#the-default-field-optional) configuration 
+determines its status
 
 [SPDX]: https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/
 [cargo-md]: https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata
