@@ -34,6 +34,11 @@ arg_enum! {
 
 #[derive(StructOpt, Debug)]
 pub struct Args {
+    /// Path to the config to use
+    ///
+    /// Defaults to <context>/deny.toml if not specified
+    #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
+    config: PathBuf,
     /// Minimum confidence threshold for license text
     ///
     /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
@@ -74,18 +79,100 @@ pub struct Args {
     layout: Layout,
 }
 
+#[derive(serde::Deserialize)]
+struct Config {
+    #[serde(default)]
+    targets: Vec<crate::common::Target>,
+}
+
+struct ValidConfig {
+    targets: Vec<(String, Vec<String>)>,
+}
+
+impl ValidConfig {
+    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
+        let cfg_contents = if cfg_path.exists() {
+            std::fs::read_to_string(&cfg_path)
+                .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
+        } else {
+            return Ok(Self {
+                targets: Vec::new(),
+            });
+        };
+
+        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
+            format!("failed to deserialize config from '{}'", cfg_path.display())
+        })?;
+
+        let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
+
+        use cargo_deny::diag::Diagnostic;
+
+        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
+            let mut diagnostics = Vec::new();
+            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
+
+            Ok((diagnostics, Self { targets }))
+        };
+
+        let print = |diags: Vec<Diagnostic>| {
+            use codespan_reporting::term;
+
+            if diags.is_empty() {
+                return;
+            }
+
+            let writer =
+                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+            let config = term::Config::default();
+            let mut writer = writer.lock();
+            for diag in &diags {
+                term::emit(&mut writer, &config, &files, &diag).unwrap();
+            }
+        };
+
+        match validate() {
+            Ok((diags, vc)) => {
+                print(diags);
+                Ok(vc)
+            }
+            Err(diags) => {
+                print(diags);
+
+                anyhow::bail!(
+                    "failed to validate configuration file {}",
+                    cfg_path.display()
+                );
+            }
+        }
+    }
+}
+
 #[allow(clippy::cognitive_complexity)]
 pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(), Error> {
     use licenses::LicenseInfo;
-
     use std::{collections::BTreeMap, fmt::Write};
+
+    let mut files = codespan::Files::new();
+    let cfg = ValidConfig::load(
+        crate::common::make_absolute_path(args.config.clone(), &context_dir),
+        &mut files,
+    )?;
 
     let (krates, store) = rayon::join(
         || {
-            crate::common::gather_krates(
-                context_dir,
-                targets.into_iter().map(|t| (t, Vec::new())).collect(),
-            )
+            let targets = if !targets.is_empty() {
+                targets.into_iter().map(|name| (name, Vec::new())).collect()
+            } else if !cfg.targets.is_empty() {
+                cfg.targets
+                    .iter()
+                    .map(|(name, features)| (name.clone(), features.clone()))
+                    .collect()
+            } else {
+                Vec::new()
+            };
+
+            crate::common::gather_krates(context_dir, targets)
         },
         crate::common::load_license_store,
     );
