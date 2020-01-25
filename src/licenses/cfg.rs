@@ -137,6 +137,10 @@ pub struct Config {
     /// Determines what happens when a copyleft license is detected
     #[serde(default = "crate::lint_warn")]
     pub copyleft: LintLevel,
+    /// Determines what happens when a license doesn't match any previous
+    /// predicates
+    #[serde(default = "crate::lint_deny")]
+    pub default: LintLevel,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     #[serde(default = "confidence_threshold")]
@@ -164,6 +168,7 @@ impl Default for Config {
             unlicensed: LintLevel::Deny,
             allow_osi_fsf_free: BlanketAgreement::default(),
             copyleft: LintLevel::Warn,
+            default: LintLevel::Deny,
             confidence_threshold: confidence_threshold(),
             deny: Vec::new(),
             allow: Vec::new(),
@@ -303,6 +308,7 @@ impl Config {
                 private: self.private,
                 unlicensed: self.unlicensed,
                 copyleft: self.copyleft,
+                default: self.default,
                 allow_osi_fsf_free: self.allow_osi_fsf_free,
                 confidence_threshold: self.confidence_threshold,
                 clarifications,
@@ -341,6 +347,7 @@ pub struct ValidConfig {
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,
     pub allow_osi_fsf_free: BlanketAgreement,
+    pub default: LintLevel,
     pub confidence_threshold: f32,
     pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
@@ -370,6 +377,7 @@ mod test {
         assert_eq!(validated.private.registries, vec!["sekrets".to_owned()]);
         assert_eq!(validated.unlicensed, LintLevel::Warn);
         assert_eq!(validated.copyleft, LintLevel::Deny);
+        assert_eq!(validated.default, LintLevel::Warn);
         assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
         assert_eq!(
             validated.allowed,
