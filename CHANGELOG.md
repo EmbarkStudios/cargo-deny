@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Resolved [#116](https://github.com/EmbarkStudios/cargo-deny/issues/116) by adding the `[licenses.default]` field, which allows you to configure how to handle licenses that don't match any other predicate
+- Resolved [#117](https://github.com/EmbarkStudios/cargo-deny/issues/117) by allowing the `list` subcommand to also use the normal configuration used by the `check` subcommand. Only the `targets` field is used, to determine which crates have their licenses listed.
+
 ## [0.6.1] - 2020-01-24
 ### Added
 - Added `[advisories.yanked]` field in [PR#114](https://github.com/EmbarkStudios/cargo-deny/pull/114) for linting yanked crates.
