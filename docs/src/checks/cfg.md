@@ -23,13 +23,13 @@ fuchsia-cprng = "0.1.1"
 
 But unless you are actually targetting `x86_64-fuchsia` or `aarch64-fuchsia`,
 the `fuchsia-cprng` is never actually going to be compiled or linked into your
-project, so checking it pointless for you.
+project, so checking it is pointless for you.
 
-The `targets` field allows you to specify one or more targets which you actually
-build for. Every dependency link to a crate is checked against this list, if
-none of the listed targets satisfy the target constraint, the dependency link
-is ignored. If a crate has no dependency links to it, it is not included in
-the crate graph that checks are executed against.
+The `targets` field allows you to specify one or more targets which you 
+**actually** build for. Every dependency link to a crate is checked against this 
+list, and if none of the listed targets satisfy the target constraint, the 
+dependency link is ignored. If a crate has no dependency links to it, it is not 
+included into the crate graph that the checks are executed against.
 
 #### The `triple` field
 
@@ -45,11 +45,11 @@ configuration check for that target will be limited to only the raw
 Rust `cfg()` expressions support the [`target_feature = 
 "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
 predicate, but at the moment, the only way to actually pass them when compiling 
-is to use the `RUSTFLAGS` environment variable. The features field allows you
-to specify 1 or more `target_feature`s you plan to build with. At the time of
-this writing, cargo-deny does not attempt to validate that the features you
-specify are actually valid for the target triple, but this is
-[planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
+is to use the `RUSTFLAGS` environment variable. The `features` field allows you
+to specify 1 or more `target_feature`s you plan to build with, for a particular
+target triple. At the time of this writing, cargo-deny does not attempt to 
+validate that the features you specify are actually valid for the target triple, 
+but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
 ### The `[licenses]` section
 

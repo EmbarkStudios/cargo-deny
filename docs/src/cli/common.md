@@ -24,5 +24,6 @@ Possible values:
 #### `-t, --target`
 
 One or more platforms to filter crates with. If a dependency is target specific,
-it will be ignored if it does match 1 or more of the specified targets. This 
-overrides the top-level [`targets = []`](../checks/cfg.md) configuration value.
+it will be ignored if it does not match at least 1 of the specified targets. 
+This overrides the top-level [`targets = []`](../checks/cfg.md) configuration 
+value.

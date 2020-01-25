@@ -21,8 +21,8 @@ cargo deny init path/to/config.toml
 
 ### Template
 
-A `deny.toml` file will be created in the current working directory that is
-a direct copy of [this template](https://github.com/EmbarkStudios/cargo-deny/blob/master/resources/template.toml).
+A `deny.toml` file will be created in the current working directory that is a 
+direct copy of [this template](https://github.com/EmbarkStudios/cargo-deny/blob/master/resources/template.toml).
 
 ```ini
 {{#include ../../../resources/template.toml}}

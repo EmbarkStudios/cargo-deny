@@ -50,3 +50,38 @@ pub(crate) fn gather_krates(
 
     Ok(graph?)
 }
+
+#[derive(serde::Deserialize)]
+pub(crate) struct Target {
+    pub(crate) triple: cargo_deny::Spanned<String>,
+    #[serde(default)]
+    pub(crate) features: Vec<String>,
+}
+
+use cargo_deny::diag::Diagnostic;
+
+pub(crate) fn load_targets(
+    in_targets: Vec<Target>,
+    diagnostics: &mut Vec<Diagnostic>,
+    id: codespan::FileId,
+) -> Vec<(String, Vec<String>)> {
+    let mut targets = Vec::with_capacity(in_targets.len());
+    for target in in_targets {
+        let triple = target.triple.as_ref();
+
+        if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
+            diagnostics.push(Diagnostic::new_warning(
+                format!("unknown target `{}` specified", triple),
+                cargo_deny::diag::Label::new(
+                    id,
+                    target.triple.span().clone(),
+                    "the triple won't be evaluated against cfg() sections, just explicit triples",
+                ),
+            ));
+        }
+
+        targets.push((triple.into(), target.features));
+    }
+
+    targets
+}

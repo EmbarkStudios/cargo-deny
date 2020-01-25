@@ -52,20 +52,13 @@ pub struct Args {
 }
 
 #[derive(Deserialize)]
-struct Target {
-    triple: cargo_deny::Spanned<String>,
-    #[serde(default)]
-    features: Vec<String>,
-}
-
-#[derive(Deserialize)]
 struct Config {
     advisories: Option<advisories::cfg::Config>,
     bans: Option<bans::cfg::Config>,
     licenses: Option<licenses::Config>,
     sources: Option<sources::Config>,
     #[serde(default)]
-    targets: Vec<Target>,
+    targets: Vec<crate::common::Target>,
 }
 
 struct ValidConfig {
@@ -109,24 +102,8 @@ impl ValidConfig {
                 .unwrap_or_default()
                 .validate(id, files.source(id))?;
 
-            let mut targets = Vec::with_capacity(cfg.targets.len());
             let mut diagnostics = Vec::new();
-            for target in cfg.targets {
-                let triple = target.triple.as_ref();
-
-                if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
-                    diagnostics.push(Diagnostic::new_warning(
-                        format!("unknown target `{}` specified", triple),
-                        cargo_deny::diag::Label::new(
-                            id,
-                            target.triple.span().clone(),
-                            "the triple won't be evaluated against cfg() sections, just explicit triples"
-                        ),
-                    ));
-                }
-
-                targets.push((triple.into(), target.features));
-            }
+            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
 
             Ok((
                 diagnostics,

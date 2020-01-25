@@ -11,8 +11,8 @@ Contains all of the configuration for `cargo deny check license`.
 ### The `unlicensed` field (optional)
 
 Determines what happens when a crate has not explicitly specified its license 
-terms, and no license information could be easily detected via `LICENSE*` files 
-in the crate's source.
+terms, and no license information could be confidently detected via `LICENSE*` 
+files in the crate's source.
 
 * `deny` (default) - All unlicensed crates will emit an error and fail the 
 license check
@@ -23,8 +23,8 @@ license check
 
 ### The `allow` and `deny` fields (optional)
 
-The licenses that should be allowed or denied. The license must be a valid 
-SPDX v2.1 identifier, which must either be in version 3.7 of the 
+The licenses that should be allowed or denied. The license must be a valid SPDX 
+v2.1 identifier, which must either be in version 3.7 of the 
 [SPDX License List](https://spdx.org/licenses/), with an optional 
 [exception](https://spdx.org/licenses/exceptions-index.html) specified by 
 `WITH <exception-id>`, or else a user defined license reference denoted by 
@@ -45,10 +45,10 @@ above licenses, to either `allow` or `deny`, you **must not** use the suffixes
 `-only` or `-or-later`, as they can only be used by the license holder 
 themselves to decide under which terms to license their code.
 
-So, for example, if you we wanted to disallow `GPL-2.0` licenses, but allow 
-`GPL-3.0` licenses, we could use the following configuration.
+So, for example, if you wanted to disallow `GPL-2.0` licenses, but allow 
+`GPL-3.0` licenses, you could use the following configuration.
 
-```toml
+```ini
 [licenses]
 allow = [ "GPL-3.0" ]
 deny = [ "GPL-2.0" ]
@@ -56,8 +56,8 @@ deny = [ "GPL-2.0" ]
 
 ### The `exceptions` field (optional)
 
-The license configuration generally applies the entire crate graph, but this 
-means that allowing a specific license applies to all possible crates, even if 
+The license configuration generally applies to the entire crate graph, but this 
+means that allowing any one license applies to all possible crates, even if 
 only 1 crate actually uses that license. The `exceptions` field is meant to 
 allow licenses only for particular crates, to make a clear distinction between 
 licenses which you are fine with everywhere, versus ones which you want to be 
@@ -76,7 +76,7 @@ excepting. Defaults to all versions (`*`).
 
 This is the exact same as the general `allow` field.
 
-```toml
+```ini
 [licenses]
 allow = [
     "Apache-2.0",
@@ -114,10 +114,24 @@ Determines what happens when licenses aren't explicitly allowed or denied, but
 * `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
 * `neither` (default) - No special consideration is given the license
 
+### The `default` field (optional)
+
+Determines what happens when a license is encountered that:
+
+1. Isn't in the `allow` or `deny` lists
+1. Isn't `copyleft`
+1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
+
+* `warn` - Will emit a warning that the license was detected, but will not fail 
+the license check
+* `deny` (default) - The license is not accepted, but the license check might 
+not fail if the expression still evaluates to true
+* `allow` - The license is accepted
+
 ### The `confidence-threshold` field (optional)
 
 `cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the 
-license of a license file. Due to variability in license texts due to things
+license of a LICENSE file. Due to variability in license texts because of things
 like authors, copyright year, and so forth, askalano assigns a confidence score
 to its determination, from `0.0` (no confidence) to `1.0` (perfect match). The 
 confidence threshold value is used to reject the license determination if the
@@ -127,12 +141,12 @@ score does not match or exceed the threshold.
 
 ### The `clarify` field (optional)
 
-In some exceptional cases, the crates do not have easily machine readable 
-license information, and would by default be considered "unlicensed" by 
-cargo-deny. As a (hopefully) temporary patch for using the crate, you can 
-specify a clarification for the crate by manually assigning its SPDX expression,
-based on one or more files in the crate's source. cargo-deny will use that
-expression as long as the source files in the crate don't change.
+In some exceptional cases, a crate will not have easily machine readable license
+information, and would by default be considered "unlicensed" by cargo-deny. As a
+(hopefully) temporary patch for using the crate, you can specify a clarification
+for the crate by manually assigning its SPDX expression, based on one or more 
+files in the crate's source. cargo-deny will use that expression for as long as
+the source files in the crate exactly match the clarification's hashes.
 
 #### The `name` field
 
@@ -190,7 +204,7 @@ private = { ignore = true }
 
 A list of private registries you may publish your workspace crates to. If a
 workspace member **only** publishes to private registries, it will also be 
-ignored if `privite.ignore = true`
+ignored if `private.ignore = true`
 
 ```ini
 [package]

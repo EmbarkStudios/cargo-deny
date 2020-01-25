@@ -798,13 +798,14 @@ fn evaluate_expression(
     #[derive(Debug)]
     enum Reason {
         Denied,
-        NotExplicitlyAllowed,
         IsFsfFree,
         IsOsiApproved,
         IsBothFreeAndOsi,
         ExplicitAllowance,
-        ExcplicitException,
+        ExplicitException,
         IsCopyleft,
+        NotExplicitlyAllowed,
+        Default,
     }
 
     let mut reasons = smallvec::SmallVec::<[(Reason, bool); 8]>::new();
@@ -840,7 +841,7 @@ fn evaluate_expression(
             expr.evaluate_with_failures(|req| {
                 for allow in &exception.allowed {
                     if allow.value.satisfies(req) {
-                        allow!(ExcplicitException);
+                        allow!(ExplicitException);
                     }
                 }
 
@@ -924,7 +925,18 @@ fn evaluate_expression(
             }
 
             // 4. Whelp, this license just won't do!
-            deny!(NotExplicitlyAllowed);
+            match cfg.default {
+                LintLevel::Deny => {
+                    deny!(Default);
+                }
+                LintLevel::Warn => {
+                    warnings += 1;
+                    allow!(Default);
+                }
+                LintLevel::Allow => {
+                    allow!(Default);
+                }
+            }
         }),
     };
 
@@ -970,9 +982,16 @@ fn evaluate_expression(
                     Reason::IsOsiApproved =>
                         "license is OSI approved https://opensource.org/licenses",
                     Reason::ExplicitAllowance => "license is explicitly allowed",
-                    Reason::ExcplicitException => "license is explicitly allowed via an exception",
+                    Reason::ExplicitException => "license is explicitly allowed via an exception",
                     Reason::IsBothFreeAndOsi => "license is FSF AND OSI approved",
                     Reason::IsCopyleft => "license is considered copyleft",
+                    Reason::Default => {
+                        match cfg.default {
+                            LintLevel::Deny => "not explicitly allowed",
+                            LintLevel::Warn => "warned by default",
+                            LintLevel::Allow => "allowed by default",
+                        }
+                    }
                 }
             ),
         ));

@@ -1,6 +1,6 @@
 # Command Line Tool
 
-cargo-deny can be used either as a command line tool or a
+cargo-deny can be used either as a command line tool or as a
 [Rust crate](https://crates.io/crates/cargo-deny). Let's focus on the command 
 line tool capabilities first.
 
@@ -12,7 +12,7 @@ to download the appropriate version for your platform.
 
 ## Install From Source
 
-cargo-deny can also be installed from source
+cargo-deny can also be installed from source.
 
 ### Pre-requisites
 
@@ -44,8 +44,7 @@ you have installed cargo-deny!
 The **[git version](https://github.com/EmbarkStudios/cargo-deny)** contains all
 the latest bug-fixes and features, that will be released in the next version on
 **Crates.io**, if you can't wait until the next release. You can build the git
-version yourself. Open your terminal and navigate to the directory of your
-choice. We need to clone the git repository and then build it with Cargo.
+version yourself.
 
 ```bash
 cargo install --git https://github.com/EmbarkStudios/cargo-deny cargo-deny
