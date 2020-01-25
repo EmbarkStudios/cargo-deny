@@ -2,7 +2,7 @@
 
 The licenses check is used to verify that every crate you use has license terms
 you find acceptable. cargo-deny does this by evaluating the license requirements
-specified by each crate against the [configuration](cfg.md) you've specified to 
+specified by each crate against the [configuration](cfg.md) you've specified, to
 determine if your project meets that crate's license requirements.
 
 ```bash
@@ -14,31 +14,30 @@ cargo deny check licenses
 ### SPDX
 
 cargo-deny uses [SPDX license expressions][SPDX] as the source of truth for the 
-license requirements of a crate. It should be noted however that cargo-deny does
-**not** (currently) exhaustively search the entirety of the source code for 
-every crate to find every possible license that could be attributed to the crate 
-as there are a ton of edge cases to that approach.
+license requirements of a crate. Note however, that cargo-deny does **not** 
+(currently) exhaustively search the entirety of the source code of every crate 
+to find every possible license that could be attributed to the crate, as there 
+are a ton of edge cases to that approach.
 
 cargo-deny rather assumes that each crate correctly defines its license 
-requirements, but it also has a mechanism for manually specifying the license 
-requirements for crates in the rare circumstances cargo-deny cannot be 
-automatically obtained.
+requirements, but it provides a mechanism for manually specifying the license 
+requirements for crates in the, from our experience, rare circumstance that they
+cannot be gathered automatically.
 
 ### Expression Source Precedence
 
-The source of the SPDX expression used to evaluate the crate by is obtained
-in the following order.
+The source of the SPDX expression used to evaluate the crate by is obtained in 
+the following order.
 
 1. If the crate in question has a [Clarification](cfg.md#the-clarify-field)
 applied to it, and the source file(s) in the crate's source still match, the
 expression from the clarification will be used.
-1. The [`license`][cargo-md]
-field from the crate's Cargo.toml manifest will be used if it exists.
-1. The [`license-file`][cargo-md]
-field, as well as **all** other `LICENSE(-*)?` files will be parsed to determine
-the SPDX license identifier, and then all of those identifiers will be joined
-with the `AND` operator, meaning that you must accept all of the licenses
-detected.
+1. The [`license`][cargo-md] field from the crate's Cargo.toml manifest will be 
+used if it exists.
+1. The [`license-file`][cargo-md] field, as well as **all** other `LICENSE(-*)?` 
+files will be parsed to determine the SPDX license identifier, and then all of 
+those identifiers will be joined with the `AND` operator, meaning that you must 
+accept **all** of the licenses detected.
 
 ### Evaluation Precedence
 

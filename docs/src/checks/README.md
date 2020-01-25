@@ -16,7 +16,8 @@ Checks for specific crates in your graph, as well as duplicates.
 ## [advisories](advisories/index.html)
 
 Checks advisory databases for crates with security vulnerabilities, or that
-have been marked as `Unmaintained`.
+have been marked as `Unmaintained`, or which have been yanked from their source
+registry.
 
 ## [sources](sources/index.html)
 

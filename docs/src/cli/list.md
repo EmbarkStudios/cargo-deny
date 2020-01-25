@@ -5,14 +5,6 @@ prints out the license information for each crate.
 
 ## Options
 
-### `--color`
-
-Output coloring, only applies to `human` format 
-
-* `auto` (default) - Only colors if stdout is a TTY
-* `always` - Always emits colors
-* `never` - Never emits colors
-
 ### `-f, --format`
 
 The format of the output
@@ -20,6 +12,21 @@ The format of the output
 * `human` (default) - Simple format where each crate or license is its own line
 * `json`
 * `tsv`
+
+### `--color`
+
+Output coloring, only applies to the `human` format.
+
+* `auto` (default) - Only colors if stdout is a TTY
+* `always` - Always emits colors
+* `never` - Never emits colors
+
+Colors:
+
+- SPDX identifier - ![blue](https://placehold.it/15/5dade2/000000?text=+)
+- Crate with 1 license - ![white](https://placehold.it/15/717d7e/000000?text=+)
+- Crate with 2 or more licenses - ![yellow](https://placehold.it/15/f1c40f/000000?text=+)
+- Crate with 0 licenses - ![yellow](https://placehold.it/15/e74c3c/000000?text=+)
 
 ### `-l, --layout`
 

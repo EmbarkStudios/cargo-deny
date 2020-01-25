@@ -63,10 +63,10 @@ care.
 ### The `skip` field (optional)
 
 When denying duplicate versions, it's often the case that there is a window of
-time where you must wait for eg. PRs to be accepted and new version published,
-before 1 or more duplicates are gone. The `skip` field allows you to temporarily
-ignore a crate during duplicate detection so that no errors are emitted, until
-it is no longer need.
+time where you must wait for, for example, PRs to be accepted and new version
+published, before 1 or more duplicates are gone. The `skip` field allows you to
+temporarily ignore a crate during duplicate detection so that no errors are 
+emitted, until it is no longer need.
 
 It is recommended to use specific version constraints for crates in the `skip`
 list, as cargo-deny will emit warnings when any entry in the `skip` list no
@@ -80,7 +80,7 @@ versions of certain crates while in alpha or beta, or on the opposite end of
 the specturm, a crate is using severely outdated dependencies while much of the 
 rest of the ecosystem has moved to more recent versions. In both cases, it can 
 be quite tedious to explicitly `skip` each transitive dependency pulled in by 
-that crate that clashes with your other dependencies, which is where `skip-tree` 
+that crate that clashes with your other dependencies, which is where `skip-tree`
 comes in.
 
 `skip-tree` entries are similar to `skip` in that they are used to specify a 
@@ -91,4 +91,5 @@ the `skip` field.
 
 Note that by default, the `depth` is infinite.
 
-`skip-tree` is a very big hammer at the moment, and should be used with care.
+**NOTE:** `skip-tree` is a very big hammer at the moment, and should be used 
+with care.

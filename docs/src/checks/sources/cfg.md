@@ -20,8 +20,8 @@ check.
 
 ### The `unknown-git` field (optional)
 
-Determines what happens when a crate from a git repository not in the allow 
-list is encountered.
+Determines what happens when a crate from a git repository not in the 
+`allow-git` list is encountered.
 
 * `deny` - Will emit an error with the URL of the repository, and fail the 
 check.
@@ -31,8 +31,8 @@ check.
 
 ### The `allow-registry` field (optional)
 
-The list of registries that are allowed. If a crate is not found in the list. 
-Then `unknown-registry` setting will determine how it is handled.
+The list of registries that are allowed. If a crate is not found in the list,
+then the `unknown-registry` setting will determine how it is handled.
 
 If not specified, this list will by default contain the
 [crates.io](http://crates.io) registry, equivalent to this:
