@@ -63,7 +63,7 @@ pub struct Private {
     #[serde(default)]
     pub ignore: bool,
     /// One or more private registries that you might publish crates to, if
-    /// a crate it only published to private registries, and ignore is true
+    /// a crate is only published to private registries, and ignore is true
     /// the crate will not have its license checked
     #[serde(default)]
     pub registries: Vec<String>,
