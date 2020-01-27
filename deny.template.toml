@@ -29,7 +29,7 @@ targets = [
 
 # This section is considered when running `cargo deny check advisories`
 # More documentation for the advisories section can be found here:
-# https://github.com/EmbarkStudios/cargo-deny#the-advisories-section
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 # The path where the advisory database is cloned/fetched into
 db-path = "~/.cargo/advisory-db"
@@ -62,7 +62,7 @@ ignore = [
 
 # This section is considered when running `cargo deny check licenses`
 # More documentation for the licenses section can be found here:
-# https://github.com/EmbarkStudios/cargo-deny#the-licenses-section
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
 [licenses]
 # The lint level for crates which do not have a detectable license
 unlicensed = "deny"
@@ -140,7 +140,7 @@ registries = [
 
 # This section is considered when running `cargo deny check bans`.
 # More documentation about the 'bans' section can be found here:
-# https://github.com/EmbarkStudios/cargo-deny#crate-bans-cargo-deny-check-ban
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "warn"
@@ -174,7 +174,7 @@ skip-tree = [
 
 # This section is considered when running `cargo deny check sources`.
 # More documentation about the 'sources' section can be found here:
-# https://github.com/EmbarkStudios/cargo-deny#crate-sources-cargo-deny-check-sources
+# https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html
 [sources]
 # Lint level for what to happen when a crate from a crate registry that is not
 # in the allow list is encountered
