@@ -13,7 +13,7 @@ pub struct Args {
     config: PathBuf,
 }
 
-const CONTENTS: &[u8] = include_bytes!("../../resources/template.toml");
+const CONTENTS: &[u8] = include_bytes!("../../deny.template.toml");
 
 pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
     let cfg_file = make_absolute_path(args.config, &context_dir);
