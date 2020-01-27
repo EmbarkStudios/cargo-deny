@@ -110,7 +110,7 @@ exceptions = [
 # Some crates don't have (easily) machine readable licensing information,
 # adding a clarification entry for it allows you to manually specify the
 # licensing information
-[[licenses.clarify]]
+#[[licenses.clarify]]
 # The name of the crate the clarification applies to
 #name = "ring"
 # THe optional version constraint for the crate
