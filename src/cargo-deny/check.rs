@@ -116,6 +116,7 @@ impl ValidConfig {
                     bans,
                     licenses,
                     sources,
+                    builds,
                     targets,
                 },
             ))
@@ -394,14 +395,16 @@ pub fn cmd(
             let builds_tx = tx.clone();
             let builds_cfg = cfg.builds;
 
+            let ctx = CheckCtx {
+                cfg: builds_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(|_| {
                 log::info!("checking builds...");
-                builds::check(
-                    builds_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    builds_tx,
-                );
+                builds::check(ctx, builds_tx);
             });
         }
 

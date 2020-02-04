@@ -34,7 +34,6 @@ allow-git = [
 [builds]
 custom-builds = "allow"
 proc-macros = "allow"
-allow-git = []
 
 [licenses]
 unlicensed = "deny"
