@@ -1,6 +1,22 @@
-mod cfg;
+//! ## `cargo deny check licenses`
+//!
+//! One important aspect that one must always keep in mind when using code from
+//! other people is what the licensing of that code is and whether it fits the
+//! requirements of your project. Luckily, most of the crates in the Rust
+//! ecosystem tend to follow the example set forth by Rust itself, namely
+//! dual-license `MIT OR Apache-2.0`, but of course, that is not always the case.
+//!
+//! `cargo-deny` allows you to ensure that all of your dependencies have license
+//! requirements that are satisfied by the licenses you choose to use for your
+//! project, and notifies you via warnings or errors if the license requirements
+//! for any crate aren't compatible with your configuration.
+//!
+//!
 
-use crate::{diag, KrateDetails, LintLevel};
+/// Configuration for license checking
+pub mod cfg;
+
+use crate::{diag, Krate, LintLevel};
 use anyhow::Error;
 use cfg::{BlanketAgreement, FileSource, ValidClarification, ValidException};
 use rayon::prelude::*;
@@ -64,7 +80,7 @@ impl Eq for ValidException {}
 #[inline]
 fn iter_clarifications<'a>(
     all: &'a [ValidClarification],
-    krate: &'a KrateDetails,
+    krate: &'a Krate,
 ) -> impl Iterator<Item = &'a ValidClarification> {
     all.iter().filter(move |vc| {
         if vc.name == krate.name {
@@ -165,7 +181,7 @@ struct LicensePack {
 }
 
 impl LicensePack {
-    fn read(krate: &KrateDetails) -> Self {
+    fn read(krate: &Krate) -> Self {
         let root_path = krate.manifest_path.parent().unwrap();
 
         let mut lic_paths = match find_license_files(root_path) {
@@ -227,7 +243,7 @@ impl LicensePack {
 
     fn get_expression(
         &self,
-        krate: &KrateDetails,
+        krate: &Krate,
         file: codespan::FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
@@ -407,7 +423,7 @@ pub enum LicenseInfo {
 
 #[derive(Debug)]
 pub struct KrateLicense<'a> {
-    pub krate: &'a KrateDetails,
+    pub krate: &'a Krate,
     pub lic_info: LicenseInfo,
 
     // Reasons for why the license was determined (or not!) when
@@ -502,8 +518,8 @@ impl Gatherer {
 
     pub fn gather<'k>(
         self,
-        krates: &'k [crate::KrateDetails],
-        files: &mut codespan::Files,
+        krates: &'k crate::Krates,
+        files: &mut codespan::Files<String>,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
@@ -546,9 +562,12 @@ impl Gatherer {
         // 4. `license-file` + all LICENSE(-*)? files - Due to the prevalance
         // of dual-licensing in the rust ecosystem, many people forgo setting
         // license-file, so we use it and/or any LICENSE files
-        krates
-            .par_iter()
-            .map(|krate| {
+        summary.nfos = krates
+            .krates()
+            .par_bridge()
+            .map(|kn| {
+                let krate = &kn.krate;
+
                 // Attempt an SPDX expression that we can validate the user's acceptable
                 // license terms with
                 let mut synth_id = None;
@@ -753,32 +772,40 @@ impl Gatherer {
                     labels,
                 }
             })
-            .collect_into_vec(&mut summary.nfos);
+            .collect();
 
         summary
     }
 }
 
+use bitvec::prelude::*;
 use diag::{Diagnostic, Label, Severity};
+
+struct Hits {
+    allowed: BitVec<Local, usize>,
+    exceptions: BitVec<Local, usize>,
+}
 
 fn evaluate_expression(
     cfg: &ValidConfig,
     krate_lic_nfo: &KrateLicense<'_>,
     expr: &spdx::Expression,
     nfo: &LicenseExprInfo,
+    hits: &mut Hits,
 ) -> Diagnostic {
     // TODO: If an expression with the same hash is encountered
     // just use the same result as a memoized one
     #[derive(Debug)]
     enum Reason {
         Denied,
-        NotExplicitlyAllowed,
         IsFsfFree,
         IsOsiApproved,
         IsBothFreeAndOsi,
         ExplicitAllowance,
-        ExcplicitException,
+        ExplicitException,
         IsCopyleft,
+        NotExplicitlyAllowed,
+        Default,
     }
 
     let mut reasons = smallvec::SmallVec::<[(Reason, bool); 8]>::new();
@@ -801,18 +828,26 @@ fn evaluate_expression(
 
     // Check to see if the crate matches an exception, which has its own
     // allow list separate from the general allow list
-    let eval_res = match cfg.exceptions.iter().find(|exc| {
-        exc.name == krate_lic_nfo.krate.name && exc.version.matches(&krate_lic_nfo.krate.version)
+    let eval_res = match cfg.exceptions.iter().position(|exc| {
+        exc.name.as_ref() == &krate_lic_nfo.krate.name
+            && exc.version.matches(&krate_lic_nfo.krate.version)
     }) {
-        Some(exception) => expr.evaluate_with_failures(|req| {
-            for allow in &exception.allowed {
-                if allow.satisfies(req) {
-                    allow!(ExcplicitException);
-                }
-            }
+        Some(ind) => {
+            let exception = &cfg.exceptions[ind];
 
-            deny!(NotExplicitlyAllowed);
-        }),
+            // Note that hit the exception
+            hits.exceptions.as_mut_bitslice().set(ind, true);
+
+            expr.evaluate_with_failures(|req| {
+                for allow in &exception.allowed {
+                    if allow.value.satisfies(req) {
+                        allow!(ExplicitException);
+                    }
+                }
+
+                deny!(NotExplicitlyAllowed);
+            })
+        }
         None => expr.evaluate_with_failures(|req| {
             // 1. Licenses explicitly denied are of course hard failures,
             // but failing one license in an expression is not necessarily
@@ -821,15 +856,16 @@ fn evaluate_expression(
             // banning Apache-2.0, but allowing MIT, will allow the crate
             // to be used as you are upholding at least one license requirement
             for deny in &cfg.denied {
-                if deny.satisfies(req) {
+                if deny.value.satisfies(req) {
                     deny!(Denied);
                 }
             }
 
             // 2. A license that is specifically allowed will of course mean
             // that the requirement is met.
-            for allow in &cfg.allowed {
-                if allow.satisfies(req) {
+            for (i, allow) in cfg.allowed.iter().enumerate() {
+                if allow.value.satisfies(req) {
+                    hits.allowed.as_mut_bitslice().set(i, true);
                     allow!(ExplicitAllowance);
                 }
             }
@@ -889,7 +925,18 @@ fn evaluate_expression(
             }
 
             // 4. Whelp, this license just won't do!
-            deny!(NotExplicitlyAllowed);
+            match cfg.default {
+                LintLevel::Deny => {
+                    deny!(Default);
+                }
+                LintLevel::Warn => {
+                    warnings += 1;
+                    allow!(Default);
+                }
+                LintLevel::Allow => {
+                    allow!(Default);
+                }
+            }
         }),
     };
 
@@ -935,9 +982,16 @@ fn evaluate_expression(
                     Reason::IsOsiApproved =>
                         "license is OSI approved https://opensource.org/licenses",
                     Reason::ExplicitAllowance => "license is explicitly allowed",
-                    Reason::ExcplicitException => "license is explicitly allowed via an exception",
+                    Reason::ExplicitException => "license is explicitly allowed via an exception",
                     Reason::IsBothFreeAndOsi => "license is FSF AND OSI approved",
                     Reason::IsCopyleft => "license is considered copyleft",
+                    Reason::Default => {
+                        match cfg.default {
+                            LintLevel::Deny => "not explicitly allowed",
+                            LintLevel::Warn => "warned by default",
+                            LintLevel::Allow => "allowed by default",
+                        }
+                    }
                 }
             ),
         ));
@@ -953,25 +1007,64 @@ fn evaluate_expression(
 }
 
 pub fn check(
-    cfg: &ValidConfig,
+    ctx: crate::CheckCtx<'_, ValidConfig>,
     summary: Summary<'_>,
     sender: crossbeam::channel::Sender<crate::diag::Pack>,
 ) {
+    let mut hits = Hits {
+        allowed: bitvec![0; ctx.cfg.allowed.len()],
+        exceptions: bitvec![0; ctx.cfg.exceptions.len()],
+    };
+
+    let private_registries: Vec<_> = ctx
+        .cfg
+        .private
+        .registries
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+
     for mut krate_lic_nfo in summary.nfos {
-        let mut diagnostics = Vec::new();
+        let mut pack = diag::Pack::with_kid(krate_lic_nfo.krate.id.clone());
+
+        // If the user has set this, check if it's a private workspace
+        // crate and just print out a help message that we skipped it
+        if ctx.cfg.private.ignore
+            && ctx
+                .krates
+                .workspace_members()
+                .any(|wm| wm.id == krate_lic_nfo.krate.id)
+            && krate_lic_nfo.krate.is_private(&private_registries)
+        {
+            let i = ctx.krates.nid_for_kid(&krate_lic_nfo.krate.id).unwrap();
+            pack.push(Diagnostic::new(
+                Severity::Help,
+                "skipping private workspace crate",
+                ctx.label_for_span(i.index(), "workspace crate"),
+            ));
+
+            sender.send(pack).unwrap();
+            continue;
+        }
 
         match &krate_lic_nfo.lic_info {
             LicenseInfo::SPDXExpression { expr, nfo } => {
-                diagnostics.push(evaluate_expression(&cfg, &krate_lic_nfo, &expr, &nfo));
+                pack.push(evaluate_expression(
+                    &ctx.cfg,
+                    &krate_lic_nfo,
+                    &expr,
+                    &nfo,
+                    &mut hits,
+                ));
             }
             LicenseInfo::Unlicensed => {
-                let severity = match cfg.unlicensed {
+                let severity = match ctx.cfg.unlicensed {
                     LintLevel::Allow => Severity::Note,
                     LintLevel::Warn => Severity::Warning,
                     LintLevel::Deny => Severity::Error,
                 };
 
-                diagnostics.push(
+                pack.push(
                     Diagnostic::new(
                         severity,
                         format!("{} is unlicensed", krate_lic_nfo.krate.id),
@@ -982,14 +1075,53 @@ pub fn check(
             }
         }
 
-        if !diagnostics.is_empty() {
-            let pack = diag::Pack {
-                krate_id: Some(krate_lic_nfo.krate.id.clone()),
-                diagnostics,
-            };
-
+        if !pack.is_empty() {
             sender.send(pack).unwrap();
         }
+    }
+
+    // Print out warnings for exceptions that pertain to crates that
+    // weren't actually encountered
+    for exc in hits
+        .exceptions
+        .into_iter()
+        .zip(ctx.cfg.exceptions.into_iter())
+        .filter_map(|(hit, exc)| if !hit { Some(exc) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "crate license exception was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        exc.name.span,
+                        "no crate source matched these criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
+    }
+
+    // Print out warnings for allowed licenses that weren't encountered.
+    // Note that we don't do the same for denied licenses
+    for allowed in hits
+        .allowed
+        .into_iter()
+        .zip(ctx.cfg.allowed.into_iter())
+        .filter_map(|(hit, allowed)| if !hit { Some(allowed) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "license was not encountered",
+                    Label::new(ctx.cfg.file_id, allowed.span, "no crate used this license"),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }
 

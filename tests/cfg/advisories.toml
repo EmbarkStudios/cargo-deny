@@ -1,0 +1,11 @@
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-url = "https://github.com/RustSec/advisory-db"
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+notice = "warn"
+ignore = [
+    "RUSTSEC-0000-0000",
+]
+severity-threshold = "medium"

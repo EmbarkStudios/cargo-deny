@@ -6,9 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
-
+## [0.6.2] - 2020-01-25
 ### Added
-- Added the `sources` check and configuration checking for checking where crates are sourced from and allowing specific crate registries and Git repositories.
+- Resolved [#116](https://github.com/EmbarkStudios/cargo-deny/issues/116) by adding the `[licenses.default]` field, which allows you to configure how to handle licenses that don't match any other predicate
+- Resolved [#117](https://github.com/EmbarkStudios/cargo-deny/issues/117) by allowing the `list` subcommand to also use the normal configuration used by the `check` subcommand. Only the `targets` field is used, to determine which crates have their licenses listed.
+
+## [0.6.1] - 2020-01-24
+### Added
+- Added `[advisories.yanked]` field in [PR#114](https://github.com/EmbarkStudios/cargo-deny/pull/114) for linting yanked crates.
+
+## [0.6.0] - 2020-01-20
+### Added
+- Added the `sources` check and configuration, which allows linting of crate sources
+- Resolved [#63](https://github.com/EmbarkStudios/cargo-deny/issues/63) by adding a dependency on [`krates`](https://crates.io/crates/krates), which allows us to easily filter out dependencies that don't match a target specified by the user via the `targets` config value.
+- Resolved [#75](https://github.com/EmbarkStudios/cargo-deny/issues/75), a warning is now printed for license exceptions and allowed licenses, if they aren't encountered when checking crate license information.
+- Resolved [#50](https://github.com/EmbarkStudios/cargo-deny/issues/50), private workspace members (anything that is not published publicly) can now be ignored during the license check.
+
+### Changed
+- Resolved [#85](https://github.com/EmbarkStudios/cargo-deny/issues/85) by changing the max column width from 120 to 80 and reformatting some of the help text for the CLI.
+- Resolved [#109](https://github.com/EmbarkStudios/cargo-deny/issues/109) by only printing a single diagnostic message for each set of duplicate versions
+
+### Fixed
+- Fixed [#96](https://github.com/EmbarkStudios/cargo-deny/issues/96) by allowing expansion of '~' rooted paths for the `[advisories.db-path]` configuration variable.
 
 ## [0.5.2] - 2019-12-20
 ### Added
@@ -108,7 +127,10 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...HEAD
+[0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
+[0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.4.2...0.5.0

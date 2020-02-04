@@ -1,0 +1,15 @@
+[package]
+name = "bans"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+edition = "2018"
+
+[dependencies.reqwest]
+version = "0.10.1"
+# Uncomment these to "fix" cargo deny check bans.
+# 1. By disabling default features we remove the use of native-tls, which
+# is impelemented via openssl-sys on linux
+# 2. openssl-sys also depends on an old version of autocfg, so we remove a
+# duplicate as well!
+# default-features = false
+# features = ["rustls"]

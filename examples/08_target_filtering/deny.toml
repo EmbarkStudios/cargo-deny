@@ -1,0 +1,24 @@
+# By specifying 1 or more targets, we are saying we only want to include
+# target specific crates that match at least one of them. Any crates that
+# **only** are pulled in for a target that isn't listed will be completely
+# ignored by **all** checks
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "wasm32-unknown-unknown", features = ["atomics"] },
+]
+
+[bans]
+deny = [
+    # We ban the nix package, but it's in the Cargo.toml! But that's ok
+    # because it is only built when targetting x86_64-unknown-linux-musl,
+    # which we aren't
+    { name = "nix" },
+    # If we did build for windows, we definitely would not want version 0.2!
+    { name = "winapi", version = "0.2" },
+]
+
+[licenses]
+allow = [ "MIT" ]
+# One of our dependencies is GPL! But it's ok, because it's only for fuchsia,
+# and we don't actually build for fuchsia :)
+copyleft = "deny"

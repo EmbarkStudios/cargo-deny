@@ -1,8 +1,11 @@
 mod cfg;
 pub use cfg::{Config, ValidConfig};
 
-use crate::diag::{self, Diagnostic, Label, Pack, Severity};
-use crate::LintLevel;
+use crate::{
+    cm,
+    diag::{Diagnostic, Label, Pack, Severity},
+    LintLevel,
+};
 use anyhow::{bail, ensure, Context, Error};
 use std::convert::TryFrom;
 use url::Url;
@@ -27,10 +30,10 @@ impl Source {
     }
 }
 
-impl TryFrom<&cargo_metadata::Source> for Source {
+impl TryFrom<&cm::Source> for Source {
     type Error = Error;
 
-    fn try_from(source: &cargo_metadata::Source) -> Result<Self, Self::Error> {
+    fn try_from(source: &cm::Source) -> Result<Self, Self::Error> {
         // registry sources are in either of these formats:
         // git+https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
         // registry+https://github.com/rust-lang/crates.io-index
@@ -52,22 +55,21 @@ impl TryFrom<&cargo_metadata::Source> for Source {
     }
 }
 
-pub fn check(
-    cfg: ValidConfig,
-    krates: &crate::Krates,
-    (krate_spans, spans_id): (&diag::KrateSpans, codespan::FileId),
-    sender: crossbeam::channel::Sender<Pack>,
-) {
+pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
+    use bitvec::prelude::*;
+
     // early out if everything is allowed
-    if cfg.unknown_registry == LintLevel::Allow && cfg.unknown_git == LintLevel::Allow {
+    if ctx.cfg.unknown_registry == LintLevel::Allow && ctx.cfg.unknown_git == LintLevel::Allow {
         return;
     }
 
     // scan through each crate and check the source of it
 
-    for (i, krate) in krates.krates.iter().enumerate() {
-        // determine source of crate
+    // keep track of which sources are actually encountered, so we can emit a
+    // warning if the user has listed a source that no crates are actually using
+    let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
 
+    for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let source = match &krate.source {
             Some(source) => source,
             None => continue,
@@ -75,57 +77,88 @@ pub fn check(
         let source = match Source::try_from(source) {
             Ok(source) => source,
             Err(_err) => {
-                sender
-                    .send(Pack {
-                        krate_id: Some(krate.id.clone()),
-                        diagnostics: vec![Diagnostic::new(
-                            Severity::Error,
-                            "detected unknown or unsupported crate source",
-                            Label::new(spans_id, krate_spans[i].clone(), "source"),
-                        )],
-                    })
-                    .unwrap();
+                let mut pack = Pack::with_kid(krate.id.clone());
+                pack.push(Diagnostic::new(
+                    Severity::Error,
+                    "detected unknown or unsupported crate source",
+                    ctx.label_for_span(i, "source"),
+                ));
+                sender.send(pack).unwrap();
                 continue;
             }
-        };
-
-        // get allowed list of sources to check
-
-        let (allowed_sources, lint_level) = match source {
-            Source::Registry(_) => (&cfg.allow_registry, cfg.unknown_registry),
-            Source::Git(_) => (&cfg.allow_git, cfg.unknown_git),
         };
 
         // get URL without git revision (query & fragment)
         // example URL in Cargo.lock: https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
         // where we only want:        https://github.com/RustSec/rustsec-crate.git
-        let source_url_str = {
+        let source_url = {
             let mut url = source.url().clone();
             url.set_query(None);
             url.set_fragment(None);
-            url.as_str().to_owned()
+            url
+        };
+
+        // get allowed list of sources to check
+
+        let lint_level = match source {
+            Source::Registry(_) => ctx.cfg.unknown_registry,
+            Source::Git(_) => ctx.cfg.unknown_git,
         };
 
         // check if the source URL is list of allowed sources
-        if !allowed_sources.contains(&source_url_str) {
-            sender
-                .send(Pack {
-                    krate_id: Some(krate.id.clone()),
-                    diagnostics: vec![Diagnostic::new(
-                        match lint_level {
-                            LintLevel::Warn => Severity::Warning,
-                            LintLevel::Deny => Severity::Error,
-                            LintLevel::Allow => Severity::Note,
-                        },
-                        format!(
-                            "detected crate {} source \"{}\" not specifically allowed",
-                            source.type_name(),
-                            source_url_str,
-                        ),
-                        Label::new(spans_id, krate_spans[i].clone(), "source"),
-                    )],
-                })
-                .unwrap();
+        match ctx
+            .cfg
+            .allowed_sources
+            .iter()
+            .position(|src| src == &source_url)
+        {
+            Some(ind) => source_hits.as_mut_bitslice().set(ind, true),
+            None => {
+                let mut span = ctx.krate_spans[i].clone();
+
+                // The krate span is the complete id, but we only want
+                // to highlight the source component
+                let last_space = krate.id.repr.rfind(' ').unwrap();
+
+                span.start = span.start + last_space as u32 + 1;
+
+                let mut pack = Pack::with_kid(krate.id.clone());
+                pack.push(Diagnostic::new(
+                    match lint_level {
+                        LintLevel::Warn => Severity::Warning,
+                        LintLevel::Deny => Severity::Error,
+                        LintLevel::Allow => Severity::Note,
+                    },
+                    format!(
+                        "detected '{}' source not specifically allowed",
+                        source.type_name(),
+                    ),
+                    Label::new(ctx.spans_id, span, "source"),
+                ));
+
+                sender.send(pack).unwrap();
+            }
         }
+    }
+
+    for src in source_hits
+        .into_iter()
+        .zip(ctx.cfg.allowed_sources.into_iter())
+        .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
+    {
+        sender
+            .send(
+                Diagnostic::new(
+                    Severity::Warning,
+                    "allowed source was not encountered",
+                    Label::new(
+                        ctx.cfg.file_id,
+                        src.span,
+                        "no crate source matched these criteria",
+                    ),
+                )
+                .into(),
+            )
+            .unwrap();
     }
 }

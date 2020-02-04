@@ -4,13 +4,12 @@ This example shows how to use cargo-deny to deny and only support explicitly all
 
 ## Config
 
-```toml
-
+```ini
 [dependencies]
 bitflags = { git = "https://github.com/bitflags/bitflags.git" }
 ```
 
-```toml
+```ini
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

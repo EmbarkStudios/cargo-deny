@@ -1,0 +1,17 @@
+targets = [
+    { triple = "x86_64-unknown-linux-musl" },
+    { triple = "x86_64-pc-windows-msvc" },
+    { triple = "x86_64-apple-darwin" },
+]
+
+[bans]
+multiple-versions = "deny"
+deny = [
+    { name = "openssl-sys" },
+]
+skip = [
+    # rustls uses an old version of base64
+    { name = "base64", version = "0.10" },
+    # miow unfortunately still uses the ancient 0.2 version of winapi
+    { name = "winapi", version = "=0.2.8" },
+]

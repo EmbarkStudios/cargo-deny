@@ -1,7 +1,6 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, builds, licenses, sources};
+use cargo_deny::{advisories, bans, builds, diag::Diagnostic, licenses, sources, CheckCtx};
 use clap::arg_enum;
-use codespan_reporting::diagnostic::Diagnostic;
 use log::error;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -25,21 +24,24 @@ arg_enum! {
 
 #[derive(StructOpt, Debug)]
 pub struct Args {
-    /// The path to the config file used to determine which crates are
-    /// allowed or denied. Will default to <context>/deny.toml if not specified.
+    /// Path to the config to use
+    ///
+    /// Defaults to <context>/deny.toml if not specified
     #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
     config: PathBuf,
-    /// A root directory to place dotviz graphs into when duplicate crate
-    /// versions are detected. Will be <dir>/graph_output/<crate_name>.dot.
-    /// The /graph_output/* is deleted and recreated each run.
+    /// Path to graph_output root directory
+    ///
+    /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
+    ///
+    /// Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
     graph: Option<PathBuf>,
     /// Hides the inclusion graph when printing out info for a crate
-    #[structopt(short, long)]
+    #[structopt(long)]
     hide_inclusion_graph: bool,
-    /// Disables fetching of the security advisory database, if would be loaded.
-    /// If this disabled, and there is not already an existing advisory database
-    /// locally, an error will occur.
+    /// Disable fetching of the advisory database
+    ///
+    /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
     disable_fetch: bool,
     /// The check(s) to perform
@@ -57,6 +59,8 @@ struct Config {
     licenses: Option<licenses::Config>,
     sources: Option<sources::Config>,
     builds: Option<builds::Config>,
+    #[serde(default)]
+    targets: Vec<crate::common::Target>,
 }
 
 struct ValidConfig {
@@ -65,10 +69,11 @@ struct ValidConfig {
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
     builds: builds::ValidConfig,
+    targets: Vec<(String, Vec<String>)>,
 }
 
 impl ValidConfig {
-    fn load(cfg_path: PathBuf, files: &mut codespan::Files) -> Result<Self, Error> {
+    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
         let cfg_contents = if cfg_path.exists() {
             std::fs::read_to_string(&cfg_path)
                 .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
@@ -86,33 +91,59 @@ impl ValidConfig {
 
         let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
 
-        let validate = || -> Result<Self, Vec<Diagnostic>> {
+        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
             let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
             let bans = cfg.bans.unwrap_or_default().validate(id)?;
             let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
-            let sources = cfg.sources.unwrap_or_default().validate(id)?;
             let builds = cfg.builds.unwrap_or_default().validate(id)?;
 
-            Ok(Self {
-                advisories,
-                bans,
-                licenses,
-                sources,
-                builds,
-            })
+            // Sources has a special case where it has a default value if one isn't specified,
+            // which doesn't play nicely with the toml::Spanned type, so we pass in the
+            // file contents as well so that sources validation can scan the contents itself
+            // if needed.
+            let sources = cfg
+                .sources
+                .unwrap_or_default()
+                .validate(id, files.source(id))?;
+
+            let mut diagnostics = Vec::new();
+            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
+
+            Ok((
+                diagnostics,
+                Self {
+                    advisories,
+                    bans,
+                    licenses,
+                    sources,
+                    targets,
+                },
+            ))
+        };
+
+        let print = |diags: Vec<Diagnostic>| {
+            use codespan_reporting::term;
+
+            if diags.is_empty() {
+                return;
+            }
+
+            let writer =
+                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+            let config = term::Config::default();
+            let mut writer = writer.lock();
+            for diag in &diags {
+                term::emit(&mut writer, &config, &files, &diag).unwrap();
+            }
         };
 
         match validate() {
-            Ok(vc) => Ok(vc),
+            Ok((diags, vc)) => {
+                print(diags);
+                Ok(vc)
+            }
             Err(diags) => {
-                use codespan_reporting::term;
-
-                let writer =
-                    term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
-                let config = term::Config::default();
-                for diag in &diags {
-                    term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
-                }
+                print(diags);
 
                 anyhow::bail!(
                     "failed to validate configuration file {}",
@@ -123,7 +154,12 @@ impl ValidConfig {
     }
 }
 
-pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(
+    log_level: log::LevelFilter,
+    args: Args,
+    targets: Vec<String>,
+    context_dir: PathBuf,
+) -> Result<(), Error> {
     let mut files = codespan::Files::new();
     let cfg = ValidConfig::load(
         make_absolute_path(args.config.clone(), &context_dir),
@@ -167,21 +203,32 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
     rayon::scope(|s| {
         s.spawn(|_| {
-            let k = crate::common::gather_krates(context_dir);
+            let targets = if !targets.is_empty() {
+                targets.into_iter().map(|name| (name, Vec::new())).collect()
+            } else if !cfg.targets.is_empty() {
+                cfg.targets
+                    .iter()
+                    .map(|(name, features)| (name.clone(), features.clone()))
+                    .collect()
+            } else {
+                Vec::new()
+            };
 
-            if let Ok(ref k) = k {
+            let gathered = crate::common::gather_krates(context_dir, targets);
+
+            if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
                     if check_advisories {
-                        s.spawn(|_| advisory_lockfile = Some(advisories::generate_lockfile(&k)));
+                        s.spawn(|_| {
+                            advisory_lockfile = Some(advisories::load_lockfile(krates.lock_path()));
+                        });
                     }
 
-                    if check_advisories || check_bans || check_sources || check_builds {
-                        s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&k)));
-                    }
+                    s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
                 });
             }
 
-            krates = Some(k);
+            krates = Some(gathered);
         });
 
         if check_advisories {
@@ -207,17 +254,19 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
     let advisory_ctx = if check_advisories {
         let db = advisory_db.unwrap()?;
-        let lockfile = advisory_lockfile.unwrap();
+        let lockfile = advisory_lockfile.unwrap()?;
 
         Some((db, lockfile))
     } else {
         None
     };
 
-    let krate_spans = krate_spans.map(|(spans, contents)| {
-        let id = files.add(krates.lock_file.to_string_lossy(), contents);
-        (spans, id)
-    });
+    let (krate_spans, spans_id) = krate_spans
+        .map(|(spans, contents)| {
+            let id = files.add(krates.lock_path().to_string_lossy(), contents);
+            (spans, id)
+        })
+        .unwrap();
 
     let license_summary = if check_licenses {
         let store = license_store.unwrap()?;
@@ -225,7 +274,7 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             .with_store(std::sync::Arc::new(store))
             .with_confidence_threshold(cfg.licenses.confidence_threshold);
 
-        Some(gatherer.gather(krates.as_ref(), &mut files, Some(&cfg.licenses)))
+        Some(gatherer.gather(&krates, &mut files, Some(&cfg.licenses)))
     } else {
         None
     };
@@ -263,9 +312,17 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
         if let Some(summary) = license_summary {
             let lic_tx = tx.clone();
             let lic_cfg = cfg.licenses;
+
+            let ctx = CheckCtx {
+                cfg: lic_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(move |_| {
                 log::info!("checking licenses...");
-                licenses::check(&lic_cfg, summary, lic_tx);
+                licenses::check(ctx, summary, lic_tx);
             });
         }
 
@@ -303,15 +360,16 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             let ban_tx = tx.clone();
             let ban_cfg = cfg.bans;
 
+            let ctx = CheckCtx {
+                cfg: ban_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(|_| {
                 log::info!("checking bans...");
-                bans::check(
-                    ban_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    output_graph,
-                    ban_tx,
-                );
+                bans::check(ctx, output_graph, ban_tx);
             });
         }
 
@@ -319,14 +377,16 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
             let sources_tx = tx.clone();
             let sources_cfg = cfg.sources;
 
+            let ctx = CheckCtx {
+                cfg: sources_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(|_| {
                 log::info!("checking sources...");
-                sources::check(
-                    sources_cfg,
-                    krates,
-                    krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap(),
-                    sources_tx,
-                );
+                sources::check(ctx, sources_tx);
             });
         }
 
@@ -347,10 +407,17 @@ pub fn cmd(log_level: log::LevelFilter, args: Args, context_dir: PathBuf) -> Res
 
         if let Some((db, lockfile)) = advisory_ctx {
             let adv_cfg = cfg.advisories;
-            let krate_spans = krate_spans.as_ref().map(|(s, id)| (s, *id)).unwrap();
+
+            let ctx = CheckCtx {
+                cfg: adv_cfg,
+                krates: &krates,
+                krate_spans: &krate_spans,
+                spans_id,
+            };
+
             s.spawn(move |_| {
                 log::info!("checking advisories...");
-                advisories::check(adv_cfg, krates, krate_spans, &db, &lockfile, tx);
+                advisories::check(ctx, &db, &lockfile, tx);
             });
         }
     });
@@ -365,7 +432,7 @@ fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
     max_severity: Option<cargo_deny::diag::Severity>,
-    files: codespan::Files,
+    files: codespan::Files<String>,
 ) -> Option<Error> {
     use codespan_reporting::term;
 
@@ -375,33 +442,34 @@ fn print_diagnostics(
     let mut error_count = 0;
 
     for pack in rx {
-        let mut inclusion_graph = pack
-            .krate_id
-            .and_then(|pid| inc_grapher.as_mut().map(|ig| (pid, ig)))
-            .map(|(pid, ig)| ig.write_graph(&pid).unwrap());
+        let mut lock = writer.lock();
 
-        for mut diag in pack.diagnostics.into_iter() {
-            if diag.severity >= codespan_reporting::diagnostic::Severity::Error {
+        for diag in pack.into_iter() {
+            let mut inner = diag.diag;
+            if inner.severity >= codespan_reporting::diagnostic::Severity::Error {
                 error_count += 1;
             }
 
             match max_severity {
                 Some(max) => {
-                    if diag.severity < max {
+                    if inner.severity < max {
                         continue;
                     }
                 }
                 None => continue,
             }
 
-            // Only add the dependency graph to the first diagnostic for a particular crate
-            if let Some(graph) = inclusion_graph.take() {
-                diag.notes.push(graph);
+            // Add an inclusion graph for each crate identifier attached to the
+            // diagnostic
+            if let Some(ref mut grapher) = inc_grapher {
+                for kid in diag.kids {
+                    inner.notes.push(grapher.write_graph(&kid).unwrap());
+                }
             }
 
             // We _could_ just take a single lock, but then normal log messages would
             // not be displayed until after this thread exited
-            term::emit(&mut writer.lock(), &config, &files, &diag).unwrap();
+            term::emit(&mut lock, &config, &files, &inner).unwrap();
         }
     }
 

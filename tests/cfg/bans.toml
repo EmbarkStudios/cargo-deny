@@ -1,0 +1,21 @@
+[bans]
+multiple-versions = "deny"
+highlight = "simplest-path"
+allow = [
+    { name = "all-versionsa" },
+    { name = "specific-versiona", version = "<0.1.1" },
+]
+skip-tree = [
+    { name = "blah", depth = 20 },
+]
+
+[[bans.deny]]
+name = "all-versionsd"
+
+[[bans.deny]]
+name = "specific-versiond"
+version = "=0.1.9"
+
+[[bans.skip]]
+name = "rand"
+version = "=0.6.5"

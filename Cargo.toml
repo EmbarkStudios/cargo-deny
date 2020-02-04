@@ -2,7 +2,7 @@
 name = "cargo-deny"
 description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
-version = "0.5.2"
+version = "0.6.2"
 authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,7 @@ readme = "README.md"
 documentation = "https://docs.rs/cargo-deny"
 homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
-keywords = ["cargo", "license", "spdx", "ci"]
+keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = [
   "examples/",
   ".github/",
@@ -28,21 +28,20 @@ ansi_term = "0.12.1"
 anyhow = "1.0.25"
 askalono = "0.4.1"
 atty = "0.2.13"
-bitvec = { version = "0.16.1", features = ["alloc"] }
-cargo_metadata = "0.9.1"
+bitvec = { version = "0.17.1", features = ["alloc"] }
 chrono = "0.4.10"
 clap = "2.33.0"
-codespan = "0.6.0"
-codespan-reporting = "0.6.0"
+codespan = "0.7.0"
+codespan-reporting = "0.7.0"
 crossbeam = "0.7.3"
 erased-serde = "0.3.9"
 fern = "0.5.9"
+home = "0.5.3"
+krates = "0.1.0"
 log = "0.4.8"
 parking_lot = "0.10.0"
-petgraph = "0.4.13"
 rayon = "1.3.0"
 regex = { version = "1.3.1", default-features = true }
-rustsec = { version = "0.16.0", features = ["vendored-openssl"] }
 semver = "0.9.0"
 serde = { version = "1.0.103", features = ["derive"] }
 serde_json = "1.0.44"
@@ -53,6 +52,10 @@ toml = "0.5.5"
 twox-hash = { version = "1.5.0", default-features = false }
 url = "2.1.0"
 
+[dependencies.rustsec]
+version = "0.17.1"
+features = ["vendored-openssl"]
+
 [dev-dependencies]
 # We use this for pretty printing errors
 difference = "2.0.0"
@@ -61,6 +64,3 @@ lazy_static = "1.4.0"
 # We use this for creating fake crate directories for
 # crawling license files on disk
 tempfile = "3.1.0"
-
-[patch.crates-io]
-rustsec = { git = "https://github.com/RustSec/rustsec-crate.git", rev = "aaba369" }

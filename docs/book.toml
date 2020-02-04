@@ -1,0 +1,19 @@
+[book]
+authors = ["Jake Shadle"]
+language = "en"
+multilingual = false
+src = "src"
+title = "cargo-deny"
+
+[output.html]
+
+# Disabled until https://github.com/Michael-F-Bryan/mdbook-linkcheck/issues/25
+# is resolved
+# [output.linkcheck]
+# follow-web-links = true
+# warning-policy = "warn"
+
+# # Exclude crates.io, linkcheck has no way to specify Accept-Type,
+# # and crates.io returns a 404 if you don't specify text/html
+# # https://github.com/rust-lang/crates.io/issues/788
+# exclude = [ "crates\\.io" ]

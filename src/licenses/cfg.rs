@@ -1,7 +1,29 @@
-use crate::LintLevel;
+#![cfg_attr(docsrs, doc(include = "../../docs/licenses/cfg.md"))]
+
+//! If a `[license]` configuration section, cargo-deny will use the default
+//! configuration.
+//!
+//! ```
+//! use cargo_deny::{LintLevel, licenses::Config};
+//!
+//! let dc = Config::default();
+//!
+//! assert_eq!(dc.unlicensed, LintLevel::Deny);
+//! assert_eq!(
+//!     dc.allow_osi_fsf_free,
+//!     cargo_deny::licenses::cfg::BlanketAgreement::Neither
+//! );
+//! assert_eq!(dc.copyleft, LintLevel::Warn);
+//! assert_eq!(dc.confidence_threshold, 0.8);
+//! assert!(dc.deny.is_empty());
+//! assert!(dc.allow.is_empty());
+//! assert!(dc.clarify.is_empty());
+//! assert!(dc.exceptions.is_empty());
+//! ```
+
+use crate::{LintLevel, Spanned};
 use semver::VersionReq;
 use serde::Deserialize;
-use spdx::Licensee;
 use std::path::PathBuf;
 
 const fn confidence_threshold() -> f32 {
@@ -11,7 +33,7 @@ const fn confidence_threshold() -> f32 {
 /// Allows agreement of licensing terms based on whether the license is
 /// [OSI Approved](https://opensource.org/licenses) or [considered free](
 /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BlanketAgreement {
     /// The license must be both OSI Approved and FSF/Free Libre
@@ -32,58 +54,105 @@ impl Default for BlanketAgreement {
     }
 }
 
+/// Configures how private crates are handled and detected
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct Private {
+    /// If enabled, ignores workspace crates that aren't published, or are
+    /// only published to private registries
+    #[serde(default)]
+    pub ignore: bool,
+    /// One or more private registries that you might publish crates to, if
+    /// a crate is only published to private registries, and ignore is true
+    /// the crate will not have its license checked
+    #[serde(default)]
+    pub registries: Vec<String>,
+}
+
+/// The path and hash of a LICENSE file
 #[derive(PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct FileSource {
     /// The crate relative path of the LICENSE file
     pub path: PathBuf,
-    /// The hash of the LICENSE text
+    /// The hash of the LICENSE text. If the `path`'s hash
+    /// differs from the contents of the path, the file is
+    /// parsed to determine if the license(s) contained in
+    /// it are still the same
     pub hash: u32,
 }
 
+/// Some crates have complicated LICENSE files that eg contain multiple license
+/// texts in a single file, or are otherwise sufficiently different from the
+/// canonical license text that the confidence level cargo-deny can attribute to
+/// them falls below the `confidence-threshold` you want generally across all
+/// license texts. `Clarification`s allow you to manually assign the
+/// [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
+/// to use for a particular crate as well as 1 or more file sources used as the
+/// ground truth for that expression. If the files change in a future version
+/// of the crate, the clarification will be ignored and the crate will be checked
+/// as normal.
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Clarification {
+    /// The name of the crate that this clarification applies to
     pub name: String,
+    /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
-    pub expression: toml::Spanned<String>,
+    /// The [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
+    /// to apply to the crate.
+    pub expression: Spanned<String>,
+    /// Files in the crate that are the ground truth for the expression.
     pub license_files: Vec<FileSource>,
 }
 
+/// An exception is a way for 1 or more licenses to be allowed only for a
+/// particular crate.
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Exception {
-    pub name: String,
+    /// The name of the crate to apply the exception to.
+    pub name: Spanned<String>,
+    /// The optional version constraint for the crate. Defaults to every version
     pub version: Option<VersionReq>,
-    pub allow: Vec<toml::Spanned<String>>,
+    /// One or more [SPDX identifiers](https://spdx.org/licenses/) that are
+    /// allowed only for this crate.
+    pub allow: Vec<Spanned<String>>,
 }
 
+/// Top level configuration for the a license check
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// Determines what happens when license information cannot be
-    /// determined for a crate
+    #[serde(default)]
+    pub private: Private,
+    /// Determines what happens when license information cannot be determined
+    /// for a crate
     #[serde(default = "crate::lint_deny")]
     pub unlicensed: LintLevel,
-    /// Agrees to licenses based on whether they are OSI Approved
-    /// or FSF/Free Libre
+    /// Accepts license requirements based on whether they are OSI Approved or
+    /// FSF/Free Libre
     #[serde(default)]
     pub allow_osi_fsf_free: BlanketAgreement,
     /// Determines what happens when a copyleft license is detected
     #[serde(default = "crate::lint_warn")]
     pub copyleft: LintLevel,
+    /// Determines what happens when a license doesn't match any previous
+    /// predicates
+    #[serde(default = "crate::lint_deny")]
+    pub default: LintLevel,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     #[serde(default = "confidence_threshold")]
     pub confidence_threshold: f32,
     /// Licenses that will be rejected in a license expression
     #[serde(default)]
-    pub deny: Vec<toml::Spanned<String>>,
+    pub deny: Vec<Spanned<String>>,
     /// Licenses that will be allowed in a license expression
     #[serde(default)]
-    pub allow: Vec<toml::Spanned<String>>,
-    /// Overrides the license expression used for a particular crate as long as it
-    /// exactly matches the specified license files and hashes
+    pub allow: Vec<Spanned<String>>,
+    /// Overrides the license expression used for a particular crate as long as
+    /// it exactly matches the specified license files and hashes
     #[serde(default)]
     pub clarify: Vec<Clarification>,
     /// Allow 1 or more licenses on a per-crate basis, so particular licenses
@@ -95,9 +164,11 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            private: Private::default(),
             unlicensed: LintLevel::Deny,
             allow_osi_fsf_free: BlanketAgreement::default(),
             copyleft: LintLevel::Warn,
+            default: LintLevel::Deny,
             confidence_threshold: confidence_threshold(),
             deny: Vec::new(),
             allow: Vec::new(),
@@ -108,6 +179,11 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Validates the configuration provided by the user.
+    ///
+    /// 1. Ensures all SPDX identifiers are valid
+    /// 1. Ensures all SPDX expressions are valid
+    /// 1. Ensures the same license is not both allowed and denied
     pub fn validate(
         self,
         cfg_file: codespan::FileId,
@@ -117,11 +193,13 @@ impl Config {
 
         let mut diagnostics = Vec::new();
 
-        let mut parse_license =
-            |l: &toml::Spanned<String>, v: &mut Vec<Licensee>| match Licensee::parse(l.get_ref()) {
-                Ok(l) => v.push(l),
+        let mut parse_license = |ls: &Spanned<String>, v: &mut Vec<Licensee>| {
+            match spdx::Licensee::parse(ls.as_ref()) {
+                Ok(licensee) => {
+                    v.push(Licensee::new(licensee, ls.span.clone()));
+                }
                 Err(pe) => {
-                    let offset = (l.start() + 1) as u32;
+                    let offset = (ls.span.start + 1) as u32;
                     let span = pe.span.start as u32 + offset..pe.span.end as u32 + offset;
                     let diag = Diagnostic::new_error(
                         "invalid licensee",
@@ -130,7 +208,8 @@ impl Config {
 
                     diagnostics.push(diag);
                 }
-            };
+            }
+        };
 
         let mut denied = Vec::with_capacity(self.deny.len());
         for d in &self.deny {
@@ -162,21 +241,13 @@ impl Config {
 
         exceptions.par_sort();
 
-        // Ensure the config doesn't contain the same exact license as
-        // both denied and allowed, that's confusing and probably
-        // not intended, so they should pick one
+        // Ensure the config doesn't contain the same exact license as both
+        // denied and allowed, that's confusing and probably not intended, so
+        // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(&d) {
-                let dlabel = Label::new(
-                    cfg_file,
-                    self.deny[di].start() as u32..self.deny[di].end() as u32,
-                    "marked as `deny`",
-                );
-                let alabel = Label::new(
-                    cfg_file,
-                    self.allow[ai].start() as u32..self.allow[ai].end() as u32,
-                    "marked as `allow`",
-                );
+                let dlabel = Label::new(cfg_file, self.deny[di].span.clone(), "marked as `deny`");
+                let alabel = Label::new(cfg_file, self.allow[ai].span.clone(), "marked as `allow`");
 
                 // Put the one that occurs last as the primary label to make it clear
                 // that the first one was "ok" until we noticed this other one
@@ -200,10 +271,10 @@ impl Config {
 
         let mut clarifications = Vec::with_capacity(self.clarify.len());
         for c in self.clarify {
-            let expr = match spdx::Expression::parse(c.expression.get_ref()) {
+            let expr = match spdx::Expression::parse(c.expression.as_ref()) {
                 Ok(validated) => validated,
                 Err(err) => {
-                    let offset = (c.expression.start() + 1) as u32;
+                    let offset = (c.expression.span.start + 1) as u32;
                     let expr_span = offset + err.span.start as u32..offset + err.span.end as u32;
 
                     diagnostics.push(Diagnostic::new_error(
@@ -221,7 +292,7 @@ impl Config {
             clarifications.push(ValidClarification {
                 name: c.name,
                 version: c.version.unwrap_or_else(VersionReq::any),
-                expr_offset: (c.expression.start() + 1) as u32,
+                expr_offset: (c.expression.span.start + 1) as u32,
                 expression: expr,
                 license_files,
             });
@@ -234,8 +305,10 @@ impl Config {
         } else {
             Ok(ValidConfig {
                 file_id: cfg_file,
+                private: self.private,
                 unlicensed: self.unlicensed,
                 copyleft: self.copyleft,
+                default: self.default,
                 allow_osi_fsf_free: self.allow_osi_fsf_free,
                 confidence_threshold: self.confidence_threshold,
                 clarifications,
@@ -247,6 +320,8 @@ impl Config {
     }
 }
 
+#[doc(hidden)]
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
@@ -255,21 +330,89 @@ pub struct ValidClarification {
     pub license_files: Vec<FileSource>,
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub struct ValidException {
-    pub name: String,
+    pub name: crate::Spanned<String>,
     pub version: VersionReq,
     pub allowed: Vec<Licensee>,
 }
 
+pub type Licensee = Spanned<spdx::Licensee>;
+
+#[doc(hidden)]
 pub struct ValidConfig {
     pub file_id: codespan::FileId,
+    pub private: Private,
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,
     pub allow_osi_fsf_free: BlanketAgreement,
+    pub default: LintLevel,
     pub confidence_threshold: f32,
     pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::cfg::{test::*, *};
+
+    #[test]
+    fn works() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Licenses {
+            licenses: Config,
+        }
+
+        let cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
+
+        let validated = cd.config.licenses.validate(cd.id).unwrap();
+
+        assert_eq!(validated.file_id, cd.id);
+        assert_eq!(validated.private.ignore, true);
+        assert_eq!(validated.private.registries, vec!["sekrets".to_owned()]);
+        assert_eq!(validated.unlicensed, LintLevel::Warn);
+        assert_eq!(validated.copyleft, LintLevel::Deny);
+        assert_eq!(validated.default, LintLevel::Warn);
+        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
+        assert_eq!(
+            validated.allowed,
+            vec![
+                spdx::Licensee::parse("Apache-2.0 WITH LLVM-exception").unwrap(),
+                spdx::Licensee::parse("EUPL-1.2").unwrap(),
+            ]
+        );
+        assert_eq!(
+            validated.denied,
+            vec![
+                spdx::Licensee::parse("BSD-2-Clause").unwrap(),
+                spdx::Licensee::parse("Nokia").unwrap(),
+            ]
+        );
+        assert_eq!(
+            validated.exceptions,
+            vec![ValidException {
+                name: "adler32".to_owned().fake(),
+                allowed: vec![spdx::Licensee::parse("Zlib").unwrap().fake()],
+                version: semver::VersionReq::parse("0.1.1").unwrap(),
+            }]
+        );
+        assert_eq!(
+            validated.clarifications,
+            vec![ValidClarification {
+                name: "ring".to_owned(),
+                version: semver::VersionReq::parse("*").unwrap(),
+                expression: spdx::Expression::parse("MIT AND ISC AND OpenSSL").unwrap(),
+                license_files: vec![FileSource {
+                    path: "LICENSE".into(),
+                    hash: 0xbd0e_ed23,
+                }],
+                expr_offset: 415,
+            }]
+        );
+    }
 }

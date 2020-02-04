@@ -1,3 +1,11 @@
+# cargo-deny is really only ever intended to run on the "normal" tier-1 targets
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+]
+
 [advisories]
 vulnerability = "deny"
 unmaintained = "deny"
@@ -10,6 +18,10 @@ deny = [
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
+    # crossbeam (but also openssl-sys!) use pre-1.0 versions of autocfg
+    { name = "autocfg", version = "=0.1.7" },
+    # in a surprise twist, semver uses an older version of semver-parser
+    { name = "semver-parser", version = "=0.7.0" },
 ]
 
 [sources]
@@ -22,6 +34,7 @@ allow-git = [
 [builds]
 custom-builds = "allow"
 proc-macros = "allow"
+allow-git = []
 
 [licenses]
 unlicensed = "deny"
@@ -32,7 +45,4 @@ confidence-threshold = 0.93
 allow = [
     "Apache-2.0",
     "MIT",
-]
-exceptions = [
-    { name = "cloudabi", allow = ["BSD-2-Clause"] },
 ]
