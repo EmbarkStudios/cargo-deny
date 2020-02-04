@@ -2,8 +2,6 @@ use anyhow::{ensure, Context, Error};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use crate::common::make_absolute_path;
-
 #[derive(StructOpt, Debug, Clone)]
 pub struct Args {
     /// The path to create
@@ -15,7 +13,7 @@ pub struct Args {
 
 const CONTENTS: &[u8] = include_bytes!("../../deny.template.toml");
 
-pub fn cmd(args: Args, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(args: Args, ctx: crate::common::KrateContext) -> Result<(), Error> {
     let cfg_file = make_absolute_path(args.config, &context_dir);
 
     // make sure the file does not exist yet
