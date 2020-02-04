@@ -587,7 +587,7 @@ impl Gatherer {
                                 "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
                                 krate.name,
                                 krate.version,
-                                krate.license.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                                krate.license.as_deref().unwrap_or_default(),
                             );
 
                             {
