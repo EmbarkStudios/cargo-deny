@@ -30,6 +30,8 @@ fn main() {
             let repo_name = &repo[repo.rfind('/').unwrap() + 1..];
             let repo_dir = td.join(repo_name);
 
+            println!("cloning {}", repo);
+
             match Command::new("git")
                 .arg("clone")
                 .arg(repo)
@@ -50,6 +52,8 @@ fn main() {
                     return;
                 }
             };
+
+            println!("checking {}", repo);
 
             match Command::new("cargo")
                 .args(&["deny", "-L", "debug", "check"])
