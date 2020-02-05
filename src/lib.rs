@@ -206,7 +206,7 @@ impl From<cm::Package> for Krate {
                             log::warn!("unable to parse source url '{}': {}", url, e);
                             None
                         },
-                        |v| Some(v),
+                        Some,
                     )
                 })
             },

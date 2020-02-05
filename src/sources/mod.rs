@@ -2,13 +2,9 @@ mod cfg;
 pub use cfg::{Config, ValidConfig};
 
 use crate::{
-    cm,
     diag::{Diagnostic, Label, Pack, Severity},
     LintLevel,
 };
-use anyhow::{bail, ensure, Context, Error};
-use std::convert::TryFrom;
-use url::Url;
 
 pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
     use bitvec::prelude::*;
