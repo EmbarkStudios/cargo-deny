@@ -94,7 +94,14 @@ fn krate_for_pkg<'a>(
 ) -> Option<(usize, &'a Krate)> {
     krates
         .krates_by_name(pkg.name.as_str())
-        .find(|(_, kn)| pkg.version == kn.krate.version)
+        .find(|(_, kn)| {
+            pkg.version == kn.krate.version
+                && match (&pkg.source, &kn.krate.source) {
+                    (Some(psrc), Some(ksrc)) => psrc == ksrc,
+                    (None, None) => true,
+                    _ => false,
+                }
+        })
         .map(|(ind, krate)| (ind.index(), &krate.krate))
 }
 
@@ -103,7 +110,7 @@ fn krate_for_pkg<'a>(
 pub fn check(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_db: &Database,
-    lockfile: &rustsec::lockfile::Lockfile,
+    mut lockfile: rustsec::lockfile::Lockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
 ) {
     use rustsec::{
@@ -128,6 +135,12 @@ pub fn check(
             //Informational::Other("*"),
         ],
     };
+
+    // Remove any packages from the rustsec's view of the lockfile that we have
+    // filtered out of the graph we are actually checking
+    lockfile
+        .packages
+        .retain(|pkg| krate_for_pkg(&ctx.krates, pkg).is_some());
 
     let report = rustsec::Report::generate(&advisory_db, &lockfile, &settings);
 
