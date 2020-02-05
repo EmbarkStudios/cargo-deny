@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The configuration used for the command is recursively searched for in parent directories starting in the same directory as the `Cargo.toml` (unless explicitly specified).
+- The target list used when evaluating cfg expressions for dependencies has been updated to the list of targets supported by 1.41.0. This will give undesired behavior if you happen to use a target triple that has been removed from 1.41.0 that is available in the Rust version you have.
 
 ### Fixed
 - Resolved [#122](https://github.com/EmbarkStudios/cargo-deny/issues/122) by pruning the packages that are checked against the advisory database to the same set used by all other checks
