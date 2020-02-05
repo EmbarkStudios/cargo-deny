@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Added the `--manifest-path` option to specify the Cargo.toml you want to use as the context for the operation to fit with how other cargo subcommands work. Takes precedence over the (deprecated) `--context`.
+- Added the `--workspace` flag to give the user a workaround in cases where a manifest is both a package and a workspace.
+- Added the `--exclude` option to allow users to explicitly remove packages from the final crate graph.
+
+### Changed
+- The configuration used for the command is recursively searched for in parent directories starting in the same directory as the `Cargo.toml` (unless explicitly specified).
+
+### Fixed
+- Resolved [#122](https://github.com/EmbarkStudios/cargo-deny/issues/122) by pruning the packages that are checked against the advisory database to the same set used by all other checks
+
+### Deprecated
+- `--context` has been deprecated in favor of `--manifest-path`, to align cargo-deny more with all other cargo subcommands
+
 ## [0.6.2] - 2020-01-25
 ### Added
 - Resolved [#116](https://github.com/EmbarkStudios/cargo-deny/issues/116) by adding the `[licenses.default]` field, which allows you to configure how to handle licenses that don't match any other predicate

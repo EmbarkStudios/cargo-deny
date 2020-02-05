@@ -6,8 +6,6 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use crate::common::make_absolute_path;
-
 arg_enum! {
     #[derive(Debug, PartialEq, Copy, Clone)]
     pub enum WhichCheck {
@@ -26,8 +24,8 @@ pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to <context>/deny.toml if not specified
-    #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
-    config: PathBuf,
+    #[structopt(short, long, parse(from_os_str))]
+    config: Option<PathBuf>,
     /// Path to graph_output root directory
     ///
     /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
@@ -70,21 +68,32 @@ struct ValidConfig {
 }
 
 impl ValidConfig {
-    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
-        let cfg_contents = if cfg_path.exists() {
-            std::fs::read_to_string(&cfg_path)
-                .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
-        } else {
-            log::warn!(
-                "config path '{}' doesn't exist, falling back to default config",
-                cfg_path.display()
-            );
-            String::new()
+    fn load(cfg_path: Option<PathBuf>, files: &mut codespan::Files<String>) -> Result<Self, Error> {
+        let (cfg_contents, cfg_path) = match cfg_path {
+            Some(cfg_path) if cfg_path.exists() => (
+                std::fs::read_to_string(&cfg_path).with_context(|| {
+                    format!("failed to read config from {}", cfg_path.display())
+                })?,
+                cfg_path,
+            ),
+            Some(cfg_path) => {
+                log::warn!(
+                    "config path '{}' doesn't exist, falling back to default config",
+                    cfg_path.display()
+                );
+                (String::new(), cfg_path)
+            }
+            None => {
+                log::warn!("unable to find a config path, falling back to default config");
+                (String::new(), PathBuf::from("deny.default.toml"))
+            }
         };
 
         let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
             format!("failed to deserialize config from '{}'", cfg_path.display())
         })?;
+
+        log::info!("using config from {}", cfg_path.display());
 
         let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
 
@@ -153,14 +162,10 @@ impl ValidConfig {
 pub fn cmd(
     log_level: log::LevelFilter,
     args: Args,
-    targets: Vec<String>,
-    context_dir: PathBuf,
+    krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
     let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(
-        make_absolute_path(args.config.clone(), &context_dir),
-        &mut files,
-    )?;
+    let mut cfg = ValidConfig::load(krate_ctx.get_config_path(args.config.clone()), &mut files)?;
 
     let check_advisories = args.which.is_empty()
         || args
@@ -191,20 +196,11 @@ pub fn cmd(
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
+    let targets = std::mem::replace(&mut cfg.targets, Vec::new());
+
     rayon::scope(|s| {
         s.spawn(|_| {
-            let targets = if !targets.is_empty() {
-                targets.into_iter().map(|name| (name, Vec::new())).collect()
-            } else if !cfg.targets.is_empty() {
-                cfg.targets
-                    .iter()
-                    .map(|(name, features)| (name.clone(), features.clone()))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-
-            let gathered = crate::common::gather_krates(context_dir, targets);
+            let gathered = krate_ctx.gather_krates(targets);
 
             if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
@@ -392,7 +388,7 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking advisories...");
-                advisories::check(ctx, &db, &lockfile, tx);
+                advisories::check(ctx, &db, lockfile, tx);
             });
         }
     });

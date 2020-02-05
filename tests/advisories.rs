@@ -74,7 +74,7 @@ fn detects_vulnerabilities() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -133,7 +133,7 @@ fn detects_unmaintained() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -192,7 +192,7 @@ fn downgrades() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut got_ammonia_vuln = false;
