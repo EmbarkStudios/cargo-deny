@@ -48,7 +48,9 @@ pub(crate) struct GraphContext {
     /// Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
     #[structopt(long)]
     pub(crate) workspace: bool,
-    /// One or more workspace crates to exclude as roots from the crate graph.
+    /// One or more crates to exclude from the crate graph that is used.
+    ///
+    /// NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
     #[structopt(long)]
     pub(crate) exclude: Vec<String>,
     /// One or more platforms to filter crates by
