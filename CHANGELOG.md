@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.3] - 2020-02-05
 ### Added
 - Added the `--manifest-path` option to specify the Cargo.toml you want to use as the context for the operation to fit with how other cargo subcommands work. Takes precedence over the (deprecated) `--context`.
 - Added the `--workspace` flag to give the user a workaround in cases where a manifest is both a package and a workspace.
@@ -142,7 +143,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...HEAD
+[0.6.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...0.6.0
