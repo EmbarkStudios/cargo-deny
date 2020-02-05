@@ -155,13 +155,28 @@ fn real_main() -> Result<(), Error> {
                 );
             }
 
-            context_dir.join("Cargo.toml")
+            let man_path = context_dir.join("Cargo.toml");
+
+            if !man_path.exists() {
+                bail!(
+                    "the directory {} doesn't contain a Cargo.toml file",
+                    context_dir.display()
+                );
+            }
+
+            man_path
         }
     };
 
     let manifest_path = manifest_path
         .canonicalize()
         .unwrap_or_else(|_| manifest_path);
+
+    if manifest_path.file_name() != Some(std::ffi::OsStr::new("Cargo.toml"))
+        || !manifest_path.is_file()
+    {
+        bail!("--manifest-path must point to a Cargo.toml file");
+    }
 
     if !manifest_path.exists() {
         bail!("unable to find cargo manifest {}", manifest_path.display());
