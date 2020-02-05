@@ -49,8 +49,7 @@ pub(crate) struct GraphContext {
     #[structopt(long)]
     pub(crate) workspace: bool,
     /// One or more workspace crates to exclude as roots from the crate graph.
-    ///
-    /// This argument is only used when --workspace is specified.
+    #[structopt(long)]
     pub(crate) exclude: Vec<String>,
     /// One or more platforms to filter crates by
     ///
@@ -129,26 +128,54 @@ fn real_main() -> Result<(), Error> {
 
     setup_logger(log_level)?;
 
-    let graph_ctx = args.ctx;
+    let manifest_path = match args.ctx.manifest_path {
+        Some(mpath) => mpath,
+        None => {
+            // For now, use the context path provided by the user, but
+            // we've deprected it and it will go away at some point
+            let context_dir = args
+                .ctx
+                .context
+                .or_else(|| std::env::current_dir().ok())
+                .context("unable to determine current working directory")?;
 
-    // let context_dir = args
-    //     .context
-    //     .clone()
-    //     .or_else(|| std::env::current_dir().ok())
-    //     .context("unable to determine context directory")?;
+            if !context_dir.exists() {
+                bail!(
+                    "current working directory {} was not found",
+                    context_dir.display()
+                );
+            }
 
-    // if !context_dir.exists() {
-    //     bail!("context {} was not found", context_dir.display());
-    // }
+            if !context_dir.is_dir() {
+                bail!(
+                    "current working directory {} is not a directory",
+                    context_dir.display()
+                );
+            }
 
-    // if !context_dir.is_dir() {
-    //     bail!("context {} is not a directory", context_dir.display());
-    // }
+            context_dir.join("Cargo.toml")
+        }
+    };
+
+    let manifest_path = manifest_path
+        .canonicalize()
+        .unwrap_or_else(|_| manifest_path);
+
+    if !manifest_path.exists() {
+        bail!("unable to find cargo manifest {}", manifest_path.display());
+    }
+
+    let krate_ctx = common::KrateContext {
+        manifest_path,
+        workspace: args.ctx.workspace,
+        exclude: args.ctx.exclude,
+        targets: args.ctx.target,
+    };
 
     match args.cmd {
-        Command::Check(cargs) => check::cmd(log_level, cargs, graph_ctx),
-        Command::List(largs) => list::cmd(largs, graph_ctx),
-        Command::Init(iargs) => init::cmd(iargs, graph_ctx),
+        Command::Check(cargs) => check::cmd(log_level, cargs, krate_ctx),
+        Command::List(largs) => list::cmd(largs, krate_ctx),
+        Command::Init(iargs) => init::cmd(iargs, krate_ctx),
     }
 }
 

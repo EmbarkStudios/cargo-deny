@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use cargo_deny::licenses::LicenseStore;
 
@@ -42,15 +42,15 @@ pub(crate) fn load_targets(
     targets
 }
 
-pub(crate) struct KrateContext {
-    pub(crate) manifest_path: PathBuf,
-    pub(crate) workspace: bool,
-    pub(crate) exclude: Vec<String>,
-    pub(crate) targets: Vec<String>,
+pub struct KrateContext {
+    pub manifest_path: PathBuf,
+    pub workspace: bool,
+    pub exclude: Vec<String>,
+    pub targets: Vec<String>,
 }
 
 impl KrateContext {
-    pub(crate) fn get_config_path(&self, config_path: Option<PathBuf>) -> Option<PathBuf> {
+    pub fn get_config_path(&self, config_path: Option<PathBuf>) -> Option<PathBuf> {
         match config_path {
             Some(cp) => {
                 if cp.is_absolute() {
@@ -77,7 +77,7 @@ impl KrateContext {
         }
     }
 
-    pub(crate) fn gather_krates(
+    pub fn gather_krates(
         self,
         cfg_targets: Vec<(String, Vec<String>)>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
@@ -92,6 +92,8 @@ impl KrateContext {
 
         let mut gb = Builder::new();
 
+        // Use targets passed on the command line first, and fallback to config
+        // based targets otherwise
         if !self.targets.is_empty() {
             gb.include_targets(self.targets.into_iter().map(|t| (t, Vec::new())));
         } else if !cfg_targets.is_empty() {
@@ -99,6 +101,21 @@ impl KrateContext {
         }
 
         gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
+        gb.workspace(self.workspace);
+
+        if !self.exclude.is_empty() {
+            gb.exclude(
+                self.exclude
+                    .into_iter()
+                    .filter_map(|spec| match spec.parse() {
+                        Ok(spec) => Some(spec),
+                        Err(e) => {
+                            log::warn!("invalid pkg spec '{}': {}", spec, e);
+                            None
+                        }
+                    }),
+            );
+        }
 
         let graph = gb.build(mdc, |filtered: krates::cm::Package| match filtered.source {
             Some(src) => {
@@ -108,7 +125,7 @@ impl KrateContext {
                     log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
                 }
             }
-            None => log::debug!("filtered crate {} {}", filtered.name, filtered.version),
+            None => log::debug!("filtered {} {}", filtered.name, filtered.version),
         });
 
         if let Ok(ref krates) = graph {

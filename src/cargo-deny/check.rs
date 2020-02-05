@@ -93,6 +93,8 @@ impl ValidConfig {
             format!("failed to deserialize config from '{}'", cfg_path.display())
         })?;
 
+        log::info!("using config from {}", cfg_path.display());
+
         let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
 
         let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
@@ -163,7 +165,7 @@ pub fn cmd(
     krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
     let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files)?;
+    let mut cfg = ValidConfig::load(krate_ctx.get_config_path(args.config.clone()), &mut files)?;
 
     let check_advisories = args.which.is_empty()
         || args
@@ -194,22 +196,11 @@ pub fn cmd(
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
-    let targets = krate_ctx.targets;
+    let targets = std::mem::replace(&mut cfg.targets, Vec::new());
 
     rayon::scope(|s| {
         s.spawn(|_| {
-            let targets = if !targets.is_empty() {
-                targets.into_iter().map(|name| (name, Vec::new())).collect()
-            } else if !cfg.targets.is_empty() {
-                cfg.targets
-                    .iter()
-                    .map(|(name, features)| (name.clone(), features.clone()))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-
-            let gathered = krate_ctx.gather_krates(Some(&cfg.targets));
+            let gathered = krate_ctx.gather_krates(targets);
 
             if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
@@ -397,7 +388,7 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking advisories...");
-                advisories::check(ctx, &db, &lockfile, tx);
+                advisories::check(ctx, &db, lockfile, tx);
             });
         }
     });
