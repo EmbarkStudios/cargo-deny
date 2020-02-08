@@ -168,10 +168,6 @@ fn real_main() -> Result<(), Error> {
         }
     };
 
-    let manifest_path = manifest_path
-        .canonicalize()
-        .unwrap_or_else(|_| manifest_path);
-
     if manifest_path.file_name() != Some(std::ffi::OsStr::new("Cargo.toml"))
         || !manifest_path.is_file()
     {
