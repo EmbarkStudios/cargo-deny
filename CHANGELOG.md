@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Resolved [#131](https://github.com/EmbarkStudios/cargo-deny/issues/131) by removing an unnecessary path canonicalization
+
 ## [0.6.3] - 2020-02-05
 ### Added
 - Added the `--manifest-path` option to specify the Cargo.toml you want to use as the context for the operation to fit with how other cargo subcommands work. Takes precedence over the (deprecated) `--context`.
