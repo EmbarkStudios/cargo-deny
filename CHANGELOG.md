@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.4] - 2020-02-08
 ### Fixed
 - Resolved [#131](https://github.com/EmbarkStudios/cargo-deny/issues/131) by removing an unnecessary path canonicalization
 
@@ -146,7 +147,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...HEAD
+[0.6.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
