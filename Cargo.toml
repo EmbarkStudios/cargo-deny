@@ -23,6 +23,10 @@ maintenance = { status = "actively-developed" }
 name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
+[features]
+default = ["vendored-openssl"]
+vendored-openssl = ["rustsec/vendored-openssl"]
+
 [dependencies]
 ansi_term = "0.12.1"
 anyhow = "1.0.25"
@@ -51,10 +55,7 @@ structopt = "0.3.5"
 toml = "0.5.5"
 twox-hash = { version = "1.5.0", default-features = false }
 url = "2.1.0"
-
-[dependencies.rustsec]
-version = "0.18.0"
-features = ["vendored-openssl"]
+rustsec = "0.18.0"
 
 [dev-dependencies]
 # We use this for pretty printing errors
