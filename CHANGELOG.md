@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Added a `fetch` subcommand that can be used to fetch external data, currently the crates.io index and the configured advisory database
+
+### Changed
+- Upgraded to rustsec 0.18.0, which slighly reworks how yanked crate detection is done
+
 ## [0.6.4] - 2020-02-08
 ### Fixed
 - Resolved [#131](https://github.com/EmbarkStudios/cargo-deny/issues/131) by removing an unnecessary path canonicalization
