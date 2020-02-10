@@ -257,6 +257,9 @@ fn downgrades() {
 #[test]
 #[ignore]
 fn detects_yanked() {
+    // Force fetch the index just in case
+    rustsec::registry::Index::fetch().unwrap();
+
     let (tx, rx) = crossbeam::channel::unbounded();
     let ctx = load();
 
