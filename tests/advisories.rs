@@ -253,3 +253,57 @@ fn downgrades() {
 
     down_res.unwrap()
 }
+
+#[test]
+#[ignore]
+fn detects_yanked() {
+    let (tx, rx) = crossbeam::channel::unbounded();
+    let ctx = load();
+
+    let cfg = load_cfg(&ctx, "detects_yanked", "yanked = \"deny\"".into()).unwrap();
+
+    let (_, yanked_res) = rayon::join(
+        || {
+            let ctx2 = cargo_deny::CheckCtx {
+                cfg,
+                krates: &ctx.krates,
+                krate_spans: &ctx.spans.0,
+                spans_id: ctx.spans.1,
+            };
+
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
+        },
+        || {
+            let mut res = Err(anyhow::anyhow!("failed to receive yanked"));
+
+            for msg in rx {
+                for diag in msg.into_iter() {
+                    let diag = diag.diag;
+
+                    if diag.code.is_none() {
+                        ensure!(
+                            diag.severity == diag::Severity::Error,
+                            dbg!(dbg!(diag.severity) == diag::Severity::Error)
+                        );
+
+                        ensure!(
+                            diag.message == "detected yanked crate",
+                            dbg!(dbg!(diag.message) == "detected yanked crate")
+                        );
+
+                        ensure!(
+                            diag.primary_label.message == "yanked version",
+                            dbg!(dbg!(diag.primary_label.message) == "yanked version")
+                        );
+
+                        res = Ok(());
+                    }
+                }
+            }
+
+            res
+        },
+    );
+
+    yanked_res.unwrap()
+}
