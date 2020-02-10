@@ -53,7 +53,7 @@ twox-hash = { version = "1.5.0", default-features = false }
 url = "2.1.0"
 
 [dependencies.rustsec]
-version = "0.17.1"
+version = "0.18.0"
 features = ["vendored-openssl"]
 
 [dev-dependencies]
