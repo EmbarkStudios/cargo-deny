@@ -23,7 +23,7 @@ arg_enum! {
 pub struct Args {
     /// Path to the config to use
     ///
-    /// Defaults to <context>/deny.toml if not specified
+    /// Defaults to <cwd>/deny.toml if not specified
     #[structopt(short, long, parse(from_os_str))]
     config: Option<PathBuf>,
     /// Path to graph_output root directory

@@ -7,20 +7,24 @@ use structopt::StructOpt;
 
 mod check;
 mod common;
+mod fetch;
 mod init;
 mod list;
 
 #[derive(StructOpt, Debug)]
 enum Command {
-    /// Outputs a listing of all licenses and the crates that use them
-    #[structopt(name = "list")]
-    List(list::Args),
     /// Checks a project's crate graph
     #[structopt(name = "check")]
     Check(check::Args),
+    /// Fetches remote data
+    #[structopt(name = "fetch")]
+    Fetch(fetch::Args),
     /// Creates a cargo-deny config from a template
     #[structopt(name = "init")]
     Init(init::Args),
+    /// Outputs a listing of all licenses and the crates that use them
+    #[structopt(name = "list")]
+    List(list::Args),
 }
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
@@ -187,8 +191,9 @@ fn real_main() -> Result<(), Error> {
 
     match args.cmd {
         Command::Check(cargs) => check::cmd(log_level, cargs, krate_ctx),
-        Command::List(largs) => list::cmd(largs, krate_ctx),
+        Command::Fetch(fargs) => fetch::cmd(fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
+        Command::List(largs) => list::cmd(largs, krate_ctx),
     }
 }
 

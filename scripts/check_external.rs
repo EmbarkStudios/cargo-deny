@@ -21,6 +21,16 @@ fn main() {
     }
     std::fs::create_dir_all(&td).unwrap();
 
+    // Fetch external sources once
+    if !Command::new("cargo")
+        .args(&["deny", "-L", "debug", "fetch", "all"])
+        .status()
+        .expect("failed to run cargo deny fetch")
+        .success()
+    {
+        panic!("failed to run cargo deny fetch");
+    }
+
     let (tx, rx) = std::sync::mpsc::channel();
 
     for repo in REPOS {
@@ -56,7 +66,7 @@ fn main() {
             println!("checking {}", repo);
 
             match Command::new("cargo")
-                .args(&["deny", "-L", "debug", "check"])
+                .args(&["deny", "-L", "debug", "check", "--disable-fetch"])
                 .current_dir(repo_dir)
                 .output()
             {

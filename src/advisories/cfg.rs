@@ -3,6 +3,10 @@ use rustsec::advisory;
 use serde::Deserialize;
 use std::path::PathBuf;
 
+fn yanked() -> Spanned<LintLevel> {
+    Spanned::new(LintLevel::Warn, 0..0)
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
@@ -17,8 +21,8 @@ pub struct Config {
     #[serde(default = "crate::lint_warn")]
     pub unmaintained: LintLevel,
     /// How to handle crates that have been yanked from eg crates.io
-    #[serde(default = "crate::lint_warn")]
-    pub yanked: LintLevel,
+    #[serde(default = "yanked")]
+    pub yanked: Spanned<LintLevel>,
     /// How to handle crates that have been marked with a notice in the advisory database
     #[serde(default = "crate::lint_warn")]
     pub notice: LintLevel,
@@ -40,7 +44,7 @@ impl Default for Config {
             ignore: Vec::new(),
             vulnerability: LintLevel::Deny,
             unmaintained: LintLevel::Warn,
-            yanked: LintLevel::Warn,
+            yanked: yanked(),
             notice: LintLevel::Warn,
             severity_threshold: None,
         }
@@ -78,7 +82,7 @@ pub struct ValidConfig {
     pub(crate) ignore: Vec<AdvisoryId>,
     pub vulnerability: LintLevel,
     pub unmaintained: LintLevel,
-    pub yanked: LintLevel,
+    pub yanked: Spanned<LintLevel>,
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
 }

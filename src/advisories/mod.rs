@@ -142,7 +142,26 @@ pub fn check(
         .packages
         .retain(|pkg| krate_for_pkg(&ctx.krates, pkg).is_some());
 
-    let report = rustsec::Report::generate(&advisory_db, &lockfile, &settings);
+    let (report, yanked) = rayon::join(
+        || rustsec::Report::generate(&advisory_db, &lockfile, &settings),
+        || {
+            let index = rustsec::registry::Index::open()?;
+            let mut yanked = Vec::new();
+
+            for package in &lockfile.packages {
+                if let Ok(index_entry) = index.find(&package.name, &package.version) {
+                    if index_entry.is_yanked {
+                        yanked.push(package);
+                    }
+                }
+            }
+
+            Ok(yanked)
+        },
+    );
+
+    // rust is having trouble doing type inference
+    let yanked: Result<_, rustsec::Error> = yanked;
 
     use bitvec::prelude::*;
     let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
@@ -262,29 +281,54 @@ pub fn check(
         let diag = match warning.kind {
             Kind::Unmaintained { advisory, .. } => make_diag(&warning.package, &advisory),
             Kind::Informational { advisory, .. } => make_diag(&warning.package, &advisory),
-            Kind::Yanked => match krate_for_pkg(&ctx.krates, &warning.package) {
-                Some((ind, krate)) => {
-                    let mut pack = diag::Pack::with_kid(krate.id.clone());
-                    pack.push(Diagnostic::new(
-                        match ctx.cfg.yanked {
-                            LintLevel::Allow => Severity::Note,
-                            LintLevel::Deny => Severity::Error,
-                            LintLevel::Warn => Severity::Warning,
-                        },
-                        "detected yanked crate",
-                        ctx.label_for_span(ind, "yanked version"),
-                    ));
-
-                    pack
-                }
-                None => unreachable!(
-                    "the advisory database warned about yanked crate that we don't have: {:#?}",
-                    warning.package
-                ),
-            },
+            Kind::Yanked => unreachable!(), // rustsec crate no longer checks for this
         };
 
         sender.send(diag).unwrap();
+    }
+
+    match yanked {
+        Ok(yanked) => {
+            for pkg in yanked {
+                let diag = match krate_for_pkg(&ctx.krates, &pkg) {
+                    Some((ind, krate)) => {
+                        let mut pack = diag::Pack::with_kid(krate.id.clone());
+                        pack.push(Diagnostic::new(
+                            match ctx.cfg.yanked.value {
+                                LintLevel::Allow => Severity::Note,
+                                LintLevel::Deny => Severity::Error,
+                                LintLevel::Warn => Severity::Warning,
+                            },
+                            "detected yanked crate",
+                            ctx.label_for_span(ind, "yanked version"),
+                        ));
+
+                        pack
+                    }
+                    None => unreachable!(
+                        "the advisory database warned about yanked crate that we don't have: {:#?}",
+                        pkg
+                    ),
+                };
+
+                sender.send(diag).unwrap();
+            }
+        }
+        Err(e) => {
+            if ctx.cfg.yanked.value != LintLevel::Allow {
+                let mut diag = diag::Pack::new();
+                diag.push(Diagnostic::new(
+                    Severity::Warning,
+                    format!("unable to check for yanked crates: {}", e),
+                    Label::new(
+                        ctx.cfg.file_id,
+                        ctx.cfg.yanked.span,
+                        "lint level defined here",
+                    ),
+                ));
+                sender.send(diag).unwrap();
+            }
+        }
     }
 
     // Check for advisory identifers that were set to be ignored, but
