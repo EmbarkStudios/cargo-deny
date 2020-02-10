@@ -149,8 +149,10 @@ pub fn check(
             let mut yanked = Vec::new();
 
             for package in &lockfile.packages {
-                if index.find(&package.name, &package.version)?.is_yanked {
-                    yanked.push(package);
+                if let Ok(index_entry) = index.find(&package.name, &package.version) {
+                    if index_entry.is_yanked {
+                        yanked.push(package);
+                    }
                 }
             }
 
@@ -158,6 +160,7 @@ pub fn check(
         },
     );
 
+    // rust is having trouble doing type inference
     let yanked: Result<_, rustsec::Error> = yanked;
 
     use bitvec::prelude::*;
