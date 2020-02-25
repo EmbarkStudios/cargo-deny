@@ -187,7 +187,7 @@ pub(crate) mod test {
 
         let config = toml::from_str(&contents).unwrap();
         let mut files = codespan::Files::new();
-        let id = files.add(path.to_string_lossy(), contents);
+        let id = files.add(&path, contents);
 
         ConfigData { config, files, id }
     }
