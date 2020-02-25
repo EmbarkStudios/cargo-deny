@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated crates. Mainly to force a new version because the Windows release messed up. Yay!
+
 ## [0.6.5] - 2020-02-25
 ### Added
 - Added a `fetch` subcommand that can be used to fetch external data, currently the crates.io index and the configured advisory database
