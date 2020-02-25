@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.6] - 2020-02-25
 ### Changed
 - Updated crates. Mainly to force a new version because the Windows release messed up. Yay!
 
@@ -157,7 +158,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...HEAD
+[0.6.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...0.6.6
 [0.6.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...0.6.3
