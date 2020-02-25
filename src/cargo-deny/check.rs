@@ -95,7 +95,7 @@ impl ValidConfig {
 
         log::info!("using config from {}", cfg_path.display());
 
-        let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
+        let id = files.add(&cfg_path, cfg_contents);
 
         let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
             let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
@@ -249,7 +249,7 @@ pub fn cmd(
 
     let (krate_spans, spans_id) = krate_spans
         .map(|(spans, contents)| {
-            let id = files.add(krates.lock_path().to_string_lossy(), contents);
+            let id = files.add(krates.lock_path(), contents);
             (spans, id)
         })
         .unwrap();

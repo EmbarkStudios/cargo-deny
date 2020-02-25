@@ -65,7 +65,7 @@ impl ValidConfig {
 
         log::info!("using config from {}", cfg_path.display());
 
-        let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
+        let id = files.add(&cfg_path, cfg_contents);
 
         let print = |diags: Vec<Diagnostic>| {
             use codespan_reporting::term;
