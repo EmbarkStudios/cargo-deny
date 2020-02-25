@@ -35,7 +35,7 @@ atty = "0.2.13"
 bitvec = { version = "0.17.1", features = ["alloc"] }
 chrono = "0.4.10"
 clap = "2.33.0"
-codespan = "0.7.0"
+codespan = "0.8.0"
 codespan-reporting = "0.7.0"
 crossbeam = "0.7.3"
 erased-serde = "0.3.9"
