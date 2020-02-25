@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.5] - 2020-02-25
 ### Added
 - Added a `fetch` subcommand that can be used to fetch external data, currently the crates.io index and the configured advisory database
 
@@ -153,7 +154,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...HEAD
+[0.6.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...0.6.4
 [0.6.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
