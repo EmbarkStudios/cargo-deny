@@ -1036,9 +1036,9 @@ checksum = "5c2fb2ec9bcd216a5b0d0ccf31ab17b5ed1d627960edff65bbe95d3ce221cefc"
 
 [[package]]
 name = "spdx"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397c40825c7122ed076b5dcce51eac6ca3b49cc090d40542c58acb6748deb3dc"
+checksum = "6e7279eff0500781e63fb5173a70c4eef2b887a1d45a33c37353a492c5c17d89"
 dependencies = [
  "lazy_static",
  "regex",
