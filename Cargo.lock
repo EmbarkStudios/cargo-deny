@@ -132,8 +132,8 @@ dependencies = [
  "bitvec",
  "chrono",
  "clap",
- "codespan",
- "codespan-reporting",
+ "codespan 0.9.0",
+ "codespan-reporting 0.8.0",
  "crossbeam",
  "difference",
  "erased-serde",
@@ -252,12 +252,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "codespan"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac43ec9082a48204c9f3e155ca1090e2af5888e869c6af91c60a6ee015a2de92"
+dependencies = [
+ "codespan-reporting 0.9.0",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "600c3317d4705222ff820139aaa76a3a208024ffc41f894da565a4c3b949d4c9"
 dependencies = [
- "codespan",
+ "codespan 0.8.0",
+ "termcolor",
+ "unicode-width",
+]
+
+[[package]]
+name = "codespan-reporting"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7606d610349258b637bb639f7565bb7ee5fd6114130d2af59d0f39154e92426a"
+dependencies = [
  "termcolor",
  "unicode-width",
 ]
