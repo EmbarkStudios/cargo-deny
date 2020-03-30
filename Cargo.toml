@@ -32,7 +32,7 @@ ansi_term = "0.12.1"
 anyhow = "1.0.25"
 askalono = "0.4.1"
 atty = "0.2.13"
-bitvec = { version = "0.17.1", features = ["alloc"] }
+bitvec = { version = "0.17.4", features = ["alloc"] }
 chrono = "0.4.10"
 clap = "2.33.0"
 codespan = "0.8.0"
