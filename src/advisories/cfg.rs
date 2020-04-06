@@ -109,7 +109,7 @@ mod test {
             Some(std::borrow::Cow::Borrowed("~/.cargo/advisory-db"))
         );
         assert_eq!(
-            validated.db_url.as_ref().map(|s| s.as_str()),
+            validated.db_url.as_deref(),
             Some("https://github.com/RustSec/advisory-db")
         );
         assert_eq!(validated.vulnerability, LintLevel::Deny);
