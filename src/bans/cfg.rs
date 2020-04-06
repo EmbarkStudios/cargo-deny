@@ -123,40 +123,19 @@ impl Config {
         skipped.par_sort();
 
         let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
-            let flabel = Label::new(
-                cfg_file,
-                first.0.span.clone(),
-                format!("marked as `{}`", first.1),
-            );
-            let slabel = Label::new(
-                cfg_file,
-                second.0.span.clone(),
-                format!("marked as `{}`", second.1),
-            );
-
-            // Put the one that occurs last as the primary label to make it clear
-            // that the first one was "ok" until we noticed this other one
-            let diag = if flabel.span.start() > slabel.span.start() {
-                Diagnostic::new_error(
-                    format!(
-                        "a license id was specified in both `{}` and `{}`",
-                        first.1, second.1
-                    ),
-                    flabel,
-                )
-                .with_secondary_labels(std::iter::once(slabel))
-            } else {
-                Diagnostic::new_error(
-                    format!(
-                        "a license id was specified in both `{}` and `{}`",
+            diagnostics.push(
+                Diagnostic::error()
+                    .with_message(format!(
+                        "a crate was specified in both `{}` and `{}`",
                         second.1, first.1
-                    ),
-                    slabel,
-                )
-                .with_secondary_labels(std::iter::once(flabel))
-            };
-
-            diagnostics.push(diag);
+                    ))
+                    .with_labels(vec![
+                        Label::secondary(cfg_file, first.0.span.clone())
+                            .with_message(format!("marked as `{}`", first.1)),
+                        Label::secondary(cfg_file, second.0.span.clone())
+                            .with_message(format!("marked as `{}`", second.1)),
+                    ]),
+            );
         };
 
         for d in &denied {

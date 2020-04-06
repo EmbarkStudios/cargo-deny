@@ -298,6 +298,7 @@ pub struct CheckCtx<'ctx, T> {
 
 impl<'ctx, T> CheckCtx<'ctx, T> {
     pub(crate) fn label_for_span(&self, krate_index: usize, msg: impl Into<String>) -> diag::Label {
-        diag::Label::new(self.spans_id, self.krate_spans[krate_index].clone(), msg)
+        diag::Label::secondary(self.spans_id, self.krate_spans[krate_index].clone())
+            .with_message(msg)
     }
 }

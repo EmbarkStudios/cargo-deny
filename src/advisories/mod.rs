@@ -246,13 +246,11 @@ pub fn check(
 
                 let mut pack = diag::Pack::with_kid(krate.id.clone());
                 pack.push(
-                    Diagnostic::new(
-                        severity,
-                        advisory.title.clone(),
-                        ctx.label_for_span(i, message),
-                    )
-                    .with_code(id.as_str().to_owned())
-                    .with_notes(notes),
+                    Diagnostic::new(severity)
+                        .with_message(advisory.title.clone())
+                        .with_labels(vec![ctx.label_for_span(i, message)])
+                        .with_code(id.as_str().to_owned())
+                        .with_notes(notes),
                 );
 
                 pack
@@ -293,15 +291,15 @@ pub fn check(
                 let diag = match krate_for_pkg(&ctx.krates, &pkg) {
                     Some((ind, krate)) => {
                         let mut pack = diag::Pack::with_kid(krate.id.clone());
-                        pack.push(Diagnostic::new(
-                            match ctx.cfg.yanked.value {
+                        pack.push(
+                            Diagnostic::new(match ctx.cfg.yanked.value {
                                 LintLevel::Allow => Severity::Note,
                                 LintLevel::Deny => Severity::Error,
                                 LintLevel::Warn => Severity::Warning,
-                            },
-                            "detected yanked crate",
-                            ctx.label_for_span(ind, "yanked version"),
-                        ));
+                            })
+                            .with_message("detected yanked crate")
+                            .with_labels(vec![ctx.label_for_span(ind, "yanked version")]),
+                        );
 
                         pack
                     }
@@ -317,15 +315,12 @@ pub fn check(
         Err(e) => {
             if ctx.cfg.yanked.value != LintLevel::Allow {
                 let mut diag = diag::Pack::new();
-                diag.push(Diagnostic::new(
-                    Severity::Warning,
-                    format!("unable to check for yanked crates: {}", e),
-                    Label::new(
-                        ctx.cfg.file_id,
-                        ctx.cfg.yanked.span,
-                        "lint level defined here",
-                    ),
-                ));
+                diag.push(
+                    Diagnostic::warning()
+                        .with_message(format!("unable to check for yanked crates: {}", e))
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, ctx.cfg.yanked.span)
+                            .with_message("lint level defined here")]),
+                );
                 sender.send(diag).unwrap();
             }
         }
@@ -342,16 +337,11 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "advisory was not encountered",
-                    Label::new(
-                        ctx.cfg.file_id,
-                        ignore.span,
-                        "no crate matched advisory criteria",
-                    ),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("advisory was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
+                        .with_message("no crate matched advisory criteria")])
+                    .into(),
             )
             .unwrap();
     }

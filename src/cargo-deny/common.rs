@@ -26,14 +26,16 @@ pub(crate) fn load_targets(
         let triple = target.triple.as_ref();
 
         if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
-            diagnostics.push(Diagnostic::new_warning(
-                format!("unknown target `{}` specified", triple),
-                cargo_deny::diag::Label::new(
+            diagnostics.push(
+                Diagnostic::warning()
+                    .with_message(format!("unknown target `{}` specified", triple))
+                    .with_labels(vec![
+                cargo_deny::diag::Label::primary(
                     id,
-                    target.triple.span().clone(),
-                    "the triple won't be evaluated against cfg() sections, just explicit triples",
-                ),
-            ));
+                    target.triple.span().clone()).with_message(
+                    "the triple won't be evaluated against cfg() sections, just explicit triples"),
+                ]),
+            );
         }
 
         targets.push((triple.into(), target.features));
