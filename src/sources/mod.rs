@@ -61,18 +61,23 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                 // to highlight the source component
                 let last_space = krate.id.repr.rfind(' ').unwrap();
 
-                span.start = span.start + last_space as u32 + 1;
+                span.start = span.start + last_space + 1;
 
                 let mut pack = Pack::with_kid(krate.id.clone());
-                pack.push(Diagnostic::new(
-                    match lint_level {
+                pack.push(
+                    Diagnostic::new(match lint_level {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
                         LintLevel::Allow => Severity::Note,
-                    },
-                    format!("detected '{}' source not specifically allowed", type_name,),
-                    Label::new(ctx.spans_id, span, "source"),
-                ));
+                    })
+                    .with_message(format!(
+                        "detected '{}' source not specifically allowed",
+                        type_name,
+                    ))
+                    .with_labels(vec![
+                        Label::primary(ctx.spans_id, span).with_message("source")
+                    ]),
+                );
 
                 sender.send(pack).unwrap();
             }
@@ -86,16 +91,11 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "allowed source was not encountered",
-                    Label::new(
-                        ctx.cfg.file_id,
-                        src.span,
-                        "no crate source matched these criteria",
-                    ),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("allowed source was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, src.span)
+                        .with_message("no crate source matched these criteria")])
+                    .into(),
             )
             .unwrap();
     }

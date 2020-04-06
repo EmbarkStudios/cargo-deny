@@ -92,10 +92,9 @@ fn detects_vulnerabilities() {
                             dbg!(dbg!(diag.message) == "Uncontrolled recursion leads to abort in HTML serialization")
                         );
                         ensure!(
-                            diag.primary_label.message == "security vulnerability detected",
+                            diag.labels[0].message == "security vulnerability detected",
                             dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "security vulnerability detected"
+                                dbg!(&diag.labels[0].message) == "security vulnerability detected"
                             )
                         );
 
@@ -151,11 +150,8 @@ fn detects_unmaintained() {
                             dbg!(dbg!(diag.message) == "libusb is unmaintained; use rusb instead")
                         );
                         ensure!(
-                            diag.primary_label.message == "unmaintained advisory detected",
-                            dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "unmaintained advisory detected"
-                            )
+                            diag.labels[0].message == "unmaintained advisory detected",
+                            dbg!(dbg!(&diag.labels[0].message) == "unmaintained advisory detected")
                         );
 
                         res = Ok(());
@@ -211,10 +207,9 @@ fn downgrades() {
                             dbg!(dbg!(diag.message) == "Uncontrolled recursion leads to abort in HTML serialization")
                         );
                         ensure!(
-                            diag.primary_label.message == "security vulnerability detected",
+                            diag.labels[0].message == "security vulnerability detected",
                             dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "security vulnerability detected"
+                                dbg!(&diag.labels[0].message) == "security vulnerability detected"
                             )
                         );
 
@@ -231,11 +226,8 @@ fn downgrades() {
                             dbg!(dbg!(diag.message) == "libusb is unmaintained; use rusb instead")
                         );
                         ensure!(
-                            diag.primary_label.message == "unmaintained advisory detected",
-                            dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "unmaintained advisory detected"
-                            )
+                            diag.labels[0].message == "unmaintained advisory detected",
+                            dbg!(dbg!(&diag.labels[0].message) == "unmaintained advisory detected")
                         );
 
                         got_libusb_adv = true;
@@ -295,8 +287,8 @@ fn detects_yanked() {
                         );
 
                         ensure!(
-                            diag.primary_label.message == "yanked version",
-                            dbg!(dbg!(diag.primary_label.message) == "yanked version")
+                            diag.labels[0].message == "yanked version",
+                            dbg!(dbg!(&diag.labels[0].message) == "yanked version")
                         );
 
                         res = Ok(());

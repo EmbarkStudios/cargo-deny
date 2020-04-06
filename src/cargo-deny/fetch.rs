@@ -79,7 +79,7 @@ impl ValidConfig {
             let config = term::Config::default();
             let mut writer = writer.lock();
             for diag in &diags {
-                term::emit(&mut writer, &config, &files, &diag).unwrap();
+                term::emit(&mut writer, &config, files, &diag).unwrap();
             }
         };
 

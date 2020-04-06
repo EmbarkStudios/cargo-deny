@@ -8,17 +8,17 @@ pub(crate) const VALUE: &str = "$__toml_private_value";
 
 pub struct Spanned<T> {
     pub(crate) value: T,
-    pub(crate) span: std::ops::Range<u32>,
+    pub(crate) span: std::ops::Range<usize>,
 }
 
 impl<T> Spanned<T> {
     #[inline]
-    pub(crate) fn new(value: T, span: std::ops::Range<u32>) -> Self {
+    pub(crate) fn new(value: T, span: std::ops::Range<usize>) -> Self {
         Self { value, span }
     }
 
     #[inline]
-    pub fn span(&self) -> &std::ops::Range<u32> {
+    pub fn span(&self) -> &std::ops::Range<usize> {
         &self.span
     }
 }
@@ -134,13 +134,13 @@ where
                     return Err(de::Error::custom("spanned start key not found"));
                 }
 
-                let start: u32 = visitor.next_value()?;
+                let start: usize = visitor.next_value()?;
 
                 if visitor.next_key()? != Some(END) {
                     return Err(de::Error::custom("spanned end key not found"));
                 }
 
-                let end: u32 = visitor.next_value()?;
+                let end: usize = visitor.next_value()?;
 
                 if visitor.next_key()? != Some(VALUE) {
                     return Err(de::Error::custom("spanned value key not found"));
