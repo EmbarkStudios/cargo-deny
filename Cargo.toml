@@ -29,7 +29,7 @@ vendored-openssl = ["rustsec/vendored-openssl"]
 
 [dependencies]
 ansi_term = "0.12.1"
-anyhow = "1.0.25"
+anyhow = "1.0.28"
 askalono = "0.4.1"
 atty = "0.2.13"
 bitvec = { version = "0.17.1", features = ["alloc"] }
