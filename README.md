@@ -24,6 +24,9 @@ cargo install cargo-deny && cargo deny init && cargo deny check
 
 ```bash
 cargo install cargo-deny
+
+# Or, if you're an Arch user
+yay -S cargo-deny
 ```
 
 ### [Initialize](https://embarkstudios.github.io/cargo-deny/cli/init.html) your project
