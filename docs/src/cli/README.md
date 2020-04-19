@@ -10,6 +10,14 @@ Precompiled binaries are provided for major platforms on a best-effort basis.
 Visit [the releases page](https://github.com/EmbarkStudios/cargo-deny/releases)
 to download the appropriate version for your platform.
 
+## Install from AUR
+
+A community maintained Arch package is available on [AUR](https://aur.archlinux.org/packages/cargo-deny/), you can install it via
+
+```bash
+yay -S cargo-deny
+```
+
 ## Install From Source
 
 cargo-deny can also be installed from source.
