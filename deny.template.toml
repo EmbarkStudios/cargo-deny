@@ -159,6 +159,9 @@ deny = [
     # Each entry the name of a crate and a version range. If version is
     # not specified, all versions will be matched.
     #{ name = "ansi_term", version = "=0.11.0" },
+
+    { name = "plutonium" },   # Crate intended to hide unsafe usage.
+    { name = "fake-static" }, # Crate intended to demonstrate soundness bug in safe code.
 ]
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
