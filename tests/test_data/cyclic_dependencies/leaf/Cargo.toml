@@ -1,0 +1,9 @@
+[package]
+name = "leaf"
+version = "0.1.0"
+authors = ["veetaha <veetaha2@gmail.com>"]
+edition = "2018"
+
+[dev-dependencies]
+root = { path = "../root" }
+ansi_term = "0.12.1"
