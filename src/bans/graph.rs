@@ -3,7 +3,10 @@ use crate::{DepKind, Kid, Krate};
 use anyhow::{Context, Error};
 use krates::petgraph as pg;
 use semver::Version;
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{hash_map::Entry, HashMap, HashSet},
+    fmt,
+};
 
 #[derive(Hash, Copy, Clone, PartialEq, Eq)]
 struct Node<'a> {
@@ -201,7 +204,7 @@ pub(crate) fn create_graph(
     // them stand out more in the graph
     for id in &duplicates {
         let dup_node = node_map[id];
-        let mut set = std::collections::HashSet::new();
+        let mut set = HashSet::new();
 
         node_stack.push(dup_node);
 
@@ -210,21 +213,22 @@ pub(crate) fn create_graph(
             let mut iditer = node.repr.splitn(3, ' ');
             let name = iditer.next().unwrap();
 
-            match dupe_nodes.get_mut(name) {
-                Some(v) => {
-                    if !v.contains(&nid) {
-                        v.push(nid);
+            match dupe_nodes.entry(name) {
+                Entry::Occupied(it) => {
+                    let it = it.into_mut();
+                    if !it.contains(&nid) {
+                        it.push(nid);
                     }
                 }
-                None => {
-                    dupe_nodes.insert(name, vec![nid]);
+                Entry::Vacant(it) => {
+                    it.insert(vec![nid]);
                 }
             }
 
             for edge in graph.edges_directed(nid, pg::Direction::Incoming) {
-                set.insert(edge.id());
-
-                node_stack.push(edge.source());
+                if set.insert(edge.id()) {
+                    node_stack.push(edge.source())
+                }
             }
         }
 
