@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.7] - 2020-05-01
 ### Fixed
 - [PR#183](https://github.com/EmbarkStudios/cargo-deny/pull/183) resolved an infinite loop issue which could be caused by cyclic dependencies in a crate graph. Thanks [@Veetaha](https://github.com/Veetaha)!
 
@@ -161,7 +162,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...HEAD
+[0.6.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...0.6.7
 [0.6.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...0.6.6
 [0.6.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...0.6.5
 [0.6.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...0.6.4
