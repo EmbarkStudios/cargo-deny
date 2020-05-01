@@ -4,13 +4,14 @@ use cargo_deny::{
     diag, Krates,
 };
 use krates::cm::Metadata;
+use std::sync::RwLock;
 
 struct Ctx {
     krates: Krates,
     spans: (diag::KrateSpans, codespan::FileId),
     db: advisories::Database,
     lock: advisories::Lockfile,
-    files: parking_lot::RwLock<codespan::Files<String>>,
+    files: RwLock<codespan::Files<String>>,
 }
 
 fn load() -> Ctx {
@@ -39,14 +40,18 @@ fn load() -> Ctx {
         spans,
         lock,
         db,
-        files: parking_lot::RwLock::new(files),
+        files: RwLock::new(files),
     }
 }
 
 fn load_cfg(ctx: &Ctx, test_name: &str, cfg_str: String) -> Result<cfg::ValidConfig, Error> {
     let cfg: advisories::cfg::Config = toml::from_str(&cfg_str)?;
 
-    let cfg_id = ctx.files.write().add(test_name.to_owned(), cfg_str);
+    let cfg_id = ctx
+        .files
+        .write()
+        .unwrap()
+        .add(test_name.to_owned(), cfg_str);
 
     cfg.validate(cfg_id)
         .map_err(|_| anyhow::anyhow!("failed to load {}", test_name))
