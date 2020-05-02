@@ -220,7 +220,7 @@ jobs:
           draft: true
           files: "cargo-deny*"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
   publish:
     name: Publish Docs
