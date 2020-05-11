@@ -53,7 +53,7 @@ structopt = "0.3.5"
 toml = "0.5.5"
 twox-hash = { version = "1.5.0", default-features = false }
 url = "2.1.0"
-rustsec = "0.18.0"
+rustsec = "0.20.0"
 
 [dev-dependencies]
 # We use this for pretty printing errors
