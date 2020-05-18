@@ -34,7 +34,7 @@ askalono = "0.4.1"
 atty = "0.2.13"
 bitvec = { version = "0.17.1", features = ["alloc"] }
 chrono = "0.4.10"
-clap = "2.33.0"
+clap = "2.33.1"
 codespan = { version = "0.9.0", features = ["reporting"] }
 codespan-reporting = "0.9.0"
 crossbeam = "0.7.3"
