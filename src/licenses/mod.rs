@@ -256,14 +256,11 @@ impl LicensePack {
         let mut synth_toml = String::new();
         if let Some(ref err) = self.err {
             write!(synth_toml, "license-files = \"{}\"", err).unwrap();
-            let len = synth_toml.len() as u32;
+            let len = synth_toml.len();
             return Err((
                 synth_toml,
-                vec![Label::new(
-                    file,
-                    17..len - 1,
-                    "unable to gather license files",
-                )],
+                vec![Label::secondary(file, 17..len - 1)
+                    .with_message("unable to gather license files")],
             ));
         }
 
@@ -309,48 +306,45 @@ impl LicensePack {
                                                     lic_match.score
                                                 )
                                                 .unwrap();
-                                                let start = synth_toml.len() as u32;
+                                                let start = synth_toml.len();
                                                 write!(
                                                     synth_toml,
                                                     ", license = \"{}\"",
                                                     identified.name
                                                 )
                                                 .unwrap();
-                                                let end = synth_toml.len() as u32;
+                                                let end = synth_toml.len();
 
-                                                fails.push(Label::new(
-                                                    file,
-                                                    start + 13..end - 1,
-                                                    "unknown SPDX identifier",
-                                                ));
+                                                fails.push(
+                                                    Label::secondary(file, start + 13..end - 1)
+                                                        .with_message("unknown SPDX identifier"),
+                                                );
                                             }
                                         }
                                     } else {
-                                        let start = synth_toml.len() as u32;
+                                        let start = synth_toml.len();
                                         write!(synth_toml, "score = {:.2}", lic_match.score)
                                             .unwrap();
-                                        let end = synth_toml.len() as u32;
+                                        let end = synth_toml.len();
                                         write!(synth_toml, ", license = \"{}\"", identified.name)
                                             .unwrap();
 
-                                        fails.push(Label::new(
-                                            file,
-                                            start + 8..end,
-                                            "low confidence in the license text",
-                                        ));
+                                        fails.push(
+                                            Label::secondary(file, start + 8..end)
+                                                .with_message("low confidence in the license text"),
+                                        );
                                     }
                                 }
                                 None => {
                                     // If the license can't be matched with high enough confidence
-                                    let start = synth_toml.len() as u32;
+                                    let start = synth_toml.len();
                                     write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
-                                    let end = synth_toml.len() as u32;
+                                    let end = synth_toml.len();
 
-                                    fails.push(Label::new(
-                                        file,
-                                        start + 8..end,
-                                        "low confidence in the license text",
-                                    ));
+                                    fails.push(
+                                        Label::secondary(file, start + 8..end)
+                                            .with_message("low confidence in the license text"),
+                                    );
                                 }
                             }
                         }
@@ -364,15 +358,14 @@ impl LicensePack {
                     }
                 }
                 PackFileData::Bad(err) => {
-                    let start = synth_toml.len() as u32;
+                    let start = synth_toml.len();
                     write!(synth_toml, "err = \"{}\"", err).unwrap();
-                    let end = synth_toml.len() as u32;
+                    let end = synth_toml.len();
 
-                    fails.push(Label::new(
-                        file,
-                        start + 7..end - 1,
-                        "unable to read license file",
-                    ));
+                    fails.push(
+                        Label::secondary(file, start + 7..end - 1)
+                            .with_message("unable to read license file"),
+                    );
                 }
             }
 
@@ -392,7 +385,7 @@ impl LicensePack {
 #[derive(Debug)]
 pub struct LicenseExprInfo {
     file_id: codespan::FileId,
-    offset: u32,
+    offset: usize,
     pub source: LicenseExprSource,
 }
 
@@ -482,7 +475,7 @@ impl Default for Gatherer {
 }
 
 #[inline]
-fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<u32> {
+fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<usize> {
     let mut offset = 0;
     let val_start = loop {
         let start = content[offset..].find('\n').unwrap() + 1;
@@ -495,8 +488,8 @@ fn get_toml_span(key: &'static str, content: &str) -> std::ops::Range<u32> {
 
     let val_end = content[val_start..].find("\"\n").unwrap();
 
-    let start = val_start as u32 + 4;
-    start..start + val_end as u32 - 4
+    let start = val_start + 4;
+    start..start + val_end - 4
 }
 
 impl Gatherer {
@@ -574,33 +567,34 @@ impl Gatherer {
 
                 let mut labels = smallvec::SmallVec::<[Label; 1]>::new();
 
-                let mut get_span = |key: &'static str| -> (codespan::FileId, std::ops::Range<u32>) {
-                    match synth_id {
-                        Some(id) => {
-                            let l = files_lock.read().unwrap();
-                            (synth_id.unwrap(), get_toml_span(key, l.source(id)))
-                        }
-                        None => {
-                            // Synthesize a minimal Cargo.toml for reporting diagnostics
-                            // for where we retrieved license stuff
-                            let synth_manifest = format!(
+                let mut get_span =
+                    |key: &'static str| -> (codespan::FileId, std::ops::Range<usize>) {
+                        match synth_id {
+                            Some(id) => {
+                                let l = files_lock.read().unwrap();
+                                (synth_id.unwrap(), get_toml_span(key, l.source(id)))
+                            }
+                            None => {
+                                // Synthesize a minimal Cargo.toml for reporting diagnostics
+                                // for where we retrieved license stuff
+                                let synth_manifest = format!(
                                 "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
                                 krate.name,
                                 krate.version,
                                 krate.license.as_deref().unwrap_or_default(),
                             );
 
-                            {
-                                let mut fl = files_lock.write().unwrap();
-                                synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
-                                (
-                                    synth_id.unwrap(),
-                                    get_toml_span(key, fl.source(synth_id.unwrap())),
-                                )
+                                {
+                                    let mut fl = files_lock.write().unwrap();
+                                    synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
+                                    (
+                                        synth_id.unwrap(),
+                                        get_toml_span(key, fl.source(synth_id.unwrap())),
+                                    )
+                                }
                             }
                         }
-                    }
-                };
+                    };
 
                 let mut license_pack = None;
 
@@ -669,20 +663,22 @@ impl Gatherer {
                             }
                             Err(err) => {
                                 let (id, lic_span) = get_span("license");
-                                let lic_span = lic_span.start + err.span.start as u32
-                                    ..lic_span.start + err.span.end as u32;
+                                let lic_span =
+                                    lic_span.start + err.span.start..lic_span.start + err.span.end;
 
-                                labels.push(Label::new(id, lic_span, format!("{}", err.reason)));
+                                labels.push(
+                                    Label::secondary(id, lic_span)
+                                        .with_message(format!("{}", err.reason)),
+                                );
                             }
                         }
                     }
                     None => {
                         let (id, lic_span) = get_span("license");
-                        labels.push(Label::new(
-                            id,
-                            lic_span,
-                            "license expression was not specified",
-                        ));
+                        labels.push(
+                            Label::secondary(id, lic_span)
+                                .with_message("license expression was not specified"),
+                        );
                     }
                 }
 
@@ -709,7 +705,7 @@ impl Gatherer {
                                             expr.as_ref(),
                                             new_toml
                                         ),
-                                        (source.len() + 14) as u32,
+                                        (source.len() + 14),
                                     )
                                 };
 
@@ -738,7 +734,7 @@ impl Gatherer {
 
                                 let (new_source, old_end) = {
                                     let source = fl.source(id);
-                                    (format!("{}{}\n", source, new_toml), source.len() as u32)
+                                    (format!("{}{}\n", source, new_toml), source.len())
                                 };
 
                                 fl.update(id, new_source);
@@ -746,9 +742,11 @@ impl Gatherer {
                             };
 
                             for label in lic_file_lables {
-                                let span = label.span.start().to_usize() as u32 + old_end
-                                    ..label.span.end().to_usize() as u32 + old_end;
-                                labels.push(Label::new(label.file_id, span, label.message));
+                                let span = label.range.start + old_end..label.range.end + old_end;
+                                labels.push(
+                                    Label::secondary(label.file_id, span)
+                                        .with_message(label.message),
+                                );
                             }
                         }
                     }
@@ -756,9 +754,7 @@ impl Gatherer {
 
                 // Just get a label for the crate name
                 let (id, nspan) = get_span("name");
-                labels.push(Label::new(
-                    id,
-                    nspan,
+                labels.push(Label::primary(id, nspan).with_message(
                     "a valid license expression could not be retrieved for the crate",
                 ));
 
@@ -952,26 +948,30 @@ fn evaluate_expression(
         ),
     };
 
-    let prim_label = Label::new(
-        nfo.file_id,
-        nfo.offset..nfo.offset + expr.as_ref().len() as u32,
-        format!(
-            "license expression retrieved via {}",
-            match nfo.source {
-                LicenseExprSource::Metadata => "Cargo.toml `license`",
-                LicenseExprSource::UserOverride => "user override",
-                LicenseExprSource::LicenseFiles => "LICENSE file(s)",
-                LicenseExprSource::OverlayOverride => unreachable!(),
-            }
+    let mut labels = Vec::with_capacity(reasons.len() + 1);
+
+    labels.push(
+        Label::secondary(nfo.file_id, nfo.offset..nfo.offset + expr.as_ref().len()).with_message(
+            format!(
+                "license expression retrieved via {}",
+                match nfo.source {
+                    LicenseExprSource::Metadata => "Cargo.toml `license`",
+                    LicenseExprSource::UserOverride => "user override",
+                    LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                    LicenseExprSource::OverlayOverride => unreachable!(),
+                }
+            ),
         ),
     );
 
-    let mut secondary = Vec::with_capacity(reasons.len());
     for (reason, failed_req) in reasons.into_iter().zip(expr.requirements()) {
-        secondary.push(Label::new(
-            nfo.file_id,
-            nfo.offset + failed_req.span.start..nfo.offset + failed_req.span.end,
-            format!(
+        labels.push(
+            Label::primary(
+                nfo.file_id,
+                nfo.offset + failed_req.span.start as usize
+                    ..nfo.offset + failed_req.span.end as usize,
+            )
+            .with_message(format!(
                 "{}: {}",
                 if reason.1 { "accepted" } else { "rejected" },
                 match reason.0 {
@@ -993,17 +993,13 @@ fn evaluate_expression(
                         }
                     }
                 }
-            ),
-        ));
+            )),
+        );
     }
 
-    Diagnostic::new(severity, message, prim_label).with_secondary_labels(
-        krate_lic_nfo
-            .labels
-            .iter()
-            .cloned()
-            .chain(secondary.into_iter()),
-    )
+    Diagnostic::new(severity)
+        .with_message(message)
+        .with_labels(labels)
 }
 
 pub fn check(
@@ -1024,7 +1020,7 @@ pub fn check(
         .map(|s| s.as_str())
         .collect();
 
-    for mut krate_lic_nfo in summary.nfos {
+    for krate_lic_nfo in summary.nfos {
         let mut pack = diag::Pack::with_kid(krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
@@ -1037,11 +1033,11 @@ pub fn check(
             && krate_lic_nfo.krate.is_private(&private_registries)
         {
             let i = ctx.krates.nid_for_kid(&krate_lic_nfo.krate.id).unwrap();
-            pack.push(Diagnostic::new(
-                Severity::Help,
-                "skipping private workspace crate",
-                ctx.label_for_span(i.index(), "workspace crate"),
-            ));
+            pack.push(
+                Diagnostic::help()
+                    .with_message("skipping private workspace crate")
+                    .with_labels(vec![ctx.label_for_span(i.index(), "workspace crate")]),
+            );
 
             sender.send(pack).unwrap();
             continue;
@@ -1065,12 +1061,9 @@ pub fn check(
                 };
 
                 pack.push(
-                    Diagnostic::new(
-                        severity,
-                        format!("{} is unlicensed", krate_lic_nfo.krate.id),
-                        krate_lic_nfo.labels.pop().unwrap(),
-                    )
-                    .with_secondary_labels(krate_lic_nfo.labels.iter().cloned()),
+                    Diagnostic::new(severity)
+                        .with_message(format!("{} is unlicensed", krate_lic_nfo.krate.id))
+                        .with_labels(krate_lic_nfo.labels.iter().cloned().collect()),
                 );
             }
         }
@@ -1090,16 +1083,11 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "crate license exception was not encountered",
-                    Label::new(
-                        ctx.cfg.file_id,
-                        exc.name.span,
-                        "no crate source matched these criteria",
-                    ),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("crate license exception was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, exc.name.span)
+                        .with_message("no crate source matched these criteria")])
+                    .into(),
             )
             .unwrap();
     }
@@ -1114,12 +1102,11 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "license was not encountered",
-                    Label::new(ctx.cfg.file_id, allowed.span, "no crate used this license"),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("license was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, allowed.span)
+                        .with_message("no crate used this license")])
+                    .into(),
             )
             .unwrap();
     }

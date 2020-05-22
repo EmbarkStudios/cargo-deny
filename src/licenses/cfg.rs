@@ -21,7 +21,10 @@
 //! assert!(dc.exceptions.is_empty());
 //! ```
 
-use crate::{LintLevel, Spanned};
+use crate::{
+    diag::{Diagnostic, Label},
+    LintLevel, Spanned,
+};
 use semver::VersionReq;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -184,11 +187,7 @@ impl Config {
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    pub fn validate(
-        self,
-        cfg_file: codespan::FileId,
-    ) -> Result<ValidConfig, Vec<codespan_reporting::diagnostic::Diagnostic>> {
-        use crate::diag::{Diagnostic, Label};
+    pub fn validate(self, cfg_file: codespan::FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
         use rayon::prelude::*;
 
         let mut diagnostics = Vec::new();
@@ -199,12 +198,13 @@ impl Config {
                     v.push(Licensee::new(licensee, ls.span.clone()));
                 }
                 Err(pe) => {
-                    let offset = (ls.span.start + 1) as u32;
-                    let span = pe.span.start as u32 + offset..pe.span.end as u32 + offset;
-                    let diag = Diagnostic::new_error(
-                        "invalid licensee",
-                        Label::new(cfg_file, span, format!("{}", pe.reason)),
-                    );
+                    let offset = ls.span.start + 1;
+                    let span = pe.span.start + offset..pe.span.end + offset;
+                    let diag = Diagnostic::error()
+                        .with_message("invalid licensee")
+                        .with_labels(vec![
+                            Label::primary(cfg_file, span).with_message(format!("{}", pe.reason))
+                        ]);
 
                     diagnostics.push(diag);
                 }
@@ -246,24 +246,13 @@ impl Config {
         // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(&d) {
-                let dlabel = Label::new(cfg_file, self.deny[di].span.clone(), "marked as `deny`");
-                let alabel = Label::new(cfg_file, self.allow[ai].span.clone(), "marked as `allow`");
-
-                // Put the one that occurs last as the primary label to make it clear
-                // that the first one was "ok" until we noticed this other one
-                let diag = if dlabel.span.start() > alabel.span.start() {
-                    Diagnostic::new_error(
-                        "a license id was specified in both `allow` and `deny`",
-                        dlabel,
-                    )
-                    .with_secondary_labels(std::iter::once(alabel))
-                } else {
-                    Diagnostic::new_error(
-                        "a license id was specified in both `allow` and `deny`",
-                        alabel,
-                    )
-                    .with_secondary_labels(std::iter::once(dlabel))
-                };
+                let diag = Diagnostic::error()
+                    .with_message("a license id was specified in both `allow` and `deny`")
+                    .with_labels(vec![
+                        Label::secondary(cfg_file, self.deny[di].span.clone()).with_message("deny"),
+                        Label::secondary(cfg_file, self.allow[ai].span.clone())
+                            .with_message("allow"),
+                    ]);
 
                 diagnostics.push(diag);
             }
@@ -274,13 +263,15 @@ impl Config {
             let expr = match spdx::Expression::parse(c.expression.as_ref()) {
                 Ok(validated) => validated,
                 Err(err) => {
-                    let offset = (c.expression.span.start + 1) as u32;
-                    let expr_span = offset + err.span.start as u32..offset + err.span.end as u32;
+                    let offset = c.expression.span.start + 1;
+                    let expr_span = offset + err.span.start..offset + err.span.end;
 
-                    diagnostics.push(Diagnostic::new_error(
-                        "unable to parse license expression",
-                        Label::new(cfg_file, expr_span, format!("{}", err.reason)),
-                    ));
+                    diagnostics.push(
+                        Diagnostic::error()
+                            .with_message("unable to parse license expression")
+                            .with_labels(vec![Label::primary(cfg_file, expr_span)
+                                .with_message(format!("{}", err.reason))]),
+                    );
 
                     continue;
                 }
@@ -292,7 +283,7 @@ impl Config {
             clarifications.push(ValidClarification {
                 name: c.name,
                 version: c.version.unwrap_or_else(VersionReq::any),
-                expr_offset: (c.expression.span.start + 1) as u32,
+                expr_offset: (c.expression.span.start + 1),
                 expression: expr,
                 license_files,
             });
@@ -325,7 +316,7 @@ impl Config {
 pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
-    pub expr_offset: u32,
+    pub expr_offset: usize,
     pub expression: spdx::Expression,
     pub license_files: Vec<FileSource>,
 }

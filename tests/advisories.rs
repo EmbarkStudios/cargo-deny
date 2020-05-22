@@ -4,13 +4,14 @@ use cargo_deny::{
     diag, Krates,
 };
 use krates::cm::Metadata;
+use std::sync::RwLock;
 
 struct Ctx {
     krates: Krates,
     spans: (diag::KrateSpans, codespan::FileId),
     db: advisories::Database,
     lock: advisories::Lockfile,
-    files: parking_lot::RwLock<codespan::Files<String>>,
+    files: RwLock<codespan::Files<String>>,
 }
 
 fn load() -> Ctx {
@@ -39,14 +40,18 @@ fn load() -> Ctx {
         spans,
         lock,
         db,
-        files: parking_lot::RwLock::new(files),
+        files: RwLock::new(files),
     }
 }
 
 fn load_cfg(ctx: &Ctx, test_name: &str, cfg_str: String) -> Result<cfg::ValidConfig, Error> {
     let cfg: advisories::cfg::Config = toml::from_str(&cfg_str)?;
 
-    let cfg_id = ctx.files.write().add(test_name.to_owned(), cfg_str);
+    let cfg_id = ctx
+        .files
+        .write()
+        .unwrap()
+        .add(test_name.to_owned(), cfg_str);
 
     cfg.validate(cfg_id)
         .map_err(|_| anyhow::anyhow!("failed to load {}", test_name))
@@ -74,7 +79,7 @@ fn detects_vulnerabilities() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -92,10 +97,9 @@ fn detects_vulnerabilities() {
                             dbg!(dbg!(diag.message) == "Uncontrolled recursion leads to abort in HTML serialization")
                         );
                         ensure!(
-                            diag.primary_label.message == "security vulnerability detected",
+                            diag.labels[0].message == "security vulnerability detected",
                             dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "security vulnerability detected"
+                                dbg!(&diag.labels[0].message) == "security vulnerability detected"
                             )
                         );
 
@@ -133,7 +137,7 @@ fn detects_unmaintained() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut res = Err(anyhow::anyhow!("failed to receive unmaintained"));
@@ -151,11 +155,8 @@ fn detects_unmaintained() {
                             dbg!(dbg!(diag.message) == "libusb is unmaintained; use rusb instead")
                         );
                         ensure!(
-                            diag.primary_label.message == "unmaintained advisory detected",
-                            dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "unmaintained advisory detected"
-                            )
+                            diag.labels[0].message == "unmaintained advisory detected",
+                            dbg!(dbg!(&diag.labels[0].message) == "unmaintained advisory detected")
                         );
 
                         res = Ok(());
@@ -192,7 +193,7 @@ fn downgrades() {
                 spans_id: ctx.spans.1,
             };
 
-            advisories::check(ctx2, &ctx.db, &ctx.lock, tx);
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
         },
         || {
             let mut got_ammonia_vuln = false;
@@ -211,10 +212,9 @@ fn downgrades() {
                             dbg!(dbg!(diag.message) == "Uncontrolled recursion leads to abort in HTML serialization")
                         );
                         ensure!(
-                            diag.primary_label.message == "security vulnerability detected",
+                            diag.labels[0].message == "security vulnerability detected",
                             dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "security vulnerability detected"
+                                dbg!(&diag.labels[0].message) == "security vulnerability detected"
                             )
                         );
 
@@ -231,11 +231,8 @@ fn downgrades() {
                             dbg!(dbg!(diag.message) == "libusb is unmaintained; use rusb instead")
                         );
                         ensure!(
-                            diag.primary_label.message == "unmaintained advisory detected",
-                            dbg!(
-                                dbg!(diag.primary_label.message)
-                                    == "unmaintained advisory detected"
-                            )
+                            diag.labels[0].message == "unmaintained advisory detected",
+                            dbg!(dbg!(&diag.labels[0].message) == "unmaintained advisory detected")
                         );
 
                         got_libusb_adv = true;
@@ -252,4 +249,61 @@ fn downgrades() {
     );
 
     down_res.unwrap()
+}
+
+#[test]
+#[ignore]
+fn detects_yanked() {
+    // Force fetch the index just in case
+    rustsec::registry::Index::fetch().unwrap();
+
+    let (tx, rx) = crossbeam::channel::unbounded();
+    let ctx = load();
+
+    let cfg = load_cfg(&ctx, "detects_yanked", "yanked = \"deny\"".into()).unwrap();
+
+    let (_, yanked_res) = rayon::join(
+        || {
+            let ctx2 = cargo_deny::CheckCtx {
+                cfg,
+                krates: &ctx.krates,
+                krate_spans: &ctx.spans.0,
+                spans_id: ctx.spans.1,
+            };
+
+            advisories::check(ctx2, &ctx.db, ctx.lock, tx);
+        },
+        || {
+            let mut res = Err(anyhow::anyhow!("failed to receive yanked"));
+
+            for msg in rx {
+                for diag in msg.into_iter() {
+                    let diag = diag.diag;
+
+                    if diag.code.is_none() {
+                        ensure!(
+                            diag.severity == diag::Severity::Error,
+                            dbg!(dbg!(diag.severity) == diag::Severity::Error)
+                        );
+
+                        ensure!(
+                            diag.message == "detected yanked crate",
+                            dbg!(dbg!(diag.message) == "detected yanked crate")
+                        );
+
+                        ensure!(
+                            diag.labels[0].message == "yanked version",
+                            dbg!(dbg!(&diag.labels[0].message) == "yanked version")
+                        );
+
+                        res = Ok(());
+                    }
+                }
+            }
+
+            res
+        },
+    );
+
+    yanked_res.unwrap()
 }

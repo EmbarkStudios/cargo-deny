@@ -71,7 +71,7 @@ fn binary_search<'a>(
 }
 
 struct SkipRoot {
-    span: std::ops::Range<u32>,
+    span: std::ops::Range<usize>,
     skip_crates: Vec<Kid>,
     skip_hits: bitvec::vec::BitVec,
 }
@@ -104,12 +104,11 @@ impl TreeSkipper {
             if roots.len() == num_roots {
                 sender
                     .send(
-                        Diagnostic::new(
-                            Severity::Warning,
-                            "skip tree root was not found in the dependency graph",
-                            Label::new(file_id, ts.span, "no crate matched these criteria"),
-                        )
-                        .into(),
+                        Diagnostic::warning()
+                            .with_message("skip tree root was not found in the dependency graph")
+                            .with_labels(vec![Label::primary(file_id, ts.span)
+                                .with_message("no crate matched these criteria")])
+                            .into(),
                     )
                     .unwrap();
             }
@@ -160,11 +159,12 @@ impl TreeSkipper {
 
         for root in &mut self.roots {
             if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
-                pack.push(Diagnostic::new(
-                    Severity::Help,
-                    format!("skipping crate {} = {}", krate.name, krate.version),
-                    Label::new(self.file_id, root.span.clone(), "matched root filter"),
-                ));
+                pack.push(
+                    Diagnostic::help()
+                        .with_message(format!("skipping crate {} = {}", krate.name, krate.version))
+                        .with_labels(vec![Label::primary(self.file_id, root.span.clone())
+                            .with_message("matched root filter")]),
+                );
 
                 root.skip_hits.as_mut_bitslice().set(i, true);
                 skip = true;
@@ -221,11 +221,15 @@ pub fn check(
         let mut pack = Pack::with_kid(krate.id.clone());
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
-            pack.push(Diagnostic::new(
-                Severity::Error,
-                format!("detected banned crate {} = {}", krate.name, krate.version),
-                Label::new(file_id, ban.span.clone(), "matching ban entry"),
-            ));
+            pack.push(
+                Diagnostic::error()
+                    .with_message(format!(
+                        "detected banned crate {} = {}",
+                        krate.name, krate.version
+                    ))
+                    .with_labels(vec![Label::primary(file_id, ban.span.clone())
+                        .with_message("matching ban entry")]),
+            );
         }
 
         if !allowed.is_empty() {
@@ -233,35 +237,39 @@ pub fn check(
             // also emit which allow filters actually passed each crate
             match binary_search(&allowed, krate) {
                 Ok((_, allow)) => {
-                    pack.push(Diagnostic::new(
-                        Severity::Note,
-                        format!("allowed {} = {}", krate.name, krate.version),
-                        Label::new(file_id, allow.span.clone(), "matching allow entry"),
-                    ));
+                    pack.push(
+                        Diagnostic::note()
+                            .with_message(format!("allowed {} = {}", krate.name, krate.version))
+                            .with_labels(vec![Label::primary(file_id, allow.span.clone())
+                                .with_message("matching allow entry")]),
+                    );
                 }
                 Err(mut ind) => {
                     if ind >= allowed.len() {
                         ind = allowed.len() - 1;
                     }
 
-                    pack.push(Diagnostic::new(
-                        Severity::Error,
-                        format!(
-                            "detected crate not specifically allowed {} = {}",
-                            krate.name, krate.version
-                        ),
-                        Label::new(file_id, allowed[ind].span.clone(), "closest match"),
-                    ));
+                    pack.push(
+                        Diagnostic::error()
+                            .with_message(format!(
+                                "detected crate not specifically allowed {} = {}",
+                                krate.name, krate.version
+                            ))
+                            .with_labels(vec![Label::primary(file_id, allowed[ind].span.clone())
+                                .with_message("closest match")]),
+                    );
                 }
             }
         }
 
         if let Ok((index, skip)) = binary_search(&skipped, krate) {
-            pack.push(Diagnostic::new(
-                Severity::Help,
-                format!("skipping crate {} = {}", krate.name, krate.version),
-                Label::new(file_id, skip.span.clone(), "matched filter"),
-            ));
+            pack.push(
+                Diagnostic::help()
+                    .with_message(format!("skipping crate {} = {}", krate.name, krate.version))
+                    .with_labels(vec![
+                        Label::primary(file_id, skip.span.clone()).with_message("matched filter")
+                    ]),
+            );
 
             // Keep a count of the number of times each skip filter is hit
             // so that we can report unused filters to the user so that they
@@ -278,7 +286,7 @@ pub fn check(
                         LintLevel::Allow => unreachable!(),
                     };
 
-                    let mut all_start = std::u32::MAX;
+                    let mut all_start = std::usize::MAX;
                     let mut all_end = 0;
 
                     let mut kids = smallvec::SmallVec::<[Kid; 2]>::new();
@@ -300,15 +308,16 @@ pub fn check(
                         kids.push(krate.id.clone());
                     }
 
-                    let mut diag = Diag::new(Diagnostic::new(
-                        severity,
-                        format!(
-                            "found {} duplicate entries for crate '{}'",
-                            kids.len(),
-                            multi_detector.name
-                        ),
-                        Label::new(ctx.spans_id, all_start..all_end, "lock entries"),
-                    ));
+                    let mut diag = Diag::new(
+                        Diagnostic::new(severity)
+                            .with_message(format!(
+                                "found {} duplicate entries for crate '{}'",
+                                kids.len(),
+                                multi_detector.name
+                            ))
+                            .with_labels(vec![Label::primary(ctx.spans_id, all_start..all_end)
+                                .with_message("lock entries")]),
+                    );
 
                     diag.kids = kids;
 
@@ -361,16 +370,11 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "skipped crate was not encountered",
-                    Label::new(
-                        ctx.cfg.file_id,
-                        skip.span,
-                        "no crate matched these criteria",
-                    ),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("skipped crate was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, skip.span)
+                        .with_message("no crate matched these criteria")])
+                    .into(),
             )
             .unwrap();
     }

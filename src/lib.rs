@@ -87,6 +87,7 @@ pub mod sources;
 pub use cfg::Spanned;
 use krates::cm;
 pub use krates::{DepKind, Kid};
+pub use rustsec::package::source::SourceId;
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
@@ -126,7 +127,7 @@ pub struct Krate {
     pub name: String,
     pub id: Kid,
     pub version: Version,
-    pub source: Option<cm::Source>,
+    pub source: Option<SourceId>,
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
@@ -201,7 +202,19 @@ impl From<cm::Package> for Krate {
             version: pkg.version,
             authors: pkg.authors,
             repository: pkg.repository,
-            source: pkg.source,
+            source: {
+                // rustsec's SourceId has better introspection
+                pkg.source.and_then(|src| {
+                    let url = format!("{}", src);
+                    SourceId::from_url(&url).map_or_else(
+                        |e| {
+                            log::warn!("unable to parse source url '{}': {}", url, e);
+                            None
+                        },
+                        Some,
+                    )
+                })
+            },
             targets: pkg.targets,
             license: pkg.license.map(|lf| {
                 // cargo used to allow / in place of OR which is not valid
@@ -290,6 +303,7 @@ pub struct CheckCtx<'ctx, T> {
 
 impl<'ctx, T> CheckCtx<'ctx, T> {
     pub(crate) fn label_for_span(&self, krate_index: usize, msg: impl Into<String>) -> diag::Label {
-        diag::Label::new(self.spans_id, self.krate_spans[krate_index].clone(), msg)
+        diag::Label::secondary(self.spans_id, self.krate_spans[krate_index].clone())
+            .with_message(msg)
     }
 }

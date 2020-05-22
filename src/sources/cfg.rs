@@ -49,7 +49,7 @@ impl Config {
         for ar in self.allow_registry {
             // Attempt to find the url in the toml contents
             let span = match contents.find(&ar) {
-                Some(ari) => (ari - 1) as u32..(ari + ar.len() + 1) as u32,
+                Some(ari) => ari - 1..ari + ar.len() + 1,
                 None => 0..0,
             };
 
@@ -58,10 +58,13 @@ impl Config {
                     allowed_sources.push(SourceSpan::new(url, span));
                 }
                 Err(pe) => {
-                    diags.push(Diagnostic::new_error(
-                        "failed to parse url",
-                        Label::new(cfg_file, span, pe.to_string()),
-                    ));
+                    diags.push(
+                        Diagnostic::error()
+                            .with_message("failed to parse url")
+                            .with_labels(vec![
+                                Label::primary(cfg_file, span).with_message(pe.to_string())
+                            ]),
+                    );
                 }
             }
         }
@@ -75,10 +78,13 @@ impl Config {
                     });
                 }
                 Err(pe) => {
-                    diags.push(Diagnostic::new_error(
-                        "failed to parse url",
-                        Label::new(cfg_file, ag.span, pe.to_string()),
-                    ));
+                    diags.push(
+                        Diagnostic::error()
+                            .with_message("failed to parse url")
+                            .with_labels(vec![
+                                Label::primary(cfg_file, ag.span).with_message(pe.to_string())
+                            ]),
+                    );
                 }
             }
         }

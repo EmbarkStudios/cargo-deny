@@ -1,3 +1,4 @@
 **/target
 **/*.rs.bk
 /examples/06_advisories/target
+scripts/check

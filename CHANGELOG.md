@@ -6,6 +6,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.7] - 2020-05-01
+### Fixed
+- [PR#183](https://github.com/EmbarkStudios/cargo-deny/pull/183) resolved an infinite loop issue which could be caused by cyclic dependencies in a crate graph. Thanks [@Veetaha](https://github.com/Veetaha)!
+
+## [0.6.6] - 2020-02-25
+### Changed
+- Updated crates. Mainly to force a new version because the Windows release messed up. Yay!
+
+## [0.6.5] - 2020-02-25
+### Added
+- Added a `fetch` subcommand that can be used to fetch external data, currently the crates.io index and the configured advisory database
+
+### Changed
+- Upgraded to rustsec 0.18.0, which slighly reworks how yanked crate detection is done
+
+## [0.6.4] - 2020-02-08
+### Fixed
+- Resolved [#131](https://github.com/EmbarkStudios/cargo-deny/issues/131) by removing an unnecessary path canonicalization
+
+## [0.6.3] - 2020-02-05
+### Added
+- Added the `--manifest-path` option to specify the Cargo.toml you want to use as the context for the operation to fit with how other cargo subcommands work. Takes precedence over the (deprecated) `--context`.
+- Added the `--workspace` flag to give the user a workaround in cases where a manifest is both a package and a workspace.
+- Added the `--exclude` option to allow users to explicitly remove packages from the final crate graph.
+
+### Changed
+- The configuration used for the command is recursively searched for in parent directories starting in the same directory as the `Cargo.toml` (unless explicitly specified).
+- The target list used when evaluating cfg expressions for dependencies has been updated to the list of targets supported by 1.41.0. This will give undesired behavior if you happen to use a target triple that has been removed from 1.41.0 that is available in the Rust version you have.
+
+### Fixed
+- Resolved [#122](https://github.com/EmbarkStudios/cargo-deny/issues/122) by pruning the packages that are checked against the advisory database to the same set used by all other checks
+
+### Deprecated
+- `--context` has been deprecated in favor of `--manifest-path`, to align cargo-deny more with all other cargo subcommands
+
 ## [0.6.2] - 2020-01-25
 ### Added
 - Resolved [#116](https://github.com/EmbarkStudios/cargo-deny/issues/116) by adding the `[licenses.default]` field, which allows you to configure how to handle licenses that don't match any other predicate
@@ -127,7 +162,12 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...HEAD
+[0.6.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...0.6.7
+[0.6.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...0.6.6
+[0.6.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...0.6.5
+[0.6.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.3...0.6.4
+[0.6.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.2...0.6.3
 [0.6.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.5.2...0.6.0

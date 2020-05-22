@@ -21,7 +21,7 @@ Disables fetching of advisory databases, if they would be loaded. If disabled,
 and there is not already an existing advisory database locally, an error will 
 occur
 
-### `-h, --hide-inclusion-graph`
+### `--hide-inclusion-graph`
 
 Hides the inclusion graph when printing out info for a crate.
 

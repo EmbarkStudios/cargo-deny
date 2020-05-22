@@ -13,14 +13,19 @@ on:
   pull_request_review:
     types:
       - submitted
+  check_suite:
+    types:
+      - completed
   status: {}
 jobs:
   automerge:
     runs-on: ubuntu-latest
     steps:
       - name: automerge
-        uses: "pascalgn/automerge-action@v0.3.2"
+        uses: "pascalgn/automerge-action@80acb0f883348dcfd0e526288f7d27a12b9333be"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.BOT_TOKEN }}"
+          MERGE_LABELS: automerge
+          MERGE_REMOVE_LABELS: automerge
           MERGE_METHOD: "squash"
-          LABELS: "!work-in-progress"
+          MERGE_COMMIT_MESSAGE: pull-request-title-and-description

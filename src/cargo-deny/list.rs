@@ -36,9 +36,9 @@ arg_enum! {
 pub struct Args {
     /// Path to the config to use
     ///
-    /// Defaults to <context>/deny.toml if not specified
-    #[structopt(short, long, parse(from_os_str), default_value = "deny.toml")]
-    config: PathBuf,
+    /// Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
+    #[structopt(short, long, parse(from_os_str))]
+    config: Option<PathBuf>,
     /// Minimum confidence threshold for license text
     ///
     /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
@@ -90,21 +90,40 @@ struct ValidConfig {
 }
 
 impl ValidConfig {
-    fn load(cfg_path: PathBuf, files: &mut codespan::Files<String>) -> Result<Self, Error> {
-        let cfg_contents = if cfg_path.exists() {
-            std::fs::read_to_string(&cfg_path)
-                .with_context(|| format!("failed to read config from {}", cfg_path.display()))?
-        } else {
-            return Ok(Self {
-                targets: Vec::new(),
-            });
+    fn load(cfg_path: Option<PathBuf>, files: &mut codespan::Files<String>) -> Result<Self, Error> {
+        let (cfg_contents, cfg_path) = match cfg_path {
+            Some(cfg_path) if cfg_path.exists() => (
+                std::fs::read_to_string(&cfg_path).with_context(|| {
+                    format!("failed to read config from {}", cfg_path.display())
+                })?,
+                cfg_path,
+            ),
+            Some(cfg_path) => {
+                log::warn!(
+                    "config path '{}' doesn't exist, falling back to default config",
+                    cfg_path.display()
+                );
+
+                return Ok(Self {
+                    targets: Vec::new(),
+                });
+            }
+            None => {
+                log::warn!("unable to find a config path, falling back to default config");
+
+                return Ok(Self {
+                    targets: Vec::new(),
+                });
+            }
         };
 
         let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
             format!("failed to deserialize config from '{}'", cfg_path.display())
         })?;
 
-        let id = files.add(cfg_path.to_string_lossy(), cfg_contents);
+        log::info!("using config from {}", cfg_path.display());
+
+        let id = files.add(&cfg_path, cfg_contents);
 
         use cargo_deny::diag::Diagnostic;
 
@@ -127,7 +146,7 @@ impl ValidConfig {
             let config = term::Config::default();
             let mut writer = writer.lock();
             for diag in &diags {
-                term::emit(&mut writer, &config, &files, &diag).unwrap();
+                term::emit(&mut writer, &config, files, &diag).unwrap();
             }
         };
 
@@ -149,31 +168,15 @@ impl ValidConfig {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(args: Args, targets: Vec<String>, context_dir: PathBuf) -> Result<(), Error> {
+pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Error> {
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
 
     let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(
-        crate::common::make_absolute_path(args.config.clone(), &context_dir),
-        &mut files,
-    )?;
+    let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files)?;
 
     let (krates, store) = rayon::join(
-        || {
-            let targets = if !targets.is_empty() {
-                targets.into_iter().map(|name| (name, Vec::new())).collect()
-            } else if !cfg.targets.is_empty() {
-                cfg.targets
-                    .iter()
-                    .map(|(name, features)| (name.clone(), features.clone()))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-
-            crate::common::gather_krates(context_dir, targets)
-        },
+        || krate_ctx.gather_krates(cfg.targets),
         crate::common::load_license_store,
     );
 

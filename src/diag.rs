@@ -1,7 +1,10 @@
 use crate::{DepKind, Kid, Krate, Krates};
 use anyhow::{Context, Error};
-pub use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
+pub use codespan_reporting::diagnostic::Severity;
 use krates::petgraph as pg;
+
+pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<codespan::FileId>;
+pub type Label = codespan_reporting::diagnostic::Label<codespan::FileId>;
 
 pub struct Diag {
     pub diag: Diagnostic,
@@ -81,7 +84,7 @@ where
     }
 }
 
-pub type Span = std::ops::Range<u32>;
+pub type Span = std::ops::Range<usize>;
 
 pub struct KrateSpan {
     span: Span,
@@ -124,7 +127,7 @@ impl KrateSpans {
             let span_end = sl.len() - 1;
 
             spans.push(KrateSpan {
-                span: span_start as u32..span_end as u32,
+                span: span_start..span_end,
             });
         }
 

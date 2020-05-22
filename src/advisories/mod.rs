@@ -94,7 +94,14 @@ fn krate_for_pkg<'a>(
 ) -> Option<(usize, &'a Krate)> {
     krates
         .krates_by_name(pkg.name.as_str())
-        .find(|(_, kn)| pkg.version == kn.krate.version)
+        .find(|(_, kn)| {
+            pkg.version == kn.krate.version
+                && match (&pkg.source, &kn.krate.source) {
+                    (Some(psrc), Some(ksrc)) => psrc == ksrc,
+                    (None, None) => true,
+                    _ => false,
+                }
+        })
         .map(|(ind, krate)| (ind.index(), &krate.krate))
 }
 
@@ -103,7 +110,7 @@ fn krate_for_pkg<'a>(
 pub fn check(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_db: &Database,
-    lockfile: &rustsec::lockfile::Lockfile,
+    mut lockfile: rustsec::lockfile::Lockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
 ) {
     use rustsec::{
@@ -129,7 +136,32 @@ pub fn check(
         ],
     };
 
-    let report = rustsec::Report::generate(&advisory_db, &lockfile, &settings);
+    // Remove any packages from the rustsec's view of the lockfile that we have
+    // filtered out of the graph we are actually checking
+    lockfile
+        .packages
+        .retain(|pkg| krate_for_pkg(&ctx.krates, pkg).is_some());
+
+    let (report, yanked) = rayon::join(
+        || rustsec::Report::generate(&advisory_db, &lockfile, &settings),
+        || {
+            let index = rustsec::registry::Index::open()?;
+            let mut yanked = Vec::new();
+
+            for package in &lockfile.packages {
+                if let Ok(index_entry) = index.find(&package.name, &package.version) {
+                    if index_entry.is_yanked {
+                        yanked.push(package);
+                    }
+                }
+            }
+
+            Ok(yanked)
+        },
+    );
+
+    // rust is having trouble doing type inference
+    let yanked: Result<_, rustsec::Error> = yanked;
 
     use bitvec::prelude::*;
     let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
@@ -214,13 +246,11 @@ pub fn check(
 
                 let mut pack = diag::Pack::with_kid(krate.id.clone());
                 pack.push(
-                    Diagnostic::new(
-                        severity,
-                        advisory.title.clone(),
-                        ctx.label_for_span(i, message),
-                    )
-                    .with_code(id.as_str().to_owned())
-                    .with_notes(notes),
+                    Diagnostic::new(severity)
+                        .with_message(advisory.title.clone())
+                        .with_labels(vec![ctx.label_for_span(i, message)])
+                        .with_code(id.as_str().to_owned())
+                        .with_notes(notes),
                 );
 
                 pack
@@ -249,29 +279,51 @@ pub fn check(
         let diag = match warning.kind {
             Kind::Unmaintained { advisory, .. } => make_diag(&warning.package, &advisory),
             Kind::Informational { advisory, .. } => make_diag(&warning.package, &advisory),
-            Kind::Yanked => match krate_for_pkg(&ctx.krates, &warning.package) {
-                Some((ind, krate)) => {
-                    let mut pack = diag::Pack::with_kid(krate.id.clone());
-                    pack.push(Diagnostic::new(
-                        match ctx.cfg.yanked {
-                            LintLevel::Allow => Severity::Note,
-                            LintLevel::Deny => Severity::Error,
-                            LintLevel::Warn => Severity::Warning,
-                        },
-                        "detected yanked crate",
-                        ctx.label_for_span(ind, "yanked version"),
-                    ));
-
-                    pack
-                }
-                None => unreachable!(
-                    "the advisory database warned about yanked crate that we don't have: {:#?}",
-                    warning.package
-                ),
-            },
+            Kind::Yanked => unreachable!(), // rustsec crate no longer checks for this
         };
 
         sender.send(diag).unwrap();
+    }
+
+    match yanked {
+        Ok(yanked) => {
+            for pkg in yanked {
+                let diag = match krate_for_pkg(&ctx.krates, &pkg) {
+                    Some((ind, krate)) => {
+                        let mut pack = diag::Pack::with_kid(krate.id.clone());
+                        pack.push(
+                            Diagnostic::new(match ctx.cfg.yanked.value {
+                                LintLevel::Allow => Severity::Note,
+                                LintLevel::Deny => Severity::Error,
+                                LintLevel::Warn => Severity::Warning,
+                            })
+                            .with_message("detected yanked crate")
+                            .with_labels(vec![ctx.label_for_span(ind, "yanked version")]),
+                        );
+
+                        pack
+                    }
+                    None => unreachable!(
+                        "the advisory database warned about yanked crate that we don't have: {:#?}",
+                        pkg
+                    ),
+                };
+
+                sender.send(diag).unwrap();
+            }
+        }
+        Err(e) => {
+            if ctx.cfg.yanked.value != LintLevel::Allow {
+                let mut diag = diag::Pack::new();
+                diag.push(
+                    Diagnostic::warning()
+                        .with_message(format!("unable to check for yanked crates: {}", e))
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, ctx.cfg.yanked.span)
+                            .with_message("lint level defined here")]),
+                );
+                sender.send(diag).unwrap();
+            }
+        }
     }
 
     // Check for advisory identifers that were set to be ignored, but
@@ -285,16 +337,11 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::new(
-                    Severity::Warning,
-                    "advisory was not encountered",
-                    Label::new(
-                        ctx.cfg.file_id,
-                        ignore.span,
-                        "no crate matched advisory criteria",
-                    ),
-                )
-                .into(),
+                Diagnostic::warning()
+                    .with_message("advisory was not encountered")
+                    .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
+                        .with_message("no crate matched advisory criteria")])
+                    .into(),
             )
             .unwrap();
     }
