@@ -135,7 +135,7 @@ dependencies = [
  "rayon",
  "regex",
  "rustsec",
- "semver",
+ "semver 0.10.0",
  "serde",
  "serde_json",
  "smallvec",
@@ -153,7 +153,7 @@ version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8504b63dd1249fd1745b7b4ef9b6f7b107ddeb3c95370043c7dbcc38653a2679"
 dependencies = [
- "semver",
+ "semver 0.9.0",
  "serde",
  "toml",
  "url",
@@ -165,7 +165,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46e3374c604fb39d1a2f35ed5e4a4e30e60d01fab49446e08f1b3e9a90aef202"
 dependencies = [
- "semver",
+ "semver 0.9.0",
  "serde",
  "serde_derive",
  "serde_json",
@@ -498,7 +498,7 @@ dependencies = [
  "cargo_metadata",
  "cfg-expr",
  "petgraph",
- "semver",
+ "semver 0.9.0",
 ]
 
 [[package]]
@@ -872,7 +872,7 @@ dependencies = [
  "git2",
  "home",
  "platforms",
- "semver",
+ "semver 0.9.0",
  "semver-parser 0.9.0",
  "serde",
  "thiserror",
@@ -899,6 +899,15 @@ checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
 dependencies = [
  "semver-parser 0.7.0",
  "serde",
+]
+
+[[package]]
+name = "semver"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "394cec28fa623e00903caf7ba4fa6fb9a0e260280bb8cdbbba029611108a0190"
+dependencies = [
+ "semver-parser 0.7.0",
 ]
 
 [[package]]
