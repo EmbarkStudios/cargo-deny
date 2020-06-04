@@ -86,7 +86,7 @@ struct Config {
 }
 
 struct ValidConfig {
-    targets: Vec<(String, Vec<String>)>,
+    targets: Vec<(krates::Target, Vec<String>)>,
 }
 
 impl ValidConfig {
