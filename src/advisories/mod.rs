@@ -116,7 +116,6 @@ pub fn check(
     use rustsec::{
         advisory::{informational::Informational, metadata::Metadata},
         package::Package,
-        warning::Kind,
     };
 
     let settings = rustsec::report::Settings {
@@ -275,14 +274,13 @@ pub fn check(
     }
 
     // Check for informational advisories for crates, including unmaintained
-    for warning in report.warnings {
-        let diag = match warning.kind {
-            Kind::Unmaintained { advisory, .. } => make_diag(&warning.package, &advisory),
-            Kind::Informational { advisory, .. } => make_diag(&warning.package, &advisory),
-            Kind::Yanked => unreachable!(), // rustsec crate no longer checks for this
-        };
-
-        sender.send(diag).unwrap();
+    for (_kind, warnings) in report.warnings {
+        for warning in warnings {
+            if let Some(advisory) = warning.advisory {
+                let diag = make_diag(&warning.package, &advisory);
+                sender.send(diag).unwrap();
+            }
+        }
     }
 
     match yanked {

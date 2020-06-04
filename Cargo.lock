@@ -244,9 +244,9 @@ dependencies = [
 
 [[package]]
 name = "crates-index"
-version = "0.13.4"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0435191b5c428de0fc336ced10bd809a56f12bcebc17727a4d879902216739f6"
+checksum = "185e829c8d4ce272df41f19bfc7bb1ef1f119cc451647527c0bce643d8913e25"
 dependencies = [
  "error-chain",
  "git2",
@@ -255,6 +255,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "smol_str",
 ]
 
 [[package]]
@@ -415,9 +416,9 @@ checksum = "bcc8e0c9bce37868955864dbecd2b1ab2bdf967e6f28066d65aaac620444b65c"
 
 [[package]]
 name = "git2"
-version = "0.11.0"
+version = "0.13.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77519ef7c5beee314d0804d4534f01e0f9e8d9acdee2b7a48627e590b27e0ec4"
+checksum = "11e4b2082980e751c4bf4273e9cbb4a02c655729c8ee8a79f66cad03c8f4d31e"
 dependencies = [
  "bitflags",
  "libc",
@@ -531,9 +532,9 @@ checksum = "9457b06509d27052635f90d6466700c65095fdf75409b3fbdd903e988b886f49"
 
 [[package]]
 name = "libgit2-sys"
-version = "0.10.0"
+version = "0.12.7+1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9ec6bca50549d34a392611dde775123086acbd994e3fff64954777ce2dc2e51"
+checksum = "bcd07968649bcb7b9351ecfde53ca4d27673cccfdf57c84255ec18710f3153e0"
 dependencies = [
  "cc",
  "libc",
@@ -883,9 +884,9 @@ checksum = "4c691c0e608126e00913e33f0ccf3727d5fc84573623b8d65b2df340b5201783"
 
 [[package]]
 name = "rustsec"
-version = "0.18.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de6b471e1ab0015cff3864141c2a1cad6a31cb3aba672aba7386e50a51e53db0"
+checksum = "98a9fdef7445a6747fc2288b0d3f66de53dc38f1f4f3e232214bfec2f3deb333"
 dependencies = [
  "cargo-lock",
  "chrono",
@@ -971,6 +972,15 @@ name = "smallvec"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7cb5678e1615754284ec264d9bb5b4c27d2018577fd90ac0ceb578591ed5ee4"
+
+[[package]]
+name = "smol_str"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34836c9a295c62c2ce3514471117c5cb269891e8421b2aafdd910050576c4d8b"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "spdx"
