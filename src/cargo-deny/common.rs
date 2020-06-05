@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use cargo_deny::licenses::LicenseStore;
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
-    log::info!("loading license store...");
+    log::debug!("loading license store...");
     LicenseStore::from_cache()
 }
 
