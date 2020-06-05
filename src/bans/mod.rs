@@ -104,10 +104,15 @@ impl TreeSkipper {
             if roots.len() == num_roots {
                 sender
                     .send(
-                        Diagnostic::warning()
-                            .with_message("skip tree root was not found in the dependency graph")
-                            .with_labels(vec![Label::primary(file_id, ts.span)
-                                .with_message("no crate matched these criteria")])
+                        (
+                            Check::Bans,
+                            Diagnostic::warning()
+                                .with_message(
+                                    "skip tree root was not found in the dependency graph",
+                                )
+                                .with_labels(vec![Label::primary(file_id, ts.span)
+                                    .with_message("no crate matched these criteria")]),
+                        )
                             .into(),
                     )
                     .unwrap();
@@ -182,7 +187,7 @@ pub struct DupGraph {
 
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
-use crate::diag::{Diag, Diagnostic, Label, Pack, Severity};
+use crate::diag::{Check, Diag, Diagnostic, Label, Pack, Severity};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
@@ -218,7 +223,7 @@ pub fn check(
     };
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
-        let mut pack = Pack::with_kid(krate.id.clone());
+        let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
             pack.push(
@@ -321,7 +326,7 @@ pub fn check(
 
                     diag.kids = kids;
 
-                    let mut pack = Pack::new();
+                    let mut pack = Pack::new(Check::Bans);
                     pack.push(diag);
 
                     sender.send(pack).unwrap();
@@ -370,10 +375,13 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("skipped crate was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, skip.span)
-                        .with_message("no crate matched these criteria")])
+                (
+                    Check::Bans,
+                    Diagnostic::warning()
+                        .with_message("skipped crate was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, skip.span)
+                            .with_message("no crate matched these criteria")]),
+                )
                     .into(),
             )
             .unwrap();

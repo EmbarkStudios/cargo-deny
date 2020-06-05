@@ -190,11 +190,119 @@ fn real_main() -> Result<(), Error> {
     };
 
     match args.cmd {
-        Command::Check(cargs) => check::cmd(log_level, cargs, krate_ctx),
+        Command::Check(cargs) => {
+            let show_stats = cargs.show_stats;
+            let stats = check::cmd(log_level, cargs, krate_ctx)?;
+
+            let errors = stats.total_errors();
+
+            let mut summary = String::new();
+
+            // If we're using the default or higher log level, just emit
+            // a single line, anything else gets a full table
+            if show_stats || log_level > log::LevelFilter::Warn {
+                get_full_stats(&mut summary, &stats);
+            } else if log_level != log::LevelFilter::Off && log_level <= log::LevelFilter::Warn {
+                let mut print_stats = |check: &str, stats: Option<&check::Stats>| {
+                    use std::fmt::Write;
+
+                    if let Some(stats) = stats {
+                        write!(
+                            &mut summary,
+                            "{} {}, ",
+                            check,
+                            if stats.errors > 0 {
+                                ansi_term::Color::Red.paint("FAILED")
+                            } else {
+                                ansi_term::Color::Green.paint("ok")
+                            }
+                        )
+                        .unwrap();
+                    }
+                };
+
+                print_stats("advisories", stats.advisories.as_ref());
+                print_stats("bans", stats.bans.as_ref());
+                print_stats("licenses", stats.licenses.as_ref());
+                print_stats("sources", stats.sources.as_ref());
+
+                // Remove trailing ,
+                summary.pop();
+                summary.pop();
+                summary.push('\n');
+            }
+
+            if !summary.is_empty() {
+                print!("{}", summary);
+            }
+
+            if errors > 0 {
+                std::process::exit(1);
+            } else {
+                Ok(())
+            }
+        }
         Command::Fetch(fargs) => fetch::cmd(fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
         Command::List(largs) => list::cmd(largs, krate_ctx),
     }
+}
+
+fn get_full_stats(summary: &mut String, stats: &check::AllStats) {
+    let column = {
+        let mut max = 0;
+        let mut count = |check: &str, s: Option<&check::Stats>| {
+            max = std::cmp::max(
+                max,
+                s.map_or(0, |s| {
+                    let status = if s.errors > 0 {
+                        "FAILED".len()
+                    } else {
+                        "ok".len()
+                    };
+
+                    status + check.len()
+                }),
+            );
+        };
+
+        count("advisories", stats.advisories.as_ref());
+        count("bans", stats.bans.as_ref());
+        count("licenses", stats.licenses.as_ref());
+        count("sources", stats.sources.as_ref());
+
+        max + 2 /* spaces */ + 9 /* color escapes */
+    };
+
+    let mut print_stats = |check: &str, stats: Option<&check::Stats>| {
+        use std::fmt::Write;
+
+        if let Some(stats) = stats {
+            writeln!(
+                summary,
+                "{:>column$}: {} errors, {} warnings, {} notes",
+                format!(
+                    "{} {}",
+                    check,
+                    if stats.errors > 0 {
+                        ansi_term::Color::Red.paint("FAILED")
+                    } else {
+                        ansi_term::Color::Green.paint("ok")
+                    }
+                ),
+                ansi_term::Color::Red.paint(format!("{}", stats.errors)),
+                ansi_term::Color::Yellow.paint(format!("{}", stats.warnings)),
+                ansi_term::Color::Blue.paint(format!("{}", stats.notes + stats.helps)),
+                column = column,
+            )
+            .unwrap();
+        }
+    };
+
+    print_stats("advisories", stats.advisories.as_ref());
+    print_stats("bans", stats.bans.as_ref());
+    print_stats("licenses", stats.licenses.as_ref());
+    print_stats("sources", stats.sources.as_ref());
 }
 
 fn main() {

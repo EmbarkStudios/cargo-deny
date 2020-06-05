@@ -26,21 +26,31 @@ impl From<Diagnostic> for Diag {
     }
 }
 
+pub enum Check {
+    Advisories,
+    Bans,
+    Licenses,
+    Sources,
+}
+
 pub struct Pack {
+    pub check: Check,
     diags: Vec<Diag>,
     kid: Option<Kid>,
 }
 
 impl Pack {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(check: Check) -> Self {
         Self {
+            check,
             diags: Vec::new(),
             kid: None,
         }
     }
 
-    pub(crate) fn with_kid(kid: Kid) -> Self {
+    pub(crate) fn with_kid(check: Check, kid: Kid) -> Self {
         Self {
+            check,
             diags: Vec::new(),
             kid: Some(kid),
         }
@@ -72,12 +82,13 @@ impl IntoIterator for Pack {
     }
 }
 
-impl<T> From<T> for Pack
+impl<T> From<(Check, T)> for Pack
 where
     T: Into<Diag>,
 {
-    fn from(t: T) -> Self {
+    fn from((check, t): (Check, T)) -> Self {
         Self {
+            check,
             diags: vec![t.into()],
             kid: None,
         }

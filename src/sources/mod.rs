@@ -2,7 +2,7 @@ mod cfg;
 pub use cfg::{Config, ValidConfig};
 
 use crate::{
-    diag::{Diagnostic, Label, Pack, Severity},
+    diag::{Check, Diagnostic, Label, Pack, Severity},
     LintLevel,
 };
 
@@ -63,7 +63,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
 
                 span.start = span.start + last_space + 1;
 
-                let mut pack = Pack::with_kid(krate.id.clone());
+                let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
                 pack.push(
                     Diagnostic::new(match lint_level {
                         LintLevel::Warn => Severity::Warning,
@@ -91,10 +91,13 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("allowed source was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, src.span)
-                        .with_message("no crate source matched these criteria")])
+                (
+                    Check::Sources,
+                    Diagnostic::warning()
+                        .with_message("allowed source was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, src.span)
+                            .with_message("no crate source matched these criteria")]),
+                )
                     .into(),
             )
             .unwrap();

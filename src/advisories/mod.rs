@@ -1,7 +1,7 @@
 pub mod cfg;
 
 use crate::{
-    diag::{self, Diagnostic, Label, Severity},
+    diag::{self, Check, Diagnostic, Label, Severity},
     Krate, Krates, LintLevel,
 };
 use anyhow::{Context, Error};
@@ -243,7 +243,7 @@ pub fn check(
                     n
                 };
 
-                let mut pack = diag::Pack::with_kid(krate.id.clone());
+                let mut pack = diag::Pack::with_kid(Check::Advisories, krate.id.clone());
                 pack.push(
                     Diagnostic::new(severity)
                         .with_message(advisory.title.clone())
@@ -288,7 +288,7 @@ pub fn check(
             for pkg in yanked {
                 let diag = match krate_for_pkg(&ctx.krates, &pkg) {
                     Some((ind, krate)) => {
-                        let mut pack = diag::Pack::with_kid(krate.id.clone());
+                        let mut pack = diag::Pack::with_kid(Check::Advisories, krate.id.clone());
                         pack.push(
                             Diagnostic::new(match ctx.cfg.yanked.value {
                                 LintLevel::Allow => Severity::Help,
@@ -312,7 +312,7 @@ pub fn check(
         }
         Err(e) => {
             if ctx.cfg.yanked.value != LintLevel::Allow {
-                let mut diag = diag::Pack::new();
+                let mut diag = diag::Pack::new(Check::Advisories);
                 diag.push(
                     Diagnostic::warning()
                         .with_message(format!("unable to check for yanked crates: {}", e))
@@ -335,10 +335,13 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("advisory was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
-                        .with_message("no crate matched advisory criteria")])
+                (
+                    Check::Advisories,
+                    Diagnostic::warning()
+                        .with_message("advisory was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
+                            .with_message("no crate matched advisory criteria")]),
+                )
                     .into(),
             )
             .unwrap();
