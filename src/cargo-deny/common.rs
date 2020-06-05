@@ -20,25 +20,27 @@ pub(crate) fn load_targets(
     in_targets: Vec<Target>,
     diagnostics: &mut Vec<Diagnostic>,
     id: codespan::FileId,
-) -> Vec<(String, Vec<String>)> {
+) -> Vec<(krates::Target, Vec<String>)> {
     let mut targets = Vec::with_capacity(in_targets.len());
     for target in in_targets {
         let triple = target.triple.as_ref();
 
-        if krates::cfg_expr::targets::get_target_by_triple(triple).is_none() {
+        let filter: krates::Target = triple.into();
+
+        if let krates::Target::Unknown(_) = &filter {
             diagnostics.push(
-                Diagnostic::warning()
-                    .with_message(format!("unknown target `{}` specified", triple))
-                    .with_labels(vec![
-                cargo_deny::diag::Label::primary(
-                    id,
-                    target.triple.span().clone()).with_message(
-                    "the triple won't be evaluated against cfg() sections, just explicit triples"),
-                ]),
-            );
+                    Diagnostic::warning()
+                        .with_message(format!("unknown target `{}` specified", triple))
+                        .with_labels(vec![
+                    cargo_deny::diag::Label::primary(
+                        id,
+                        target.triple.span().clone()).with_message(
+                        "the triple won't be evaluated against cfg() sections, just explicit triples"),
+                    ]),
+                );
         }
 
-        targets.push((triple.into(), target.features));
+        targets.push((filter, target.features));
     }
 
     targets
@@ -81,7 +83,7 @@ impl KrateContext {
 
     pub fn gather_krates(
         self,
-        cfg_targets: Vec<(String, Vec<String>)>,
+        cfg_targets: Vec<(krates::Target, Vec<String>)>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path.display());
 

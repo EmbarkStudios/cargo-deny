@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated crates.
+- Updated `cfg-expr`, which should allow for filtering of crates for *most* custom targets that aren't built-in to rustc.
+
 ## [0.6.7] - 2020-05-01
 ### Fixed
 - [PR#183](https://github.com/EmbarkStudios/cargo-deny/pull/183) resolved an infinite loop issue which could be caused by cyclic dependencies in a crate graph. Thanks [@Veetaha](https://github.com/Veetaha)!

@@ -64,7 +64,7 @@ struct ValidConfig {
     bans: bans::cfg::ValidConfig,
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
-    targets: Vec<(String, Vec<String>)>,
+    targets: Vec<(krates::Target, Vec<String>)>,
 }
 
 impl ValidConfig {
