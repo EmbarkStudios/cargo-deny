@@ -3,7 +3,7 @@ use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources, CheckCtx
 use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 arg_enum! {
@@ -308,7 +308,11 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking licenses...");
+                let start = Instant::now();
                 licenses::check(ctx, summary, lic_tx);
+                let end = Instant::now();
+
+                log::info!("licenses checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -355,7 +359,11 @@ pub fn cmd(
 
             s.spawn(|_| {
                 log::info!("checking bans...");
+                let start = Instant::now();
                 bans::check(ctx, output_graph, ban_tx);
+                let end = Instant::now();
+
+                log::info!("bans checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -372,7 +380,11 @@ pub fn cmd(
 
             s.spawn(|_| {
                 log::info!("checking sources...");
+                let start = Instant::now();
                 sources::check(ctx, sources_tx);
+                let end = Instant::now();
+
+                log::info!("sources checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -388,7 +400,11 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking advisories...");
+                let start = Instant::now();
                 advisories::check(ctx, &db, lockfile, tx);
+                let end = Instant::now();
+
+                log::info!("advisories checked in {}ms", (end - start).as_millis());
             });
         }
     });
