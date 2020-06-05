@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Changed
 - Updated crates.
+- Updated `cfg-expr`, which should allow for filtering of crates for *most* custom targets that aren't built-in to rustc.
 
 ## [0.6.7] - 2020-05-01
 ### Fixed
