@@ -775,7 +775,7 @@ impl Gatherer {
 }
 
 use bitvec::prelude::*;
-use diag::{Diagnostic, Label, Severity};
+use diag::{Check, Diagnostic, Label, Severity};
 
 struct Hits {
     allowed: BitVec<Local, usize>,
@@ -1021,7 +1021,7 @@ pub fn check(
         .collect();
 
     for krate_lic_nfo in summary.nfos {
-        let mut pack = diag::Pack::with_kid(krate_lic_nfo.krate.id.clone());
+        let mut pack = diag::Pack::with_kid(Check::Licenses, krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
         // crate and just print out a help message that we skipped it
@@ -1083,10 +1083,13 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("crate license exception was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, exc.name.span)
-                        .with_message("no crate source matched these criteria")])
+                (
+                    Check::Licenses,
+                    Diagnostic::warning()
+                        .with_message("crate license exception was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, exc.name.span)
+                            .with_message("no crate source matched these criteria")]),
+                )
                     .into(),
             )
             .unwrap();
@@ -1102,10 +1105,13 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("license was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, allowed.span)
-                        .with_message("no crate used this license")])
+                (
+                    Check::Licenses,
+                    Diagnostic::warning()
+                        .with_message("license was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, allowed.span)
+                            .with_message("no crate used this license")]),
+                )
                     .into(),
             )
             .unwrap();

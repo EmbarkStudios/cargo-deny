@@ -204,8 +204,8 @@ fn downgrades() {
                     let diag = diag.diag;
                     if diag.code == Some("RUSTSEC-2019-0001".to_owned()) {
                         ensure!(
-                            diag.severity == diag::Severity::Note,
-                            dbg!(dbg!(diag.severity) == diag::Severity::Note)
+                            diag.severity == diag::Severity::Help,
+                            dbg!(dbg!(diag.severity) == diag::Severity::Help)
                         );
                         ensure!(
                             diag.message == "Uncontrolled recursion leads to abort in HTML serialization",
@@ -223,8 +223,8 @@ fn downgrades() {
 
                     if diag.code == Some("RUSTSEC-2016-0004".to_owned()) {
                         ensure!(
-                            diag.severity == diag::Severity::Note,
-                            dbg!(dbg!(diag.severity) == diag::Severity::Note)
+                            diag.severity == diag::Severity::Help,
+                            dbg!(dbg!(diag.severity) == diag::Severity::Help)
                         );
                         ensure!(
                             diag.message == "libusb is unmaintained; use rusb instead",

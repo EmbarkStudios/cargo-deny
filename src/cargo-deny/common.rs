@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use cargo_deny::licenses::LicenseStore;
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
-    log::info!("loading license store...");
+    log::debug!("loading license store...");
     LicenseStore::from_cache()
 }
 
@@ -86,6 +86,7 @@ impl KrateContext {
         cfg_targets: Vec<(krates::Target, Vec<String>)>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path.display());
+        let start = std::time::Instant::now();
 
         let mut mdc = krates::Cmd::new();
 
@@ -133,7 +134,12 @@ impl KrateContext {
         });
 
         if let Ok(ref krates) = graph {
-            log::info!("gathered {} crates", krates.len());
+            let end = std::time::Instant::now();
+            log::info!(
+                "gathered {} crates in {}ms",
+                krates.len(),
+                (end - start).as_millis()
+            );
         }
 
         Ok(graph?)

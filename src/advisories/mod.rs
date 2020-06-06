@@ -1,11 +1,11 @@
 pub mod cfg;
 
 use crate::{
-    diag::{self, Diagnostic, Label, Severity},
+    diag::{self, Check, Diagnostic, Label, Severity},
     Krate, Krates, LintLevel,
 };
 use anyhow::{Context, Error};
-use log::info;
+use log::debug;
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database};
 use rustsec::{repository as repo, Repository};
 use std::path::{Path, PathBuf};
@@ -44,7 +44,7 @@ pub fn load_db(
 
     let advisory_db_repo = match fetch {
         Fetch::Allow => {
-            info!("Fetching advisory database from '{}'", advisory_db_url);
+            debug!("Fetching advisory database from '{}'", advisory_db_url);
 
             Repository::fetch(
                 advisory_db_url,
@@ -54,7 +54,7 @@ pub fn load_db(
             .context("failed to fetch advisory database")?
         }
         Fetch::Disallow => {
-            info!(
+            debug!(
                 "Opening advisory database at '{}'",
                 advisory_db_path.display()
             );
@@ -63,14 +63,14 @@ pub fn load_db(
         }
     };
 
-    info!(
+    debug!(
         "loading advisory database from {}",
         advisory_db_path.display()
     );
 
     let res = Database::load(&advisory_db_repo).context("failed to load advisory database");
 
-    info!(
+    debug!(
         "finished loading advisory database from {}",
         advisory_db_path.display()
     );
@@ -225,7 +225,7 @@ pub fn check(
                         match lint_level {
                             LintLevel::Warn => Severity::Warning,
                             LintLevel::Deny => Severity::Error,
-                            LintLevel::Allow => Severity::Note,
+                            LintLevel::Allow => Severity::Help,
                         },
                         msg,
                     )
@@ -243,7 +243,7 @@ pub fn check(
                     n
                 };
 
-                let mut pack = diag::Pack::with_kid(krate.id.clone());
+                let mut pack = diag::Pack::with_kid(Check::Advisories, krate.id.clone());
                 pack.push(
                     Diagnostic::new(severity)
                         .with_message(advisory.title.clone())
@@ -288,10 +288,10 @@ pub fn check(
             for pkg in yanked {
                 let diag = match krate_for_pkg(&ctx.krates, &pkg) {
                     Some((ind, krate)) => {
-                        let mut pack = diag::Pack::with_kid(krate.id.clone());
+                        let mut pack = diag::Pack::with_kid(Check::Advisories, krate.id.clone());
                         pack.push(
                             Diagnostic::new(match ctx.cfg.yanked.value {
-                                LintLevel::Allow => Severity::Note,
+                                LintLevel::Allow => Severity::Help,
                                 LintLevel::Deny => Severity::Error,
                                 LintLevel::Warn => Severity::Warning,
                             })
@@ -312,7 +312,7 @@ pub fn check(
         }
         Err(e) => {
             if ctx.cfg.yanked.value != LintLevel::Allow {
-                let mut diag = diag::Pack::new();
+                let mut diag = diag::Pack::new(Check::Advisories);
                 diag.push(
                     Diagnostic::warning()
                         .with_message(format!("unable to check for yanked crates: {}", e))
@@ -335,10 +335,13 @@ pub fn check(
     {
         sender
             .send(
-                Diagnostic::warning()
-                    .with_message("advisory was not encountered")
-                    .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
-                        .with_message("no crate matched advisory criteria")])
+                (
+                    Check::Advisories,
+                    Diagnostic::warning()
+                        .with_message("advisory was not encountered")
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, ignore.span)
+                            .with_message("no crate matched advisory criteria")]),
+                )
                     .into(),
             )
             .unwrap();

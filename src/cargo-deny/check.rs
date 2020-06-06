@@ -3,7 +3,7 @@ use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources, CheckCtx
 use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 arg_enum! {
@@ -41,6 +41,9 @@ pub struct Args {
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
     disable_fetch: bool,
+    /// Show stats for all the checks, regardless of the log-level
+    #[structopt(short, long = "show-stats")]
+    pub show_stats: bool,
     /// The check(s) to perform
     #[structopt(
         possible_values = &WhichCheck::variants(),
@@ -163,7 +166,7 @@ pub fn cmd(
     log_level: log::LevelFilter,
     args: Args,
     krate_ctx: crate::common::KrateContext,
-) -> Result<(), Error> {
+) -> Result<AllStats, Error> {
     let mut files = codespan::Files::new();
     let mut cfg = ValidConfig::load(krate_ctx.get_config_path(args.config.clone()), &mut files)?;
 
@@ -287,12 +290,28 @@ pub fn cmd(
         log::LevelFilter::Trace => Some(Severity::Help),
     };
 
-    let mut has_errors = None;
+    let mut stats = AllStats::default();
+
+    if check_advisories {
+        stats.advisories = Some(Stats::default());
+    }
+
+    if check_bans {
+        stats.bans = Some(Stats::default());
+    }
+
+    if check_licenses {
+        stats.licenses = Some(Stats::default());
+    }
+
+    if check_sources {
+        stats.sources = Some(Stats::default());
+    }
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
-            has_errors = print_diagnostics(rx, inc_grapher, max_severity, files);
+            print_diagnostics(rx, inc_grapher, max_severity, files, &mut stats);
         });
 
         if let Some(summary) = license_summary {
@@ -308,7 +327,11 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking licenses...");
+                let start = Instant::now();
                 licenses::check(ctx, summary, lic_tx);
+                let end = Instant::now();
+
+                log::info!("licenses checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -355,7 +378,11 @@ pub fn cmd(
 
             s.spawn(|_| {
                 log::info!("checking bans...");
+                let start = Instant::now();
                 bans::check(ctx, output_graph, ban_tx);
+                let end = Instant::now();
+
+                log::info!("bans checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -372,7 +399,11 @@ pub fn cmd(
 
             s.spawn(|_| {
                 log::info!("checking sources...");
+                let start = Instant::now();
                 sources::check(ctx, sources_tx);
+                let end = Instant::now();
+
+                log::info!("sources checked in {}ms", (end - start).as_millis());
             });
         }
 
@@ -388,14 +419,40 @@ pub fn cmd(
 
             s.spawn(move |_| {
                 log::info!("checking advisories...");
+                let start = Instant::now();
                 advisories::check(ctx, &db, lockfile, tx);
+                let end = Instant::now();
+
+                log::info!("advisories checked in {}ms", (end - start).as_millis());
             });
         }
     });
 
-    match has_errors {
-        Some(errs) => Err(errs),
-        None => Ok(()),
+    Ok(stats)
+}
+
+#[derive(Default)]
+pub struct Stats {
+    pub errors: u32,
+    pub warnings: u32,
+    pub notes: u32,
+    pub helps: u32,
+}
+
+#[derive(Default)]
+pub struct AllStats {
+    pub advisories: Option<Stats>,
+    pub bans: Option<Stats>,
+    pub licenses: Option<Stats>,
+    pub sources: Option<Stats>,
+}
+
+impl AllStats {
+    pub fn total_errors(&self) -> u32 {
+        self.advisories.as_ref().map_or(0, |s| s.errors)
+            + self.bans.as_ref().map_or(0, |s| s.errors)
+            + self.licenses.as_ref().map_or(0, |s| s.errors)
+            + self.sources.as_ref().map_or(0, |s| s.errors)
     }
 }
 
@@ -404,21 +461,33 @@ fn print_diagnostics(
     mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
     max_severity: Option<cargo_deny::diag::Severity>,
     files: codespan::Files<String>,
-) -> Option<Error> {
-    use codespan_reporting::term;
+    stats: &mut AllStats,
+) {
+    use cargo_deny::diag::Check;
+    use codespan_reporting::{diagnostic::Severity, term};
 
     let writer = term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
     let config = term::Config::default();
 
-    let mut error_count = 0;
-
     for pack in rx {
         let mut lock = writer.lock();
 
+        let check_stats = match pack.check {
+            Check::Advisories => stats.advisories.as_mut().unwrap(),
+            Check::Bans => stats.bans.as_mut().unwrap(),
+            Check::Licenses => stats.licenses.as_mut().unwrap(),
+            Check::Sources => stats.sources.as_mut().unwrap(),
+        };
+
         for diag in pack.into_iter() {
             let mut inner = diag.diag;
-            if inner.severity >= codespan_reporting::diagnostic::Severity::Error {
-                error_count += 1;
+
+            match inner.severity {
+                Severity::Error => check_stats.errors += 1,
+                Severity::Warning => check_stats.warnings += 1,
+                Severity::Note => check_stats.notes += 1,
+                Severity::Help => check_stats.helps += 1,
+                Severity::Bug => {}
             }
 
             match max_severity {
@@ -442,11 +511,5 @@ fn print_diagnostics(
             // not be displayed until after this thread exited
             term::emit(&mut lock, &config, &files, &inner).unwrap();
         }
-    }
-
-    if error_count > 0 {
-        Some(anyhow::anyhow!("encountered {} errors", error_count))
-    } else {
-        None
     }
 }

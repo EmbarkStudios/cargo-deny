@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- A one line summary of the state of each check is now output at the very end of the `check` subcommand unless the `--log-level` is `off`. If the `--log-level` is `info` or higher, a summary of the state, errors, warnings, and notes for each check are outputted on their own line instead.
+- Added the `-s | --show-stats` flag to the `check` subcommand, which will print out the more detailed summary, regardless of the `--log-level`.
+
 ### Changed
 - Updated crates.
 - Updated `cfg-expr`, which should allow for filtering of crates for *most* custom targets that aren't built-in to rustc.
