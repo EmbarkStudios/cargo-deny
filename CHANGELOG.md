@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.6.8] - 2020-06-06
 ### Added
 - A one line summary of the state of each check is now output at the very end of the `check` subcommand unless the `--log-level` is `off`. If the `--log-level` is `info` or higher, a summary of the state, errors, warnings, and notes for each check are outputted on their own line instead.
 - Added the `-s | --show-stats` flag to the `check` subcommand, which will print out the more detailed summary, regardless of the `--log-level`.
@@ -170,7 +171,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.8...HEAD
+[0.6.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...0.6.8
 [0.6.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...0.6.7
 [0.6.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...0.6.6
 [0.6.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.4...0.6.5
