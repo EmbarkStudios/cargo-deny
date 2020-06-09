@@ -27,6 +27,26 @@ enum Command {
     List(list::Args),
 }
 
+#[derive(StructOpt, Copy, Clone, Debug)]
+enum Format {
+    Human,
+    Json,
+}
+
+impl std::str::FromStr for Format {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let lower = s.to_ascii_lowercase();
+
+        Ok(match lower.as_str() {
+            "human" => Format::Human,
+            "json" => Format::Json,
+            _ => bail!("unknown output format '{}' specified", s),
+        })
+    }
+}
+
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
     s.parse::<log::LevelFilter>()
         .with_context(|| format!("failed to parse level '{}'", s))
@@ -87,34 +107,62 @@ Possible values:
 * trace
 ")]
     log_level: log::LevelFilter,
+    /// Specify the format of cargo-deny's output
+    #[structopt(short, long, default_value = "human")]
+    format: Format,
     #[structopt(flatten)]
     ctx: GraphContext,
     #[structopt(subcommand)]
     cmd: Command,
 }
 
-fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
+fn setup_logger(level: log::LevelFilter, format: Format) -> Result<(), fern::InitError> {
     use ansi_term::Color::*;
     use log::Level::*;
 
-    fern::Dispatch::new()
-        .level(level)
-        .format(move |out, message, record| {
-            out.finish(format_args!(
-                "{date} [{level}] {message}\x1B[0m",
-                date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
-                level = match record.level() {
-                    Error => Red.paint("ERROR"),
-                    Warn => Yellow.paint("WARN"),
-                    Info => Green.paint("INFO"),
-                    Debug => Blue.paint("DEBUG"),
-                    Trace => Purple.paint("TRACE"),
-                },
-                message = message,
-            ));
-        })
-        .chain(std::io::stderr())
-        .apply()?;
+    match format {
+        Format::Human => {
+            fern::Dispatch::new()
+                .level(level)
+                .format(move |out, message, record| {
+                    out.finish(format_args!(
+                        "{date} [{level}] {message}\x1B[0m",
+                        date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                        level = match record.level() {
+                            Error => Red.paint("ERROR"),
+                            Warn => Yellow.paint("WARN"),
+                            Info => Green.paint("INFO"),
+                            Debug => Blue.paint("DEBUG"),
+                            Trace => Purple.paint("TRACE"),
+                        },
+                        message = message,
+                    ));
+                })
+                .chain(std::io::stderr())
+                .apply()?;
+        }
+        Format::Json => {
+            fern::Dispatch::new()
+                .level(level)
+                .format(move |out, message, record| {
+                    out.finish(format_args!(
+                        r#"{{"timestamp":"{date}","type":"log","fields":{{"level":"{level}","message":"{message}"}}}}"#,
+                        date = chrono::Utc::now().to_rfc3339(),
+                        level = match record.level() {
+                            Error => "ERROR",
+                            Warn => "WARN",
+                            Info => "INFO",
+                            Debug => "DEBUG",
+                            Trace => "TRACE",
+                        },
+                        message = message,
+                    ));
+                })
+                .chain(std::io::stderr())
+                .apply()?;
+        }
+    }
+
     Ok(())
 }
 
@@ -132,7 +180,7 @@ fn real_main() -> Result<(), Error> {
 
     let log_level = args.log_level;
 
-    setup_logger(log_level)?;
+    setup_logger(log_level, args.format)?;
 
     let manifest_path = match args.ctx.manifest_path {
         Some(mpath) => mpath,
