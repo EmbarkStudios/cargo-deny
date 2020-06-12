@@ -226,7 +226,7 @@ jobs:
     name: Publish Docs
     needs: [doc-book]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Download book
         uses: actions/download-artifact@v1
@@ -235,7 +235,7 @@ jobs:
       - name: Assemble gh-pages
         run: |
           mv doc-book gh-pages
-      # If this is a push to the master branch push to the `gh-pages` using a
+      # If this is a push to the main branch push to the `gh-pages` using a
       # deploy key. Note that a deploy key is necessary for now because otherwise
       # using the default token for github actions doesn't actually trigger a page
       # rebuild.
