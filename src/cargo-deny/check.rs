@@ -644,6 +644,19 @@ fn print_diagnostics(
                             obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
                         }
 
+                        if !inner.notes.is_empty() {
+                            obj.insert(
+                                "notes".to_owned(),
+                                serde_json::Value::Array(
+                                    inner
+                                        .notes
+                                        .into_iter()
+                                        .map(|s| serde_json::Value::String(s))
+                                        .collect(),
+                                ),
+                            );
+                        }
+
                         if show_inclusion_graphs {
                             let mut graphs = Vec::new();
                             for kid in diag.kids {
