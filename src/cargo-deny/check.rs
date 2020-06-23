@@ -651,7 +651,7 @@ fn print_diagnostics(
                                     inner
                                         .notes
                                         .into_iter()
-                                        .map(|s| serde_json::Value::String(s))
+                                        .map(serde_json::Value::String)
                                         .collect(),
                                 ),
                             );
