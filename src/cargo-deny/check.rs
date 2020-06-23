@@ -519,6 +519,7 @@ pub(crate) fn cmd(
     Ok(stats)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     show_inclusion_graphs: bool,
