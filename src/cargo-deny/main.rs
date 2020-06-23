@@ -10,6 +10,7 @@ mod common;
 mod fetch;
 mod init;
 mod list;
+mod stats;
 
 #[derive(StructOpt, Debug)]
 enum Command {
@@ -25,6 +26,60 @@ enum Command {
     /// Outputs a listing of all licenses and the crates that use them
     #[structopt(name = "list")]
     List(list::Args),
+}
+
+#[derive(StructOpt, Copy, Clone, Debug)]
+enum Format {
+    Human,
+    Json,
+}
+
+impl Format {
+    fn variants() -> &'static [&'static str] {
+        &["human", "json"]
+    }
+}
+
+impl std::str::FromStr for Format {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let lower = s.to_ascii_lowercase();
+
+        Ok(match lower.as_str() {
+            "human" => Self::Human,
+            "json" => Self::Json,
+            _ => bail!("unknown output format '{}' specified", s),
+        })
+    }
+}
+
+#[derive(StructOpt, Copy, Clone, Debug)]
+enum Color {
+    Auto,
+    Always,
+    Never,
+}
+
+impl Color {
+    fn variants() -> &'static [&'static str] {
+        &["auto", "always", "never"]
+    }
+}
+
+impl std::str::FromStr for Color {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let lower = s.to_ascii_lowercase();
+
+        Ok(match lower.as_str() {
+            "auto" => Self::Auto,
+            "always" => Self::Always,
+            "never" => Self::Never,
+            _ => bail!("unknown color option '{}' specified", s),
+        })
+    }
 }
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
@@ -87,34 +142,89 @@ Possible values:
 * trace
 ")]
     log_level: log::LevelFilter,
+    /// Specify the format of cargo-deny's output
+    #[structopt(short, long, default_value = "human", possible_values = Format::variants())]
+    format: Format,
+    #[structopt(short, long, default_value = "auto", possible_values = Color::variants())]
+    color: Color,
     #[structopt(flatten)]
     ctx: GraphContext,
     #[structopt(subcommand)]
     cmd: Command,
 }
 
-fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
+fn setup_logger(
+    level: log::LevelFilter,
+    format: Format,
+    color: bool,
+) -> Result<(), fern::InitError> {
     use ansi_term::Color::*;
     use log::Level::*;
 
-    fern::Dispatch::new()
-        .level(level)
-        .format(move |out, message, record| {
-            out.finish(format_args!(
-                "{date} [{level}] {message}\x1B[0m",
-                date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
-                level = match record.level() {
-                    Error => Red.paint("ERROR"),
-                    Warn => Yellow.paint("WARN"),
-                    Info => Green.paint("INFO"),
-                    Debug => Blue.paint("DEBUG"),
-                    Trace => Purple.paint("TRACE"),
-                },
-                message = message,
-            ));
-        })
-        .chain(std::io::stderr())
-        .apply()?;
+    match format {
+        Format::Human => {
+            if color {
+                fern::Dispatch::new()
+                    .level(level)
+                    .format(move |out, message, record| {
+                        out.finish(format_args!(
+                            "{date} [{level}] {message}\x1B[0m",
+                            date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                            level = match record.level() {
+                                Error => Red.paint("ERROR"),
+                                Warn => Yellow.paint("WARN"),
+                                Info => Green.paint("INFO"),
+                                Debug => Blue.paint("DEBUG"),
+                                Trace => Purple.paint("TRACE"),
+                            },
+                            message = message,
+                        ));
+                    })
+                    .chain(std::io::stderr())
+                    .apply()?;
+            } else {
+                fern::Dispatch::new()
+                    .level(level)
+                    .format(move |out, message, record| {
+                        out.finish(format_args!(
+                            "{date} [{level}] {message}",
+                            date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                            level = match record.level() {
+                                Error => "ERROR",
+                                Warn => "WARN",
+                                Info => "INFO",
+                                Debug => "DEBUG",
+                                Trace => "TRACE",
+                            },
+                            message = message,
+                        ));
+                    })
+                    .chain(std::io::stderr())
+                    .apply()?;
+            }
+        }
+        Format::Json => {
+            fern::Dispatch::new()
+                .level(level)
+                .format(move |out, message, record| {
+                    out.finish(format_args!(
+                        r#"{{"type":"log","fields":{{"timestamp":"{date}","level":"{level}","message":"{message}"}}}}"#,
+                        date = chrono::Utc::now().to_rfc3339(),
+                        level = match record.level() {
+                            Error => "ERROR",
+                            Warn => "WARN",
+                            Info => "INFO",
+                            Debug => "DEBUG",
+                            Trace => "TRACE",
+                        },
+                        message = message,
+                    ));
+                })
+                .chain(std::io::stderr())
+                .apply()?;
+        }
+    }
+
     Ok(())
 }
 
@@ -132,7 +242,13 @@ fn real_main() -> Result<(), Error> {
 
     let log_level = args.log_level;
 
-    setup_logger(log_level)?;
+    let color = match args.color {
+        Color::Auto => atty::is(atty::Stream::Stderr),
+        Color::Always => true,
+        Color::Never => false,
+    };
+
+    setup_logger(log_level, args.format, color)?;
 
     let manifest_path = match args.ctx.manifest_path {
         Some(mpath) => mpath,
@@ -192,49 +308,11 @@ fn real_main() -> Result<(), Error> {
     match args.cmd {
         Command::Check(cargs) => {
             let show_stats = cargs.show_stats;
-            let stats = check::cmd(log_level, cargs, krate_ctx)?;
+            let stats = check::cmd(log_level, args.format, args.color, cargs, krate_ctx)?;
 
             let errors = stats.total_errors();
 
-            let mut summary = String::new();
-
-            // If we're using the default or higher log level, just emit
-            // a single line, anything else gets a full table
-            if show_stats || log_level > log::LevelFilter::Warn {
-                get_full_stats(&mut summary, &stats);
-            } else if log_level != log::LevelFilter::Off && log_level <= log::LevelFilter::Warn {
-                let mut print_stats = |check: &str, stats: Option<&check::Stats>| {
-                    use std::fmt::Write;
-
-                    if let Some(stats) = stats {
-                        write!(
-                            &mut summary,
-                            "{} {}, ",
-                            check,
-                            if stats.errors > 0 {
-                                ansi_term::Color::Red.paint("FAILED")
-                            } else {
-                                ansi_term::Color::Green.paint("ok")
-                            }
-                        )
-                        .unwrap();
-                    }
-                };
-
-                print_stats("advisories", stats.advisories.as_ref());
-                print_stats("bans", stats.bans.as_ref());
-                print_stats("licenses", stats.licenses.as_ref());
-                print_stats("sources", stats.sources.as_ref());
-
-                // Remove trailing ,
-                summary.pop();
-                summary.pop();
-                summary.push('\n');
-            }
-
-            if !summary.is_empty() {
-                print!("{}", summary);
-            }
+            stats::print_stats(stats, show_stats, log_level, args.format, args.color);
 
             if errors > 0 {
                 std::process::exit(1);
@@ -246,63 +324,6 @@ fn real_main() -> Result<(), Error> {
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
         Command::List(largs) => list::cmd(largs, krate_ctx),
     }
-}
-
-fn get_full_stats(summary: &mut String, stats: &check::AllStats) {
-    let column = {
-        let mut max = 0;
-        let mut count = |check: &str, s: Option<&check::Stats>| {
-            max = std::cmp::max(
-                max,
-                s.map_or(0, |s| {
-                    let status = if s.errors > 0 {
-                        "FAILED".len()
-                    } else {
-                        "ok".len()
-                    };
-
-                    status + check.len()
-                }),
-            );
-        };
-
-        count("advisories", stats.advisories.as_ref());
-        count("bans", stats.bans.as_ref());
-        count("licenses", stats.licenses.as_ref());
-        count("sources", stats.sources.as_ref());
-
-        max + 2 /* spaces */ + 9 /* color escapes */
-    };
-
-    let mut print_stats = |check: &str, stats: Option<&check::Stats>| {
-        use std::fmt::Write;
-
-        if let Some(stats) = stats {
-            writeln!(
-                summary,
-                "{:>column$}: {} errors, {} warnings, {} notes",
-                format!(
-                    "{} {}",
-                    check,
-                    if stats.errors > 0 {
-                        ansi_term::Color::Red.paint("FAILED")
-                    } else {
-                        ansi_term::Color::Green.paint("ok")
-                    }
-                ),
-                ansi_term::Color::Red.paint(format!("{}", stats.errors)),
-                ansi_term::Color::Yellow.paint(format!("{}", stats.warnings)),
-                ansi_term::Color::Blue.paint(format!("{}", stats.notes + stats.helps)),
-                column = column,
-            )
-            .unwrap();
-        }
-    };
-
-    print_stats("advisories", stats.advisories.as_ref());
-    print_stats("bans", stats.bans.as_ref());
-    print_stats("licenses", stats.licenses.as_ref());
-    print_stats("sources", stats.sources.as_ref());
 }
 
 fn main() {
