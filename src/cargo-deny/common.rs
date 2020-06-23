@@ -145,18 +145,3 @@ impl KrateContext {
         Ok(graph?)
     }
 }
-
-
-
-/// JSON serializable object for a diagnostic
-pub struct DiagOutput {
-    inclusion_graph: 
-}
-
-impl From<cargo_deny::diag::Pack> for DiagOutput {
-    fn from(pack: cargo_deny::diag::Pack) -> Self {
-        for diag in pack.into_iter() {
-            diag.diag.
-        }
-    }
-}

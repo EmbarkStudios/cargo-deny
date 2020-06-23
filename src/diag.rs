@@ -152,7 +152,7 @@ use std::collections::HashSet;
 /// In our case, we only care about the inverted form, ie, not what the
 /// dependencies of a package are, but rather how a particular package
 /// is actually pulled in via 1 or more root crates
-pub struct Grapher<'a> {
+pub struct TextGrapher<'a> {
     krates: &'a Krates,
 }
 
@@ -167,12 +167,12 @@ struct NodePrint<'a> {
     kind: &'static str,
 }
 
-impl<'a> Grapher<'a> {
+impl<'a> TextGrapher<'a> {
     pub fn new(krates: &'a Krates) -> Self {
         Self { krates }
     }
 
-    pub fn write_graph(&mut self, id: &Kid) -> Result<String, Error> {
+    pub fn write_graph(&self, id: &Kid) -> Result<String, Error> {
         let mut out = String::with_capacity(1024);
         let mut levels = Vec::new();
         let mut visited = HashSet::new();
@@ -271,5 +271,112 @@ impl<'a> Grapher<'a> {
         }
 
         Ok(())
+    }
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(v: &bool) -> bool {
+    !v
+}
+
+#[allow(clippy::ptr_arg)]
+fn is_empty(v: &Vec<GraphNode>) -> bool {
+    v.is_empty()
+}
+
+fn is_normal(v: &'static str) -> bool {
+    v == ""
+}
+
+#[derive(serde::Serialize)]
+pub struct GraphNode {
+    name: String,
+    version: semver::Version,
+    #[serde(skip_serializing_if = "is_normal")]
+    kind: &'static str,
+    #[serde(skip_serializing_if = "is_false")]
+    repeat: bool,
+    #[serde(skip_serializing_if = "is_empty")]
+    parents: Vec<GraphNode>,
+}
+
+/// As with the textgrapher, only crates inclusion graphs, but in the form of
+/// a serializable object rather than a text string
+pub struct ObjectGrapher<'a> {
+    krates: &'a Krates,
+}
+
+impl<'a> ObjectGrapher<'a> {
+    pub fn new(krates: &'a Krates) -> Self {
+        Self { krates }
+    }
+
+    pub fn write_graph(&self, id: &Kid) -> Result<GraphNode, Error> {
+        let mut visited = HashSet::new();
+
+        let node_id = self.krates.nid_for_kid(id).context("unable to find node")?;
+        let krate = &self.krates[node_id];
+
+        let np = NodePrint {
+            krate,
+            id: node_id,
+            kind: "",
+        };
+
+        Ok(self.write_parent(np, &mut visited)?)
+    }
+
+    fn write_parent(
+        &self,
+        np: NodePrint<'a>,
+        visited: &mut HashSet<krates::NodeId>,
+    ) -> Result<GraphNode, Error> {
+        use pg::visit::EdgeRef;
+
+        let repeat = !visited.insert(np.id);
+
+        let mut node = GraphNode {
+            name: np.krate.name.clone(),
+            version: np.krate.version.clone(),
+            kind: np.kind,
+            repeat,
+            parents: Vec::new(),
+        };
+
+        if repeat {
+            return Ok(node);
+        }
+
+        let mut parents = smallvec::SmallVec::<[NodePrint<'a>; 10]>::new();
+        let graph = self.krates.graph();
+        for edge in graph.edges_directed(np.id, pg::Direction::Incoming) {
+            let parent_id = edge.source();
+            let parent = &graph[parent_id];
+
+            let kind = match edge.weight().kind {
+                DepKind::Normal => "",
+                DepKind::Dev => "dev",
+                DepKind::Build => "build",
+            };
+
+            parents.push(NodePrint {
+                krate: &parent.krate,
+                id: parent_id,
+                kind,
+            });
+        }
+
+        if !parents.is_empty() {
+            // Resolve uses Hash data types internally but we want consistent output ordering
+            parents.sort_by_key(|n| &n.krate.id);
+            node.parents.reserve(parents.len());
+
+            for parent in parents {
+                let pnode = self.write_parent(parent, visited)?;
+                node.parents.push(pnode);
+            }
+        }
+
+        Ok(node)
     }
 }

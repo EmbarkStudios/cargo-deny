@@ -1,3 +1,4 @@
+use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources, CheckCtx};
 use clap::arg_enum;
@@ -71,7 +72,12 @@ struct ValidConfig {
 }
 
 impl ValidConfig {
-    fn load(cfg_path: Option<PathBuf>, files: &mut codespan::Files<String>) -> Result<Self, Error> {
+    fn load(
+        cfg_path: Option<PathBuf>,
+        files: &mut codespan::Files<String>,
+        format: crate::Format,
+        color: crate::Color,
+    ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
                 std::fs::read_to_string(&cfg_path).with_context(|| {
@@ -130,18 +136,87 @@ impl ValidConfig {
         };
 
         let print = |diags: Vec<Diagnostic>| {
-            use codespan_reporting::term;
-
             if diags.is_empty() {
                 return;
             }
 
-            let writer =
-                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
-            let config = term::Config::default();
-            let mut writer = writer.lock();
-            for diag in &diags {
-                term::emit(&mut writer, &config, files, &diag).unwrap();
+            match format {
+                crate::Format::Human => {
+                    use codespan_reporting::term::{self, termcolor::ColorChoice};
+                    let writer = term::termcolor::StandardStream::stderr(match color {
+                        crate::Color::Auto => {
+                            // The termcolor crate doesn't check the stream to see if it's a TTY
+                            // which doesn't really fit with how the rest of the coloring works
+                            if atty::is(atty::Stream::Stderr) {
+                                ColorChoice::Auto
+                            } else {
+                                ColorChoice::Never
+                            }
+                        }
+                        crate::Color::Always => ColorChoice::Always,
+                        crate::Color::Never => ColorChoice::Never,
+                    });
+
+                    let config = term::Config::default();
+                    let mut writer = writer.lock();
+                    for diag in diags {
+                        term::emit(&mut writer, &config, files, &diag).unwrap();
+                    }
+                }
+                crate::Format::Json => {
+                    use codespan_reporting::diagnostic::Severity;
+                    use std::io::Write;
+
+                    let mut json = Vec::new();
+                    let stderr = std::io::stderr();
+                    let mut el = stderr.lock();
+
+                    for diag in diags {
+                        let mut to_print = serde_json::json!({
+                            "type": "diagnostic",
+                            "fields": {
+                                "severity": match diag.severity {
+                                    Severity::Error => "error",
+                                    Severity::Warning => "warning",
+                                    Severity::Note => "note",
+                                    Severity::Help => "help",
+                                    Severity::Bug => "bug",
+                                },
+                                "message": diag.message,
+                            },
+                        });
+
+                        {
+                            let obj = to_print.as_object_mut().unwrap();
+                            let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+                            if !diag.labels.is_empty() {
+                                let mut labels = Vec::with_capacity(diag.labels.len());
+
+                                for label in diag.labels {
+                                    let location = files
+                                        .location(label.file_id, label.range.start as u32)
+                                        .unwrap();
+                                    labels.push(serde_json::json!({
+                                        "message": label.message,
+                                        "span": &files.source(label.file_id)[label.range],
+                                        "line": location.line.to_usize(),
+                                        "column": location.column.to_usize(),
+                                    }));
+                                }
+
+                                obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
+                            }
+                        }
+
+                        json.clear();
+                        let cursor = std::io::Cursor::new(&mut json);
+                        if serde_json::to_writer(cursor, &to_print).is_ok() {
+                            let _ = el.write_all(&json);
+                            let _ = el.write(b"\n");
+                        }
+                    }
+                }
             }
         };
 
@@ -162,13 +237,20 @@ impl ValidConfig {
     }
 }
 
-pub fn cmd(
+pub(crate) fn cmd(
     log_level: log::LevelFilter,
+    format: crate::Format,
+    color: crate::Color,
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<AllStats, Error> {
     let mut files = codespan::Files::new();
-    let mut cfg = ValidConfig::load(krate_ctx.get_config_path(args.config.clone()), &mut files)?;
+    let mut cfg = ValidConfig::load(
+        krate_ctx.get_config_path(args.config.clone()),
+        &mut files,
+        format,
+        color,
+    )?;
 
     let check_advisories = args.which.is_empty()
         || args
@@ -273,11 +355,6 @@ pub fn cmd(
     let (tx, rx) = crossbeam::channel::unbounded();
 
     let krates = &krates;
-    let inc_grapher = if args.hide_inclusion_graph {
-        None
-    } else {
-        Some(cargo_deny::diag::Grapher::new(krates))
-    };
 
     use cargo_deny::diag::Severity;
 
@@ -308,10 +385,21 @@ pub fn cmd(
         stats.sources = Some(Stats::default());
     }
 
+    let show_inclusion_graphs = !args.hide_inclusion_graph;
+
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
-            print_diagnostics(rx, inc_grapher, max_severity, files, &mut stats);
+            print_diagnostics(
+                rx,
+                show_inclusion_graphs,
+                format,
+                krates,
+                max_severity,
+                files,
+                &mut stats,
+                color,
+            );
         });
 
         if let Some(summary) = license_summary {
@@ -431,42 +519,43 @@ pub fn cmd(
     Ok(stats)
 }
 
-#[derive(Default)]
-pub struct Stats {
-    pub errors: u32,
-    pub warnings: u32,
-    pub notes: u32,
-    pub helps: u32,
-}
-
-#[derive(Default)]
-pub struct AllStats {
-    pub advisories: Option<Stats>,
-    pub bans: Option<Stats>,
-    pub licenses: Option<Stats>,
-    pub sources: Option<Stats>,
-}
-
-impl AllStats {
-    pub fn total_errors(&self) -> u32 {
-        self.advisories.as_ref().map_or(0, |s| s.errors)
-            + self.bans.as_ref().map_or(0, |s| s.errors)
-            + self.licenses.as_ref().map_or(0, |s| s.errors)
-            + self.sources.as_ref().map_or(0, |s| s.errors)
-    }
-}
-
 fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
-    mut inc_grapher: Option<cargo_deny::diag::Grapher<'_>>,
+    show_inclusion_graphs: bool,
+    format: crate::Format,
+    krates: &cargo_deny::Krates,
     max_severity: Option<cargo_deny::diag::Severity>,
     files: codespan::Files<String>,
     stats: &mut AllStats,
+    color: crate::Color,
 ) {
+    use crate::Format;
     use cargo_deny::diag::Check;
-    use codespan_reporting::{diagnostic::Severity, term};
+    use codespan_reporting::{
+        diagnostic::Severity,
+        term::{self, termcolor::ColorChoice},
+    };
+    use std::io::Write;
 
-    let writer = term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
+    let text_grapher = cargo_deny::diag::TextGrapher::new(krates);
+    let obj_grapher = cargo_deny::diag::ObjectGrapher::new(krates);
+
+    let mut json = Vec::new();
+    let stderr = std::io::stderr();
+
+    let writer = term::termcolor::StandardStream::stderr(match color {
+        crate::Color::Auto => {
+            // The termcolor crate doesn't check the stream to see if it's a TTY
+            // which doesn't really fit with how the rest of the coloring works
+            if atty::is(atty::Stream::Stderr) {
+                ColorChoice::Auto
+            } else {
+                ColorChoice::Never
+            }
+        }
+        crate::Color::Always => ColorChoice::Always,
+        crate::Color::Never => ColorChoice::Never,
+    });
     let config = term::Config::default();
 
     for pack in rx {
@@ -499,17 +588,84 @@ fn print_diagnostics(
                 None => continue,
             }
 
-            // Add an inclusion graph for each crate identifier attached to the
-            // diagnostic
-            if let Some(ref mut grapher) = inc_grapher {
-                for kid in diag.kids {
-                    inner.notes.push(grapher.write_graph(&kid).unwrap());
-                }
-            }
-
             // We _could_ just take a single lock, but then normal log messages would
             // not be displayed until after this thread exited
-            term::emit(&mut lock, &config, &files, &inner).unwrap();
+            match format {
+                Format::Human => {
+                    if show_inclusion_graphs {
+                        for kid in diag.kids {
+                            if let Ok(graph) = text_grapher.write_graph(&kid) {
+                                inner.notes.push(graph);
+                            }
+                        }
+                    }
+
+                    let _ = term::emit(&mut lock, &config, &files, &inner);
+                }
+                Format::Json => {
+                    let mut to_print = serde_json::json!({
+                        "type": "diagnostic",
+                        "fields": {
+                            "severity": match inner.severity {
+                                Severity::Error => "error",
+                                Severity::Warning => "warning",
+                                Severity::Note => "note",
+                                Severity::Help => "help",
+                                Severity::Bug => "bug",
+                            },
+                            "message": inner.message,
+                        },
+                    });
+
+                    {
+                        let obj = to_print.as_object_mut().unwrap();
+                        let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+                        if let Some(code) = inner.code {
+                            obj.insert("code".to_owned(), serde_json::Value::String(code));
+                        }
+
+                        if !inner.labels.is_empty() {
+                            let mut labels = Vec::with_capacity(inner.labels.len());
+
+                            for label in inner.labels {
+                                let location = files
+                                    .location(label.file_id, label.range.start as u32)
+                                    .unwrap();
+                                labels.push(serde_json::json!({
+                                    "message": label.message,
+                                    "span": &files.source(label.file_id)[label.range],
+                                    "line": location.line.to_usize(),
+                                    "column": location.column.to_usize(),
+                                }));
+                            }
+
+                            obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
+                        }
+
+                        if show_inclusion_graphs {
+                            let mut graphs = Vec::new();
+                            for kid in diag.kids {
+                                if let Ok(graph) = obj_grapher.write_graph(&kid) {
+                                    if let Ok(sgraph) = serde_json::value::to_value(graph) {
+                                        graphs.push(sgraph);
+                                    }
+                                }
+                            }
+
+                            obj.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
+                        }
+                    }
+
+                    json.clear();
+                    let cursor = std::io::Cursor::new(&mut json);
+                    if serde_json::to_writer(cursor, &to_print).is_ok() {
+                        let mut el = stderr.lock();
+                        let _ = el.write_all(&json);
+                        let _ = el.write(b"\n");
+                    }
+                }
+            }
         }
     }
 }
