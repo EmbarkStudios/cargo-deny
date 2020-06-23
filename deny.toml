@@ -38,3 +38,8 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "MIT",
 ]
+
+exceptions = [
+    { allow = ["Zlib"], name = "adler32" },
+    { allow = ["Zlib"], name = "tinyvec" },
+]
