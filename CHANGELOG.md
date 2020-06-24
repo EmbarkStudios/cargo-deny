@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Resolved [#137](https://github.com/EmbarkStudios/cargo-deny/issues/137) by adding a `--format <human|json>` option. All diagnostic and log messages from the `check` subcommand respect this flag.
+
+### Changed
+- The `--color` option for the `list` subcommand has been moved to the top level arguments.
+
+### Fixed
+- Resolved [#211](https://github.com/EmbarkStudios/cargo-deny/issues/211) by adding a top-level `--color <auto|always|never>` option, if stderr is not a TTY or `never` is passed, no colors will be present in the output stream.
+
 ## [0.6.8] - 2020-06-06
 ### Added
 - A one line summary of the state of each check is now output at the very end of the `check` subcommand unless the `--log-level` is `off`. If the `--log-level` is `info` or higher, a summary of the state, errors, warnings, and notes for each check are outputted on their own line instead.
