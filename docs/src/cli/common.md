@@ -30,10 +30,11 @@ to other cargo subcommands.
 
 #### `-L, --log-level`
 
-The log level for messages, only log messages at or above the level will be 
+The log level for messages, only log messages at or above the level will be
 emitted.
 
 Possible values:
+
 * `off` - No output will be emitted
 * `error`
 * `warn` (default)
@@ -41,14 +42,34 @@ Possible values:
 * `debug`
 * `trace`
 
+### `--format`
+
+The format of the output of both log and diagnostic messages.
+
+Possible values:
+
+* `human` (default) - Output for the pesky humans
+* `json` - Each log message/diagnostic is outputted as a single line JSON object
+
+### `--color`
+
+Whether coloring is applied to human-formatted output, using it on JSON output
+has no effect.
+
+Possible values:
+
+* `auto` (default) - Coloring is applied if the output stream is a TTY
+* `always` - Coloring is always applied
+* `never` - No coloring is applied for any output
+
 #### `-t, --target`
 
 One or more platforms to filter crates with. If a dependency is target specific,
-it will be ignored if it does not match at least 1 of the specified targets. 
-This overrides the top-level [`targets = []`](../checks/cfg.md) configuration 
+it will be ignored if it does not match at least 1 of the specified targets.
+This overrides the top-level [`targets = []`](../checks/cfg.md) configuration
 value.
 
 #### `--context` (deprecated)
 
-The directory used as the context for the deny, if not specified, the current 
+The directory used as the context for the deny, if not specified, the current
 working directory is used instead. Must contain a Cargo.toml file.
