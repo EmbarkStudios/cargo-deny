@@ -29,7 +29,7 @@ enum Command {
 }
 
 #[derive(StructOpt, Copy, Clone, Debug)]
-enum Format {
+pub enum Format {
     Human,
     Json,
 }
@@ -55,7 +55,7 @@ impl std::str::FromStr for Format {
 }
 
 #[derive(StructOpt, Copy, Clone, Debug)]
-enum Color {
+pub enum Color {
     Auto,
     Always,
     Never,
@@ -322,7 +322,7 @@ fn real_main() -> Result<(), Error> {
         }
         Command::Fetch(fargs) => fetch::cmd(fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
-        Command::List(largs) => list::cmd(largs, krate_ctx),
+        Command::List(largs) => list::cmd(log_level, args.color, largs, krate_ctx),
     }
 }
 

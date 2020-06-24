@@ -8,15 +8,6 @@ use structopt::StructOpt;
 
 arg_enum! {
     #[derive(Copy, Clone, Debug)]
-    pub enum ColorWhen {
-        Always,
-        Never,
-        Auto,
-    }
-}
-
-arg_enum! {
-    #[derive(Copy, Clone, Debug)]
     pub enum Layout {
         Crate,
         License,
@@ -55,14 +46,6 @@ pub struct Args {
         case_insensitive = true,
     )]
     format: OutputFormat,
-    /// Output coloring, only applies to 'human' format
-    #[structopt(
-        long,
-        default_value = "auto",
-        possible_values = &ColorWhen::variants(),
-        case_insensitive = true,
-    )]
-    color: ColorWhen,
     /// Determines if log messages are emitted
     ///
     /// The log level specified at the top level still applies
@@ -89,12 +72,15 @@ struct ValidConfig {
     targets: Vec<(krates::Target, Vec<String>)>,
 }
 
+use cargo_deny::diag::Severity;
+
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
         files: &mut codespan::Files<String>,
         format: OutputFormat,
-        color: ColorWhen,
+        color: crate::Color,
+        max_severity: Option<Severity>,
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
@@ -144,82 +130,17 @@ impl ValidConfig {
                 return;
             }
 
-            match format {
-                OutputFormat::Human | OutputFormat::Tsv => {
-                    use codespan_reporting::term::{self, termcolor::ColorChoice};
-                    let writer = term::termcolor::StandardStream::stderr(match color {
-                        ColorWhen::Auto => {
-                            // The termcolor crate doesn't check the stream to see if it's a TTY
-                            // which doesn't really fit with how the rest of the coloring works
-                            if atty::is(atty::Stream::Stderr) {
-                                ColorChoice::Auto
-                            } else {
-                                ColorChoice::Never
-                            }
-                        }
-                        ColorWhen::Always => ColorChoice::Always,
-                        ColorWhen::Never => ColorChoice::Never,
-                    });
+            if let Some(max_severity) = max_severity {
+                let format = match format {
+                    OutputFormat::Human => crate::Format::Human,
+                    OutputFormat::Json | OutputFormat::Tsv => crate::Format::Json,
+                };
 
-                    let config = term::Config::default();
-                    let mut writer = writer.lock();
-                    for diag in diags {
-                        term::emit(&mut writer, &config, files, &diag).unwrap();
-                    }
-                }
-                OutputFormat::Json => {
-                    use codespan_reporting::diagnostic::Severity;
-                    use std::io::Write;
+                let printer = crate::common::DiagPrinter::new(format, color, None, max_severity);
 
-                    let mut json = Vec::new();
-                    let stderr = std::io::stderr();
-                    let mut el = stderr.lock();
-
-                    for diag in diags {
-                        let mut to_print = serde_json::json!({
-                            "type": "diagnostic",
-                            "fields": {
-                                "severity": match diag.severity {
-                                    Severity::Error => "error",
-                                    Severity::Warning => "warning",
-                                    Severity::Note => "note",
-                                    Severity::Help => "help",
-                                    Severity::Bug => "bug",
-                                },
-                                "message": diag.message,
-                            },
-                        });
-
-                        {
-                            let obj = to_print.as_object_mut().unwrap();
-                            let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
-
-                            if !diag.labels.is_empty() {
-                                let mut labels = Vec::with_capacity(diag.labels.len());
-
-                                for label in diag.labels {
-                                    let location = files
-                                        .location(label.file_id, label.range.start as u32)
-                                        .unwrap();
-                                    labels.push(serde_json::json!({
-                                        "message": label.message,
-                                        "span": &files.source(label.file_id)[label.range],
-                                        "line": location.line.to_usize(),
-                                        "column": location.column.to_usize(),
-                                    }));
-                                }
-
-                                obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
-                            }
-                        }
-
-                        json.clear();
-                        let cursor = std::io::Cursor::new(&mut json);
-                        if serde_json::to_writer(cursor, &to_print).is_ok() {
-                            let _ = el.write_all(&json);
-                            let _ = el.write(b"\n");
-                        }
-                    }
+                let mut lock = printer.lock();
+                for diag in diags {
+                    lock.print(diag, &files);
                 }
             }
         };
@@ -242,16 +163,24 @@ impl ValidConfig {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Error> {
+pub fn cmd(
+    log_level: log::LevelFilter,
+    color: crate::Color,
+    args: Args,
+    krate_ctx: crate::common::KrateContext,
+) -> Result<(), Error> {
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
+
+    let max_severity = crate::common::log_level_to_severity(log_level);
 
     let mut files = codespan::Files::new();
     let cfg = ValidConfig::load(
         krate_ctx.get_config_path(args.config),
         &mut files,
         args.format,
-        args.color,
+        color,
+        max_severity,
     )?;
 
     let (krates, store) = rayon::join(
@@ -355,10 +284,10 @@ pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Err
     match args.format {
         OutputFormat::Human => {
             let mut output = String::with_capacity(4 * 1024);
-            let color = match args.color {
-                ColorWhen::Always => true,
-                ColorWhen::Never => false,
-                ColorWhen::Auto => atty::is(atty::Stream::Stdout),
+            let color = match color {
+                crate::Color::Always => true,
+                crate::Color::Never => false,
+                crate::Color::Auto => atty::is(atty::Stream::Stdout),
             };
 
             match args.layout {

@@ -77,6 +77,7 @@ impl ValidConfig {
         files: &mut codespan::Files<String>,
         format: crate::Format,
         color: crate::Color,
+        max_severity: Option<codespan_reporting::diagnostic::Severity>,
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
@@ -140,82 +141,12 @@ impl ValidConfig {
                 return;
             }
 
-            match format {
-                crate::Format::Human => {
-                    use codespan_reporting::term::{self, termcolor::ColorChoice};
-                    let writer = term::termcolor::StandardStream::stderr(match color {
-                        crate::Color::Auto => {
-                            // The termcolor crate doesn't check the stream to see if it's a TTY
-                            // which doesn't really fit with how the rest of the coloring works
-                            if atty::is(atty::Stream::Stderr) {
-                                ColorChoice::Auto
-                            } else {
-                                ColorChoice::Never
-                            }
-                        }
-                        crate::Color::Always => ColorChoice::Always,
-                        crate::Color::Never => ColorChoice::Never,
-                    });
+            if let Some(max_severity) = max_severity {
+                let printer = crate::common::DiagPrinter::new(format, color, None, max_severity);
 
-                    let config = term::Config::default();
-                    let mut writer = writer.lock();
-                    for diag in diags {
-                        term::emit(&mut writer, &config, files, &diag).unwrap();
-                    }
-                }
-                crate::Format::Json => {
-                    use codespan_reporting::diagnostic::Severity;
-                    use std::io::Write;
-
-                    let mut json = Vec::new();
-                    let stderr = std::io::stderr();
-                    let mut el = stderr.lock();
-
-                    for diag in diags {
-                        let mut to_print = serde_json::json!({
-                            "type": "diagnostic",
-                            "fields": {
-                                "severity": match diag.severity {
-                                    Severity::Error => "error",
-                                    Severity::Warning => "warning",
-                                    Severity::Note => "note",
-                                    Severity::Help => "help",
-                                    Severity::Bug => "bug",
-                                },
-                                "message": diag.message,
-                            },
-                        });
-
-                        {
-                            let obj = to_print.as_object_mut().unwrap();
-                            let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
-
-                            if !diag.labels.is_empty() {
-                                let mut labels = Vec::with_capacity(diag.labels.len());
-
-                                for label in diag.labels {
-                                    let location = files
-                                        .location(label.file_id, label.range.start as u32)
-                                        .unwrap();
-                                    labels.push(serde_json::json!({
-                                        "message": label.message,
-                                        "span": &files.source(label.file_id)[label.range],
-                                        "line": location.line.to_usize(),
-                                        "column": location.column.to_usize(),
-                                    }));
-                                }
-
-                                obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
-                            }
-                        }
-
-                        json.clear();
-                        let cursor = std::io::Cursor::new(&mut json);
-                        if serde_json::to_writer(cursor, &to_print).is_ok() {
-                            let _ = el.write_all(&json);
-                            let _ = el.write(b"\n");
-                        }
-                    }
+                let mut lock = printer.lock();
+                for diag in diags {
+                    lock.print(diag, &files);
                 }
             }
         };
@@ -244,12 +175,15 @@ pub(crate) fn cmd(
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<AllStats, Error> {
+    let max_severity = crate::common::log_level_to_severity(log_level);
+
     let mut files = codespan::Files::new();
     let mut cfg = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         &mut files,
         format,
         color,
+        max_severity,
     )?;
 
     let check_advisories = args.which.is_empty()
@@ -356,17 +290,6 @@ pub(crate) fn cmd(
 
     let krates = &krates;
 
-    use cargo_deny::diag::Severity;
-
-    let max_severity = match log_level {
-        log::LevelFilter::Off => None,
-        log::LevelFilter::Error => Some(Severity::Error),
-        log::LevelFilter::Warn => Some(Severity::Warning),
-        log::LevelFilter::Info => Some(Severity::Note),
-        log::LevelFilter::Debug => Some(Severity::Help),
-        log::LevelFilter::Trace => Some(Severity::Help),
-    };
-
     let mut stats = AllStats::default();
 
     if check_advisories {
@@ -392,9 +315,12 @@ pub(crate) fn cmd(
         s.spawn(|_| {
             print_diagnostics(
                 rx,
-                show_inclusion_graphs,
                 format,
-                krates,
+                if show_inclusion_graphs {
+                    Some(krates)
+                } else {
+                    None
+                },
                 max_severity,
                 files,
                 &mut stats,
@@ -522,164 +448,43 @@ pub(crate) fn cmd(
 #[allow(clippy::too_many_arguments)]
 fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
-    show_inclusion_graphs: bool,
     format: crate::Format,
-    krates: &cargo_deny::Krates,
+    krates: Option<&cargo_deny::Krates>,
     max_severity: Option<cargo_deny::diag::Severity>,
     files: codespan::Files<String>,
     stats: &mut AllStats,
     color: crate::Color,
 ) {
-    use crate::Format;
     use cargo_deny::diag::Check;
-    use codespan_reporting::{
-        diagnostic::Severity,
-        term::{self, termcolor::ColorChoice},
-    };
-    use std::io::Write;
+    use codespan_reporting::diagnostic::Severity;
 
-    let text_grapher = cargo_deny::diag::TextGrapher::new(krates);
-    let obj_grapher = cargo_deny::diag::ObjectGrapher::new(krates);
+    match max_severity {
+        Some(max_severity) => {
+            let printer = crate::common::DiagPrinter::new(format, color, krates, max_severity);
 
-    let mut json = Vec::new();
-    let stderr = std::io::stderr();
+            for pack in rx {
+                let mut lock = printer.lock();
 
-    let writer = term::termcolor::StandardStream::stderr(match color {
-        crate::Color::Auto => {
-            // The termcolor crate doesn't check the stream to see if it's a TTY
-            // which doesn't really fit with how the rest of the coloring works
-            if atty::is(atty::Stream::Stderr) {
-                ColorChoice::Auto
-            } else {
-                ColorChoice::Never
-            }
-        }
-        crate::Color::Always => ColorChoice::Always,
-        crate::Color::Never => ColorChoice::Never,
-    });
-    let config = term::Config::default();
+                let check_stats = match pack.check {
+                    Check::Advisories => stats.advisories.as_mut().unwrap(),
+                    Check::Bans => stats.bans.as_mut().unwrap(),
+                    Check::Licenses => stats.licenses.as_mut().unwrap(),
+                    Check::Sources => stats.sources.as_mut().unwrap(),
+                };
 
-    for pack in rx {
-        let mut lock = writer.lock();
-
-        let check_stats = match pack.check {
-            Check::Advisories => stats.advisories.as_mut().unwrap(),
-            Check::Bans => stats.bans.as_mut().unwrap(),
-            Check::Licenses => stats.licenses.as_mut().unwrap(),
-            Check::Sources => stats.sources.as_mut().unwrap(),
-        };
-
-        for diag in pack.into_iter() {
-            let mut inner = diag.diag;
-
-            match inner.severity {
-                Severity::Error => check_stats.errors += 1,
-                Severity::Warning => check_stats.warnings += 1,
-                Severity::Note => check_stats.notes += 1,
-                Severity::Help => check_stats.helps += 1,
-                Severity::Bug => {}
-            }
-
-            match max_severity {
-                Some(max) => {
-                    if inner.severity < max {
-                        continue;
-                    }
-                }
-                None => continue,
-            }
-
-            // We _could_ just take a single lock, but then normal log messages would
-            // not be displayed until after this thread exited
-            match format {
-                Format::Human => {
-                    if show_inclusion_graphs {
-                        for kid in diag.kids {
-                            if let Ok(graph) = text_grapher.write_graph(&kid) {
-                                inner.notes.push(graph);
-                            }
-                        }
+                for diag in pack.into_iter() {
+                    match diag.diag.severity {
+                        Severity::Error => check_stats.errors += 1,
+                        Severity::Warning => check_stats.warnings += 1,
+                        Severity::Note => check_stats.notes += 1,
+                        Severity::Help => check_stats.helps += 1,
+                        Severity::Bug => {}
                     }
 
-                    let _ = term::emit(&mut lock, &config, &files, &inner);
-                }
-                Format::Json => {
-                    let mut to_print = serde_json::json!({
-                        "type": "diagnostic",
-                        "fields": {
-                            "severity": match inner.severity {
-                                Severity::Error => "error",
-                                Severity::Warning => "warning",
-                                Severity::Note => "note",
-                                Severity::Help => "help",
-                                Severity::Bug => "bug",
-                            },
-                            "message": inner.message,
-                        },
-                    });
-
-                    {
-                        let obj = to_print.as_object_mut().unwrap();
-                        let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
-
-                        if let Some(code) = inner.code {
-                            obj.insert("code".to_owned(), serde_json::Value::String(code));
-                        }
-
-                        if !inner.labels.is_empty() {
-                            let mut labels = Vec::with_capacity(inner.labels.len());
-
-                            for label in inner.labels {
-                                let location = files
-                                    .location(label.file_id, label.range.start as u32)
-                                    .unwrap();
-                                labels.push(serde_json::json!({
-                                    "message": label.message,
-                                    "span": &files.source(label.file_id)[label.range],
-                                    "line": location.line.to_usize(),
-                                    "column": location.column.to_usize(),
-                                }));
-                            }
-
-                            obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
-                        }
-
-                        if !inner.notes.is_empty() {
-                            obj.insert(
-                                "notes".to_owned(),
-                                serde_json::Value::Array(
-                                    inner
-                                        .notes
-                                        .into_iter()
-                                        .map(serde_json::Value::String)
-                                        .collect(),
-                                ),
-                            );
-                        }
-
-                        if show_inclusion_graphs {
-                            let mut graphs = Vec::new();
-                            for kid in diag.kids {
-                                if let Ok(graph) = obj_grapher.write_graph(&kid) {
-                                    if let Ok(sgraph) = serde_json::value::to_value(graph) {
-                                        graphs.push(sgraph);
-                                    }
-                                }
-                            }
-
-                            obj.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
-                        }
-                    }
-
-                    json.clear();
-                    let cursor = std::io::Cursor::new(&mut json);
-                    if serde_json::to_writer(cursor, &to_print).is_ok() {
-                        let mut el = stderr.lock();
-                        let _ = el.write_all(&json);
-                        let _ = el.write(b"\n");
-                    }
+                    lock.print_krate_diag(diag, &files);
                 }
             }
         }
+        None => while rx.recv().is_ok() {},
     }
 }
