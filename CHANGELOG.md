@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved [#137](https://github.com/EmbarkStudios/cargo-deny/issues/137) by adding a `--format <human|json>` option. All diagnostic and log messages from the `check` subcommand respect this flag.
 
 ### Changed
+- Resolved [#216](https://github.com/EmbarkStudios/cargo-deny/issues/216) by adding support for the `--all-features`, `--features`, and `--no-default-features` flags to specify the exact features to have enabled when gathering the crates in your dependency graph to actually run checks against. This is a **BREAKING CHANGE** as previously crates were gathered with `--all-features`.
 - The `--color` option for the `list` subcommand has been moved to the top level arguments.
 
 ### Fixed

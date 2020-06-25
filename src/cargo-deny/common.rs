@@ -54,6 +54,9 @@ pub struct KrateContext {
     pub workspace: bool,
     pub exclude: Vec<String>,
     pub targets: Vec<String>,
+    pub no_default_features: bool,
+    pub all_features: bool,
+    pub features: Vec<String>,
 }
 
 impl KrateContext {
@@ -93,7 +96,15 @@ impl KrateContext {
 
         let mut mdc = krates::Cmd::new();
 
-        mdc.all_features();
+        if self.no_default_features {
+            mdc.no_default_features();
+        }
+
+        if self.all_features {
+            mdc.all_features();
+        }
+
+        mdc.features(self.features);
         mdc.manifest_path(self.manifest_path);
 
         use krates::{Builder, DepKind};

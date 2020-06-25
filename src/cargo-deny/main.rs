@@ -117,6 +117,15 @@ pub(crate) struct GraphContext {
     /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
     #[structopt(short, long)]
     pub(crate) target: Vec<String>,
+    /// Activate all available features
+    #[structopt(long)]
+    pub(crate) all_features: bool,
+    /// Do not activate the `default` feature
+    #[structopt(long)]
+    pub(crate) no_default_features: bool,
+    /// Space-separated list of features to activate
+    #[structopt(long)]
+    pub(crate) features: Vec<String>,
 }
 
 /// Lints your project's crate graph
@@ -303,6 +312,9 @@ fn real_main() -> Result<(), Error> {
         workspace: args.ctx.workspace,
         exclude: args.ctx.exclude,
         targets: args.ctx.target,
+        no_default_features: args.ctx.no_default_features,
+        all_features: args.ctx.all_features,
+        features: args.ctx.features,
     };
 
     let log_ctx = crate::common::LogContext {
