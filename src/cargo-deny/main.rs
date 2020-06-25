@@ -90,11 +90,6 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case", max_term_width = 80)]
 pub(crate) struct GraphContext {
-    /// The directory used as the root context (deprecated)
-    ///
-    /// If not specified, the current working directory is used instead. The directory must contain a Cargo.toml file
-    #[structopt(long, parse(from_os_str))]
-    pub(crate) context: Option<PathBuf>,
     /// The path of a Cargo.toml to use as the context for the operation.
     ///
     /// By default, the Cargo.toml in the current working directory is used.
@@ -117,6 +112,15 @@ pub(crate) struct GraphContext {
     /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
     #[structopt(short, long)]
     pub(crate) target: Vec<String>,
+    /// Activate all available features
+    #[structopt(long)]
+    pub(crate) all_features: bool,
+    /// Do not activate the `default` feature
+    #[structopt(long)]
+    pub(crate) no_default_features: bool,
+    /// Space-separated list of features to activate
+    #[structopt(long)]
+    pub(crate) features: Vec<String>,
 }
 
 /// Lints your project's crate graph
@@ -255,32 +259,26 @@ fn real_main() -> Result<(), Error> {
         None => {
             // For now, use the context path provided by the user, but
             // we've deprected it and it will go away at some point
-            let context_dir = args
-                .ctx
-                .context
-                .or_else(|| std::env::current_dir().ok())
-                .context("unable to determine current working directory")?;
+            let cwd =
+                std::env::current_dir().context("unable to determine current working directory")?;
 
-            if !context_dir.exists() {
-                bail!(
-                    "current working directory {} was not found",
-                    context_dir.display()
-                );
+            if !cwd.exists() {
+                bail!("current working directory {} was not found", cwd.display());
             }
 
-            if !context_dir.is_dir() {
+            if !cwd.is_dir() {
                 bail!(
                     "current working directory {} is not a directory",
-                    context_dir.display()
+                    cwd.display()
                 );
             }
 
-            let man_path = context_dir.join("Cargo.toml");
+            let man_path = cwd.join("Cargo.toml");
 
             if !man_path.exists() {
                 bail!(
                     "the directory {} doesn't contain a Cargo.toml file",
-                    context_dir.display()
+                    cwd.display()
                 );
             }
 
@@ -303,6 +301,9 @@ fn real_main() -> Result<(), Error> {
         workspace: args.ctx.workspace,
         exclude: args.ctx.exclude,
         targets: args.ctx.target,
+        no_default_features: args.ctx.no_default_features,
+        all_features: args.ctx.all_features,
+        features: args.ctx.features,
     };
 
     let log_ctx = crate::common::LogContext {

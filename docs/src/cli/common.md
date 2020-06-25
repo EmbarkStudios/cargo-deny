@@ -7,6 +7,21 @@ subcommand.
 
 The path to a `Cargo.toml` file which is used as the context for operations.
 
+#### `--all-features` (single crate or workspace)
+
+Enables all features when determining which crates to consider. Works for both
+single crates and workspaces.
+
+#### `--no-default-features` (single crate only)
+
+Disables the `default` feature for a crate when determing which crates to
+consider.
+
+#### `--features` (single crate only)
+
+Space-separated list of features to enable when determining which crates to
+consider.
+
 #### `--workspace`
 
 Forces all workspace crates to be used as roots in the crate graph that we
@@ -68,8 +83,3 @@ One or more platforms to filter crates with. If a dependency is target specific,
 it will be ignored if it does not match at least 1 of the specified targets.
 This overrides the top-level [`targets = []`](../checks/cfg.md) configuration
 value.
-
-#### `--context` (deprecated)
-
-The directory used as the context for the deny, if not specified, the current
-working directory is used instead. Must contain a Cargo.toml file.
