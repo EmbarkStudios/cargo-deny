@@ -3,8 +3,11 @@ use anyhow::{Context, Error};
 pub use codespan_reporting::diagnostic::Severity;
 use krates::petgraph as pg;
 
-pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<codespan::FileId>;
-pub type Label = codespan_reporting::diagnostic::Label<codespan::FileId>;
+pub use codespan::FileId;
+
+pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<FileId>;
+pub type Label = codespan_reporting::diagnostic::Label<FileId>;
+pub type Files = codespan::Files<String>;
 
 pub struct Diag {
     pub diag: Diagnostic,

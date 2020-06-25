@@ -293,7 +293,7 @@ pub struct CheckCtx<'ctx, T> {
     /// The spans for each unique crate in a synthesized "lock file"
     pub krate_spans: &'ctx diag::KrateSpans,
     /// The codespan file id for the synthesized krate_spans
-    pub spans_id: codespan::FileId,
+    pub spans_id: diag::FileId,
 }
 
 impl<'ctx, T> CheckCtx<'ctx, T> {

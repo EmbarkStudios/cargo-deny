@@ -2,7 +2,7 @@ pub mod cfg;
 mod graph;
 
 use self::cfg::{TreeSkip, ValidConfig};
-use crate::{Kid, Krate, Krates, LintLevel};
+use crate::{diag::FileId, Kid, Krate, Krates, LintLevel};
 use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::cmp::Ordering;
@@ -82,14 +82,14 @@ use bitvec::prelude::*;
 // each dependency as a skipped crate at the specific version
 struct TreeSkipper {
     roots: Vec<SkipRoot>,
-    file_id: codespan::FileId,
+    file_id: FileId,
 }
 
 impl TreeSkipper {
     fn build(
         skip_roots: Vec<crate::Spanned<TreeSkip>>,
         krates: &Krates,
-        file_id: codespan::FileId,
+        file_id: FileId,
         sender: crossbeam::channel::Sender<Pack>,
     ) -> Self {
         let mut roots = Vec::with_capacity(skip_roots.len());

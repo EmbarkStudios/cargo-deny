@@ -3,7 +3,7 @@ use cargo_deny::{
         self,
         cfg::{Config, ValidConfig},
     },
-    diag::KrateSpans,
+    diag::{Files, KrateSpans},
     CheckCtx,
 };
 use std::{fs, path::PathBuf, time::Duration};
@@ -19,7 +19,7 @@ fn with_test_data(project_name: &str, accept_ctx: impl FnOnce(CheckCtx<'_, Valid
         .unwrap();
 
     let spans = KrateSpans::new(krates);
-    let mut files = codespan::Files::new();
+    let mut files = Files::new();
     let spans_id = files.add(project_dir.join("Cargo.lock"), spans.1);
 
     let config: Config = fs::read_to_string(project_dir.join("deny.toml"))

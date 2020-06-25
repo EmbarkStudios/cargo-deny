@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use cargo_deny::licenses::LicenseStore;
+use cargo_deny::{
+    diag::{self, FileId, Files, Severity},
+    licenses::LicenseStore,
+};
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
@@ -19,7 +22,7 @@ use cargo_deny::diag::Diagnostic;
 pub(crate) fn load_targets(
     in_targets: Vec<Target>,
     diagnostics: &mut Vec<Diagnostic>,
-    id: codespan::FileId,
+    id: FileId,
 ) -> Vec<(krates::Target, Vec<String>)> {
     let mut targets = Vec::with_capacity(in_targets.len());
     for target in in_targets {
@@ -176,15 +179,12 @@ fn color_to_choice(color: crate::Color, stream: atty::Stream) -> ColorChoice {
     }
 }
 
-use cargo_deny::diag;
-use codespan_reporting::diagnostic::{Diagnostic as cs_diag, Severity};
-
-type CSDiag = cs_diag<codespan::FileId>;
+type CSDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
 
 pub struct Human<'a> {
     stream: term::termcolor::StandardStream,
     grapher: Option<diag::TextGrapher<'a>>,
-    config: codespan_reporting::term::Config,
+    config: term::Config,
 }
 
 pub enum StdioStream {
@@ -251,7 +251,7 @@ pub enum OutputLock<'a, 'b> {
 }
 
 impl<'a, 'b> OutputLock<'a, 'b> {
-    fn diag_to_json(diag: CSDiag, files: &codespan::Files<String>) -> serde_json::Value {
+    fn diag_to_json(diag: CSDiag, files: &Files) -> serde_json::Value {
         let mut val = serde_json::json!({
             "type": "diagnostic",
             "fields": {
@@ -308,7 +308,7 @@ impl<'a, 'b> OutputLock<'a, 'b> {
         val
     }
 
-    pub fn print(&mut self, diag: CSDiag, files: &codespan::Files<String>) {
+    pub fn print(&mut self, diag: CSDiag, files: &Files) {
         match self {
             Self::Human(cfg, max, l) => {
                 if diag.severity < *max {
@@ -335,11 +335,7 @@ impl<'a, 'b> OutputLock<'a, 'b> {
         }
     }
 
-    pub fn print_krate_diag(
-        &mut self,
-        mut diag: cargo_deny::diag::Diag,
-        files: &codespan::Files<String>,
-    ) {
+    pub fn print_krate_diag(&mut self, mut diag: cargo_deny::diag::Diag, files: &Files) {
         match self {
             Self::Human(cfg, max, l) => {
                 if diag.diag.severity < *max {
@@ -389,22 +385,26 @@ impl<'a, 'b> OutputLock<'a, 'b> {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct LogContext {
+    pub format: crate::Format,
+    pub color: crate::Color,
+    pub log_level: log::LevelFilter,
+}
+
 pub struct DiagPrinter<'a> {
     which: OutputFormat<'a>,
     max_severity: Severity,
 }
 
 impl<'a> DiagPrinter<'a> {
-    pub fn new(
-        format: crate::Format,
-        color: crate::Color,
-        krates: Option<&'a cargo_deny::Krates>,
-        max_severity: Severity,
-    ) -> Self {
-        match format {
+    pub fn new(ctx: LogContext, krates: Option<&'a cargo_deny::Krates>) -> Option<Self> {
+        let max_severity = log_level_to_severity(ctx.log_level);
+
+        max_severity.map(|max_severity| match ctx.format {
             crate::Format::Human => {
                 let stream = term::termcolor::StandardStream::stderr(color_to_choice(
-                    color,
+                    ctx.color,
                     atty::Stream::Stderr,
                 ));
 
@@ -412,7 +412,7 @@ impl<'a> DiagPrinter<'a> {
                     which: OutputFormat::Human(Human {
                         stream,
                         grapher: krates.map(diag::TextGrapher::new),
-                        config: codespan_reporting::term::Config::default(),
+                        config: term::Config::default(),
                     }),
                     max_severity,
                 }
@@ -424,7 +424,7 @@ impl<'a> DiagPrinter<'a> {
                 }),
                 max_severity,
             },
-        }
+        })
     }
 
     #[inline]

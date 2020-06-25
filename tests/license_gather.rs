@@ -11,7 +11,7 @@
 //     };
 
 //     ($crates:expr, $expected:expr, $gatherer:expr) => {
-//         let mut files = codespan::Files::new();
+//         let mut files = Files::new();
 //         let summary = $gatherer.gather(&$crates, &mut files, None);
 //         let expected = $expected;
 

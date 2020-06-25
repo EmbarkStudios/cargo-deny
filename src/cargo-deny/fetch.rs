@@ -1,5 +1,8 @@
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, diag::Diagnostic};
+use cargo_deny::{
+    advisories,
+    diag::{Diagnostic, Files},
+};
 use clap::arg_enum;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -38,7 +41,11 @@ struct ValidConfig {
 }
 
 impl ValidConfig {
-    fn load(cfg_path: Option<PathBuf>, files: &mut codespan::Files<String>) -> Result<Self, Error> {
+    fn load(
+        cfg_path: Option<PathBuf>,
+        files: &mut Files,
+        log_ctx: crate::common::LogContext,
+    ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
                 std::fs::read_to_string(&cfg_path).with_context(|| {
@@ -68,18 +75,15 @@ impl ValidConfig {
         let id = files.add(&cfg_path, cfg_contents);
 
         let print = |diags: Vec<Diagnostic>| {
-            use codespan_reporting::term;
-
             if diags.is_empty() {
                 return;
             }
 
-            let writer =
-                term::termcolor::StandardStream::stderr(term::termcolor::ColorChoice::Auto);
-            let config = term::Config::default();
-            let mut writer = writer.lock();
-            for diag in &diags {
-                term::emit(&mut writer, &config, files, &diag).unwrap();
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
+                let mut lock = printer.lock();
+                for diag in diags {
+                    lock.print(diag, &files);
+                }
             }
         };
 
@@ -99,11 +103,15 @@ impl ValidConfig {
     }
 }
 
-pub fn cmd(args: Args, ctx: crate::common::KrateContext) -> Result<(), Error> {
+pub fn cmd(
+    log_ctx: crate::common::LogContext,
+    args: Args,
+    ctx: crate::common::KrateContext,
+) -> Result<(), Error> {
     let cfg_path = ctx.get_config_path(args.config.clone());
 
-    let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(cfg_path, &mut files)?;
+    let mut files = Files::new();
+    let cfg = ValidConfig::load(cfg_path, &mut files, log_ctx)?;
 
     let mut index = None;
     let mut db = None;

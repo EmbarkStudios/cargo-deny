@@ -192,7 +192,6 @@ pub fn check(
                             // more of them in the future.
                             Informational::Other(_) => {
                                 unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
-                                //(cfg.other, format!("{} advisory detected", kind))
                             }
                         },
                     };

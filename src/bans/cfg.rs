@@ -1,5 +1,8 @@
 use super::KrateId;
-use crate::{LintLevel, Spanned};
+use crate::{
+    diag::{Diagnostic, FileId, Label},
+    LintLevel, Spanned,
+};
 use semver::VersionReq;
 use serde::Deserialize;
 
@@ -94,11 +97,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn validate(
-        self,
-        cfg_file: codespan::FileId,
-    ) -> Result<ValidConfig, Vec<crate::diag::Diagnostic>> {
-        use crate::diag::{Diagnostic, Label};
+    pub fn validate(self, cfg_file: FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
         use rayon::prelude::*;
 
         let from = |s: Spanned<CrateId>| {
@@ -176,7 +175,7 @@ impl Config {
 pub(crate) type Skrate = Spanned<KrateId>;
 
 pub struct ValidConfig {
-    pub file_id: codespan::FileId,
+    pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<Skrate>,

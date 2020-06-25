@@ -1,6 +1,10 @@
 use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
-use cargo_deny::{advisories, bans, diag::Diagnostic, licenses, sources, CheckCtx};
+use cargo_deny::{
+    advisories, bans,
+    diag::{Diagnostic, Files, Severity},
+    licenses, sources, CheckCtx,
+};
 use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
@@ -74,10 +78,8 @@ struct ValidConfig {
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
-        files: &mut codespan::Files<String>,
-        format: crate::Format,
-        color: crate::Color,
-        max_severity: Option<codespan_reporting::diagnostic::Severity>,
+        files: &mut Files,
+        log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
@@ -141,9 +143,7 @@ impl ValidConfig {
                 return;
             }
 
-            if let Some(max_severity) = max_severity {
-                let printer = crate::common::DiagPrinter::new(format, color, None, max_severity);
-
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
                     lock.print(diag, &files);
@@ -169,21 +169,15 @@ impl ValidConfig {
 }
 
 pub(crate) fn cmd(
-    log_level: log::LevelFilter,
-    format: crate::Format,
-    color: crate::Color,
+    log_ctx: crate::common::LogContext,
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<AllStats, Error> {
-    let max_severity = crate::common::log_level_to_severity(log_level);
-
-    let mut files = codespan::Files::new();
+    let mut files = Files::new();
     let mut cfg = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         &mut files,
-        format,
-        color,
-        max_severity,
+        log_ctx,
     )?;
 
     let check_advisories = args.which.is_empty()
@@ -315,16 +309,14 @@ pub(crate) fn cmd(
         s.spawn(|_| {
             print_diagnostics(
                 rx,
-                format,
+                log_ctx,
                 if show_inclusion_graphs {
                     Some(krates)
                 } else {
                     None
                 },
-                max_severity,
                 files,
                 &mut stats,
-                color,
             );
         });
 
@@ -448,20 +440,15 @@ pub(crate) fn cmd(
 #[allow(clippy::too_many_arguments)]
 fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
-    format: crate::Format,
+    log_ctx: crate::common::LogContext,
     krates: Option<&cargo_deny::Krates>,
-    max_severity: Option<cargo_deny::diag::Severity>,
-    files: codespan::Files<String>,
+    files: Files,
     stats: &mut AllStats,
-    color: crate::Color,
 ) {
     use cargo_deny::diag::Check;
-    use codespan_reporting::diagnostic::Severity;
 
-    match max_severity {
-        Some(max_severity) => {
-            let printer = crate::common::DiagPrinter::new(format, color, krates, max_severity);
-
+    match crate::common::DiagPrinter::new(log_ctx, krates) {
+        Some(printer) => {
             for pack in rx {
                 let mut lock = printer.lock();
 

@@ -1,17 +1,18 @@
 use anyhow::{ensure, Error};
 use cargo_deny::{
     advisories::{self, cfg},
-    diag, Krates,
+    diag::{self, FileId, Files},
+    Krates,
 };
 use krates::cm::Metadata;
 use std::sync::RwLock;
 
 struct Ctx {
     krates: Krates,
-    spans: (diag::KrateSpans, codespan::FileId),
+    spans: (diag::KrateSpans, FileId),
     db: advisories::Database,
     lock: advisories::Lockfile,
-    files: RwLock<codespan::Files<String>>,
+    files: RwLock<Files>,
 }
 
 fn load() -> Ctx {
@@ -32,7 +33,7 @@ fn load() -> Ctx {
         advisories::load_db(None, Some(tmp.path().to_owned()), advisories::Fetch::Allow).unwrap()
     };
 
-    let mut files = codespan::Files::new();
+    let mut files = Files::new();
     let spans = (spans.0, files.add("Cargo.lock", spans.1));
 
     Ctx {

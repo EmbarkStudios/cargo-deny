@@ -1,6 +1,6 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
-use cargo_deny::{licenses, Kid};
+use cargo_deny::{diag::Files, licenses, Kid};
 use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -72,15 +72,11 @@ struct ValidConfig {
     targets: Vec<(krates::Target, Vec<String>)>,
 }
 
-use cargo_deny::diag::Severity;
-
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
-        files: &mut codespan::Files<String>,
-        format: OutputFormat,
-        color: crate::Color,
-        max_severity: Option<Severity>,
+        files: &mut Files,
+        log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
@@ -130,14 +126,7 @@ impl ValidConfig {
                 return;
             }
 
-            if let Some(max_severity) = max_severity {
-                let format = match format {
-                    OutputFormat::Human => crate::Format::Human,
-                    OutputFormat::Json | OutputFormat::Tsv => crate::Format::Json,
-                };
-
-                let printer = crate::common::DiagPrinter::new(format, color, None, max_severity);
-
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
                     lock.print(diag, &files);
@@ -164,24 +153,15 @@ impl ValidConfig {
 
 #[allow(clippy::cognitive_complexity)]
 pub fn cmd(
-    log_level: log::LevelFilter,
-    color: crate::Color,
+    log_ctx: crate::common::LogContext,
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
 
-    let max_severity = crate::common::log_level_to_severity(log_level);
-
-    let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(
-        krate_ctx.get_config_path(args.config),
-        &mut files,
-        args.format,
-        color,
-        max_severity,
-    )?;
+    let mut files = Files::new();
+    let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files, log_ctx)?;
 
     let (krates, store) = rayon::join(
         || krate_ctx.gather_krates(cfg.targets),
@@ -195,7 +175,7 @@ pub fn cmd(
         .with_store(std::sync::Arc::new(store))
         .with_confidence_threshold(args.threshold);
 
-    let mut files = codespan::Files::new();
+    let mut files = Files::new();
 
     let summary = gatherer.gather(&krates, &mut files, None);
 
@@ -284,7 +264,7 @@ pub fn cmd(
     match args.format {
         OutputFormat::Human => {
             let mut output = String::with_capacity(4 * 1024);
-            let color = match color {
+            let color = match log_ctx.color {
                 crate::Color::Always => true,
                 crate::Color::Never => false,
                 crate::Color::Auto => atty::is(atty::Stream::Stdout),
