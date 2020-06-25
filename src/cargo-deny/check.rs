@@ -303,6 +303,10 @@ pub(crate) fn cmd(
     }
 
     let show_inclusion_graphs = !args.hide_inclusion_graph;
+    let serialize_extra = match log_ctx.format {
+        crate::Format::Json => true,
+        crate::Format::Human => false,
+    };
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
@@ -329,6 +333,7 @@ pub(crate) fn cmd(
                 krates: &krates,
                 krate_spans: &krate_spans,
                 spans_id,
+                serialize_extra,
             };
 
             s.spawn(move |_| {
@@ -380,6 +385,7 @@ pub(crate) fn cmd(
                 krates: &krates,
                 krate_spans: &krate_spans,
                 spans_id,
+                serialize_extra,
             };
 
             s.spawn(|_| {
@@ -401,6 +407,7 @@ pub(crate) fn cmd(
                 krates: &krates,
                 krate_spans: &krate_spans,
                 spans_id,
+                serialize_extra,
             };
 
             s.spawn(|_| {
@@ -421,6 +428,7 @@ pub(crate) fn cmd(
                 krates: &krates,
                 krate_spans: &krate_spans,
                 spans_id,
+                serialize_extra,
             };
 
             s.spawn(move |_| {

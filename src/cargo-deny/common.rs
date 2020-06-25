@@ -359,6 +359,9 @@ impl<'a, 'b> OutputLock<'a, 'b> {
 
                 let mut to_print = Self::diag_to_json(diag.diag, files);
 
+                let obj = to_print.as_object_mut().unwrap();
+                let fields = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
                 if let Some(grapher) = &cfg.grapher {
                     let mut graphs = Vec::new();
                     for kid in diag.kids {
@@ -369,8 +372,11 @@ impl<'a, 'b> OutputLock<'a, 'b> {
                         }
                     }
 
-                    let obj = to_print.as_object_mut().unwrap();
-                    obj.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
+                    fields.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
+                }
+
+                if let Some((key, val)) = diag.extra {
+                    fields.insert(key.to_owned(), val);
                 }
 
                 use serde::Serialize;

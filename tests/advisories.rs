@@ -78,6 +78,7 @@ fn detects_vulnerabilities() {
                 krates: &ctx.krates,
                 krate_spans: &ctx.spans.0,
                 spans_id: ctx.spans.1,
+                serialize_extra: true,
             };
 
             advisories::check(ctx2, &ctx.db, ctx.lock, tx);
@@ -136,6 +137,7 @@ fn detects_unmaintained() {
                 krates: &ctx.krates,
                 krate_spans: &ctx.spans.0,
                 spans_id: ctx.spans.1,
+                serialize_extra: true,
             };
 
             advisories::check(ctx2, &ctx.db, ctx.lock, tx);
@@ -192,6 +194,7 @@ fn downgrades() {
                 krates: &ctx.krates,
                 krate_spans: &ctx.spans.0,
                 spans_id: ctx.spans.1,
+                serialize_extra: true,
             };
 
             advisories::check(ctx2, &ctx.db, ctx.lock, tx);
@@ -270,6 +273,7 @@ fn detects_yanked() {
                 krates: &ctx.krates,
                 krate_spans: &ctx.spans.0,
                 spans_id: ctx.spans.1,
+                serialize_extra: true,
             };
 
             advisories::check(ctx2, &ctx.db, ctx.lock, tx);

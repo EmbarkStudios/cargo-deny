@@ -31,6 +31,7 @@ fn with_test_data(project_name: &str, accept_ctx: impl FnOnce(CheckCtx<'_, Valid
         krate_spans: &spans.0,
         spans_id,
         cfg: config.validate(spans_id).unwrap(),
+        serialize_extra: false,
     });
 }
 
