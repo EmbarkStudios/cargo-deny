@@ -1,4 +1,4 @@
-use crate::{LintLevel, Spanned};
+use crate::{diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -39,7 +39,7 @@ use crate::diag::{Diagnostic, Label};
 impl Config {
     pub fn validate(
         self,
-        cfg_file: codespan::FileId,
+        cfg_file: FileId,
         contents: &str,
     ) -> Result<ValidConfig, Vec<Diagnostic>> {
         let mut diags = Vec::new();
@@ -106,7 +106,7 @@ pub type SourceSpan = Spanned<url::Url>;
 
 #[doc(hidden)]
 pub struct ValidConfig {
-    pub file_id: codespan::FileId,
+    pub file_id: FileId,
 
     pub unknown_registry: LintLevel,
     pub unknown_git: LintLevel,

@@ -3,12 +3,16 @@ use anyhow::{Context, Error};
 pub use codespan_reporting::diagnostic::Severity;
 use krates::petgraph as pg;
 
-pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<codespan::FileId>;
-pub type Label = codespan_reporting::diagnostic::Label<codespan::FileId>;
+pub use codespan::FileId;
+
+pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<FileId>;
+pub type Label = codespan_reporting::diagnostic::Label<FileId>;
+pub type Files = codespan::Files<String>;
 
 pub struct Diag {
     pub diag: Diagnostic,
     pub kids: smallvec::SmallVec<[Kid; 2]>,
+    pub extra: Option<(&'static str, serde_json::Value)>,
 }
 
 impl Diag {
@@ -16,6 +20,7 @@ impl Diag {
         Self {
             diag,
             kids: smallvec::SmallVec::new(),
+            extra: None,
         }
     }
 }
@@ -56,7 +61,7 @@ impl Pack {
         }
     }
 
-    pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Self {
+    pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Diag {
         let mut diag = diag.into();
         if diag.kids.is_empty() {
             if let Some(kid) = self.kid.take() {
@@ -65,7 +70,7 @@ impl Pack {
         }
 
         self.diags.push(diag);
-        self
+        self.diags.last_mut().unwrap()
     }
 
     pub(crate) fn is_empty(&self) -> bool {

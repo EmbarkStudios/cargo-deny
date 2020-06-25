@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use cargo_deny::licenses::LicenseStore;
+use cargo_deny::{
+    diag::{self, FileId, Files, Severity},
+    licenses::LicenseStore,
+};
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
@@ -19,7 +22,7 @@ use cargo_deny::diag::Diagnostic;
 pub(crate) fn load_targets(
     in_targets: Vec<Target>,
     diagnostics: &mut Vec<Diagnostic>,
-    id: codespan::FileId,
+    id: FileId,
 ) -> Vec<(krates::Target, Vec<String>)> {
     let mut targets = Vec::with_capacity(in_targets.len());
     for target in in_targets {
@@ -143,5 +146,295 @@ impl KrateContext {
         }
 
         Ok(graph?)
+    }
+}
+
+pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
+    match log_level {
+        log::LevelFilter::Off => None,
+        log::LevelFilter::Error => Some(Severity::Error),
+        log::LevelFilter::Warn => Some(Severity::Warning),
+        log::LevelFilter::Info => Some(Severity::Note),
+        log::LevelFilter::Debug => Some(Severity::Help),
+        log::LevelFilter::Trace => Some(Severity::Help),
+    }
+}
+
+use codespan_reporting::term::{self, termcolor::ColorChoice};
+use std::io::Write;
+
+fn color_to_choice(color: crate::Color, stream: atty::Stream) -> ColorChoice {
+    match color {
+        crate::Color::Auto => {
+            // The termcolor crate doesn't check the stream to see if it's a TTY
+            // which doesn't really fit with how the rest of the coloring works
+            if atty::is(stream) {
+                ColorChoice::Auto
+            } else {
+                ColorChoice::Never
+            }
+        }
+        crate::Color::Always => ColorChoice::Always,
+        crate::Color::Never => ColorChoice::Never,
+    }
+}
+
+type CSDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
+
+pub struct Human<'a> {
+    stream: term::termcolor::StandardStream,
+    grapher: Option<diag::TextGrapher<'a>>,
+    config: term::Config,
+}
+
+pub enum StdioStream {
+    //Out(std::io::Stdout),
+    Err(std::io::Stderr),
+}
+
+impl StdioStream {
+    pub fn lock(&self) -> StdLock<'_> {
+        match self {
+            //Self::Out(o) => StdLock::Out(o.lock()),
+            Self::Err(o) => StdLock::Err(o.lock()),
+        }
+    }
+}
+
+pub struct Json<'a> {
+    stream: StdioStream,
+    grapher: Option<diag::ObjectGrapher<'a>>,
+}
+
+enum OutputFormat<'a> {
+    Human(Human<'a>),
+    Json(Json<'a>),
+}
+
+impl<'a> OutputFormat<'a> {
+    fn lock(&'a self, max_severity: Severity) -> OutputLock<'a, '_> {
+        match self {
+            Self::Human(ref human) => OutputLock::Human(human, max_severity, human.stream.lock()),
+            Self::Json(ref json) => OutputLock::Json(json, max_severity, json.stream.lock()),
+        }
+    }
+}
+
+pub enum StdLock<'a> {
+    Err(std::io::StderrLock<'a>),
+    //Out(std::io::StdoutLock<'a>),
+}
+
+impl<'a> Write for StdLock<'a> {
+    fn write(&mut self, d: &[u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Err(stderr) => stderr.write(d),
+            //Self::Out(stdout) => stdout.write(d),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            Self::Err(stderr) => stderr.flush(),
+            //Self::Out(stdout) => stdout.flush(),
+        }
+    }
+}
+
+pub enum OutputLock<'a, 'b> {
+    Human(
+        &'a Human<'a>,
+        Severity,
+        term::termcolor::StandardStreamLock<'b>,
+    ),
+    Json(&'a Json<'a>, Severity, StdLock<'b>),
+}
+
+impl<'a, 'b> OutputLock<'a, 'b> {
+    fn diag_to_json(diag: CSDiag, files: &Files) -> serde_json::Value {
+        let mut val = serde_json::json!({
+            "type": "diagnostic",
+            "fields": {
+                "severity": match diag.severity {
+                    Severity::Error => "error",
+                    Severity::Warning => "warning",
+                    Severity::Note => "note",
+                    Severity::Help => "help",
+                    Severity::Bug => "bug",
+                },
+                "message": diag.message,
+            },
+        });
+
+        {
+            let obj = val.as_object_mut().unwrap();
+            let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+            if let Some(code) = diag.code {
+                obj.insert("code".to_owned(), serde_json::Value::String(code));
+            }
+
+            if !diag.labels.is_empty() {
+                let mut labels = Vec::with_capacity(diag.labels.len());
+
+                for label in diag.labels {
+                    let location = files
+                        .location(label.file_id, label.range.start as u32)
+                        .unwrap();
+                    labels.push(serde_json::json!({
+                        "message": label.message,
+                        "span": &files.source(label.file_id)[label.range],
+                        "line": location.line.to_usize() + 1,
+                        "column": location.column.to_usize() + 1,
+                    }));
+                }
+
+                obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
+            }
+
+            if !diag.notes.is_empty() {
+                obj.insert(
+                    "notes".to_owned(),
+                    serde_json::Value::Array(
+                        diag.notes
+                            .into_iter()
+                            .map(serde_json::Value::String)
+                            .collect(),
+                    ),
+                );
+            }
+        }
+
+        val
+    }
+
+    pub fn print(&mut self, diag: CSDiag, files: &Files) {
+        match self {
+            Self::Human(cfg, max, l) => {
+                if diag.severity < *max {
+                    return;
+                }
+
+                let _ = term::emit(l, &cfg.config, files, &diag);
+            }
+            Self::Json(_cfg, max, w) => {
+                if diag.severity < *max {
+                    return;
+                }
+
+                let to_print = Self::diag_to_json(diag, files);
+
+                use serde::Serialize;
+
+                let mut ser = serde_json::Serializer::new(w);
+                if to_print.serialize(&mut ser).is_ok() {
+                    let w = ser.into_inner();
+                    let _ = w.write(b"\n");
+                }
+            }
+        }
+    }
+
+    pub fn print_krate_diag(&mut self, mut diag: cargo_deny::diag::Diag, files: &Files) {
+        match self {
+            Self::Human(cfg, max, l) => {
+                if diag.diag.severity < *max {
+                    return;
+                }
+
+                if let Some(grapher) = &cfg.grapher {
+                    for kid in diag.kids {
+                        if let Ok(graph) = grapher.write_graph(&kid) {
+                            diag.diag.notes.push(graph);
+                        }
+                    }
+                }
+
+                let _ = term::emit(l, &cfg.config, files, &diag.diag);
+            }
+            Self::Json(cfg, max, w) => {
+                if diag.diag.severity < *max {
+                    return;
+                }
+
+                let mut to_print = Self::diag_to_json(diag.diag, files);
+
+                let obj = to_print.as_object_mut().unwrap();
+                let fields = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+                if let Some(grapher) = &cfg.grapher {
+                    let mut graphs = Vec::new();
+                    for kid in diag.kids {
+                        if let Ok(graph) = grapher.write_graph(&kid) {
+                            if let Ok(sgraph) = serde_json::value::to_value(graph) {
+                                graphs.push(sgraph);
+                            }
+                        }
+                    }
+
+                    fields.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
+                }
+
+                if let Some((key, val)) = diag.extra {
+                    fields.insert(key.to_owned(), val);
+                }
+
+                use serde::Serialize;
+
+                let mut ser = serde_json::Serializer::new(w);
+                if to_print.serialize(&mut ser).is_ok() {
+                    let w = ser.into_inner();
+                    let _ = w.write(b"\n");
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct LogContext {
+    pub format: crate::Format,
+    pub color: crate::Color,
+    pub log_level: log::LevelFilter,
+}
+
+pub struct DiagPrinter<'a> {
+    which: OutputFormat<'a>,
+    max_severity: Severity,
+}
+
+impl<'a> DiagPrinter<'a> {
+    pub fn new(ctx: LogContext, krates: Option<&'a cargo_deny::Krates>) -> Option<Self> {
+        let max_severity = log_level_to_severity(ctx.log_level);
+
+        max_severity.map(|max_severity| match ctx.format {
+            crate::Format::Human => {
+                let stream = term::termcolor::StandardStream::stderr(color_to_choice(
+                    ctx.color,
+                    atty::Stream::Stderr,
+                ));
+
+                Self {
+                    which: OutputFormat::Human(Human {
+                        stream,
+                        grapher: krates.map(diag::TextGrapher::new),
+                        config: term::Config::default(),
+                    }),
+                    max_severity,
+                }
+            }
+            crate::Format::Json => Self {
+                which: OutputFormat::Json(Json {
+                    stream: StdioStream::Err(std::io::stderr()),
+                    grapher: krates.map(diag::ObjectGrapher::new),
+                }),
+                max_severity,
+            },
+        })
+    }
+
+    #[inline]
+    pub fn lock(&'a self) -> OutputLock<'a, '_> {
+        self.which.lock(self.max_severity)
     }
 }

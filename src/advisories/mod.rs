@@ -192,7 +192,6 @@ pub fn check(
                             // more of them in the future.
                             Informational::Other(_) => {
                                 unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
-                                //(cfg.other, format!("{} advisory detected", kind))
                             }
                         },
                     };
@@ -244,13 +243,19 @@ pub fn check(
                 };
 
                 let mut pack = diag::Pack::with_kid(Check::Advisories, krate.id.clone());
-                pack.push(
+                let diag = pack.push(
                     Diagnostic::new(severity)
                         .with_message(advisory.title.clone())
                         .with_labels(vec![ctx.label_for_span(i, message)])
                         .with_code(id.as_str().to_owned())
                         .with_notes(notes),
                 );
+
+                if ctx.serialize_extra {
+                    diag.extra = serde_json::to_value(&advisory)
+                        .ok()
+                        .map(|v| ("advisory", v));
+                }
 
                 pack
             }

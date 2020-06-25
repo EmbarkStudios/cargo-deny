@@ -22,7 +22,7 @@
 //! ```
 
 use crate::{
-    diag::{Diagnostic, Label},
+    diag::{Diagnostic, FileId, Label},
     LintLevel, Spanned,
 };
 use semver::VersionReq;
@@ -187,7 +187,7 @@ impl Config {
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    pub fn validate(self, cfg_file: codespan::FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
+    pub fn validate(self, cfg_file: FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
         use rayon::prelude::*;
 
         let mut diagnostics = Vec::new();
@@ -333,7 +333,7 @@ pub type Licensee = Spanned<spdx::Licensee>;
 
 #[doc(hidden)]
 pub struct ValidConfig {
-    pub file_id: codespan::FileId,
+    pub file_id: FileId,
     pub private: Private,
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,

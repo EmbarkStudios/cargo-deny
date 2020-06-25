@@ -283,8 +283,8 @@ pub fn hash(data: &[u8]) -> u32 {
     xx.finish() as u32
 }
 
-/// Common context for the various checks. Some checks
-/// require additional information though.
+/// Common context for the various checks. Some checks require additional
+/// information though.
 pub struct CheckCtx<'ctx, T> {
     /// The configuration for the check
     pub cfg: T,
@@ -293,7 +293,10 @@ pub struct CheckCtx<'ctx, T> {
     /// The spans for each unique crate in a synthesized "lock file"
     pub krate_spans: &'ctx diag::KrateSpans,
     /// The codespan file id for the synthesized krate_spans
-    pub spans_id: codespan::FileId,
+    pub spans_id: diag::FileId,
+    /// Requests for additional information the check can provide to be
+    /// serialized to the diagnostic
+    pub serialize_extra: bool,
 }
 
 impl<'ctx, T> CheckCtx<'ctx, T> {

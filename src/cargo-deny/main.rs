@@ -29,7 +29,7 @@ enum Command {
 }
 
 #[derive(StructOpt, Copy, Clone, Debug)]
-enum Format {
+pub enum Format {
     Human,
     Json,
 }
@@ -55,7 +55,7 @@ impl std::str::FromStr for Format {
 }
 
 #[derive(StructOpt, Copy, Clone, Debug)]
-enum Color {
+pub enum Color {
     Auto,
     Always,
     Never,
@@ -305,10 +305,16 @@ fn real_main() -> Result<(), Error> {
         targets: args.ctx.target,
     };
 
+    let log_ctx = crate::common::LogContext {
+        color: args.color,
+        format: args.format,
+        log_level: args.log_level,
+    };
+
     match args.cmd {
         Command::Check(cargs) => {
             let show_stats = cargs.show_stats;
-            let stats = check::cmd(log_level, args.format, args.color, cargs, krate_ctx)?;
+            let stats = check::cmd(log_ctx, cargs, krate_ctx)?;
 
             let errors = stats.total_errors();
 
@@ -320,9 +326,9 @@ fn real_main() -> Result<(), Error> {
                 Ok(())
             }
         }
-        Command::Fetch(fargs) => fetch::cmd(fargs, krate_ctx),
+        Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
-        Command::List(largs) => list::cmd(largs, krate_ctx),
+        Command::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
     }
 }
 

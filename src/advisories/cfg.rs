@@ -1,4 +1,7 @@
-use crate::{LintLevel, Spanned};
+use crate::{
+    diag::{Diagnostic, FileId},
+    LintLevel, Spanned,
+};
 use rustsec::advisory;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -52,10 +55,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn validate(
-        self,
-        cfg_file: codespan::FileId,
-    ) -> Result<ValidConfig, Vec<crate::diag::Diagnostic>> {
+    pub fn validate(self, cfg_file: FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
         let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
         ignored.sort();
 
@@ -76,7 +76,7 @@ impl Config {
 pub(crate) type AdvisoryId = Spanned<advisory::Id>;
 
 pub struct ValidConfig {
-    pub file_id: codespan::FileId,
+    pub file_id: FileId,
     pub db_path: Option<PathBuf>,
     pub db_url: Option<String>,
     pub(crate) ignore: Vec<AdvisoryId>,

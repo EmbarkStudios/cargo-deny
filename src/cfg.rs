@@ -173,12 +173,13 @@ impl<T: ser::Serialize> ser::Serialize for Spanned<T> {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use crate::diag::{FileId, Files};
     use std::path::PathBuf;
 
     pub(crate) struct ConfigData<T> {
         pub(crate) config: T,
-        pub(crate) files: codespan::Files<String>,
-        pub(crate) id: codespan::FileId,
+        pub(crate) files: Files,
+        pub(crate) id: FileId,
     }
 
     pub(crate) fn load<T: serde::de::DeserializeOwned>(path: impl Into<PathBuf>) -> ConfigData<T> {
@@ -186,7 +187,7 @@ pub(crate) mod test {
         let contents = std::fs::read_to_string(&path).unwrap();
 
         let config = toml::from_str(&contents).unwrap();
-        let mut files = codespan::Files::new();
+        let mut files = Files::new();
         let id = files.add(&path, contents);
 
         ConfigData { config, files, id }

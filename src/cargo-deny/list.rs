@@ -1,19 +1,10 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
-use cargo_deny::{licenses, Kid};
+use cargo_deny::{diag::Files, licenses, Kid};
 use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
 use structopt::StructOpt;
-
-arg_enum! {
-    #[derive(Copy, Clone, Debug)]
-    pub enum ColorWhen {
-        Always,
-        Never,
-        Auto,
-    }
-}
 
 arg_enum! {
     #[derive(Copy, Clone, Debug)]
@@ -55,14 +46,6 @@ pub struct Args {
         case_insensitive = true,
     )]
     format: OutputFormat,
-    /// Output coloring, only applies to 'human' format
-    #[structopt(
-        long,
-        default_value = "auto",
-        possible_values = &ColorWhen::variants(),
-        case_insensitive = true,
-    )]
-    color: ColorWhen,
     /// Determines if log messages are emitted
     ///
     /// The log level specified at the top level still applies
@@ -92,9 +75,8 @@ struct ValidConfig {
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
-        files: &mut codespan::Files<String>,
-        format: OutputFormat,
-        color: ColorWhen,
+        files: &mut Files,
+        log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
@@ -144,82 +126,10 @@ impl ValidConfig {
                 return;
             }
 
-            match format {
-                OutputFormat::Human | OutputFormat::Tsv => {
-                    use codespan_reporting::term::{self, termcolor::ColorChoice};
-                    let writer = term::termcolor::StandardStream::stderr(match color {
-                        ColorWhen::Auto => {
-                            // The termcolor crate doesn't check the stream to see if it's a TTY
-                            // which doesn't really fit with how the rest of the coloring works
-                            if atty::is(atty::Stream::Stderr) {
-                                ColorChoice::Auto
-                            } else {
-                                ColorChoice::Never
-                            }
-                        }
-                        ColorWhen::Always => ColorChoice::Always,
-                        ColorWhen::Never => ColorChoice::Never,
-                    });
-
-                    let config = term::Config::default();
-                    let mut writer = writer.lock();
-                    for diag in diags {
-                        term::emit(&mut writer, &config, files, &diag).unwrap();
-                    }
-                }
-                OutputFormat::Json => {
-                    use codespan_reporting::diagnostic::Severity;
-                    use std::io::Write;
-
-                    let mut json = Vec::new();
-                    let stderr = std::io::stderr();
-                    let mut el = stderr.lock();
-
-                    for diag in diags {
-                        let mut to_print = serde_json::json!({
-                            "type": "diagnostic",
-                            "fields": {
-                                "severity": match diag.severity {
-                                    Severity::Error => "error",
-                                    Severity::Warning => "warning",
-                                    Severity::Note => "note",
-                                    Severity::Help => "help",
-                                    Severity::Bug => "bug",
-                                },
-                                "message": diag.message,
-                            },
-                        });
-
-                        {
-                            let obj = to_print.as_object_mut().unwrap();
-                            let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
-
-                            if !diag.labels.is_empty() {
-                                let mut labels = Vec::with_capacity(diag.labels.len());
-
-                                for label in diag.labels {
-                                    let location = files
-                                        .location(label.file_id, label.range.start as u32)
-                                        .unwrap();
-                                    labels.push(serde_json::json!({
-                                        "message": label.message,
-                                        "span": &files.source(label.file_id)[label.range],
-                                        "line": location.line.to_usize(),
-                                        "column": location.column.to_usize(),
-                                    }));
-                                }
-
-                                obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
-                            }
-                        }
-
-                        json.clear();
-                        let cursor = std::io::Cursor::new(&mut json);
-                        if serde_json::to_writer(cursor, &to_print).is_ok() {
-                            let _ = el.write_all(&json);
-                            let _ = el.write(b"\n");
-                        }
-                    }
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
+                let mut lock = printer.lock();
+                for diag in diags {
+                    lock.print(diag, &files);
                 }
             }
         };
@@ -242,17 +152,16 @@ impl ValidConfig {
 }
 
 #[allow(clippy::cognitive_complexity)]
-pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Error> {
+pub fn cmd(
+    log_ctx: crate::common::LogContext,
+    args: Args,
+    krate_ctx: crate::common::KrateContext,
+) -> Result<(), Error> {
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
 
-    let mut files = codespan::Files::new();
-    let cfg = ValidConfig::load(
-        krate_ctx.get_config_path(args.config),
-        &mut files,
-        args.format,
-        args.color,
-    )?;
+    let mut files = Files::new();
+    let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files, log_ctx)?;
 
     let (krates, store) = rayon::join(
         || krate_ctx.gather_krates(cfg.targets),
@@ -266,7 +175,7 @@ pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Err
         .with_store(std::sync::Arc::new(store))
         .with_confidence_threshold(args.threshold);
 
-    let mut files = codespan::Files::new();
+    let mut files = Files::new();
 
     let summary = gatherer.gather(&krates, &mut files, None);
 
@@ -355,10 +264,10 @@ pub fn cmd(args: Args, krate_ctx: crate::common::KrateContext) -> Result<(), Err
     match args.format {
         OutputFormat::Human => {
             let mut output = String::with_capacity(4 * 1024);
-            let color = match args.color {
-                ColorWhen::Always => true,
-                ColorWhen::Never => false,
-                ColorWhen::Auto => atty::is(atty::Stream::Stdout),
+            let color = match log_ctx.color {
+                crate::Color::Always => true,
+                crate::Color::Never => false,
+                crate::Color::Auto => atty::is(atty::Stream::Stdout),
             };
 
             match args.layout {

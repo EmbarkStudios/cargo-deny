@@ -16,7 +16,10 @@
 /// Configuration for license checking
 pub mod cfg;
 
-use crate::{diag, Krate, LintLevel};
+use crate::{
+    diag::{Check, Diagnostic, FileId, Files, Label, Pack, Severity},
+    Krate, LintLevel,
+};
 use anyhow::Error;
 use cfg::{BlanketAgreement, FileSource, ValidClarification, ValidException};
 use rayon::prelude::*;
@@ -244,10 +247,10 @@ impl LicensePack {
     fn get_expression(
         &self,
         krate: &Krate,
-        file: codespan::FileId,
+        file: FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
-    ) -> Result<(String, spdx::Expression), (String, Vec<diag::Label>)> {
+    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
         use std::fmt::Write;
 
         let mut expr = String::new();
@@ -384,7 +387,7 @@ impl LicensePack {
 
 #[derive(Debug)]
 pub struct LicenseExprInfo {
-    file_id: codespan::FileId,
+    file_id: FileId,
     offset: usize,
     pub source: LicenseExprSource,
 }
@@ -421,7 +424,7 @@ pub struct KrateLicense<'a> {
 
     // Reasons for why the license was determined (or not!) when
     // gathering the license information
-    labels: SmallVec<[diag::Label; 1]>,
+    labels: SmallVec<[Label; 1]>,
 }
 
 pub struct Summary<'a> {
@@ -512,7 +515,7 @@ impl Gatherer {
     pub fn gather<'k>(
         self,
         krates: &'k crate::Krates,
-        files: &mut codespan::Files<String>,
+        files: &mut Files,
         cfg: Option<&ValidConfig>,
     ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
@@ -567,34 +570,33 @@ impl Gatherer {
 
                 let mut labels = smallvec::SmallVec::<[Label; 1]>::new();
 
-                let mut get_span =
-                    |key: &'static str| -> (codespan::FileId, std::ops::Range<usize>) {
-                        match synth_id {
-                            Some(id) => {
-                                let l = files_lock.read().unwrap();
-                                (synth_id.unwrap(), get_toml_span(key, l.source(id)))
-                            }
-                            None => {
-                                // Synthesize a minimal Cargo.toml for reporting diagnostics
-                                // for where we retrieved license stuff
-                                let synth_manifest = format!(
+                let mut get_span = |key: &'static str| -> (FileId, std::ops::Range<usize>) {
+                    match synth_id {
+                        Some(id) => {
+                            let l = files_lock.read().unwrap();
+                            (synth_id.unwrap(), get_toml_span(key, l.source(id)))
+                        }
+                        None => {
+                            // Synthesize a minimal Cargo.toml for reporting diagnostics
+                            // for where we retrieved license stuff
+                            let synth_manifest = format!(
                                 "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
                                 krate.name,
                                 krate.version,
                                 krate.license.as_deref().unwrap_or_default(),
                             );
 
-                                {
-                                    let mut fl = files_lock.write().unwrap();
-                                    synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
-                                    (
-                                        synth_id.unwrap(),
-                                        get_toml_span(key, fl.source(synth_id.unwrap())),
-                                    )
-                                }
+                            {
+                                let mut fl = files_lock.write().unwrap();
+                                synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
+                                (
+                                    synth_id.unwrap(),
+                                    get_toml_span(key, fl.source(synth_id.unwrap())),
+                                )
                             }
                         }
-                    };
+                    }
+                };
 
                 let mut license_pack = None;
 
@@ -775,7 +777,6 @@ impl Gatherer {
 }
 
 use bitvec::prelude::*;
-use diag::{Check, Diagnostic, Label, Severity};
 
 struct Hits {
     allowed: BitVec<Local, usize>,
@@ -1021,7 +1022,7 @@ pub fn check(
         .collect();
 
     for krate_lic_nfo in summary.nfos {
-        let mut pack = diag::Pack::with_kid(Check::Licenses, krate_lic_nfo.krate.id.clone());
+        let mut pack = Pack::with_kid(Check::Licenses, krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
         // crate and just print out a help message that we skipped it
