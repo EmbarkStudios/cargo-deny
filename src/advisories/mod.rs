@@ -193,6 +193,7 @@ pub fn check(
                             Informational::Other(_) => {
                                 unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
                             }
+                            _ => unreachable!("unknown advisory type encountered"),
                         },
                     };
 
