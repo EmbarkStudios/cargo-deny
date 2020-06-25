@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.7.0] - 2020-06-25
 ### Added
 - Resolved [#137](https://github.com/EmbarkStudios/cargo-deny/issues/137) by adding a `--format <human|json>` option. All diagnostic and log messages from the `check` subcommand respect this flag.
 
@@ -184,7 +185,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.8...0.7.0
 [0.6.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...0.6.8
 [0.6.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.6...0.6.7
 [0.6.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.5...0.6.6
