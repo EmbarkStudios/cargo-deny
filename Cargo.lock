@@ -232,18 +232,18 @@ dependencies = [
 
 [[package]]
 name = "codespan"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7216bea5dad777b759fc5360cc35ad9151643a84a9b8a9fcea0d15889cc8f3ca"
+checksum = "8ebaf6bb6a863ad6aa3a18729e9710c53d75df03306714d9cc1f7357a00cd789"
 dependencies = [
  "codespan-reporting",
 ]
 
 [[package]]
 name = "codespan-reporting"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ceface2475f2f57a7ece9ba239b96e06bda8323ee68aa6df539752f13a74f60"
+checksum = "6e0762455306b1ed42bc651ef6a2197aabda5e1d4a43c34d5eab5c1a3634e81d"
 dependencies = [
  "termcolor",
  "unicode-width",
@@ -251,13 +251,13 @@ dependencies = [
 
 [[package]]
 name = "crates-index"
-version = "0.14.3"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "185e829c8d4ce272df41f19bfc7bb1ef1f119cc451647527c0bce643d8913e25"
+checksum = "15467291e8911aa3e73b0e77d988362da1df7ac974c7189ab38b94b6f7edfa7e"
 dependencies = [
- "error-chain",
  "git2",
  "glob",
+ "hex",
  "home",
  "serde",
  "serde_derive",
@@ -359,16 +359,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 
 [[package]]
-name = "error-chain"
-version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d371106cc88ffdfb1eabd7111e432da544f16f3e2d7bf1dfe8bf575f1df045cd"
-dependencies = [
- "backtrace",
- "version_check",
-]
-
-[[package]]
 name = "failure"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -459,6 +449,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9586eedd4ce6b3c498bc3b4dd92fc9f11166aa908a914071953768066c67909"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -902,9 +901,9 @@ checksum = "4c691c0e608126e00913e33f0ccf3727d5fc84573623b8d65b2df340b5201783"
 
 [[package]]
 name = "rustsec"
-version = "0.20.1"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bcdbdffa54886a5cd9025a2881e148351183d5a8ec83b4b9f87a00427756d44"
+checksum = "b2f7c2b431b329341b1ee7193b7403269153b99804ff5850a0b8966aed26f558"
 dependencies = [
  "cargo-lock",
  "chrono",
@@ -1205,9 +1204,9 @@ checksum = "caaa9d531767d1ff2150b9332433f32a24622147e5ebb1f26409d5da67afd479"
 
 [[package]]
 name = "unicode-xid"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
+checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "url"
