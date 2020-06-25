@@ -90,11 +90,6 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case", max_term_width = 80)]
 pub(crate) struct GraphContext {
-    /// The directory used as the root context (deprecated)
-    ///
-    /// If not specified, the current working directory is used instead. The directory must contain a Cargo.toml file
-    #[structopt(long, parse(from_os_str))]
-    pub(crate) context: Option<PathBuf>,
     /// The path of a Cargo.toml to use as the context for the operation.
     ///
     /// By default, the Cargo.toml in the current working directory is used.
@@ -264,32 +259,26 @@ fn real_main() -> Result<(), Error> {
         None => {
             // For now, use the context path provided by the user, but
             // we've deprected it and it will go away at some point
-            let context_dir = args
-                .ctx
-                .context
-                .or_else(|| std::env::current_dir().ok())
-                .context("unable to determine current working directory")?;
+            let cwd =
+                std::env::current_dir().context("unable to determine current working directory")?;
 
-            if !context_dir.exists() {
-                bail!(
-                    "current working directory {} was not found",
-                    context_dir.display()
-                );
+            if !cwd.exists() {
+                bail!("current working directory {} was not found", cwd.display());
             }
 
-            if !context_dir.is_dir() {
+            if !cwd.is_dir() {
                 bail!(
                     "current working directory {} is not a directory",
-                    context_dir.display()
+                    cwd.display()
                 );
             }
 
-            let man_path = context_dir.join("Cargo.toml");
+            let man_path = cwd.join("Cargo.toml");
 
             if !man_path.exists() {
                 bail!(
                     "the directory {} doesn't contain a Cargo.toml file",
-                    context_dir.display()
+                    cwd.display()
                 );
             }
 
