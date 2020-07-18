@@ -18,6 +18,8 @@ deny = [
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
+    # rustsec uses an older version of semver
+    { name = "semver", version = "0.9.0" },
     # in a surprise twist, semver uses an older version of semver-parser
     { name = "semver-parser", version = "=0.7.0" },
 ]
@@ -40,6 +42,5 @@ allow = [
 ]
 
 exceptions = [
-    { allow = ["Zlib"], name = "adler32" },
     { allow = ["Zlib"], name = "tinyvec" },
 ]
