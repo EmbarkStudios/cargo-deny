@@ -95,7 +95,7 @@ fn krate_for_pkg<'a>(
     krates
         .krates_by_name(pkg.name.as_str())
         .find(|(_, kn)| {
-            // Temporary hack due to cargo-lock using an oldver version of semver
+            // Temporary hack due to cargo-lock using an older version of semver
             let pkg_version: Result<semver::Version, _> = pkg.version.to_string().parse();
 
             if let Ok(pkg_version) = pkg_version {
