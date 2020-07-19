@@ -297,6 +297,7 @@ pub struct CheckCtx<'ctx, T> {
     /// Requests for additional information the check can provide to be
     /// serialized to the diagnostic
     pub serialize_extra: bool,
+    pub cargo_spans: Option<diag::CargoSpans>,
 }
 
 impl<'ctx, T> CheckCtx<'ctx, T> {

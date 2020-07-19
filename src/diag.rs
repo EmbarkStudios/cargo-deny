@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::ops::Range;
+use std::path::PathBuf;
+
 use crate::{DepKind, Kid, Krate, Krates};
 use anyhow::{Context, Error};
 pub use codespan_reporting::diagnostic::Severity;
@@ -8,6 +12,10 @@ pub use codespan::FileId;
 pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<FileId>;
 pub type Label = codespan_reporting::diagnostic::Label<FileId>;
 pub type Files = codespan::Files<String>;
+// Map of crate id => (path to cargo.toml, synthetic cargo.toml content, map(cratename => crate span))
+pub type RawCargoSpans = HashMap<Kid, (PathBuf, String, HashMap<String, Range<usize>>)>;
+// Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
+pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
 
 pub struct Diag {
     pub diag: Diagnostic,
@@ -120,11 +128,13 @@ impl std::ops::Index<usize> for KrateSpans {
 }
 
 impl KrateSpans {
-    pub fn new(krates: &Krates) -> (Self, String) {
+    pub fn new(krates: &Krates) -> (Self, String, RawCargoSpans) {
         use std::fmt::Write;
 
         let mut sl = String::with_capacity(4 * 1024);
         let mut spans = Vec::with_capacity(krates.len());
+        let mut cargo_spans = RawCargoSpans::new();
+
         for krate in krates.krates().map(|kn| &kn.krate) {
             let span_start = sl.len();
             match &krate.source {
@@ -145,9 +155,25 @@ impl KrateSpans {
             spans.push(KrateSpan {
                 span: span_start..span_end,
             });
+
+            let mut sl2 = String::with_capacity(4 * 1024);
+            let mut deps_map = HashMap::new();
+
+            for dep in &krate.deps {
+                let span_start = sl2.len();
+                writeln!(sl2, "{} = \"{}\"", dep.name, dep.req)
+                    .expect("unable to synthesize Cargo.toml");
+                let span_end = sl2.len() - 1;
+                deps_map.insert(dep.name.clone(), span_start..span_end);
+            }
+
+            cargo_spans.insert(
+                krate.id.clone(),
+                (krate.manifest_path.clone(), sl2, deps_map),
+            );
         }
 
-        (Self { spans }, sl)
+        (Self { spans }, sl, cargo_spans)
     }
 }
 

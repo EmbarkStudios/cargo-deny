@@ -135,7 +135,6 @@ impl KrateContext {
                     }),
             );
         }
-
         let graph = gb.build(mdc, |filtered: krates::cm::Package| match filtered.source {
             Some(src) => {
                 if src.is_crates_io() {
@@ -146,7 +145,6 @@ impl KrateContext {
             }
             None => log::debug!("filtered {} {}", filtered.name, filtered.version),
         });
-
         if let Ok(ref krates) = graph {
             let end = std::time::Instant::now();
             log::info!(

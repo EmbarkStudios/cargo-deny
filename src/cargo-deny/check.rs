@@ -2,7 +2,7 @@ use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{
     advisories, bans,
-    diag::{Diagnostic, Files, Severity},
+    diag::{CargoSpans, Diagnostic, Files, Severity},
     licenses, sources, CheckCtx,
 };
 use clap::arg_enum;
@@ -260,10 +260,16 @@ pub(crate) fn cmd(
         None
     };
 
-    let (krate_spans, spans_id) = krate_spans
-        .map(|(spans, contents)| {
+    let (krate_spans, spans_id, cargo_spans) = krate_spans
+        .map(|(spans, contents, raw_cargo_spans)| {
             let id = files.add(krates.lock_path(), contents);
-            (spans, id)
+
+            let mut cargo_spans = CargoSpans::new();
+            for (key, val) in raw_cargo_spans {
+                let cargo_id = files.add(val.0, val.1);
+                cargo_spans.insert(key, (cargo_id, val.2));
+            }
+            (spans, id, cargo_spans)
         })
         .unwrap();
 
@@ -334,6 +340,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 spans_id,
                 serialize_extra,
+                cargo_spans: None,
             };
 
             s.spawn(move |_| {
@@ -386,6 +393,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 spans_id,
                 serialize_extra,
+                cargo_spans: Some(cargo_spans),
             };
 
             s.spawn(|_| {
@@ -408,6 +416,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 spans_id,
                 serialize_extra,
+                cargo_spans: None,
             };
 
             s.spawn(|_| {
@@ -429,6 +438,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 spans_id,
                 serialize_extra,
+                cargo_spans: None,
             };
 
             s.spawn(move |_| {

@@ -81,6 +81,9 @@ pub struct Config {
     /// down to a certain depth
     #[serde(default)]
     pub skip_tree: Vec<Spanned<TreeSkip>>,
+    /// How to handle wildcard dependencies
+    #[serde(default = "crate::lint_warn")]
+    pub wildcards: LintLevel,
 }
 
 impl Default for Config {
@@ -92,6 +95,7 @@ impl Default for Config {
             allow: Vec::new(),
             skip: Vec::new(),
             skip_tree: Vec::new(),
+            wildcards: LintLevel::Warn,
         }
     }
 }
@@ -162,6 +166,7 @@ impl Config {
                 denied,
                 allowed,
                 skipped,
+                wildcards: self.wildcards,
                 tree_skipped: self
                     .skip_tree
                     .into_iter()
@@ -182,6 +187,7 @@ pub struct ValidConfig {
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
+    pub wildcards: LintLevel,
 }
 
 #[cfg(test)]

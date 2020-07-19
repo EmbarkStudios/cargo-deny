@@ -194,6 +194,8 @@ pub fn check(
     output_graph: Option<Box<OutputGraph>>,
     sender: crossbeam::channel::Sender<Pack>,
 ) {
+    let wildcard = VersionReq::parse("*").expect("Parsing wildcard mustnt fail");
+
     let ValidConfig {
         file_id,
         denied,
@@ -202,6 +204,7 @@ pub fn check(
         multiple_versions,
         highlight,
         tree_skipped,
+        wildcards,
         ..
     } = ctx.cfg;
 
@@ -360,6 +363,56 @@ pub fn check(
                 multi_detector.name = &krate.name;
                 multi_detector.dupes.clear();
                 multi_detector.dupes.push(i);
+            }
+
+            if wildcards != LintLevel::Allow {
+                let severity = match wildcards {
+                    LintLevel::Warn => Severity::Warning,
+                    LintLevel::Deny => Severity::Error,
+                    LintLevel::Allow => unreachable!(),
+                };
+
+                let wildcards = krate
+                    .deps
+                    .iter()
+                    .filter(|dep| dep.req == wildcard)
+                    .collect::<Vec<_>>();
+
+                if !wildcards.is_empty() {
+                    let labels = if let Some(ref cargo_spans) = ctx.cargo_spans {
+                        let (file_id, map) = &cargo_spans[&krate.id];
+
+                        wildcards
+                            .into_iter()
+                            .map(|dep| {
+                                Label::primary(*file_id, map[&dep.name].clone())
+                                    .with_message("lock entries")
+                            })
+                            .collect::<Vec<_>>()
+                    } else {
+                        vec![]
+                    };
+
+                    let msg = if labels.len() == 1 {
+                        format!("found 1 wildcard dependency for crate '{}'", krate.name)
+                    } else {
+                        format!(
+                            "found {} wildcard dependencies for crate '{}'",
+                            labels.len(),
+                            krate.name
+                        )
+                    };
+                    let diag = Diag::new(
+                        Diagnostic::new(severity)
+                            .with_message(msg)
+                            .with_labels(labels),
+                    );
+
+                    let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
+                    pack.push(diag);
+
+                    sender.send(pack).unwrap();
+                }
             }
         }
 
