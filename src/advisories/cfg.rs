@@ -6,6 +6,7 @@ use rustsec::advisory;
 use serde::Deserialize;
 use std::path::PathBuf;
 
+#[allow(clippy::reversed_empty_ranges)]
 fn yanked() -> Spanned<LintLevel> {
     Spanned::new(LintLevel::Warn, 0..0)
 }

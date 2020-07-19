@@ -34,6 +34,7 @@ where
     T: Sized,
 {
     fn fake(self) -> Spanned<T> {
+        #[allow(clippy::reversed_empty_ranges)]
         Spanned {
             value: self,
             span: 0..0,

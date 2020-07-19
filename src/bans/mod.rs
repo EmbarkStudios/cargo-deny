@@ -480,6 +480,7 @@ mod test {
         let mut versions: Vec<_> = versions
             .iter()
             .map(|v| {
+                #[allow(clippy::reversed_empty_ranges)]
                 crate::Spanned::new(
                     super::KrateId {
                         name: v.name.clone(),

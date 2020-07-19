@@ -50,6 +50,7 @@ impl Config {
             // Attempt to find the url in the toml contents
             let span = match contents.find(&ar) {
                 Some(ari) => ari - 1..ari + ar.len() + 1,
+                #[allow(clippy::reversed_empty_ranges)]
                 None => 0..0,
             };
 
