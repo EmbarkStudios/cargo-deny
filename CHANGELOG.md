@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Fix issue due to incompatible semver versioning with relation to...the semver crate.
+
 ## [0.7.0] - 2020-06-25
 ### Added
 - Resolved [#137](https://github.com/EmbarkStudios/cargo-deny/issues/137) by adding a `--format <human|json>` option. All diagnostic and log messages from the `check` subcommand respect this flag.
