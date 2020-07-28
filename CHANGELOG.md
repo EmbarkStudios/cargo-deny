@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#227](https://github.com/EmbarkStudios/cargo-deny/pull/227) Added a new `bans.wildcards` check to lint for version requirements of `"*"`, which can happen when using local or patched crates that aren't published to a registry. Thanks [@khodzha](https://github.com/khodzha)!
+
+### Fixed
+- Fix incompatible crate versions due to `cargo_metadata`.
+
 ## [0.7.1] - 2020-07-21
 ### Fixed
 - Fix issue due to incompatible semver versioning with relation to...the semver crate.
