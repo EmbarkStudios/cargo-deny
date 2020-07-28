@@ -1,5 +1,6 @@
 [bans]
 multiple-versions = "deny"
+wildcards = "deny"
 highlight = "simplest-path"
 allow = [
     { name = "all-versionsa" },
