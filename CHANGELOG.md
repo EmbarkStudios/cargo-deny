@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.7.2] - 2020-07-28
 ### Added
 - [PR#227](https://github.com/EmbarkStudios/cargo-deny/pull/227) Added a new `bans.wildcards` check to lint for version requirements of `"*"`, which can happen when using local or patched crates that aren't published to a registry. Thanks [@khodzha](https://github.com/khodzha)!
 
@@ -195,7 +196,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.2...HEAD
+[0.7.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.8...0.7.0
 [0.6.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.6.7...0.6.8
