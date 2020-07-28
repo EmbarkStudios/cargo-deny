@@ -386,7 +386,7 @@ pub fn check(
                             .into_iter()
                             .map(|dep| {
                                 Label::primary(*file_id, map[&dep.name].clone())
-                                    .with_message("lock entries")
+                                    .with_message("wildcard crate entry")
                             })
                             .collect::<Vec<_>>()
                     } else {
