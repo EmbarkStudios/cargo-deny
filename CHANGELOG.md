@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#237](https://github.com/EmbarkStudios/cargo-deny/pull/237) added the ability to allow git sources from entire `github.com`, `gitlab.com`, or `bitbucket.org` organizations.
+- [PR#237](https://github.com/EmbarkStudios/cargo-deny/pull/237) added the ability to lint the specifiers used for git sources.
+
 ## [0.7.2] - 2020-07-28
 ### Added
 - [PR#227](https://github.com/EmbarkStudios/cargo-deny/pull/227) Added a new `bans.wildcards` check to lint for version requirements of `"*"`, which can happen when using local or patched crates that aren't published to a registry. Thanks [@khodzha](https://github.com/khodzha)!
