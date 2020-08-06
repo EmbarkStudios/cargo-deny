@@ -1,6 +1,7 @@
 [sources]
 unknown-registry = "allow"
 unknown-git = "deny"
+required-git-spec = "tag"
 allow-registry = [
     "https://sekretz.com/registry/index",
 ]

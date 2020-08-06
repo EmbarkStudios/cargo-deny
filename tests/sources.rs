@@ -146,7 +146,6 @@ fn allows_github_org() {
 
 #[test]
 fn allows_gitlab_org() {
-    // We shouldn't have any errors for the embark urls now
     let cfg = "unknown-git = 'deny'
     [allow-org]
     gitlab = ['amethyst-engine']
@@ -193,7 +192,6 @@ fn allows_gitlab_org() {
 
 #[test]
 fn allows_bitbucket_org() {
-    // We shouldn't have any errors for the embark urls now
     let cfg = "unknown-git = 'deny'
     [allow-org]
     bitbucket = ['marshallpierce']
@@ -234,6 +232,77 @@ fn allows_bitbucket_org() {
                 assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
             }
             ty => unreachable!("unexpected '{}' diagnostic", ty),
+        }
+    }
+}
+
+#[test]
+fn validates_git_source_specs() {
+    use sources::GitSpec;
+
+    assert!(GitSpec::Rev > GitSpec::Tag);
+    assert!(GitSpec::Tag > GitSpec::Branch);
+    assert!(GitSpec::Branch > GitSpec::Any);
+
+    let levels = [
+        (GitSpec::Rev, "https://gitlab.com/amethyst-engine/amethyst"),
+        (GitSpec::Tag, "https://github.com/EmbarkStudios/spdx"),
+        (GitSpec::Branch, "https://github.com/EmbarkStudios/krates"),
+        (
+            GitSpec::Any,
+            "https://bitbucket.org/marshallpierce/line-wrap-rs",
+        ),
+    ];
+
+    for (i, (spec, _url)) in levels.iter().enumerate() {
+        let cfg = format!(
+            "unknown-git = 'allow'
+        required-git-spec = '{}'",
+            spec
+        );
+
+        let krates = utils::get_test_data_krates("sources").unwrap();
+        let mut diags = utils::gather_diagnostics::<sources::Config, _, _>(
+            krates,
+            "validates_git_source_specs",
+            Some(&cfg),
+            None,
+            |ctx, tx| {
+                sources::check(ctx, tx);
+            },
+        )
+        .unwrap();
+
+        diags.retain(|d| {
+            d.pointer("/fields/message")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with("'git' source is underspecified, expected")
+        });
+
+        for (j, (_, url)) in levels.iter().enumerate() {
+            let severities: Vec<_> = diags
+                .iter()
+                .filter_map(|d| {
+                    d.pointer("/fields/labels/0/span")
+                        .and_then(|u| u.as_str())
+                        .and_then(|u| {
+                            if u.contains(url) {
+                                d.pointer("/fields/severity").and_then(|s| s.as_str())
+                            } else {
+                                None
+                            }
+                        })
+                })
+                .collect();
+
+            if j <= i {
+                assert!(severities.is_empty());
+            } else {
+                assert!(!severities.is_empty());
+                assert!(severities.into_iter().all(|s| s == "error"));
+            }
         }
     }
 }

@@ -15,6 +15,41 @@ pub struct Orgs {
     bitbucket: Vec<Spanned<String>>,
 }
 
+/// The types of specifiers that can be used on git sources by cargo, in order
+/// of their specificity from least to greatest
+#[derive(Deserialize, PartialEq, Debug, PartialOrd)]
+#[serde(rename_all = "snake_case")]
+pub enum GitSpec {
+    /// Specifies the HEAD of the `master` branch, though eventually this might
+    /// change to the default branch
+    Any,
+    /// Specifies the HEAD of a particular branch
+    Branch,
+    /// Specifies the commit pointed to by a particular tag
+    Tag,
+    /// Specifies an exact commit
+    Rev,
+}
+
+use std::fmt;
+
+impl fmt::Display for GitSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Any => "any",
+            Self::Branch => "branch",
+            Self::Tag => "tag",
+            Self::Rev => "rev",
+        })
+    }
+}
+
+impl Default for GitSpec {
+    fn default() -> Self {
+        GitSpec::Any
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
@@ -34,6 +69,10 @@ pub struct Config {
     /// The lists of source control organizations that crates can be sourced from.
     #[serde(default)]
     pub allow_org: Orgs,
+    /// The minimum specification required for git sources. Defaults to allowing
+    /// any.
+    #[serde(default)]
+    pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
 fn default_allow_registry() -> Vec<Spanned<String>> {
@@ -52,6 +91,7 @@ impl Default for Config {
             allow_registry: default_allow_registry(),
             allow_git: Vec::new(),
             allow_org: Orgs::default(),
+            required_git_spec: None,
         }
     }
 }
@@ -120,6 +160,7 @@ impl cfg::UnvalidatedConfig for Config {
             unknown_git: self.unknown_git,
             allowed_sources,
             allowed_orgs,
+            required_git_spec: self.required_git_spec,
         })
     }
 }
@@ -134,6 +175,7 @@ pub struct ValidConfig {
     pub unknown_git: LintLevel,
     pub allowed_sources: Vec<UrlSpan>,
     pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
+    pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
 #[cfg(test)]
@@ -179,5 +221,7 @@ mod test {
                 (OrgType::Bitbucket, "atlassian".to_owned().fake()),
             ]
         );
+
+        assert_eq!(validated.required_git_spec.unwrap().value, GitSpec::Tag);
     }
 }

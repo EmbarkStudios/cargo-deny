@@ -1,5 +1,5 @@
 mod cfg;
-pub use cfg::{Config, ValidConfig};
+pub use cfg::{Config, GitSpec, ValidConfig};
 
 use crate::{
     diag::{Check, Diagnostic, Label, Pack, Severity},
@@ -37,15 +37,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             url
         };
 
-        // get allowed list of sources to check
-
-        let (lint_level, type_name) = if source.is_registry() {
-            (ctx.cfg.unknown_registry, "registry")
-        } else if source.is_git() {
-            (ctx.cfg.unknown_git, "git")
-        } else {
-            continue;
-        };
+        let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
 
         let source_label = {
             let mut span = ctx.krate_spans[i].clone();
@@ -56,6 +48,53 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
 
             span.start = span.start + last_space + 1;
             Label::primary(ctx.spans_id, span).with_message("source")
+        };
+
+        // get allowed list of sources to check
+        let (lint_level, type_name) = if source.is_registry() {
+            (ctx.cfg.unknown_registry, "registry")
+        } else if source.is_git() {
+            // Ensure the git source has at least the minimum specification
+            if let Some(cfg_min) = &ctx.cfg.required_git_spec {
+                pub use rustsec::package::source::GitReference;
+
+                let spec = source
+                    .git_reference()
+                    .map(|gr| match gr {
+                        GitReference::Branch(name) => {
+                            // TODO: Workaround logic hardcoded in the rustsec crate,
+                            // that crate can be changed to support the new v3 lock format
+                            // whenever it is stabilized https://github.com/rust-lang/cargo/pull/8522
+                            if name == "master" {
+                                GitSpec::Any
+                            } else {
+                                GitSpec::Branch
+                            }
+                        }
+                        GitReference::Tag(_) => GitSpec::Tag,
+                        GitReference::Rev(_) => GitSpec::Rev,
+                    })
+                    .unwrap_or_default();
+
+                if spec < cfg_min.value {
+                    pack.push(
+                        Diagnostic::new(Severity::Error)
+                            .with_message(format!(
+                                "'git' source is underspecified, expected '{}', found '{}'",
+                                cfg_min.value, spec,
+                            ))
+                            .with_labels(vec![
+                                source_label.clone(),
+                                Label::primary(ctx.cfg.file_id, cfg_min.span.clone())
+                                    .with_message("minimum spec configuration"),
+                            ]),
+                    );
+                }
+            }
+
+            (ctx.cfg.unknown_git, "git")
+        } else {
+            continue;
         };
 
         // check if the source URL is list of allowed sources
@@ -70,7 +109,6 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                 // it's crates.io since that will be a vast majority of crates and
                 // is the default, so we might not have a real source location anyways
                 if source_url.as_str() != "https://github.com/rust-lang/crates.io-index" {
-                    let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
                     pack.push(
                         Diagnostic::new(Severity::Note)
                             .with_message(format!("'{}' source explicitly allowed", type_name,))
@@ -83,21 +121,18 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                                 .with_message("url allowance"),
                             ]),
                     );
-
-                    sender.send(pack).unwrap();
                 }
 
                 source_hits.as_mut_bitslice().set(ind, true)
             }
             None => {
-                // Check to see if the url is still allowed due to its org
-                if !ctx.cfg.allowed_orgs.is_empty() {
-                    if let Some((orgt, orgname)) = get_org(&source_url) {
-                        if let Some(ind) = ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
+                let diag = match get_org(&source_url) {
+                    Some((orgt, orgname)) => {
+                        match ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
                             orgt == *sorgt && sorgn.value.as_str() == orgname
                         }) {
-                            let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
-                            pack.push(
+                            Some(ind) => {
+                                org_hits.as_mut_bitslice().set(ind, true);
                                 Diagnostic::new(Severity::Note)
                                     .with_message(format!(
                                         "'{}' source explicitly allowed",
@@ -110,19 +145,21 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                                             ctx.cfg.allowed_orgs[ind].1.span.clone(),
                                         )
                                         .with_message("org allowance"),
-                                    ]),
-                            );
-
-                            sender.send(pack).unwrap();
-                            org_hits.as_mut_bitslice().set(ind, true);
-                            continue;
+                                    ])
+                            }
+                            None => Diagnostic::new(match lint_level {
+                                LintLevel::Warn => Severity::Warning,
+                                LintLevel::Deny => Severity::Error,
+                                LintLevel::Allow => Severity::Note,
+                            })
+                            .with_message(format!(
+                                "detected '{}' source not specifically allowed",
+                                type_name,
+                            ))
+                            .with_labels(vec![source_label]),
                         }
                     }
-                }
-
-                let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
-                pack.push(
-                    Diagnostic::new(match lint_level {
+                    None => Diagnostic::new(match lint_level {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
                         LintLevel::Allow => Severity::Note,
@@ -132,10 +169,14 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                         type_name,
                     ))
                     .with_labels(vec![source_label]),
-                );
+                };
 
-                sender.send(pack).unwrap();
+                pack.push(diag);
             }
+        }
+
+        if !pack.is_empty() {
+            sender.send(pack).unwrap();
         }
     }
 
