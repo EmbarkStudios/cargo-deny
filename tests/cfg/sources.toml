@@ -7,3 +7,14 @@ allow-registry = [
 allow-git = [
     "https://notgithub.com/orgname/reponame",
 ]
+[sources.allow-org]
+github = [
+    "yourghid",
+    "YourOrg",
+]
+gitlab = [
+    "gitlab-org",
+]
+bitbucket = [
+    "atlassian",
+]

@@ -1,5 +1,19 @@
+use super::OrgType;
 use crate::{cfg, diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
+
+#[derive(Deserialize, Default)]
+pub struct Orgs {
+    /// The list of Github organizations that crates can be sourced from.
+    #[serde(default)]
+    github: Vec<Spanned<String>>,
+    /// The list of Gitlab organizations that crates can be sourced from.
+    #[serde(default)]
+    gitlab: Vec<Spanned<String>>,
+    /// The list of Bitbucket organizations that crates can be sourced from.
+    #[serde(default)]
+    bitbucket: Vec<Spanned<String>>,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
@@ -17,6 +31,9 @@ pub struct Config {
     /// The list of git repositories that crates can be sourced from.
     #[serde(default)]
     pub allow_git: Vec<Spanned<String>>,
+    /// The lists of source control organizations that crates can be sourced from.
+    #[serde(default)]
+    pub allow_org: Orgs,
 }
 
 fn default_allow_registry() -> Vec<Spanned<String>> {
@@ -34,6 +51,7 @@ impl Default for Config {
             unknown_git: LintLevel::Warn,
             allow_registry: default_allow_registry(),
             allow_git: Vec::new(),
+            allow_org: Orgs::default(),
         }
     }
 }
@@ -77,11 +95,31 @@ impl cfg::UnvalidatedConfig for Config {
             return Err(diags);
         }
 
+        let allowed_orgs = self
+            .allow_org
+            .github
+            .into_iter()
+            .map(|o| (OrgType::Github, o))
+            .chain(
+                self.allow_org
+                    .gitlab
+                    .into_iter()
+                    .map(|o| (OrgType::Gitlab, o)),
+            )
+            .chain(
+                self.allow_org
+                    .bitbucket
+                    .into_iter()
+                    .map(|o| (OrgType::Bitbucket, o)),
+            )
+            .collect();
+
         Ok(ValidConfig {
             file_id: cfg_file,
             unknown_registry: self.unknown_registry,
             unknown_git: self.unknown_git,
             allowed_sources,
+            allowed_orgs,
         })
     }
 }
@@ -95,6 +133,7 @@ pub struct ValidConfig {
     pub unknown_registry: LintLevel,
     pub unknown_git: LintLevel,
     pub allowed_sources: Vec<UrlSpan>,
+    pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
 }
 
 #[cfg(test)]
@@ -127,6 +166,17 @@ mod test {
                 url::Url::parse("https://notgithub.com/orgname/reponame")
                     .unwrap()
                     .fake()
+            ]
+        );
+
+        // Obviously order could change here, but for now just hardcode it
+        assert_eq!(
+            validated.allowed_orgs,
+            vec![
+                (OrgType::Github, "yourghid".to_owned().fake()),
+                (OrgType::Github, "YourOrg".to_owned().fake()),
+                (OrgType::Gitlab, "gitlab-org".to_owned().fake()),
+                (OrgType::Bitbucket, "atlassian".to_owned().fake()),
             ]
         );
     }

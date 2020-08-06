@@ -19,6 +19,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
     // keep track of which sources are actually encountered, so we can emit a
     // warning if the user has listed a source that no crates are actually using
     let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
+    let mut org_hits = bitvec![0; ctx.cfg.allowed_orgs.len()];
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let source = match &krate.source {
@@ -46,6 +47,17 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             continue;
         };
 
+        let source_label = {
+            let mut span = ctx.krate_spans[i].clone();
+
+            // The krate span is the complete id, but we only want
+            // to highlight the source component
+            let last_space = krate.id.repr.rfind(' ').unwrap();
+
+            span.start = span.start + last_space + 1;
+            Label::primary(ctx.spans_id, span).with_message("source")
+        };
+
         // check if the source URL is list of allowed sources
         match ctx
             .cfg
@@ -53,15 +65,60 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             .iter()
             .position(|src| src == &source_url)
         {
-            Some(ind) => source_hits.as_mut_bitslice().set(ind, true),
+            Some(ind) => {
+                // Show the location of the config that allowed this source, unless
+                // it's crates.io since that will be a vast majority of crates and
+                // is the default, so we might not have a real source location anyways
+                if source_url.as_str() != "https://github.com/rust-lang/crates.io-index" {
+                    let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
+                    pack.push(
+                        Diagnostic::new(Severity::Note)
+                            .with_message(format!("'{}' source explicitly allowed", type_name,))
+                            .with_labels(vec![
+                                source_label,
+                                Label::primary(
+                                    ctx.cfg.file_id,
+                                    ctx.cfg.allowed_sources[ind].span.clone(),
+                                )
+                                .with_message("url allowance"),
+                            ]),
+                    );
+
+                    sender.send(pack).unwrap();
+                }
+
+                source_hits.as_mut_bitslice().set(ind, true)
+            }
             None => {
-                let mut span = ctx.krate_spans[i].clone();
+                // Check to see if the url is still allowed due to its org
+                if !ctx.cfg.allowed_orgs.is_empty() {
+                    if let Some((orgt, orgname)) = get_org(&source_url) {
+                        if let Some(ind) = ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
+                            orgt == *sorgt && sorgn.value.as_str() == orgname
+                        }) {
+                            let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
+                            pack.push(
+                                Diagnostic::new(Severity::Note)
+                                    .with_message(format!(
+                                        "'{}' source explicitly allowed",
+                                        type_name,
+                                    ))
+                                    .with_labels(vec![
+                                        source_label,
+                                        Label::primary(
+                                            ctx.cfg.file_id,
+                                            ctx.cfg.allowed_orgs[ind].1.span.clone(),
+                                        )
+                                        .with_message("org allowance"),
+                                    ]),
+                            );
 
-                // The krate span is the complete id, but we only want
-                // to highlight the source component
-                let last_space = krate.id.repr.rfind(' ').unwrap();
-
-                span.start = span.start + last_space + 1;
+                            sender.send(pack).unwrap();
+                            org_hits.as_mut_bitslice().set(ind, true);
+                            continue;
+                        }
+                    }
+                }
 
                 let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
                 pack.push(
@@ -74,9 +131,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                         "detected '{}' source not specifically allowed",
                         type_name,
                     ))
-                    .with_labels(vec![
-                        Label::primary(ctx.spans_id, span).with_message("source")
-                    ]),
+                    .with_labels(vec![source_label]),
                 );
 
                 sender.send(pack).unwrap();
@@ -102,4 +157,59 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             )
             .unwrap();
     }
+
+    for (orgt, orgs) in org_hits
+        .into_iter()
+        .zip(ctx.cfg.allowed_orgs.into_iter())
+        .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
+    {
+        sender
+            .send(
+                (
+                    Check::Sources,
+                    Diagnostic::warning()
+                        .with_message(format!("allowed {} organization was not encountered", orgt))
+                        .with_labels(vec![Label::primary(ctx.cfg.file_id, orgs.span)
+                            .with_message("no crate source fell under this organization")]),
+                )
+                    .into(),
+            )
+            .unwrap();
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum OrgType {
+    Github,
+    Gitlab,
+    Bitbucket,
+}
+
+use std::fmt;
+impl fmt::Display for OrgType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Github => "github.com",
+            Self::Gitlab => "gitlab.com",
+            Self::Bitbucket => "bitbucket.org",
+        })
+    }
+}
+
+fn get_org(url: &url::Url) -> Option<(OrgType, &str)> {
+    url.domain().and_then(|domain| {
+        let org_type = if domain.eq_ignore_ascii_case("github.com") {
+            OrgType::Github
+        } else if domain.eq_ignore_ascii_case("gitlab.com") {
+            OrgType::Gitlab
+        } else if domain.eq_ignore_ascii_case("bitbucket.org") {
+            OrgType::Bitbucket
+        } else {
+            return None;
+        };
+
+        url.path_segments()
+            .and_then(|mut f| f.next())
+            .map(|org| (org_type, org))
+    })
 }
