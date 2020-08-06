@@ -55,8 +55,10 @@ impl Default for Config {
     }
 }
 
-impl Config {
-    pub fn validate(self, cfg_file: FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
+impl crate::cfg::UnvalidatedConfig for Config {
+    type ValidCfg = ValidConfig;
+
+    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
         let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
         ignored.sort();
 
@@ -91,7 +93,7 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::test::*;
+    use crate::cfg::{test::*, UnvalidatedConfig};
 
     #[test]
     fn works() {

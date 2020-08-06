@@ -81,6 +81,8 @@ impl ValidConfig {
         files: &mut Files,
         log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
+        use cargo_deny::UnvalidatedConfig;
+
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
                 std::fs::read_to_string(&cfg_path).with_context(|| {
@@ -118,10 +120,7 @@ impl ValidConfig {
             // which doesn't play nicely with the toml::Spanned type, so we pass in the
             // file contents as well so that sources validation can scan the contents itself
             // if needed.
-            let sources = cfg
-                .sources
-                .unwrap_or_default()
-                .validate(id, files.source(id))?;
+            let sources = cfg.sources.unwrap_or_default().validate(id)?;
 
             let mut diagnostics = Vec::new();
             let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
