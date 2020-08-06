@@ -144,5 +144,96 @@ fn allows_github_org() {
     }
 }
 
-// #[test]
-// fn allows_org() {}
+#[test]
+fn allows_gitlab_org() {
+    // We shouldn't have any errors for the embark urls now
+    let cfg = "unknown-git = 'deny'
+    [allow-org]
+    gitlab = ['amethyst-engine']
+    ";
+
+    let krates = utils::get_test_data_krates("sources").unwrap();
+    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
+        krates,
+        "allows_gitlab_org",
+        Some(cfg),
+        None,
+        |ctx, tx| {
+            sources::check(ctx, tx);
+        },
+    )
+    .unwrap();
+
+    let allowed_by_org = ["https://gitlab.com/amethyst-engine"];
+
+    for diag in diags {
+        match diag.pointer("/fields/severity").unwrap().as_str().unwrap() {
+            "error" => {
+                let source = diag
+                    .pointer("/fields/labels/0/span")
+                    .unwrap()
+                    .as_str()
+                    .unwrap();
+
+                assert!(!allowed_by_org.iter().any(|ao| source.contains(ao)));
+            }
+            "note" => {
+                let source = diag
+                    .pointer("/fields/labels/0/span")
+                    .unwrap()
+                    .as_str()
+                    .unwrap();
+
+                assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
+            }
+            ty => unreachable!("unexpected '{}' diagnostic", ty),
+        }
+    }
+}
+
+#[test]
+fn allows_bitbucket_org() {
+    // We shouldn't have any errors for the embark urls now
+    let cfg = "unknown-git = 'deny'
+    [allow-org]
+    bitbucket = ['marshallpierce']
+    ";
+
+    let krates = utils::get_test_data_krates("sources").unwrap();
+    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
+        krates,
+        "allows_bitbucket_org",
+        Some(cfg),
+        None,
+        |ctx, tx| {
+            sources::check(ctx, tx);
+        },
+    )
+    .unwrap();
+
+    let allowed_by_org = ["https://bitbucket.org/marshallpierce/line-wrap-rs"];
+
+    for diag in diags {
+        match diag.pointer("/fields/severity").unwrap().as_str().unwrap() {
+            "error" => {
+                let source = diag
+                    .pointer("/fields/labels/0/span")
+                    .unwrap()
+                    .as_str()
+                    .unwrap();
+
+                assert!(!allowed_by_org.iter().any(|ao| source.contains(ao)));
+            }
+            "note" => {
+                let source = diag
+                    .pointer("/fields/labels/0/span")
+                    .unwrap()
+                    .as_str()
+                    .unwrap();
+
+                assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
+            }
+            ty => unreachable!("unexpected '{}' diagnostic", ty),
+        }
+    }
+}
