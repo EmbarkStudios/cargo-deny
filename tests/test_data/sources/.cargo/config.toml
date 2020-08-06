@@ -1,0 +1,2 @@
+[registries]
+fancy-pants = { index = "https://custom.sekretz.com/registry/index" }

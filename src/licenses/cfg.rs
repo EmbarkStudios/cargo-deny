@@ -181,13 +181,15 @@ impl Default for Config {
     }
 }
 
-impl Config {
+impl crate::cfg::UnvalidatedConfig for Config {
+    type ValidCfg = ValidConfig;
+
     /// Validates the configuration provided by the user.
     ///
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    pub fn validate(self, cfg_file: FileId) -> Result<ValidConfig, Vec<Diagnostic>> {
+    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
         use rayon::prelude::*;
 
         let mut diagnostics = Vec::new();

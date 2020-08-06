@@ -1,5 +1,54 @@
-use crate::{diag::FileId, LintLevel, Spanned};
+use super::OrgType;
+use crate::{cfg, diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
+
+#[derive(Deserialize, Default)]
+pub struct Orgs {
+    /// The list of Github organizations that crates can be sourced from.
+    #[serde(default)]
+    github: Vec<Spanned<String>>,
+    /// The list of Gitlab organizations that crates can be sourced from.
+    #[serde(default)]
+    gitlab: Vec<Spanned<String>>,
+    /// The list of Bitbucket organizations that crates can be sourced from.
+    #[serde(default)]
+    bitbucket: Vec<Spanned<String>>,
+}
+
+/// The types of specifiers that can be used on git sources by cargo, in order
+/// of their specificity from least to greatest
+#[derive(Deserialize, PartialEq, Debug, PartialOrd)]
+#[serde(rename_all = "snake_case")]
+pub enum GitSpec {
+    /// Specifies the HEAD of the `master` branch, though eventually this might
+    /// change to the default branch
+    Any,
+    /// Specifies the HEAD of a particular branch
+    Branch,
+    /// Specifies the commit pointed to by a particular tag
+    Tag,
+    /// Specifies an exact commit
+    Rev,
+}
+
+use std::fmt;
+
+impl fmt::Display for GitSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Any => "any",
+            Self::Branch => "branch",
+            Self::Tag => "tag",
+            Self::Rev => "rev",
+        })
+    }
+}
+
+impl Default for GitSpec {
+    fn default() -> Self {
+        GitSpec::Any
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
@@ -13,14 +62,25 @@ pub struct Config {
     /// The list of registries that crates can be sourced from.
     /// Defaults to the crates.io registry if not specified.
     #[serde(default = "default_allow_registry")]
-    pub allow_registry: Vec<String>,
+    pub allow_registry: Vec<Spanned<String>>,
     /// The list of git repositories that crates can be sourced from.
     #[serde(default)]
     pub allow_git: Vec<Spanned<String>>,
+    /// The lists of source control organizations that crates can be sourced from.
+    #[serde(default)]
+    pub allow_org: Orgs,
+    /// The minimum specification required for git sources. Defaults to allowing
+    /// any.
+    #[serde(default)]
+    pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
-fn default_allow_registry() -> Vec<String> {
-    vec!["https://github.com/rust-lang/crates.io-index".to_owned()]
+fn default_allow_registry() -> Vec<Spanned<String>> {
+    // This is always valid, so we don't have to worry about the span being fake
+    vec![Spanned::new(
+        "https://github.com/rust-lang/crates.io-index".to_owned(),
+        0..44,
+    )]
 }
 
 impl Default for Config {
@@ -30,52 +90,33 @@ impl Default for Config {
             unknown_git: LintLevel::Warn,
             allow_registry: default_allow_registry(),
             allow_git: Vec::new(),
+            allow_org: Orgs::default(),
+            required_git_spec: None,
         }
     }
 }
 
 use crate::diag::{Diagnostic, Label};
 
-impl Config {
-    pub fn validate(
-        self,
-        cfg_file: FileId,
-        contents: &str,
-    ) -> Result<ValidConfig, Vec<Diagnostic>> {
+impl cfg::UnvalidatedConfig for Config {
+    type ValidCfg = ValidConfig;
+
+    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
         let mut diags = Vec::new();
 
         let mut allowed_sources =
             Vec::with_capacity(self.allow_registry.len() + self.allow_git.len());
-        for ar in self.allow_registry {
-            // Attempt to find the url in the toml contents
-            let span = match contents.find(&ar) {
-                Some(ari) => ari - 1..ari + ar.len() + 1,
-                #[allow(clippy::reversed_empty_ranges)]
-                None => 0..0,
-            };
 
-            match url::Url::parse(&ar) {
+        for aurl in self
+            .allow_registry
+            .into_iter()
+            .chain(self.allow_git.into_iter())
+        {
+            match url::Url::parse(aurl.as_ref()) {
                 Ok(url) => {
-                    allowed_sources.push(SourceSpan::new(url, span));
-                }
-                Err(pe) => {
-                    diags.push(
-                        Diagnostic::error()
-                            .with_message("failed to parse url")
-                            .with_labels(vec![
-                                Label::primary(cfg_file, span).with_message(pe.to_string())
-                            ]),
-                    );
-                }
-            }
-        }
-
-        for ag in self.allow_git {
-            match url::Url::parse(ag.as_ref()) {
-                Ok(url) => {
-                    allowed_sources.push(SourceSpan {
+                    allowed_sources.push(UrlSpan {
                         value: url,
-                        span: ag.span,
+                        span: aurl.span,
                     });
                 }
                 Err(pe) => {
@@ -83,7 +124,7 @@ impl Config {
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(cfg_file, ag.span).with_message(pe.to_string())
+                                Label::primary(cfg_file, aurl.span).with_message(pe.to_string())
                             ]),
                     );
                 }
@@ -94,16 +135,37 @@ impl Config {
             return Err(diags);
         }
 
+        let allowed_orgs = self
+            .allow_org
+            .github
+            .into_iter()
+            .map(|o| (OrgType::Github, o))
+            .chain(
+                self.allow_org
+                    .gitlab
+                    .into_iter()
+                    .map(|o| (OrgType::Gitlab, o)),
+            )
+            .chain(
+                self.allow_org
+                    .bitbucket
+                    .into_iter()
+                    .map(|o| (OrgType::Bitbucket, o)),
+            )
+            .collect();
+
         Ok(ValidConfig {
             file_id: cfg_file,
             unknown_registry: self.unknown_registry,
             unknown_git: self.unknown_git,
             allowed_sources,
+            allowed_orgs,
+            required_git_spec: self.required_git_spec,
         })
     }
 }
 
-pub type SourceSpan = Spanned<url::Url>;
+pub type UrlSpan = Spanned<url::Url>;
 
 #[doc(hidden)]
 pub struct ValidConfig {
@@ -111,7 +173,9 @@ pub struct ValidConfig {
 
     pub unknown_registry: LintLevel,
     pub unknown_git: LintLevel,
-    pub allowed_sources: Vec<SourceSpan>,
+    pub allowed_sources: Vec<UrlSpan>,
+    pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
+    pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
 #[cfg(test)]
@@ -129,11 +193,7 @@ mod test {
 
         let cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
 
-        let validated = cd
-            .config
-            .sources
-            .validate(cd.id, cd.files.source(cd.id))
-            .unwrap();
+        let validated = cd.config.sources.validate(cd.id).unwrap();
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.unknown_registry, LintLevel::Allow);
@@ -150,5 +210,18 @@ mod test {
                     .fake()
             ]
         );
+
+        // Obviously order could change here, but for now just hardcode it
+        assert_eq!(
+            validated.allowed_orgs,
+            vec![
+                (OrgType::Github, "yourghid".to_owned().fake()),
+                (OrgType::Github, "YourOrg".to_owned().fake()),
+                (OrgType::Gitlab, "gitlab-org".to_owned().fake()),
+                (OrgType::Bitbucket, "atlassian".to_owned().fake()),
+            ]
+        );
+
+        assert_eq!(validated.required_git_spec.unwrap().value, GitSpec::Tag);
     }
 }

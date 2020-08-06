@@ -411,3 +411,92 @@ impl<'a> ObjectGrapher<'a> {
         Ok(node)
     }
 }
+
+pub type CSDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
+
+pub fn cs_diag_to_json(diag: CSDiag, files: &Files) -> serde_json::Value {
+    let mut val = serde_json::json!({
+        "type": "diagnostic",
+        "fields": {
+            "severity": match diag.severity {
+                Severity::Error => "error",
+                Severity::Warning => "warning",
+                Severity::Note => "note",
+                Severity::Help => "help",
+                Severity::Bug => "bug",
+            },
+            "message": diag.message,
+        },
+    });
+
+    {
+        let obj = val.as_object_mut().unwrap();
+        let obj = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+        if let Some(code) = diag.code {
+            obj.insert("code".to_owned(), serde_json::Value::String(code));
+        }
+
+        if !diag.labels.is_empty() {
+            let mut labels = Vec::with_capacity(diag.labels.len());
+
+            for label in diag.labels {
+                let location = files
+                    .location(label.file_id, label.range.start as u32)
+                    .unwrap();
+                labels.push(serde_json::json!({
+                    "message": label.message,
+                    "span": &files.source(label.file_id)[label.range],
+                    "line": location.line.to_usize() + 1,
+                    "column": location.column.to_usize() + 1,
+                }));
+            }
+
+            obj.insert("labels".to_owned(), serde_json::Value::Array(labels));
+        }
+
+        if !diag.notes.is_empty() {
+            obj.insert(
+                "notes".to_owned(),
+                serde_json::Value::Array(
+                    diag.notes
+                        .into_iter()
+                        .map(serde_json::Value::String)
+                        .collect(),
+                ),
+            );
+        }
+    }
+
+    val
+}
+
+pub fn diag_to_json(
+    diag: Diag,
+    files: &Files,
+    grapher: Option<&ObjectGrapher<'_>>,
+) -> serde_json::Value {
+    let mut to_print = cs_diag_to_json(diag.diag, files);
+
+    let obj = to_print.as_object_mut().unwrap();
+    let fields = obj.get_mut("fields").unwrap().as_object_mut().unwrap();
+
+    if let Some(grapher) = &grapher {
+        let mut graphs = Vec::new();
+        for kid in diag.kids {
+            if let Ok(graph) = grapher.write_graph(&kid) {
+                if let Ok(sgraph) = serde_json::value::to_value(graph) {
+                    graphs.push(sgraph);
+                }
+            }
+        }
+
+        fields.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
+    }
+
+    if let Some((key, val)) = diag.extra {
+        fields.insert(key.to_owned(), val);
+    }
+
+    to_print
+}

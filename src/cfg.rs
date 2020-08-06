@@ -172,6 +172,15 @@ impl<T: ser::Serialize> ser::Serialize for Spanned<T> {
     }
 }
 
+pub trait UnvalidatedConfig {
+    type ValidCfg;
+
+    fn validate(
+        self,
+        id: crate::diag::FileId,
+    ) -> Result<Self::ValidCfg, Vec<crate::diag::Diagnostic>>;
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use crate::diag::{FileId, Files};
@@ -179,7 +188,7 @@ pub(crate) mod test {
 
     pub(crate) struct ConfigData<T> {
         pub(crate) config: T,
-        pub(crate) files: Files,
+        pub(crate) _files: Files,
         pub(crate) id: FileId,
     }
 
@@ -191,6 +200,10 @@ pub(crate) mod test {
         let mut files = Files::new();
         let id = files.add(&path, contents);
 
-        ConfigData { config, files, id }
+        ConfigData {
+            config,
+            _files: files,
+            id,
+        }
     }
 }

@@ -83,7 +83,7 @@ pub mod diag;
 pub mod licenses;
 pub mod sources;
 
-pub use cfg::Spanned;
+pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid};
 pub use rustsec::package::source::SourceId;
