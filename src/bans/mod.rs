@@ -230,7 +230,7 @@ pub fn check(
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
-            let allowed = if allowed_wrappers.iter().any(|w| &w.name == &ban.value.name) {
+            let allowed = if allowed_wrappers.iter().any(|w| w.name == ban.value.name) {
                 let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                 let graph = ctx.krates.graph();
 
