@@ -26,10 +26,10 @@ fn allow_wrappers() {
         Some(
             r#"
 [[deny]]
-name = "dangerous-crate"
+name = "dangerous-dep"
 
 [[allow-if-wrapped]]
-name = "dangerous-crate"
+name = "dangerous-dep"
 wrapper = "safe-wrapper"
 "#,
         ),
