@@ -19,6 +19,39 @@ fn cyclic_dependencies_do_not_cause_infinite_loop() {
 }
 
 #[test]
+fn allow_wrappers() {
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        utils::get_test_data_krates("allow_wrappers/maincrate").unwrap(),
+        "allow_wrappers",
+        Some(
+            r#"
+[[deny]]
+name = "dangerous-crate"
+
+[[allow-if-wrapped]]
+name = "dangerous-crate"
+wrapper = "safe-wrapper"
+"#,
+        ),
+        Some(std::time::Duration::from_millis(10000)),
+        |ctx, tx| {
+            bans::check(ctx, None, tx);
+        },
+    )
+    .unwrap();
+
+    eprintln!(
+        "{}",
+        diags
+            .iter()
+            .map(|val| val.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    assert!(diags.is_empty());
+}
+
+#[test]
 fn deny_wildcards() {
     let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
         utils::get_test_data_krates("wildcards/maincrate").unwrap(),

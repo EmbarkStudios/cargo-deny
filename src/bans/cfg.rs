@@ -20,6 +20,16 @@ pub struct CrateId {
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct AllowedWrapper {
+    /// The name of the banned crate
+    pub name: String,
+    /// The wrapper which is allowed to use the banned crate
+    pub wrapper: String,
+}
+
+#[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct TreeSkip {
     #[serde(flatten)]
     pub id: CrateId,
@@ -81,6 +91,10 @@ pub struct Config {
     /// down to a certain depth
     #[serde(default)]
     pub skip_tree: Vec<Spanned<TreeSkip>>,
+    /// Allow certain crates if they are used by a wrapper crate
+    #[serde(rename = "allow-if-wrapped")]
+    #[serde(default)]
+    pub allowed_wrappers: Vec<AllowedWrapper>,
     /// How to handle wildcard dependencies
     #[serde(default = "crate::lint_warn")]
     pub wildcards: LintLevel,
@@ -95,6 +109,7 @@ impl Default for Config {
             allow: Vec::new(),
             skip: Vec::new(),
             skip_tree: Vec::new(),
+            allowed_wrappers: Vec::new(),
             wildcards: LintLevel::Warn,
         }
     }
@@ -168,6 +183,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 denied,
                 allowed,
                 skipped,
+                allowed_wrappers: self.allowed_wrappers,
                 wildcards: self.wildcards,
                 tree_skipped: self
                     .skip_tree
@@ -189,6 +205,8 @@ pub struct ValidConfig {
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
+    /// The first tuple element is the `name`, the second is the `wrapper`
+    pub(crate) allowed_wrappers: Vec<AllowedWrapper>,
     pub wildcards: LintLevel,
 }
 

@@ -1,0 +1,11 @@
+[package]
+name = "allow-wrappers-crate"
+version = "0.1.0"
+authors = []
+edition = "2018"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+safe-wrapper = { path = "../safe-wrapper", version = "0.1.0" }

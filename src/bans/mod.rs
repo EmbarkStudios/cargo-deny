@@ -138,8 +138,7 @@ impl TreeSkipper {
         let mut pending = vec![(krate_id, 1)];
         while let Some((node_id, depth)) = pending.pop() {
             if depth < max_depth {
-                use krates::petgraph::visit::EdgeRef;
-                for dep in graph.edges_directed(node_id, krates::petgraph::Direction::Outgoing) {
+                for dep in graph.edges_directed(node_id, Direction::Outgoing) {
                     pending.push((dep.target(), depth + 1));
                 }
             }
@@ -188,6 +187,7 @@ pub struct DupGraph {
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
 use crate::diag::{Check, Diag, Diagnostic, Label, Pack, Severity};
+use krates::petgraph::{visit::EdgeRef, Direction};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
@@ -205,6 +205,7 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
+        allowed_wrappers,
         ..
     } = ctx.cfg;
 
@@ -229,15 +230,35 @@ pub fn check(
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
         if let Ok((_, ban)) = binary_search(&denied, krate) {
-            pack.push(
-                Diagnostic::error()
-                    .with_message(format!(
-                        "detected banned crate {} = {}",
-                        krate.name, krate.version
-                    ))
-                    .with_labels(vec![Label::primary(file_id, ban.span.clone())
-                        .with_message("matching ban entry")]),
-            );
+            let allowed = if allowed_wrappers.iter().any(|w| &w.name == &ban.value.name) {
+                let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                let graph = ctx.krates.graph();
+
+                let edges = graph.edges_directed(nid, Direction::Incoming);
+
+                let mut allowed = false;
+                for idx in edges.map(|edge| edge.source()) {
+                    let node = &graph[idx];
+                    allowed = allowed_wrappers
+                        .iter()
+                        .any(|w| w.wrapper == node.krate.name);
+                }
+                allowed
+            } else {
+                false
+            };
+
+            if !allowed {
+                pack.push(
+                    Diagnostic::error()
+                        .with_message(format!(
+                            "detected banned crate {} = {}",
+                            krate.name, krate.version
+                        ))
+                        .with_labels(vec![Label::primary(file_id, ban.span.clone())
+                            .with_message("matching ban entry")]),
+                );
+            }
         }
 
         if !allowed.is_empty() {
