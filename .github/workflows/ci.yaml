@@ -100,7 +100,7 @@ jobs:
           # Also, build and run with musl, this lets us ensure that
           # musl still works, which is important for the linux binaries
           # we release, but wasn't exercised until now
-          args: --path . --debug --target ${{ matrix.target }}
+          args: --path . --debug --target ${{ matrix.target }} --feature standalone
       - name: self check
         uses: actions-rs/cargo@v1
         with:
