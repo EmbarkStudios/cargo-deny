@@ -6,7 +6,7 @@ use cargo_deny::{
 mod utils;
 
 struct TestCtx {
-    db: advisories::Database,
+    dbs: advisories::DatabaseCollection,
     lock: advisories::Lockfile,
     krates: Krates,
 }
@@ -28,16 +28,25 @@ fn load() -> TestCtx {
 
     let db = {
         let tmp = tempfile::tempdir().unwrap();
-        advisories::load_db(None, Some(tmp.path().to_owned()), advisories::Fetch::Allow).unwrap()
+        advisories::load_dbs(
+            vec![],
+            vec![tmp.path().to_owned()],
+            advisories::Fetch::Allow,
+        )
+        .unwrap()
     };
 
-    TestCtx { db, lock, krates }
+    TestCtx {
+        dbs: db,
+        lock,
+        krates,
+    }
 }
 
 #[test]
 #[ignore]
 fn detects_vulnerabilities() {
-    let TestCtx { db, lock, krates } = load();
+    let TestCtx { dbs, lock, krates } = load();
 
     let cfg = "vulnerability = 'deny'";
 
@@ -47,7 +56,7 @@ fn detects_vulnerabilities() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &db, lock, tx);
+            advisories::check(ctx, &dbs, lock, tx);
         },
     )
     .unwrap();
@@ -73,7 +82,7 @@ fn detects_vulnerabilities() {
 #[test]
 #[ignore]
 fn detects_unmaintained() {
-    let TestCtx { db, lock, krates } = load();
+    let TestCtx { dbs, lock, krates } = load();
 
     let cfg = "unmaintained = 'warn'";
 
@@ -83,7 +92,7 @@ fn detects_unmaintained() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &db, lock, tx);
+            advisories::check(ctx, &dbs, lock, tx);
         },
     )
     .unwrap();
@@ -109,7 +118,7 @@ fn detects_unmaintained() {
 #[test]
 #[ignore]
 fn downgrades_lint_levels() {
-    let TestCtx { db, lock, krates } = load();
+    let TestCtx { dbs, lock, krates } = load();
 
     let cfg = "unmaintained = 'warn'
     ignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']";
@@ -120,7 +129,7 @@ fn downgrades_lint_levels() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &db, lock, tx);
+            advisories::check(ctx, &dbs, lock, tx);
         },
     )
     .unwrap();
@@ -150,7 +159,7 @@ fn detects_yanked() {
     // Force fetch the index just in case
     rustsec::registry::Index::fetch().unwrap();
 
-    let TestCtx { db, lock, krates } = load();
+    let TestCtx { dbs, lock, krates } = load();
 
     let cfg = "yanked = 'deny'
     unmaintained = 'allow'
@@ -163,7 +172,7 @@ fn detects_yanked() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &db, lock, tx);
+            advisories::check(ctx, &dbs, lock, tx);
         },
     )
     .unwrap();
