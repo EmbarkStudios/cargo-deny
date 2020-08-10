@@ -197,7 +197,7 @@ fn get_metadata(
         no_default_features,
         all_features,
         no_deps: false,
-        version: 0,
+        version: 1,
         filter_platforms: vec![],
     };
 
