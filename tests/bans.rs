@@ -27,28 +27,60 @@ fn allow_wrappers() {
             r#"
 [[deny]]
 name = "dangerous-dep"
-
-[[allow-if-wrapped]]
-name = "dangerous-dep"
-wrapper = "safe-wrapper"
+wrappers = ["safe-wrapper"]
 "#,
         ),
-        Some(std::time::Duration::from_millis(10000)),
+        None,
         |ctx, tx| {
             bans::check(ctx, None, tx);
         },
     )
     .unwrap();
 
-    eprintln!(
-        "{}",
-        diags
-            .iter()
-            .map(|val| val.to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
+    let diag = diags
+        .iter()
+        .find(|d| field_eq!(d, "/fields/severity", "help"))
+        .unwrap();
+
+    assert_field_eq!(
+        diag,
+        "/fields/message",
+        "banned crate dangerous-dep = 0.1.0 allowed by direct dependency from safe-wrapper = 0.1.0"
     );
-    assert!(diags.is_empty());
+    assert_field_eq!(diag, "/fields/labels/0/message", "ban exception");
+    assert_field_eq!(diag, "/fields/labels/0/span", "\"safe-wrapper\"");
+}
+
+#[test]
+fn disallows_denied() {
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        utils::get_test_data_krates("allow_wrappers/maincrate").unwrap(),
+        "disallows_denied",
+        Some(
+            r#"
+[[deny]]
+name = "dangerous-dep"
+"#,
+        ),
+        None,
+        |ctx, tx| {
+            bans::check(ctx, None, tx);
+        },
+    )
+    .unwrap();
+
+    let diag = diags
+        .iter()
+        .find(|d| field_eq!(d, "/fields/severity", "error"))
+        .unwrap();
+
+    assert_field_eq!(
+        diag,
+        "/fields/message",
+        "detected banned crate dangerous-dep = 0.1.0"
+    );
+    assert_field_eq!(diag, "/fields/labels/0/message", "matching ban entry");
+    assert_field_eq!(diag, "/fields/labels/0/span", "\"dangerous-dep\"");
 }
 
 #[test]

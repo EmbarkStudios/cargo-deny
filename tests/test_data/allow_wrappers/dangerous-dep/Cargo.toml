@@ -1,0 +1,6 @@
+[package]
+name = "dangerous-dep"
+version = "0.1.0"
+authors = []
+edition = "2018"
+license = "MIT"

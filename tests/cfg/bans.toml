@@ -12,6 +12,7 @@ skip-tree = [
 
 [[bans.deny]]
 name = "all-versionsd"
+wrappers = ["specific-versiona"]
 
 [[bans.deny]]
 name = "specific-versiond"

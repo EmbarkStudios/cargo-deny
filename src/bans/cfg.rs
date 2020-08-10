@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct CrateId {
     // The name of the crate
     pub name: String,
@@ -19,12 +19,15 @@ pub struct CrateId {
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct AllowedWrapper {
-    /// The name of the banned crate
-    pub name: String,
-    /// The wrapper which is allowed to use the banned crate
-    pub wrapper: String,
+#[serde(deny_unknown_fields)]
+pub struct CrateBan {
+    pub name: Spanned<String>,
+    #[serde(default = "any")]
+    pub version: VersionReq,
+    /// One or more crates that will allow this crate to be used if it is a
+    /// direct dependency
+    #[serde(default)]
+    pub wrappers: Vec<Spanned<String>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -80,7 +83,7 @@ pub struct Config {
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
     #[serde(default)]
-    pub deny: Vec<Spanned<CrateId>>,
+    pub deny: Vec<CrateBan>,
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
     pub allow: Vec<Spanned<CrateId>>,
@@ -91,10 +94,6 @@ pub struct Config {
     /// down to a certain depth
     #[serde(default)]
     pub skip_tree: Vec<Spanned<TreeSkip>>,
-    /// Allow certain crates if they are used by a wrapper crate
-    #[serde(rename = "allow-if-wrapped")]
-    #[serde(default)]
-    pub allowed_wrappers: Vec<AllowedWrapper>,
     /// How to handle wildcard dependencies
     #[serde(default = "crate::lint_warn")]
     pub wildcards: LintLevel,
@@ -109,7 +108,6 @@ impl Default for Config {
             allow: Vec::new(),
             skip: Vec::new(),
             skip_tree: Vec::new(),
-            allowed_wrappers: Vec::new(),
             wildcards: LintLevel::Warn,
         }
     }
@@ -133,7 +131,20 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         let mut diagnostics = Vec::new();
 
-        let mut denied: Vec<_> = self.deny.into_iter().map(from).collect();
+        let mut denied: Vec<_> = self
+            .deny
+            .into_iter()
+            .map(|cb| KrateBan {
+                id: Skrate::new(
+                    KrateId {
+                        name: cb.name.value,
+                        version: cb.version,
+                    },
+                    cb.name.span,
+                ),
+                wrappers: cb.wrappers,
+            })
+            .collect();
         denied.par_sort();
 
         let mut allowed: Vec<_> = self.allow.into_iter().map(from).collect();
@@ -159,11 +170,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
         };
 
         for d in &denied {
-            if let Ok(ai) = allowed.binary_search(&d) {
-                add_diag((d, "deny"), (&allowed[ai], "allow"));
+            if let Ok(ai) = allowed.binary_search(&d.id) {
+                add_diag((&d.id, "deny"), (&allowed[ai], "allow"));
             }
-            if let Ok(si) = skipped.binary_search(&d) {
-                add_diag((d, "deny"), (&skipped[si], "skip"));
+            if let Ok(si) = skipped.binary_search(&d.id) {
+                add_diag((&d.id, "deny"), (&skipped[si], "skip"));
             }
         }
 
@@ -183,7 +194,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 denied,
                 allowed,
                 skipped,
-                allowed_wrappers: self.allowed_wrappers,
                 wildcards: self.wildcards,
                 tree_skipped: self
                     .skip_tree
@@ -197,23 +207,48 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
 pub(crate) type Skrate = Spanned<KrateId>;
 
+#[derive(Eq)]
+#[cfg_attr(test, derive(Debug))]
+pub(crate) struct KrateBan {
+    pub id: Skrate,
+    pub wrappers: Vec<Spanned<String>>,
+}
+
+use std::cmp::{Ord, Ordering};
+
+impl Ord for KrateBan {
+    fn cmp(&self, o: &Self) -> Ordering {
+        self.id.cmp(&o.id)
+    }
+}
+
+impl PartialOrd for KrateBan {
+    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
+        Some(self.cmp(o))
+    }
+}
+
+impl PartialEq for KrateBan {
+    fn eq(&self, o: &Self) -> bool {
+        self.cmp(o) == Ordering::Equal
+    }
+}
+
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
-    pub(crate) denied: Vec<Skrate>,
+    pub(crate) denied: Vec<KrateBan>,
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
-    /// The first tuple element is the `name`, the second is the `wrapper`
-    pub(crate) allowed_wrappers: Vec<AllowedWrapper>,
     pub wildcards: LintLevel,
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::{test::*, UnvalidatedConfig};
+    use crate::cfg::{test::*, *};
 
     macro_rules! kid {
         ($name:expr) => {
@@ -229,6 +264,12 @@ mod test {
                 version: $vs.parse().unwrap(),
             }
         };
+    }
+
+    impl PartialEq<KrateId> for KrateBan {
+        fn eq(&self, o: &KrateId) -> bool {
+            &self.id.value == o
+        }
     }
 
     #[test]

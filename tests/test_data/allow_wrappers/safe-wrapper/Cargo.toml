@@ -5,7 +5,5 @@ authors = []
 edition = "2018"
 license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-dangerous-dep = { path = "../dangerous-crate", version = "0.1.0" }
+dangerous-dep = { path = "../dangerous-dep", version = "0.1.0" }
