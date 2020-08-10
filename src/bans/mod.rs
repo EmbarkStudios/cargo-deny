@@ -251,7 +251,6 @@ pub fn check(
                 // on the banned crate is an allowed wrapper
                 graph
                     .edges_directed(nid, Direction::Incoming)
-                    .into_iter()
                     .map(|edge| edge.source())
                     .all(|nid| {
                         let node = &graph[nid];
