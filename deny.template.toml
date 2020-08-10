@@ -161,6 +161,10 @@ deny = [
     # Each entry the name of a crate and a version range. If version is
     # not specified, all versions will be matched.
     #{ name = "ansi_term", version = "=0.11.0" },
+    #
+    # Wrapper crates can optionally be specified to allow the crate when it
+    # is a direct dependency of the otherwise banned crate
+    #{ name = "ansi_term", version = "=0.11.0", wrappers = [] },
 ]
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
@@ -189,3 +193,11 @@ unknown-git = "warn"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # List of URLs for allowed Git repositories
 allow-git = []
+
+[sources.allow-org]
+# 1 or more github.com organizations to allow git sources for
+github = [""]
+# 1 or more gitlab.com organizations to allow git sources for
+gitlab = [""]
+# 1 or more bitbucket.org organizations to allow git sources for
+bitbucket = [""]

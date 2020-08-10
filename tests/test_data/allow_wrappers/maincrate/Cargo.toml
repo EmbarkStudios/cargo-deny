@@ -1,0 +1,9 @@
+[package]
+name = "allow-wrappers-crate"
+version = "0.1.0"
+authors = []
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+safe-wrapper = { path = "../safe-wrapper", version = "0.1.0" }

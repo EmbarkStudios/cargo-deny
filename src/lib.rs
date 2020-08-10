@@ -73,7 +73,7 @@
 //! ```
 
 pub use semver::Version;
-use std::{cmp, collections::HashMap, path::PathBuf};
+use std::{cmp, collections::HashMap, fmt, path::PathBuf};
 
 pub mod advisories;
 pub mod bans;
@@ -249,6 +249,12 @@ impl Krate {
                 }
             })
             .unwrap_or(false)
+    }
+}
+
+impl fmt::Display for Krate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} = {}", self.name, self.version)
     }
 }
 

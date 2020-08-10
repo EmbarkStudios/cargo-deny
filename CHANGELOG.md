@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#238](https://github.com/EmbarkStudios/cargo-deny/pull/238) resolved [#225](https://github.com/EmbarkStudios/cargo-deny/issues/225) by adding a `wrappers` field to `[bans.deny]` entries, which allows the banned crate to be used only if it is a direct dependency of one of the wrapper crates. Thanks [@Stupremee](https://github.com/Stupremee)!
+
 ## [0.7.3] - 2020-08-06
 ### Added
 - [PR#237](https://github.com/EmbarkStudios/cargo-deny/pull/237) added the ability to allow git sources from entire `github.com`, `gitlab.com`, or `bitbucket.org` organizations.
