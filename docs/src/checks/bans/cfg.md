@@ -64,6 +64,11 @@ The name of the crate.
 An optional version constraint specifying the range of crate versions that will
 match. Defaults to all versions (`*`).
 
+#### The `wrappers` field (optional)
+
+For `deny` entries, this field allows specific crates to have a direct
+dependency on the banned crate but denies all transitive dependencies on it.
+
 ### The `allow` and `deny` fields (optional)
 
 Determines specific crates that are allowed or denied. If the `allow` list has
