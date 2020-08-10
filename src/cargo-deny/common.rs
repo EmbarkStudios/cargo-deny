@@ -94,18 +94,12 @@ impl KrateContext {
         log::info!("gathering crates for {}", self.manifest_path.display());
         let start = std::time::Instant::now();
 
-        let mut mdc = krates::Cmd::new();
-
-        if self.no_default_features {
-            mdc.no_default_features();
-        }
-
-        if self.all_features {
-            mdc.all_features();
-        }
-
-        mdc.features(self.features);
-        mdc.manifest_path(self.manifest_path);
+        let metadata = get_metadata(
+            self.no_default_features,
+            self.all_features,
+            self.features,
+            self.manifest_path,
+        )?;
 
         use krates::{Builder, DepKind};
 
@@ -135,16 +129,21 @@ impl KrateContext {
                     }),
             );
         }
-        let graph = gb.build(mdc, |filtered: krates::cm::Package| match filtered.source {
-            Some(src) => {
-                if src.is_crates_io() {
-                    log::debug!("filtered {} {}", filtered.name, filtered.version);
-                } else {
-                    log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
+
+        let graph =
+            gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
+                match filtered.source {
+                    Some(src) => {
+                        if src.is_crates_io() {
+                            log::debug!("filtered {} {}", filtered.name, filtered.version);
+                        } else {
+                            log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
+                        }
+                    }
+                    None => log::debug!("filtered {} {}", filtered.name, filtered.version),
                 }
-            }
-            None => log::debug!("filtered {} {}", filtered.name, filtered.version),
-        });
+            });
+
         if let Ok(ref krates) = graph {
             let end = std::time::Instant::now();
             log::info!(
@@ -156,6 +155,56 @@ impl KrateContext {
 
         Ok(graph?)
     }
+}
+
+#[cfg(not(feature = "standalone"))]
+fn get_metadata(
+    no_default_features: bool,
+    all_features: bool,
+    features: Vec<String>,
+    manifest_path: PathBuf,
+) -> Result<krates::cm::Metadata, anyhow::Error> {
+    let mut mdc = krates::Cmd::new();
+
+    if no_default_features {
+        mdc.no_default_features();
+    }
+
+    if all_features {
+        mdc.all_features();
+    }
+
+    mdc.features(features);
+    mdc.manifest_path(manifest_path);
+
+    let mdc: krates::cm::MetadataCommand = mdc.into();
+    Ok(mdc.exec()?)
+}
+
+#[cfg(feature = "standalone")]
+fn get_metadata(
+    no_default_features: bool,
+    all_features: bool,
+    features: Vec<String>,
+    manifest_path: PathBuf,
+) -> Result<krates::cm::Metadata, anyhow::Error> {
+    use cargo::{core, ops, util};
+
+    let config = util::Config::default()?;
+    let ws = core::Workspace::new(&manifest_path, &config)?;
+    let options = ops::OutputMetadataOptions {
+        features,
+        no_default_features,
+        all_features,
+        no_deps: false,
+        version: 0,
+        filter_platforms: vec![],
+    };
+
+    let md = ops::output_metadata(&ws, &options)?;
+    let md_value = serde_json::to_value(md)?;
+
+    Ok(serde_json::from_value(md_value)?)
 }
 
 pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {

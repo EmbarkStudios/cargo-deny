@@ -26,6 +26,7 @@ path = "src/cargo-deny/main.rs"
 [features]
 default = ["vendored-openssl"]
 vendored-openssl = ["rustsec/vendored-openssl"]
+standalone = ["cargo"]
 
 [dependencies]
 ansi_term = "0.12.1"
@@ -33,6 +34,7 @@ anyhow = "1.0"
 askalono = "0.4"
 atty = "0.2"
 bitvec = { version = "0.17", features = ["alloc"] }
+cargo = { version = "0.46.1", optional = true }
 chrono = "0.4"
 clap = "2.33"
 codespan = { version = "0.9", features = ["reporting"] }
