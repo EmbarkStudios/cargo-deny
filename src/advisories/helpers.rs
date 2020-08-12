@@ -19,7 +19,7 @@ pub enum Fetch {
 ///
 /// [`Database`]: https://docs.rs/rustsec/0.21.0/rustsec/database/struct.Database.html
 pub struct DbSet {
-    dbs: Vec<Database>,
+    dbs: Vec<(Url, Database)>,
 }
 
 impl DbSet {
@@ -59,8 +59,8 @@ impl DbSet {
 
         use rayon::prelude::*;
         let mut dbs = Vec::with_capacity(urls.len());
-        urls.par_iter()
-            .map(|url| load_db(&url, root_db_path.clone(), fetch))
+        urls.into_par_iter()
+            .map(|url| load_db(&url, root_db_path.clone(), fetch).map(|db| (url, db)))
             .collect_into_vec(&mut dbs);
 
         Ok(Self {
@@ -68,7 +68,7 @@ impl DbSet {
         })
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Database> {
+    pub fn iter(&self) -> impl Iterator<Item = &(Url, Database)> {
         self.dbs.iter()
     }
 }
@@ -183,6 +183,10 @@ pub struct Report {
     pub notices: Vec<Warning>,
     pub unmaintained: Vec<Warning>,
     pub unsound: Vec<Warning>,
+    /// For backwards compatiblity with cargo-audit, we optionally serialize the
+    /// reports to JSON and output them in addition to the normal cargo-deny
+    /// diagnostics
+    pub serialized_reports: Vec<serde_json::Value>,
 }
 
 impl Report {
@@ -195,7 +199,11 @@ impl Report {
     }
 }
 
-pub fn get_report(advisory_dbs: &DbSet, lockfile: &PrunedLockfile) -> Report {
+pub fn get_report(
+    advisory_dbs: &DbSet,
+    lockfile: &PrunedLockfile,
+    serialize_reports: bool,
+) -> Report {
     use rustsec::advisory::informational::Informational;
 
     let settings = rustsec::report::Settings {
@@ -220,9 +228,23 @@ pub fn get_report(advisory_dbs: &DbSet, lockfile: &PrunedLockfile) -> Report {
     let mut notices = Vec::new();
     let mut unmaintained = Vec::new();
     let mut unsound = Vec::new();
+    let mut serialized_reports = Vec::with_capacity(if serialize_reports {
+        advisory_dbs.dbs.len()
+    } else {
+        0
+    });
 
-    for db in advisory_dbs.iter() {
-        let mut rep = rustsec::Report::generate(&db, &lockfile.0, &settings);
+    for (url, db) in advisory_dbs.iter() {
+        let mut rep = rustsec::Report::generate(db, &lockfile.0, &settings);
+
+        if serialize_reports {
+            match serde_json::to_value(&rep) {
+                Ok(val) => serialized_reports.push(val),
+                Err(err) => {
+                    log::error!("Failed to serialize report for database '{}': {}", url, err);
+                }
+            }
+        }
 
         vulnerabilities.append(&mut rep.vulnerabilities.list);
 
@@ -245,6 +267,7 @@ pub fn get_report(advisory_dbs: &DbSet, lockfile: &PrunedLockfile) -> Report {
         notices,
         unmaintained,
         unsound,
+        serialized_reports,
     }
 }
 

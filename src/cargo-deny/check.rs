@@ -46,6 +46,11 @@ pub struct Args {
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
     disable_fetch: bool,
+    /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
+    ///
+    /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
+    #[structopt(long)]
+    audit_compatible_output: bool,
     /// Show stats for all the checks, regardless of the log-level
     #[structopt(short, long = "show-stats")]
     pub show_stats: bool,
@@ -316,6 +321,8 @@ pub(crate) fn cmd(
         crate::Format::Json => true,
         crate::Format::Human => false,
     };
+    let audit_compatible_output =
+        args.audit_compatible_output && log_ctx.format == crate::Format::Json;
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
@@ -450,7 +457,15 @@ pub(crate) fn cmd(
 
                 let lf = advisories::PrunedLockfile::prune(lockfile, &krates);
 
-                advisories::check(ctx, &db, lf, tx);
+                let audit_reporter = if audit_compatible_output {
+                    Some(|val: serde_json::Value| {
+                        println!("{}", val.to_string());
+                    })
+                } else {
+                    None
+                };
+
+                advisories::check(ctx, &db, lf, audit_reporter, tx);
                 let end = Instant::now();
 
                 log::info!("advisories checked in {}ms", (end - start).as_millis());

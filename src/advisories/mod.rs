@@ -8,21 +8,45 @@ use crate::{
 use helpers::*;
 pub use helpers::{get_report, load_lockfile, DbSet, Fetch, PrunedLockfile};
 
+pub trait AuditReporter {
+    fn report(&mut self, report: serde_json::Value);
+}
+
+/// For when you just want to satisfy AuditReporter without doing anything
+pub struct NoneReporter;
+impl AuditReporter for NoneReporter {
+    fn report(&mut self, _report: serde_json::Value) {}
+}
+
+impl<F> AuditReporter for F
+where
+    F: FnMut(serde_json::Value),
+{
+    fn report(&mut self, report: serde_json::Value) {
+        self(report)
+    }
+}
+
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
-pub fn check(
+pub fn check<R>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     lockfile: PrunedLockfile,
+    audit_compatible_reporter: Option<R>,
     sender: crossbeam::channel::Sender<diag::Pack>,
-) {
+) where
+    R: AuditReporter,
+{
     use rustsec::{
         advisory::{informational::Informational, metadata::Metadata},
         package::Package,
     };
 
+    let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
+
     let (report, yanked) = rayon::join(
-        || get_report(advisory_dbs, &lockfile),
+        || get_report(advisory_dbs, &lockfile, emit_audit_compatible_reports),
         || {
             let index = rustsec::registry::Index::open()?;
             let mut yanked = Vec::new();
@@ -254,5 +278,11 @@ pub fn check(
                     .into(),
             )
             .unwrap();
+    }
+
+    if let Some(mut reporter) = audit_compatible_reporter {
+        for ser_report in report.serialized_reports {
+            reporter.report(ser_report);
+        }
     }
 }

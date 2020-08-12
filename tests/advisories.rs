@@ -53,7 +53,13 @@ fn detects_vulnerabilities() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
@@ -89,7 +95,13 @@ fn detects_unmaintained() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
@@ -125,7 +137,13 @@ fn detects_unsound() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
@@ -163,7 +181,13 @@ fn downgrades_lint_levels() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
@@ -206,7 +230,13 @@ fn detects_yanked() {
         Some(cfg),
         None,
         |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
