@@ -111,22 +111,21 @@ impl ValidConfig {
 
         let id = files.add(&cfg_path, cfg_contents);
 
-        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
-            let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
-            let bans = cfg.bans.unwrap_or_default().validate(id)?;
-            let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
+        let validate = || -> (Vec<Diagnostic>, Self) {
+            // Accumulate all configuration diagnostics rather than earlying out so
+            // the user has the full list of problems to fix
 
-            // Sources has a special case where it has a default value if one isn't specified,
-            // which doesn't play nicely with the toml::Spanned type, so we pass in the
-            // file contents as well so that sources validation can scan the contents itself
-            // if needed.
-            let sources = cfg.sources.unwrap_or_default().validate(id)?;
+            let mut diags = Vec::new();
 
-            let mut diagnostics = Vec::new();
-            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
+            let advisories = cfg.advisories.unwrap_or_default().validate(id, &mut diags);
+            let bans = cfg.bans.unwrap_or_default().validate(id, &mut diags);
+            let licenses = cfg.licenses.unwrap_or_default().validate(id, &mut diags);
+            let sources = cfg.sources.unwrap_or_default().validate(id, &mut diags);
 
-            Ok((
-                diagnostics,
+            let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
+
+            (
+                diags,
                 Self {
                     advisories,
                     bans,
@@ -134,7 +133,7 @@ impl ValidConfig {
                     sources,
                     targets,
                 },
-            ))
+            )
         };
 
         let print = |diags: Vec<Diagnostic>| {
@@ -150,19 +149,20 @@ impl ValidConfig {
             }
         };
 
-        match validate() {
-            Ok((diags, vc)) => {
-                print(diags);
-                Ok(vc)
-            }
-            Err(diags) => {
-                print(diags);
+        let (diags, valid_cfg) = validate();
 
-                anyhow::bail!(
-                    "failed to validate configuration file {}",
-                    cfg_path.display()
-                );
-            }
+        let has_errors = diags.iter().any(|d| d.severity <= Severity::Error);
+        print(diags);
+
+        // While we could continue in the face of configuration errors, the user
+        // may end up with unexpected results, so just abort so they can fix them
+        if has_errors {
+            anyhow::bail!(
+                "failed to validate configuration file {}",
+                cfg_path.display()
+            );
+        } else {
+            Ok(valid_cfg)
         }
     }
 }
@@ -204,7 +204,7 @@ pub(crate) fn cmd(
 
     let mut krates = None;
     let mut license_store = None;
-    let mut advisory_db = None;
+    let mut advisory_dbs = None;
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
@@ -231,12 +231,12 @@ pub(crate) fn cmd(
 
         if check_advisories {
             s.spawn(|_| {
-                advisory_db = Some(advisories::load_dbs(
-                    cfg.advisories.db_urls.iter().map(AsRef::as_ref).collect(),
+                advisory_dbs = Some(advisories::DbSet::load(
+                    cfg.advisories.db_path.clone(),
                     cfg.advisories
-                        .db_paths
+                        .db_urls
                         .iter()
-                        .map(|p| p.to_path_buf())
+                        .map(|us| us.as_ref().clone())
                         .collect(),
                     if args.disable_fetch {
                         advisories::Fetch::Disallow
@@ -255,7 +255,7 @@ pub(crate) fn cmd(
     let krates = krates.unwrap()?;
 
     let advisory_ctx = if check_advisories {
-        let db = advisory_db.unwrap()?;
+        let db = advisory_dbs.unwrap()?;
         let lockfile = advisory_lockfile.unwrap()?;
 
         Some((db, lockfile))
@@ -447,7 +447,10 @@ pub(crate) fn cmd(
             s.spawn(move |_| {
                 log::info!("checking advisories...");
                 let start = Instant::now();
-                advisories::check(ctx, &db, lockfile, tx);
+
+                let lf = advisories::PrunedLockfile::prune(lockfile, &krates);
+
+                advisories::check(ctx, &db, lf, tx);
                 let end = Instant::now();
 
                 log::info!("advisories checked in {}ms", (end - start).as_millis());

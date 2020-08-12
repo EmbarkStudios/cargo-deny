@@ -101,9 +101,7 @@ use crate::diag::{Diagnostic, Label};
 impl cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
-        let mut diags = Vec::new();
-
+    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
         let mut allowed_sources =
             Vec::with_capacity(self.allow_registry.len() + self.allow_git.len());
 
@@ -132,10 +130,6 @@ impl cfg::UnvalidatedConfig for Config {
             }
         }
 
-        if !diags.is_empty() {
-            return Err(diags);
-        }
-
         let allowed_orgs = self
             .allow_org
             .github
@@ -155,14 +149,14 @@ impl cfg::UnvalidatedConfig for Config {
             )
             .collect();
 
-        Ok(ValidConfig {
+        ValidConfig {
             file_id: cfg_file,
             unknown_registry: self.unknown_registry,
             unknown_git: self.unknown_git,
             allowed_sources,
             allowed_orgs,
             required_git_spec: self.required_git_spec,
-        })
+        }
     }
 }
 
@@ -194,7 +188,11 @@ mod test {
 
         let cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
 
-        let validated = cd.config.sources.validate(cd.id).unwrap();
+        let mut diags = Vec::new();
+        let validated = cd.config.sources.validate(cd.id, &mut diags);
+        assert!(diags.is_empty());
+
+        assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.unknown_registry, LintLevel::Allow);

@@ -6,8 +6,8 @@ use cargo_deny::{
 mod utils;
 
 struct TestCtx {
-    dbs: advisories::DatabaseCollection,
-    lock: advisories::Lockfile,
+    dbs: advisories::DbSet,
+    lock: advisories::PrunedLockfile,
     krates: Krates,
 }
 
@@ -28,17 +28,14 @@ fn load() -> TestCtx {
 
     let db = {
         let tmp = tempfile::tempdir().unwrap();
-        advisories::load_dbs(
-            vec![],
-            vec![tmp.path().to_owned()],
-            advisories::Fetch::Allow,
-        )
-        .unwrap()
+        advisories::DbSet::load(Some(tmp), vec![], advisories::Fetch::Allow).unwrap()
     };
+
+    let lockfile = advisories::PrunedLockfile::prune(lock, &krates);
 
     TestCtx {
         dbs: db,
-        lock,
+        lock: lockfile,
         krates,
     }
 }
@@ -112,6 +109,43 @@ fn detects_unmaintained() {
         unmaintained_diag,
         "/fields/labels/0/message",
         "unmaintained advisory detected"
+    );
+}
+
+#[test]
+#[ignore]
+fn detects_unsound() {
+    let TestCtx { dbs, lock, krates } = load();
+
+    let cfg = "unsound = 'warn'";
+
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        krates,
+        "detects_unsound",
+        Some(cfg),
+        None,
+        |ctx, tx| {
+            advisories::check(ctx, &dbs, lock, tx);
+        },
+    )
+    .unwrap();
+
+    let unsound_diag = diags
+        .iter()
+        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2019-0035")))
+        .unwrap();
+
+    assert_field_eq!(unsound_diag, "/fields/severity", "warning");
+    assert_field_eq!(unsound_diag, "/fields/message", "Unaligned memory access");
+    assert_field_eq!(
+        unsound_diag,
+        "/fields/labels/0/message",
+        "unsound advisory detected"
+    );
+    assert_field_eq!(
+        unsound_diag,
+        "/fields/labels/0/span",
+        "rand_core 0.3.1 registry+https://github.com/rust-lang/crates.io-index"
     );
 }
 

@@ -225,6 +225,7 @@ dependencies = [
  "krates",
  "lazy_static",
  "log",
+ "percent-encoding",
  "rayon",
  "regex",
  "rustsec",

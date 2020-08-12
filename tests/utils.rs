@@ -52,9 +52,15 @@ pub fn gather_diagnostics<
         newmap.insert(key, (cargo_id, val.2));
     }
 
-    let cfg = config
-        .validate(cfg_id)
-        .map_err(|e| anyhow::anyhow!("encountered {} errors validating config", e.len()))?;
+    let mut cfg_diags = Vec::new();
+    let cfg = config.validate(cfg_id, &mut cfg_diags);
+
+    if cfg_diags
+        .iter()
+        .any(|d| d.severity <= cargo_deny::diag::Severity::Error)
+    {
+        anyhow::anyhow!("encountered errors validating config: {:#?}", cfg_diags);
+    }
 
     let (tx, rx) = crossbeam::unbounded();
 
@@ -65,7 +71,7 @@ pub fn gather_diagnostics<
                 krate_spans: &spans,
                 spans_id,
                 cfg,
-                serialize_extra: false,
+                serialize_extra: true,
                 cargo_spans: Some(newmap),
             };
             runner(ctx, tx);

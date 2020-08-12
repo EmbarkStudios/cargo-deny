@@ -1,205 +1,19 @@
 pub mod cfg;
+mod helpers;
 
 use crate::{
     diag::{self, Check, Diagnostic, Label, Severity},
-    Krate, Krates, LintLevel,
+    LintLevel,
 };
-use anyhow::{Context, Error};
-use log::debug;
-pub use rustsec::{advisory::Id, lockfile::Lockfile, Database};
-use rustsec::{
-    database::{scope::Package, Query},
-    repository as repo, Advisory, Repository, Vulnerability,
-};
-use std::path::{Path, PathBuf};
-
-/// Whether the database will be fetched or not
-#[derive(Copy, Clone)]
-pub enum Fetch {
-    Allow,
-    Disallow,
-}
-
-/// A collection of [`Database`]s that is used to query advisories
-/// in many different databases.
-///
-/// It mirrors the API of a single [`Database`], but will query all databases.
-///
-/// [`Database`]: https://docs.rs/rustsec/0.21.0/rustsec/database/struct.Database.html
-pub struct DatabaseCollection {
-    dbs: Vec<Database>,
-}
-
-impl DatabaseCollection {
-    pub fn new(dbs: Vec<Database>) -> Self {
-        Self { dbs }
-    }
-
-    pub fn get(&self, id: &Id) -> Option<&Advisory> {
-        self.dbs.iter().flat_map(|db| db.get(id)).next()
-    }
-
-    pub fn query(&self, query: &Query) -> Vec<&Advisory> {
-        let mut results = self
-            .dbs
-            .iter()
-            .flat_map(|db| db.query(query))
-            .collect::<Vec<_>>();
-        results.dedup();
-        results
-    }
-
-    pub fn query_vulnerabilities(
-        &self,
-        lockfile: &Lockfile,
-        query: &Query,
-        package_scope: impl Into<Package>,
-    ) -> Vec<Vulnerability> {
-        let package_scope = package_scope.into();
-        let mut results = self
-            .dbs
-            .iter()
-            .flat_map(|db| db.query_vulnerabilities(lockfile, query, package_scope.clone()))
-            .collect::<Vec<_>>();
-        results.dedup();
-        results
-    }
-
-    pub fn vulnerabilities(&self, lockfile: &Lockfile) -> Vec<Vulnerability> {
-        let mut results = self
-            .dbs
-            .iter()
-            .flat_map(|db| db.vulnerabilities(lockfile))
-            .collect::<Vec<_>>();
-        results.dedup();
-        results
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, Database> {
-        self.dbs.iter()
-    }
-}
-
-pub fn load_dbs(
-    mut db_urls: Vec<&str>,
-    mut db_paths: Vec<PathBuf>,
-    fetch: Fetch,
-) -> Result<DatabaseCollection, Error> {
-    db_urls.dedup();
-    if db_urls.is_empty() {
-        db_urls.push(repo::DEFAULT_URL);
-    }
-
-    db_paths.dedup();
-    if db_paths.is_empty() {
-        db_paths.push(Repository::default_path());
-    }
-
-    let dbs = db_urls
-        .into_iter()
-        .zip(db_paths)
-        .map(|(url, path)| load_db(&url, path, fetch))
-        .collect::<Result<Vec<_>, Error>>()?;
-
-    Ok(DatabaseCollection::new(dbs))
-}
-
-fn load_db(
-    advisory_db_url: &str,
-    advisory_db_path: PathBuf,
-    fetch: Fetch,
-) -> Result<Database, Error> {
-    let advisory_db_path = if advisory_db_path.starts_with("~") {
-        match home::home_dir() {
-            Some(home) => home.join(advisory_db_path.strip_prefix("~").unwrap()),
-            None => {
-                log::warn!(
-                    "unable to resolve path '{}', falling back to the default advisory path",
-                    advisory_db_path.display()
-                );
-                Repository::default_path()
-            }
-        }
-    } else {
-        advisory_db_path
-    };
-
-    let advisory_db_repo = match fetch {
-        Fetch::Allow => {
-            debug!("Fetching advisory database from '{}'", advisory_db_url);
-
-            Repository::fetch(
-                advisory_db_url,
-                &advisory_db_path,
-                true, /* ensure_fresh */
-            )
-            .context("failed to fetch advisory database")?
-        }
-        Fetch::Disallow => {
-            debug!(
-                "Opening advisory database at '{}'",
-                advisory_db_path.display()
-            );
-
-            Repository::open(&advisory_db_path).context("failed to open advisory database")?
-        }
-    };
-
-    debug!(
-        "loading advisory database from {}",
-        advisory_db_path.display()
-    );
-
-    let res = Database::load(&advisory_db_repo).context("failed to load advisory database");
-
-    debug!(
-        "finished loading advisory database from {}",
-        advisory_db_path.display()
-    );
-
-    res
-}
-
-pub fn load_lockfile(path: &Path) -> Result<Lockfile, Error> {
-    let mut lockfile = Lockfile::load(path)?;
-
-    // Remove the metadata as it is irrelevant
-    lockfile.metadata = Default::default();
-
-    Ok(lockfile)
-}
-
-#[inline]
-fn krate_for_pkg<'a>(
-    krates: &'a Krates,
-    pkg: &rustsec::package::Package,
-) -> Option<(usize, &'a Krate)> {
-    krates
-        .krates_by_name(pkg.name.as_str())
-        .find(|(_, kn)| {
-            // Temporary hack due to cargo-lock using an older version of semver
-            let pkg_version: Result<semver::Version, _> = pkg.version.to_string().parse();
-
-            if let Ok(pkg_version) = pkg_version {
-                pkg_version == kn.krate.version
-                    && match (&pkg.source, &kn.krate.source) {
-                        (Some(psrc), Some(ksrc)) => psrc == ksrc,
-                        (None, None) => true,
-                        _ => false,
-                    }
-            } else {
-                false
-            }
-        })
-        .map(|(ind, krate)| (ind.index(), &krate.krate))
-}
+use helpers::*;
+pub use helpers::{get_report, load_lockfile, DbSet, Fetch, PrunedLockfile};
 
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
 pub fn check(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
-    advisory_dbs: &DatabaseCollection,
-    mut lockfile: rustsec::lockfile::Lockfile,
+    advisory_dbs: &DbSet,
+    lockfile: PrunedLockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
 ) {
     use rustsec::{
@@ -207,41 +21,13 @@ pub fn check(
         package::Package,
     };
 
-    let settings = rustsec::report::Settings {
-        // We already prune packages we don't care about, so don't filter
-        // any here
-        target_arch: None,
-        target_os: None,
-        package_scope: None,
-        // We handle the severity ourselves
-        severity: None,
-        // We handle the ignoring of particular advisory ids ourselves
-        ignore: Vec::new(),
-        informational_warnings: vec![
-            Informational::Notice,
-            Informational::Unmaintained,
-            //Informational::Other("*"),
-        ],
-    };
-
-    // Remove any packages from the rustsec's view of the lockfile that we have
-    // filtered out of the graph we are actually checking
-    lockfile
-        .packages
-        .retain(|pkg| krate_for_pkg(&ctx.krates, pkg).is_some());
-
-    let (reports, yanked) = rayon::join(
-        || {
-            advisory_dbs
-                .iter()
-                .map(|db| rustsec::Report::generate(db, &lockfile, &settings))
-                .collect::<Vec<_>>()
-        },
+    let (report, yanked) = rayon::join(
+        || get_report(advisory_dbs, &lockfile),
         || {
             let index = rustsec::registry::Index::open()?;
             let mut yanked = Vec::new();
 
-            for package in &lockfile.packages {
+            for package in &lockfile.0.packages {
                 if let Ok(index_entry) = index.find(&package.name, &package.version) {
                     if index_entry.is_yanked {
                         yanked.push(package);
@@ -282,6 +68,9 @@ pub fn check(
                                 ctx.cfg.unmaintained,
                                 "unmaintained advisory detected".to_owned(),
                             ),
+                            Informational::Unsound => {
+                                (ctx.cfg.unsound, "unsound advisory detected".to_owned())
+                            }
                             // Other types of informational advisories: left open-ended to add
                             // more of them in the future.
                             Informational::Other(_) => {
@@ -364,26 +153,19 @@ pub fn check(
         }
     };
 
-    // Check if any vulnerabilities were found
-    if reports.iter().any(|report| report.vulnerabilities.found) {
-        for vuln in reports
-            .iter()
-            .flat_map(|report| &report.vulnerabilities.list)
-        {
-            sender
-                .send(make_diag(&vuln.package, &vuln.advisory))
-                .unwrap();
-        }
+    // Emit diagnostics for any vulnerabilities that were found
+    for vuln in &report.vulnerabilities {
+        sender
+            .send(make_diag(&vuln.package, &vuln.advisory))
+            .unwrap();
     }
 
-    // Check for informational advisories for crates, including unmaintained
-    for (_kind, warnings) in reports.iter().flat_map(|report| &report.warnings) {
-        for warning in warnings {
-            if let Some(advisory) = &warning.advisory {
-                let diag = make_diag(&warning.package, &advisory);
-                sender.send(diag).unwrap();
-            }
-        }
+    // Emit diagnostics for informational advisories for crates, including unmaintained and unsound
+    for (warning, advisory) in report
+        .iter_warnings()
+        .filter_map(|(_, wi)| wi.advisory.as_ref().map(|wia| (wi, wia)))
+    {
+        sender.send(make_diag(&warning.package, &advisory)).unwrap();
     }
 
     match yanked {
