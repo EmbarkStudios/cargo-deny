@@ -29,23 +29,25 @@ vendored-openssl = ["rustsec/vendored-openssl"]
 standalone = ["cargo"]
 
 [dependencies]
-ansi_term = "0.12.1"
+ansi_term = "0.12"
 anyhow = "1.0"
 askalono = "0.4"
 atty = "0.2"
 bitvec = { version = "0.17", features = ["alloc"] }
 cargo = { version = "0.46.1", optional = true }
+cargo-edit = { version = "0.6", featurs = ["upgrade"], optional = true }
 chrono = "0.4"
 clap = "2.33"
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
-crossbeam = "0.7.3"
-fern = "0.6.0"
-home = "0.5.3"
-krates = { version = "0.4.0", features = ["targets"] }
-log = "0.4.8"
-percent-encoding = "2.1.0"
-rayon = "1.3.0"
+crates-index = "0.15"
+crossbeam = "0.7"
+fern = "0.6"
+home = "0.5"
+krates = { version = "0.4", features = ["targets"] }
+log = "0.4"
+percent-encoding = "2.1"
+rayon = "1.3"
 regex = { version = "1.3", default-features = true }
 semver = "0.10"
 serde = { version = "1.0", features = ["derive"] }

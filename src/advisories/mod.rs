@@ -6,7 +6,7 @@ use crate::{
     LintLevel,
 };
 use helpers::*;
-pub use helpers::{get_report, load_lockfile, DbSet, Fetch, PrunedLockfile};
+pub use helpers::{load_lockfile, DbSet, Fetch, PrunedLockfile, Report};
 
 pub trait AuditReporter {
     fn report(&mut self, report: serde_json::Value);
@@ -46,7 +46,7 @@ pub fn check<R>(
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(
-        || get_report(advisory_dbs, &lockfile, emit_audit_compatible_reports),
+        || Report::generate(advisory_dbs, &lockfile, emit_audit_compatible_reports),
         || {
             let index = rustsec::registry::Index::open()?;
             let mut yanked = Vec::new();

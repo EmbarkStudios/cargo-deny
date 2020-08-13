@@ -190,6 +190,78 @@ pub struct Report {
 }
 
 impl Report {
+    pub fn generate(
+        advisory_dbs: &DbSet,
+        lockfile: &PrunedLockfile,
+        serialize_reports: bool,
+    ) -> Self {
+        use rustsec::advisory::informational::Informational;
+
+        let settings = rustsec::report::Settings {
+            // We already prune packages we don't care about, so don't filter
+            // any here
+            target_arch: None,
+            target_os: None,
+            package_scope: None,
+            // We handle the severity ourselves
+            severity: None,
+            // We handle the ignoring of particular advisory ids ourselves
+            ignore: Vec::new(),
+            informational_warnings: vec![
+                Informational::Notice,
+                Informational::Unmaintained,
+                Informational::Unsound,
+                //Informational::Other("*"),
+            ],
+        };
+
+        let mut vulnerabilities = Vec::new();
+        let mut notices = Vec::new();
+        let mut unmaintained = Vec::new();
+        let mut unsound = Vec::new();
+        let mut serialized_reports = Vec::with_capacity(if serialize_reports {
+            advisory_dbs.dbs.len()
+        } else {
+            0
+        });
+
+        for (url, db) in advisory_dbs.iter() {
+            let mut rep = rustsec::Report::generate(db, &lockfile.0, &settings);
+
+            if serialize_reports {
+                match serde_json::to_value(&rep) {
+                    Ok(val) => serialized_reports.push(val),
+                    Err(err) => {
+                        log::error!("Failed to serialize report for database '{}': {}", url, err);
+                    }
+                }
+            }
+
+            vulnerabilities.append(&mut rep.vulnerabilities.list);
+
+            for (kind, mut wi) in rep.warnings {
+                if wi.is_empty() {
+                    continue;
+                }
+
+                match kind {
+                    Kind::Notice => notices.append(&mut wi),
+                    Kind::Unmaintained => unmaintained.append(&mut wi),
+                    Kind::Unsound => unsound.append(&mut wi),
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+        Self {
+            vulnerabilities,
+            notices,
+            unmaintained,
+            unsound,
+            serialized_reports,
+        }
+    }
+
     pub fn iter_warnings(&self) -> impl Iterator<Item = (Kind, &Warning)> {
         self.notices
             .iter()
@@ -197,78 +269,52 @@ impl Report {
             .chain(self.unmaintained.iter().map(|wi| (Kind::Unmaintained, wi)))
             .chain(self.unsound.iter().map(|wi| (Kind::Unsound, wi)))
     }
+
+    pub fn gather_patches(&self, krates: &Krates) -> PatchSet<'_> {
+        use krates::petgraph as pg;
+        use pg::Direction;
+
+        let graph = krates.graph();
+
+        let index = crates_index::new_cargo_default();
+
+        for vuln in &self.vulnerabilities {
+            index.crate_(
+
+            let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
+
+            
+        }
+    }
 }
 
-pub fn get_report(
-    advisory_dbs: &DbSet,
-    lockfile: &PrunedLockfile,
-    serialize_reports: bool,
-) -> Report {
-    use rustsec::advisory::informational::Informational;
+fn get_patches(vuln_id: usize, ) {
+    // 1. Get the package with the vulnerability
+    // 2. Recursively walk up the dependency chain until we've reach all roots
+    // (workspace crates) that depend on the vulnerable crate version
+    // 3. For each crate in the chain, check to see if has a version
+    // available that ultimately includes a patched version of the vulnerable crate
+    let mut krate_stack = vec![(vuln_id, )];
 
-    let settings = rustsec::report::Settings {
-        // We already prune packages we don't care about, so don't filter
-        // any here
-        target_arch: None,
-        target_os: None,
-        package_scope: None,
-        // We handle the severity ourselves
-        severity: None,
-        // We handle the ignoring of particular advisory ids ourselves
-        ignore: Vec::new(),
-        informational_warnings: vec![
-            Informational::Notice,
-            Informational::Unmaintained,
-            Informational::Unsound,
-            //Informational::Other("*"),
-        ],
-    };
-
-    let mut vulnerabilities = Vec::new();
-    let mut notices = Vec::new();
-    let mut unmaintained = Vec::new();
-    let mut unsound = Vec::new();
-    let mut serialized_reports = Vec::with_capacity(if serialize_reports {
-        advisory_dbs.dbs.len()
-    } else {
-        0
-    });
-
-    for (url, db) in advisory_dbs.iter() {
-        let mut rep = rustsec::Report::generate(db, &lockfile.0, &settings);
-
-        if serialize_reports {
-            match serde_json::to_value(&rep) {
-                Ok(val) => serialized_reports.push(val),
-                Err(err) => {
-                    log::error!("Failed to serialize report for database '{}': {}", url, err);
-                }
-            }
-        }
-
-        vulnerabilities.append(&mut rep.vulnerabilities.list);
-
-        for (kind, mut wi) in rep.warnings {
-            if wi.is_empty() {
-                continue;
-            }
-
-            match kind {
-                Kind::Notice => notices.append(&mut wi),
-                Kind::Unmaintained => unmaintained.append(&mut wi),
-                Kind::Unsound => unsound.append(&mut wi),
-                _ => unreachable!(),
-            }
+    while let Some((nid, )) = krate_stack.pop() {
+        for edge in graph.edges_directed(nid, Direction::Incoming) {
+    
         }
     }
 
-    Report {
-        vulnerabilities,
-        notices,
-        unmaintained,
-        unsound,
-        serialized_reports,
-    }
+}
+
+enum PatchLink<'a> {}
+
+pub struct Patch<'a> {
+    /// The vulnerability the patch is attempting to address
+    pub vuln: &'a Vulnerability,
+    /// The vulnerable crate
+    pub krate: &'a Krate,
+}
+
+pub struct PatchSet<'a> {
+    patches: Vec<Patch<'a>>,
 }
 
 #[cfg(test)]

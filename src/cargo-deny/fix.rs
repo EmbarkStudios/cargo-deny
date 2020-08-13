@@ -167,10 +167,11 @@ pub fn cmd(
 
     let lockfile = advisories::PrunedLockfile::prune(lockfile, &krates);
 
-    let report = advisories::get_report(&dbs, &lockfile, false);
+    let report = advisories::Report::generate(&dbs, &lockfile, false);
 
     // For now we only care about vulnerabilities, but we can add support for fixing
-    // the informational advisories as well
+    // the informational advisories as well, at least the ones that contain information
+    // on what crate/version fixes the issue in the advisory
     if report.vulnerabilities.is_empty() {
         log::info!("No vulnerabilities were detected");
     }
