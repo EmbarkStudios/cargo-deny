@@ -77,7 +77,8 @@ pub struct Private {
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct FileSource {
     /// The crate relative path of the LICENSE file
-    pub path: PathBuf,
+    /// Spanned so we can report typos on it in case it never matches anything.
+    pub path: Spanned<PathBuf>,
     /// The hash of the LICENSE text. If the `path`'s hash
     /// differs from the contents of the path, the file is
     /// parsed to determine if the license(s) contained in
@@ -390,6 +391,7 @@ mod test {
                 version: semver::VersionReq::parse("0.1.1").unwrap(),
             }]
         );
+        let p: PathBuf = "LICENSE".into();
         assert_eq!(
             validated.clarifications,
             vec![ValidClarification {
@@ -397,7 +399,7 @@ mod test {
                 version: semver::VersionReq::parse("*").unwrap(),
                 expression: spdx::Expression::parse("MIT AND ISC AND OpenSSL").unwrap(),
                 license_files: vec![FileSource {
-                    path: "LICENSE".into(),
+                    path: p.fake(),
                     hash: 0xbd0e_ed23,
                 }],
                 expr_offset: 415,

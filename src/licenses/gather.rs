@@ -158,6 +158,15 @@ struct PackFile {
     data: PackFileData,
 }
 
+enum MismatchReason<'a> {
+    /// The specified file was not found when gathering license files
+    FileNotFound,
+    /// Encountered an I/O error trying to read the file contents
+    Error(&'a std::io::Error),
+    /// The hash of the license file doesn't match the expected hash
+    HashDiffers,
+}
+
 struct LicensePack {
     license_files: Vec<PackFile>,
     err: Option<std::io::Error>,
@@ -199,29 +208,26 @@ impl LicensePack {
         }
     }
 
-    fn matches(&self, hashes: &[FileSource]) -> bool {
-        if self.license_files.len() != hashes.len() {
-            return false;
-        }
-
-        for (expected, actual) in self.license_files.iter().zip(hashes.iter()) {
-            if !expected.path.ends_with(&actual.path) {
-                return false;
-            }
-
-            match &expected.data {
-                PackFileData::Bad(_) => {
-                    return false;
-                }
-                PackFileData::Good(lf) => {
-                    if lf.hash != actual.hash {
-                        return false;
+    fn license_files_match(&self, expected: &FileSource) -> Result<(), MismatchReason<'_>> {
+        let err = match self
+            .license_files
+            .iter()
+            .find(|lf| lf.path.ends_with(&expected.path.value))
+        {
+            Some(lf) => match &lf.data {
+                PackFileData::Bad(e) => MismatchReason::Error(e),
+                PackFileData::Good(file_data) => {
+                    if file_data.hash != expected.hash {
+                        MismatchReason::HashDiffers
+                    } else {
+                        return Ok(());
                     }
                 }
-            }
-        }
+            },
+            None => MismatchReason::FileNotFound,
+        };
 
-        true
+        Err(err)
     }
 
     fn get_expression(
@@ -591,14 +597,27 @@ impl Gatherer {
                             }
                         };
 
-                        // pub name: String,
-                        // pub version: VersionReq,
-                        // pub expression: spdx::Expression,
-                        // pub license_files: Vec<FileSource>,
                         // Check to see if the clarification provided exactly matches
                         // the set of detected licenses, if they do, we use the clarification's
-                        // license expression as the license requirement's for this crate
-                        if lp.matches(&clarification.license_files) {
+                        // license expression as the license requirements for this crate
+                        if clarification.license_files.iter().all(|clf| {
+                            match lp.license_files_match(&clf) {
+                                Ok(_) => true,
+                                Err(reason) => {
+                                    if let MismatchReason::FileNotFound = reason {
+                                        labels.push(
+                                            super::diags::MissingClarificationFile {
+                                                expected: &clf.path,
+                                                cfg_file_id: cfg.file_id,
+                                            }
+                                            .into(),
+                                        );
+                                    }
+
+                                    false
+                                }
+                            }
+                        }) {
                             return KrateLicense {
                                 krate,
                                 lic_info: LicenseInfo::SPDXExpression {
