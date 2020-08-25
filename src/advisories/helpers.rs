@@ -2,6 +2,7 @@ use crate::{Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
+use semver::VersionReq;
 use std::path::{Path, PathBuf};
 use url::Url;
 
@@ -276,35 +277,36 @@ impl Report {
 
         let graph = krates.graph();
 
-        let index = crates_index::new_cargo_default();
+        // for vuln in &self.vulnerabilities {
+        //     let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
 
-        for vuln in &self.vulnerabilities {
-            index.crate_(
+        //     // 1. Get the package with the vulnerability
+        //     // 2. Recursively walk up the dependency chain until we've reach all roots
+        //     // (workspace crates) that depend on the vulnerable crate version
+        //     // 3. For each crate in the chain, check to see if has a version
+        //     // available that ultimately includes a patched version of the vulnerable crate
+        //     let mut krate_stack = vec![(ind, vuln_krate, vuln.versions.patched.clone().sort())];
 
-            let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
+        //     while let Some((nid, krate, required)) = krate_stack.pop() {
+        //         for edge in graph.edges_directed(nid, Direction::Incoming) {
+        //             let parent_id = edge.source();
+        //             let parent = &graph[parent_id];
 
-            
-        }
+        //             match parent.krate.source {
+        //                 Some(src) => {}
+        //                 None => {
+        //                     // If it's a workspace member, or local path, we've found a patch candidate
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+        PatchSet { patches: vec![] }
     }
 }
 
-fn get_patches(vuln_id: usize, ) {
-    // 1. Get the package with the vulnerability
-    // 2. Recursively walk up the dependency chain until we've reach all roots
-    // (workspace crates) that depend on the vulnerable crate version
-    // 3. For each crate in the chain, check to see if has a version
-    // available that ultimately includes a patched version of the vulnerable crate
-    let mut krate_stack = vec![(vuln_id, )];
-
-    while let Some((nid, )) = krate_stack.pop() {
-        for edge in graph.edges_directed(nid, Direction::Incoming) {
-    
-        }
-    }
-
-}
-
-enum PatchLink<'a> {}
+//enum PatchLink<'a> {}
 
 pub struct Patch<'a> {
     /// The vulnerability the patch is attempting to address
