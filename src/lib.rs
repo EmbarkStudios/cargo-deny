@@ -109,6 +109,10 @@ impl Default for LintLevel {
     }
 }
 
+const fn lint_allow() -> LintLevel {
+    LintLevel::Allow
+}
+
 const fn lint_warn() -> LintLevel {
     LintLevel::Warn
 }
