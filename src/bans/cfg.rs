@@ -19,7 +19,7 @@ pub struct CrateId {
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateBan {
     pub name: Spanned<String>,
     #[serde(default = "any")]
@@ -28,6 +28,15 @@ pub struct CrateBan {
     /// direct dependency
     #[serde(default)]
     pub wrappers: Vec<Spanned<String>>,
+    /// All features that are allowed to be used.
+    #[serde(default)]
+    pub allow_features: Vec<Spanned<String>>,
+    /// All features that are denied.
+    #[serde(default)]
+    pub deny_features: Spanned<Vec<Spanned<String>>>,
+    /// The actual feature set has to match the `allow_features` sets.
+    #[serde(default)]
+    pub exact_features: Spanned<bool>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -141,6 +150,9 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     cb.name.span,
                 ),
                 wrappers: cb.wrappers,
+                allow_features: cb.allow_features,
+                deny_features: cb.deny_features,
+                exact_features: cb.exact_features,
             })
             .collect();
         denied.par_sort();
@@ -167,6 +179,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
             );
         };
 
+        for a in &allowed {
+            if let Ok(si) = skipped.binary_search(&a) {
+                add_diag((a, "allow"), (&skipped[si], "skip"));
+            }
+        }
+
         for d in &denied {
             if let Ok(ai) = allowed.binary_search(&d.id) {
                 add_diag((&d.id, "deny"), (&allowed[ai], "allow"));
@@ -176,9 +194,38 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
-        for a in &allowed {
-            if let Ok(si) = skipped.binary_search(&a) {
-                add_diag((a, "allow"), (&skipped[si], "skip"));
+        for d in &denied {
+            for allowed_f in &d.allow_features {
+                if let Ok(fi) = &d.deny_features.value.binary_search(allowed_f) {
+                    let deny_f = &d.deny_features.value[*fi];
+
+                    diagnostics.push(
+                        Diagnostic::error()
+                            .with_message(
+                                "a feature was specified in both `allowed-features` and `deny-features`",
+                            )
+                            .with_labels(vec![
+                                Label::secondary(cfg_file, allowed_f.span.clone())
+                                    .with_message("marked as `allow`"),
+                                Label::secondary(cfg_file, deny_f.span.clone())
+                                    .with_message("marked as `deny`"),
+                            ]),
+                    );
+                }
+            }
+
+            if d.exact_features.value && !d.deny_features.value.is_empty() {
+                // TODO: Should this really be like this?
+                diagnostics.push(
+                    Diagnostic::error()
+                        .with_message("can not deny features if `exact-features` is enabled")
+                        .with_labels(vec![
+                            Label::secondary(cfg_file, d.exact_features.span.clone())
+                                .with_message("exact-features enabled here"),
+                            Label::secondary(cfg_file, d.deny_features.span.clone())
+                                .with_message("features are denied here"),
+                        ]),
+                );
             }
         }
 
@@ -206,6 +253,9 @@ pub(crate) type Skrate = Spanned<KrateId>;
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
+    pub allow_features: Vec<Spanned<String>>,
+    pub deny_features: Spanned<Vec<Spanned<String>>>,
+    pub exact_features: Spanned<bool>,
 }
 
 use std::cmp::{Ord, Ordering};

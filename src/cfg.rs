@@ -63,6 +63,18 @@ impl<T> AsRef<T> for Spanned<T> {
     }
 }
 
+impl<T> Default for Spanned<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self {
+            value: Default::default(),
+            span: 0..0,
+        }
+    }
+}
+
 impl<T> std::fmt::Debug for Spanned<T>
 where
     T: std::fmt::Debug,
