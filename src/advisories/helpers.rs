@@ -2,7 +2,7 @@ use crate::{Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
-use semver::VersionReq;
+use semver::{Version, VersionReq};
 use std::path::{Path, PathBuf};
 use url::Url;
 
@@ -156,7 +156,7 @@ impl PrunedLockfile {
 pub(crate) fn krate_for_pkg<'a>(
     krates: &'a Krates,
     pkg: &rustsec::package::Package,
-) -> Option<(usize, &'a Krate)> {
+) -> Option<(krates::NodeId, &'a Krate)> {
     krates
         .krates_by_name(pkg.name.as_str())
         .find(|(_, kn)| {
@@ -174,7 +174,7 @@ pub(crate) fn krate_for_pkg<'a>(
                 false
             }
         })
-        .map(|(ind, krate)| (ind.index(), &krate.krate))
+        .map(|(ind, krate)| (ind, &krate.krate))
 }
 
 pub use rustsec::warning::{Kind, Warning};
@@ -273,7 +273,7 @@ impl Report {
 
     pub fn gather_patches(&self, krates: &Krates) -> Result<PatchSet<'_>, Error> {
         use krates::petgraph as pg;
-        use pg::Direction;
+        use pg::{visit::EdgeRef, Direction};
 
         let graph = krates.graph();
         let index = crate::index::Index::load(krates)?;
@@ -295,9 +295,7 @@ impl Report {
 
                     match parent.krate.source {
                         Some(src) => {}
-                        None => {
-                            // If it's a workspace member, or local path, we've found a patch candidate
-                        }
+                        None => {}
                     }
                 }
             }
@@ -313,7 +311,11 @@ pub struct Patch<'a> {
     /// The vulnerability the patch is attempting to address
     pub vuln: &'a Vulnerability,
     /// The vulnerable crate
-    pub krate: &'a Krate,
+    pub vuln_krate: &'a Krate,
+    /// The crate manifest we want to patch to update versions
+    pub manifest_to_patch: &'a Krate,
+    /// The crate and version we want to update to get the fix
+    pub crate_to_patch: (&'a str, Version),
 }
 
 pub struct PatchSet<'a> {

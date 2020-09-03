@@ -154,7 +154,7 @@ pub fn check<R>(
                 let diag = pack.push(
                     Diagnostic::new(severity)
                         .with_message(advisory.title.clone())
-                        .with_labels(vec![ctx.label_for_span(i, message)])
+                        .with_labels(vec![ctx.label_for_span(i.index(), message)])
                         .with_code(id.as_str().to_owned())
                         .with_notes(notes),
                 );
@@ -205,7 +205,7 @@ pub fn check<R>(
                                 LintLevel::Warn => Severity::Warning,
                             })
                             .with_message("detected yanked crate")
-                            .with_labels(vec![ctx.label_for_span(ind, "yanked version")]),
+                            .with_labels(vec![ctx.label_for_span(ind.index(), "yanked version")]),
                         );
 
                         pack
