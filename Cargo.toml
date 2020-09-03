@@ -35,12 +35,11 @@ askalono = "0.4"
 atty = "0.2"
 bitvec = { version = "0.17", features = ["alloc"] }
 cargo = { version = "0.46.1", optional = true }
-cargo-edit = { version = "0.6", featurs = ["upgrade"], optional = true }
 chrono = "0.4"
 clap = "2.33"
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
-crates-index = "0.15"
+crates-index = { version = "0.15.2", path = "../rust-crates-index" }
 crossbeam = "0.7"
 fern = "0.6"
 home = "0.5"

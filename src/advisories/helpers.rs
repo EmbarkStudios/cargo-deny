@@ -271,36 +271,37 @@ impl Report {
             .chain(self.unsound.iter().map(|wi| (Kind::Unsound, wi)))
     }
 
-    pub fn gather_patches(&self, krates: &Krates) -> PatchSet<'_> {
+    pub fn gather_patches(&self, krates: &Krates) -> Result<PatchSet<'_>, Error> {
         use krates::petgraph as pg;
         use pg::Direction;
 
         let graph = krates.graph();
+        let index = crate::index::Index::load(krates)?;
 
-        // for vuln in &self.vulnerabilities {
-        //     let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
+        for vuln in &self.vulnerabilities {
+            let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
 
-        //     // 1. Get the package with the vulnerability
-        //     // 2. Recursively walk up the dependency chain until we've reach all roots
-        //     // (workspace crates) that depend on the vulnerable crate version
-        //     // 3. For each crate in the chain, check to see if has a version
-        //     // available that ultimately includes a patched version of the vulnerable crate
-        //     let mut krate_stack = vec![(ind, vuln_krate, vuln.versions.patched.clone().sort())];
+            // 1. Get the package with the vulnerability
+            // 2. Recursively walk up the dependency chain until we've reach all roots
+            // (workspace crates) that depend on the vulnerable crate version
+            // 3. For each crate in the chain, check to see if has a version
+            // available that ultimately includes a patched version of the vulnerable crate
+            let mut krate_stack = vec![(ind, vuln_krate, vuln.versions.patched.clone().sort())];
 
-        //     while let Some((nid, krate, required)) = krate_stack.pop() {
-        //         for edge in graph.edges_directed(nid, Direction::Incoming) {
-        //             let parent_id = edge.source();
-        //             let parent = &graph[parent_id];
+            while let Some((nid, krate, required)) = krate_stack.pop() {
+                for edge in graph.edges_directed(nid, Direction::Incoming) {
+                    let parent_id = edge.source();
+                    let parent = &graph[parent_id];
 
-        //             match parent.krate.source {
-        //                 Some(src) => {}
-        //                 None => {
-        //                     // If it's a workspace member, or local path, we've found a patch candidate
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                    match parent.krate.source {
+                        Some(src) => {}
+                        None => {
+                            // If it's a workspace member, or local path, we've found a patch candidate
+                        }
+                    }
+                }
+            }
+        }
 
         PatchSet { patches: vec![] }
     }

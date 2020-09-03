@@ -1,11 +1,11 @@
 use crate::Krates;
 use anyhow::Error;
-use log::info;
+use log::{error, info};
 use std::hash::{Hash, Hasher, SipHasher};
 use url::Url;
 
 pub struct Index {
-    registries: Vec<()>,
+    registries: Vec<crates_index::BareIndex>,
 }
 
 impl Index {
@@ -27,12 +27,23 @@ impl Index {
 
         // It's either intentional or a bug, but it seems (at least today, using
         // a cloudsmith registry), that cargo actually only seems to populate
-        // the actual checkout for the crates.io index, but doesn't for non-crates.io
-        // indices. cargo however does keep a .cache directory in the same layout
-        // as the normal cloned registry, which we use instead, for all repositories
-        // so there is no need to special case between crates.io and others
-        //urls.into_iter().map(|u| {})
-        unimplemented!()
+        // the actual checkout for the crates.io index, but doesn't for
+        // non-crates.io indices. cargo however does keep a .cache directory in
+        // the same layout as the normal cloned registry, which we use instead
+        // for *all* indices so there is no need to special case between
+        // crates.io and others
+        let registries = urls
+            .into_iter()
+            .filter_map(|u| match crates_index::BareIndex::from_url(u.as_str()) {
+                Ok(ndex) => Some(ndex),
+                Err(e) => {
+                    error!("Unable to create index for {}: {}", u, e);
+                    None
+                }
+            })
+            .collect();
+
+        Ok(Self { registries })
     }
 }
 
