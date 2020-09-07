@@ -1,11 +1,13 @@
-use crate::Krates;
+use crate::{Krate, Krates};
 use anyhow::Error;
 use log::{error, info};
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, Hasher};
 use url::Url;
 
 pub struct Index {
     registries: Vec<crates_index::BareIndex>,
+    opened: Vec<Option<crates_index::BareIndexRepo<'static>>>,
+    //cache: HashMap<(String, Version), >,
 }
 
 impl Index {
@@ -16,9 +18,11 @@ impl Index {
 
         for node in krates.krates() {
             if let Some(src) = &node.krate.source {
-                let url = src.url();
-                if !urls.contains(url) {
-                    urls.push(url.clone());
+                if src.is_registry() {
+                    let url = src.url();
+                    if !urls.contains(url) {
+                        urls.push(url.clone());
+                    }
                 }
             }
         }
@@ -32,7 +36,7 @@ impl Index {
         // the same layout as the normal cloned registry, which we use instead
         // for *all* indices so there is no need to special case between
         // crates.io and others
-        let registries = urls
+        let registries: Vec<_> = urls
             .into_iter()
             .filter_map(|u| match crates_index::BareIndex::from_url(u.as_str()) {
                 Ok(ndex) => Some(ndex),
@@ -43,7 +47,53 @@ impl Index {
             })
             .collect();
 
-        Ok(Self { registries })
+        let opened = registries.iter().map(|_| None).collect();
+
+        Ok(Self { registries, opened })
+    }
+
+    pub fn read_krate(&mut self, krate: &Krate) -> Option<crates_index::Crate> {
+        if !krate
+            .source
+            .as_ref()
+            .map(|src| src.is_registry())
+            .unwrap_or(false)
+        {
+            return None;
+        }
+
+        let url = krate.source.as_ref().unwrap().url();
+        if let Some(ind) = self
+            .registries
+            .iter()
+            .position(|reg| reg.url == url.as_str())
+        {
+            if self.opened[ind].is_none() {
+                match self.registries[ind].open_or_clone() {
+                    Ok(bir) => {
+                        let bir = unsafe {
+                            std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(bir)
+                        };
+                        self.opened[ind] = Some(bir);
+                    }
+                    Err(err) => {
+                        log::error!("Failed to open registry index {}: {}", url, err);
+                        return None;
+                    }
+                }
+            }
+
+            let bir = self.opened[ind].as_ref().unwrap();
+            return bir.krate(&krate.name);
+        }
+
+        None
+    }
+}
+
+impl Drop for Index {
+    fn drop(&mut self) {
+        self.opened.clear();
     }
 }
 
@@ -77,7 +127,7 @@ fn to_hex(num: u64) -> String {
 
 fn hash_u64<H: Hash>(hashable: H) -> u64 {
     #[allow(deprecated)]
-    let mut hasher = SipHasher::new_with_keys(0, 0);
+    let mut hasher = std::hash::SipHasher::new_with_keys(0, 0);
     hashable.hash(&mut hasher);
     hasher.finish()
 }

@@ -1,4 +1,4 @@
-use crate::{Krate, Krates};
+use crate::{Krate, Krates, index::Index};
 use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
@@ -271,12 +271,14 @@ impl Report {
             .chain(self.unsound.iter().map(|wi| (Kind::Unsound, wi)))
     }
 
-    pub fn gather_patches(&self, krates: &Krates) -> Result<PatchSet<'_>, Error> {
+    pub fn gather_patches(&self, krates: &Krates, force: bool) -> Result<PatchSet<'_>, Error> {
         use krates::petgraph as pg;
         use pg::{visit::EdgeRef, Direction};
 
         let graph = krates.graph();
-        let index = crate::index::Index::load(krates)?;
+        let index = Index::load(krates)?;
+
+        let mut patches = Vec::new();
 
         for vuln in &self.vulnerabilities {
             let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
@@ -293,15 +295,58 @@ impl Report {
                     let parent_id = edge.source();
                     let parent = &graph[parent_id];
 
-                    match parent.krate.source {
-                        Some(src) => {}
-                        None => {}
+                    if let Some(src) = &parent.krate.source {
+                        if src.is_registry() {
+                            
+                        } else if !src.is_path() {
+                            // TODO: Emit warning that we can't update
+                            continue;
+                        }
                     }
+
+                    patches.push(Patch {
+                        vuln,
+                        vuln_krate,
+                        manifest_to_patch: &parent.krate,
+                        crate_to_patch: (),
+                    });
                 }
             }
         }
 
-        PatchSet { patches: vec![] }
+        Ok(PatchSet { patches })
+    }
+
+    fn find_appropriate_version(index: &Index, parent: &Krate, child: &Krate, required: &[VersionReq], force: bool) -> Result<Vec<VersionReq>, Error> {
+        // Lookup the available versions in the registry's index to see if there is a
+        // compatible version we can update to
+        let ci_krate = index.read_krate(&parent).with_context(|| format!("Unable to find registry index entry for crate '{}'", parent.name))?;
+        
+        // The possible versions we could update to
+        let available = ci_krate.versions().iter().filter_map(|kv| {
+            let version: Version = match kv.version().parse() {
+                Ok(vs) => {
+                    if vs < parent.version {
+                        return None;
+                    }
+
+                    vs
+                },
+                Err(err) => {
+                    log::warn!("Unable to parse version '{}' for index crate '{}': {}", kv.version(), parent.name, err);
+                    return None;
+                }
+            };
+
+            // If the dependency has been removed from a future version, it is
+            // also a candidate
+            if let Some() = kv.dependencies().find(|dep| dep.name() == child.name) {
+            }
+
+
+        })
+
+
     }
 }
 
@@ -319,6 +364,7 @@ pub struct Patch<'a> {
 }
 
 pub struct PatchSet<'a> {
+
     patches: Vec<Patch<'a>>,
 }
 
