@@ -1,4 +1,4 @@
-use crate::{Krate, Krates, index::Index};
+use crate::{diag::Pack, index::Index, Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
@@ -279,25 +279,94 @@ impl Report {
         let index = Index::load(krates)?;
 
         let mut patches = Vec::new();
+        let mut diags = Vec::new();
 
         for vuln in &self.vulnerabilities {
-            let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
-
             // 1. Get the package with the vulnerability
             // 2. Recursively walk up the dependency chain until we've reach all roots
             // (workspace crates) that depend on the vulnerable crate version
             // 3. For each crate in the chain, check to see if has a version
             // available that ultimately includes a patched version of the vulnerable crate
-            let mut krate_stack = vec![(ind, vuln_krate, vuln.versions.patched.clone().sort())];
+            let (ind, vuln_krate) = krate_for_pkg(krates, &vuln.package).unwrap();
 
-            while let Some((nid, krate, required)) = krate_stack.pop() {
+            // We could also see if there are unaffected versions, but easier to just say we only support
+            // fixing by using newer versions than older versions
+            if vuln.versions.patched.is_empty() {
+                // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
+                // pack.push(
+                //     Diagnostic::error()
+                //         .with_message()
+                //         .with_labels(vec![ctx.label_for_span(i.index(), message)])
+                //         .with_code(id.as_str().to_owned())
+                //         .with_notes(notes),
+                // );
+                continue;
+            }
+
+            // Gather the versions that fix the issue. Note that there could be cases where the fix is in disjoint
+            // versions.
+            let required: Vec<_> = {
+                let index_krate = match index.read_krate(vuln_krate) {
+                    Some(ik) => ik,
+                    None => {
+                        continue;
+                    }
+                };
+
+                let patched = &vuln.versions.patched;
+
+                index_krate
+                    .versions()
+                    .iter()
+                    .filter_map(|vs| {
+                        vs.version()
+                            .parse()
+                            .ok()
+                            .and_then(|version: rustsec::Version| {
+                                if patched.iter().any(|v| v.matches(&version)) {
+                                    // rustsec uses an older version of semver
+                                    vs.version().parse::<Version>().ok()
+                                } else {
+                                    None
+                                }
+                            })
+                    })
+                    .collect()
+            };
+
+            if required.is_empty() {
+                // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
+                // pack.push(
+                //     Diagnostic::error()
+                //         .with_message()
+                //         .with_labels(vec![ctx.label_for_span(i.index(), message)])
+                //         .with_code(id.as_str().to_owned())
+                //         .with_notes(notes),
+                // );
+                continue;
+            }
+
+            let mut krate_stack = vec![(ind, vuln_krate, required)];
+            let mut visited = std::collections::HashSet::new();
+
+            while let Some((nid, krate, available)) = krate_stack.pop() {
                 for edge in graph.edges_directed(nid, Direction::Incoming) {
+                    // We only need to visit each unique edge once
+                    if !visited.insert(edge.id()) {
+                        continue;
+                    }
+
                     let parent_id = edge.source();
                     let parent = &graph[parent_id];
 
                     if let Some(src) = &parent.krate.source {
                         if src.is_registry() {
-                            
+                            match Self::find_possible_versions(&index, parent, krate, required) {
+                                Ok(required) => {}
+                                Err(e) => {
+                                    continue;
+                                }
+                            }
                         } else if !src.is_path() {
                             // TODO: Emit warning that we can't update
                             continue;
@@ -314,16 +383,30 @@ impl Report {
             }
         }
 
-        Ok(PatchSet { patches })
+        Ok(PatchSet {
+            patches,
+            diagnostics: diags,
+        })
     }
 
-    fn find_appropriate_version(index: &Index, parent: &Krate, child: &Krate, required: &[VersionReq], force: bool) -> Result<Vec<VersionReq>, Error> {
+    fn find_possible_versions(
+        index: &Index,
+        parent: &Krate,
+        child: &Krate,
+        required: &[Version],
+    ) -> Result<Vec<Version>, Error> {
         // Lookup the available versions in the registry's index to see if there is a
         // compatible version we can update to
-        let ci_krate = index.read_krate(&parent).with_context(|| format!("Unable to find registry index entry for crate '{}'", parent.name))?;
-        
-        // The possible versions we could update to
-        let available = ci_krate.versions().iter().filter_map(|kv| {
+        let parent_krate = index.read_krate(&parent).with_context(|| {
+            format!(
+                "Unable to find registry index entry for crate '{}'",
+                parent.name
+            )
+        })?;
+
+        // Grab all of the versions of the parent crate that have a version requirement that accepts
+        // any of the specified required versions
+        let available: Vec<_> = parent_krate.versions().iter().filter_map(|kv| {
             let version: Version = match kv.version().parse() {
                 Ok(vs) => {
                     if vs < parent.version {
@@ -338,15 +421,31 @@ impl Report {
                 }
             };
 
-            // If the dependency has been removed from a future version, it is
-            // also a candidate
-            if let Some() = kv.dependencies().find(|dep| dep.name() == child.name) {
+
+            if let Some(dep) = kv.dependencies().iter().find(|dep| dep.kind() != crates_index::DependencyKind::Dev && dep.name() == child.name) {
+                let req: VersionReq = match dep.requirement().parse() {
+                    Ok(req) => req,
+                    Err(err) => {
+                        log::warn!("Unable to parse version requirement '{}' for index crate '{}', dependency '{}': {}", dep.requirement(), parent.name, child.name, err);
+                        return None;
+                    }
+                };
+
+                if !required.iter().any(|vs| req.matches(&vs)) {
+                    return None;
+                }
             }
 
+            // If the dependency has been removed from a future version, it is
+            // also a candidate
+            Some(version)
+        }).collect();
 
-        })
-
-
+        if available.is_empty() {
+            anyhow::bail!("No versions were available that used a required version of the crate");
+        } else {
+            Ok(available)
+        }
     }
 }
 
@@ -364,7 +463,7 @@ pub struct Patch<'a> {
 }
 
 pub struct PatchSet<'a> {
-
+    diagnostics: Vec<Pack>,
     patches: Vec<Patch<'a>>,
 }
 

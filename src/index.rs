@@ -7,7 +7,7 @@ use url::Url;
 pub struct Index {
     registries: Vec<crates_index::BareIndex>,
     opened: Vec<Option<crates_index::BareIndexRepo<'static>>>,
-    //cache: HashMap<(String, Version), >,
+    cache: std::collections::HashMap<(String, u8), Option<crates_index::Crate>>,
 }
 
 impl Index {
@@ -52,7 +52,7 @@ impl Index {
         Ok(Self { registries, opened })
     }
 
-    pub fn read_krate(&mut self, krate: &Krate) -> Option<crates_index::Crate> {
+    pub fn read_krate(&mut self, krate: &Krate) -> Option<&crates_index::Crate> {
         if !krate
             .source
             .as_ref()
@@ -68,23 +68,33 @@ impl Index {
             .iter()
             .position(|reg| reg.url == url.as_str())
         {
-            if self.opened[ind].is_none() {
-                match self.registries[ind].open_or_clone() {
-                    Ok(bir) => {
-                        let bir = unsafe {
-                            std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(bir)
-                        };
-                        self.opened[ind] = Some(bir);
+            match self.cache.get((&krate.name, ind as u8)) {
+                Some(cic) => return cic,
+                None => {
+                    if self.opened[ind].is_none() {
+                        match self.registries[ind].open_or_clone() {
+                            Ok(bir) => {
+                                let bir = unsafe {
+                                    std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(
+                                        bir,
+                                    )
+                                };
+                                self.opened[ind] = Some(bir);
+                            }
+                            Err(err) => {
+                                log::error!("Failed to open registry index {}: {}", url, err);
+                                return None;
+                            }
+                        }
                     }
-                    Err(err) => {
-                        log::error!("Failed to open registry index {}: {}", url, err);
-                        return None;
-                    }
+
+                    let bir = self.opened[ind].as_ref().unwrap();
+                    let cic = bir.krate(&krate.name);
+                    self.cache.insert((krate.name.to_owned(), ind as u8), cic);
+
+                    self.cache[(&krate.name, ind as u8)]
                 }
             }
-
-            let bir = self.opened[ind].as_ref().unwrap();
-            return bir.krate(&krate.name);
         }
 
         None

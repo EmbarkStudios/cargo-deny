@@ -779,8 +779,8 @@ impl Gatherer {
 use bitvec::prelude::*;
 
 struct Hits {
-    allowed: BitVec<Local, usize>,
-    exceptions: BitVec<Local, usize>,
+    allowed: BitVec<LocalBits, usize>,
+    exceptions: BitVec<LocalBits, usize>,
 }
 
 fn evaluate_expression(
