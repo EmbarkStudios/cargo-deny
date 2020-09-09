@@ -30,7 +30,7 @@ pub struct CrateBan {
     pub wrappers: Vec<Spanned<String>>,
     /// All features that are allowed to be used.
     #[serde(default)]
-    pub allow_features: Vec<Spanned<String>>,
+    pub allow_features: Spanned<Vec<Spanned<String>>>,
     /// All features that are denied.
     #[serde(default)]
     pub deny_features: Spanned<Vec<Spanned<String>>>,
@@ -195,7 +195,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         }
 
         for d in &denied {
-            for allowed_f in &d.allow_features {
+            for allowed_f in &d.allow_features.value {
                 if let Ok(fi) = &d.deny_features.value.binary_search(allowed_f) {
                     let deny_f = &d.deny_features.value[*fi];
 
@@ -253,7 +253,7 @@ pub(crate) type Skrate = Spanned<KrateId>;
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
-    pub allow_features: Vec<Spanned<String>>,
+    pub allow_features: Spanned<Vec<Spanned<String>>>,
     pub deny_features: Spanned<Vec<Spanned<String>>>,
     pub exact_features: Spanned<bool>,
 }

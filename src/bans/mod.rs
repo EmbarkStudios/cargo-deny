@@ -222,8 +222,27 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
-        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+    struct KrateBanInfo {
+        wrappers: Vec<Spanned<String>>,
+        allow_features: Spanned<Vec<Spanned<String>>>,
+        deny_features: Spanned<Vec<Spanned<String>>>,
+        exact_features: Spanned<bool>,
+    }
+
+    let (denied_ids, denied_info): (Vec<_>, Vec<_>) = denied
+        .into_iter()
+        .map(|kb| {
+            (
+                kb.id,
+                KrateBanInfo {
+                    wrappers: kb.wrappers,
+                    allow_features: kb.allow_features,
+                    deny_features: kb.deny_features,
+                    exact_features: kb.exact_features,
+                },
+            )
+        })
+        .unzip();
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -253,7 +272,7 @@ pub fn check(
 
             // The crate is banned, but it might have be allowed if it's wrapped
             // by one or more particular crates
-            let allowed_wrappers = &ban_wrappers[bind];
+            let allowed_wrappers = &denied_info[bind].wrappers;
             let is_allowed = if !allowed_wrappers.is_empty() {
                 let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                 let graph = ctx.krates.graph();
@@ -302,8 +321,68 @@ pub fn check(
                 false
             };
 
+            // Ensure that the feature set of this krate, wherever it's used
+            // as a dependency, matches the ban entry.
+            let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+            let graph = ctx.krates.graph();
+            let features_allowed = graph
+                .edges_directed(nid, Direction::Incoming)
+                .map(|edge| edge.source())
+                .all(|nid| {
+                    let node = &graph[nid];
+
+                    let exact = &denied_info[bind].exact_features;
+                    let af = &denied_info[bind].allow_features;
+                    let df = &denied_info[bind].deny_features;
+                    let cf = &node
+                        .krate
+                        .deps
+                        .iter()
+                        .find(|dep| dep.name == krate.name)
+                        .unwrap()
+                        .features;
+
+                    if exact.value {
+                        // TODO: We need to properly report the invalid feature set.
+                        // How should we report it?
+                        let mut check_len = || {
+                            if cf.len() == af.value.len() {
+                                true
+                            } else {
+                                pack.push(
+                                    Diagnostic::error()
+                                        .with_message(format!("invalid feature set for {}", krate))
+                                        .with_labels(vec![
+                                            Label::primary(file_id, af.span.clone())
+                                                .with_message("lengths of the feature sets do not match..."),
+                                            Label::secondary(file_id, exact.span.clone())
+                                                .with_message("but they have to, because `exact_features` is defined here")
+                                        ]),
+                                );
+                                false
+                            }
+                        };
+                        check_len() && af.value.iter().all(|f| cf.contains(&f.value))
+                    } else {
+                        false
+                    }
+                });
+
+            let is_allowed = if !is_allowed && features_allowed {
+                true
+            } else if is_allowed {
+                true
+            } else {
+                false
+            };
+
             if !is_allowed {
-                pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
+                pack.push(
+                    Diagnostic::error()
+                        .with_message(format!("detected banned crate {}", krate,))
+                        .with_labels(vec![Label::primary(file_id, ban.span.clone())
+                            .with_message("matching ban entry")]),
+                );
             }
         }
 
