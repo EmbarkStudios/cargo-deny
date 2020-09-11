@@ -1,8 +1,7 @@
-use crate::{diag::Pack, index::Index, Krate, Krates};
+use crate::{Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
-use semver::{Version, VersionReq};
 use std::path::{Path, PathBuf};
 use url::Url;
 

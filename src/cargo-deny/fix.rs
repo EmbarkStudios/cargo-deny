@@ -13,6 +13,10 @@ pub struct Args {
     /// Defaults to <cwd>/deny.toml if not specified
     #[structopt(short, long, parse(from_os_str))]
     config: Option<PathBuf>,
+    /// Allows crates to be patched with versions which are incompatible with
+    /// the current version requirements.
+    #[structopt(long)]
+    allow_incompatible: bool,
     /// Disable fetching of the advisory database and crates.io index
     ///
     /// By default the advisory database and crates.io index are updated before checking the advisories, if disabled via this flag, an error occurs if the advisory database or crates.io index are not available locally already.
@@ -175,6 +179,19 @@ pub fn cmd(
     if report.vulnerabilities.is_empty() {
         log::info!("No vulnerabilities were detected");
     }
+
+    let patches = report
+        .gather_patches(
+            &krates,
+            if args.allow_incompatible {
+                advisories::fix::Semver::Latest
+            } else {
+                advisories::fix::Semver::Compatible
+            },
+        )
+        .context("failed to gather patches")?;
+
+    log::warn!("{:#?}", patches);
 
     Ok(())
 }

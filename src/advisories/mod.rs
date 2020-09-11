@@ -1,6 +1,6 @@
 pub mod cfg;
 #[cfg(feature = "fix")]
-mod fix;
+pub mod fix;
 mod helpers;
 
 use crate::{

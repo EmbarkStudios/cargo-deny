@@ -79,6 +79,7 @@ pub mod advisories;
 pub mod bans;
 mod cfg;
 pub mod diag;
+#[cfg(feature = "fix")]
 mod index;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;

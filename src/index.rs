@@ -1,4 +1,4 @@
-use crate::{Krate, Krates};
+use crate::{Kid, Krate, Krates};
 use anyhow::Error;
 use log::{error, info};
 use std::hash::{Hash, Hasher};
@@ -7,7 +7,7 @@ use url::Url;
 pub struct Index {
     registries: Vec<crates_index::BareIndex>,
     opened: Vec<Option<crates_index::BareIndexRepo<'static>>>,
-    cache: std::collections::HashMap<(String, u8), Option<crates_index::Crate>>,
+    cache: std::collections::HashMap<Kid, Option<crates_index::Crate>>,
 }
 
 impl Index {
@@ -49,17 +49,25 @@ impl Index {
 
         let opened = registries.iter().map(|_| None).collect();
 
-        Ok(Self { registries, opened })
+        Ok(Self {
+            registries,
+            opened,
+            cache: std::collections::HashMap::new(),
+        })
     }
 
-    pub fn read_krate(&mut self, krate: &Krate) -> Option<&crates_index::Crate> {
+    pub fn read_krate<F>(&mut self, krate: &Krate, mut func: F)
+    where
+        F: FnMut(Option<&crates_index::Crate>),
+    {
         if !krate
             .source
             .as_ref()
             .map(|src| src.is_registry())
             .unwrap_or(false)
         {
-            return None;
+            func(None);
+            return;
         }
 
         let url = krate.source.as_ref().unwrap().url();
@@ -68,36 +76,37 @@ impl Index {
             .iter()
             .position(|reg| reg.url == url.as_str())
         {
-            match self.cache.get((&krate.name, ind as u8)) {
-                Some(cic) => return cic,
-                None => {
-                    if self.opened[ind].is_none() {
-                        match self.registries[ind].open_or_clone() {
-                            Ok(bir) => {
-                                let bir = unsafe {
-                                    std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(
-                                        bir,
-                                    )
-                                };
-                                self.opened[ind] = Some(bir);
-                            }
-                            Err(err) => {
-                                log::error!("Failed to open registry index {}: {}", url, err);
-                                return None;
-                            }
-                        }
+            if let Some(cic) = self.cache.get(&krate.id) {
+                func(cic.as_ref());
+                return;
+            }
+
+            if self.opened[ind].is_none() {
+                match self.registries[ind].open_or_clone() {
+                    Ok(bir) => {
+                        let bir = unsafe {
+                            std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(bir)
+                        };
+                        self.opened[ind] = Some(bir);
                     }
-
-                    let bir = self.opened[ind].as_ref().unwrap();
-                    let cic = bir.krate(&krate.name);
-                    self.cache.insert((krate.name.to_owned(), ind as u8), cic);
-
-                    self.cache[(&krate.name, ind as u8)]
+                    Err(err) => {
+                        log::error!("Failed to open registry index {}: {}", url, err);
+                        func(None);
+                        return;
+                    }
                 }
             }
+
+            let bir = self.opened[ind].as_ref().unwrap();
+            let cic = bir.krate(&krate.name);
+
+            func(cic.as_ref());
+
+            self.cache.insert(krate.id.clone(), cic);
+            return;
         }
 
-        None
+        func(None);
     }
 }
 

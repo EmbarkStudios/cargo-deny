@@ -8,6 +8,7 @@ use structopt::StructOpt;
 mod check;
 mod common;
 mod fetch;
+#[cfg(feature = "fix")]
 mod fix;
 mod init;
 mod list;
@@ -23,6 +24,7 @@ enum Command {
     Fetch(fetch::Args),
     /// Attempts to fix security advisories by updating Cargo.toml manifests
     #[structopt(name = "fix")]
+    #[cfg(feature = "fix")]
     Fix(fix::Args),
     /// Creates a cargo-deny config from a template
     #[structopt(name = "init")]
@@ -332,6 +334,7 @@ fn real_main() -> Result<(), Error> {
             }
         }
         Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
+        #[cfg(feature = "fix")]
         Command::Fix(fargs) => fix::cmd(log_ctx, fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
         Command::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
