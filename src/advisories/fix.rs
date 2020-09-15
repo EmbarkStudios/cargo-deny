@@ -157,23 +157,28 @@ impl super::Report {
             let mut krate_stack = vec![(ind, vuln_krate, required)];
             let mut visited = std::collections::HashSet::new();
 
-            while let Some((nid, krate, required)) = krate_stack.pop() {
+            log::warn!("ADVISORY {:#?}", patchable.advisory);
+
+            while let Some((nid, dep, required)) = krate_stack.pop() {
                 for edge in graph.edges_directed(nid, Direction::Incoming) {
                     // We only need to visit each unique edge once
                     let edge_id = edge.id();
                     if !visited.insert(edge_id) {
+                        log::warn!("Already visited {} => {}", &graph[edge.source()], dep);
                         continue;
                     }
 
                     let parent_id = edge.source();
                     let parent = &graph[parent_id];
 
+                    log::warn!("Visiting {} => {}", parent.krate, dep);
+
                     if let Some(src) = &parent.krate.source {
                         if src.is_registry() {
                             match Self::find_possible_versions(
                                 &mut index,
                                 &parent.krate,
-                                krate,
+                                dep,
                                 &required,
                             ) {
                                 Ok(parent_versions) => {
@@ -181,6 +186,12 @@ impl super::Report {
                                     continue;
                                 }
                                 Err(e) => {
+                                    log::error!(
+                                        "Unable to patch {} => {}: {}",
+                                        parent.krate,
+                                        dep,
+                                        e
+                                    );
                                     continue;
                                 }
                             }
