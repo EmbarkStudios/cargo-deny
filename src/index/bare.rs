@@ -1,6 +1,10 @@
 //! This is a copy of https://github.com/frewsxcv/rust-crates-index/pull/41 so
 //! that we can make releases of cargo-deny until/if it is merged and released
 
+use super::IndexKrate;
+use anyhow::{Context, Error};
+use std::path::{Path, PathBuf};
+
 pub struct BareIndex {
     path: PathBuf,
     pub url: String,
@@ -28,11 +32,6 @@ impl BareIndex {
             path,
             url: url.to_owned(),
         }
-    }
-
-    /// Creates and index for the default crates.io registry
-    pub fn crates_io() -> Result<Self, Error> {
-        Self::from_url(crate::INDEX_GIT_URL)
     }
 
     /// Opens the local index, which acts as a kind of lock for source control
@@ -67,7 +66,7 @@ impl<'a> BareIndexRepo<'a> {
 
         if !exists {
             git2::build::RepoBuilder::new()
-                .fetch_options(crate::fetch_opts())
+                .fetch_options(fetch_opts())
                 .bare(true)
                 .clone(&index.url, &index.path)?;
         }
@@ -104,7 +103,11 @@ impl<'a> BareIndexRepo<'a> {
                 .find_remote("origin")
                 .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
 
-            origin_remote.fetch(&["master"], Some(&mut crate::fetch_opts()), None)?;
+            origin_remote.fetch(
+                &["+refs/heads/*:refs/remotes/origin/*"],
+                Some(&mut fetch_opts()),
+                None,
+            )?;
         }
 
         let head = self
@@ -128,8 +131,8 @@ impl<'a> BareIndexRepo<'a> {
     /// Reads a crate from the index, it will attempt to use a cached entry if
     /// one is available, otherwise it will fallback to reading the crate
     /// directly from the git blob containing the crate information.
-    pub fn krate(&self, name: &str) -> Option<Crate> {
-        let rel_path = match crate::crate_name_to_relative_path(name) {
+    pub fn krate(&self, name: &str) -> Option<IndexKrate> {
+        let rel_path = match crate_name_to_relative_path(name) {
             Some(rp) => rp,
             None => return None,
         };
@@ -140,7 +143,7 @@ impl<'a> BareIndexRepo<'a> {
             let mut cache_path = self.inner.path.join(".cache");
             cache_path.push(&rel_path);
             if let Ok(cache_bytes) = std::fs::read(&cache_path) {
-                if let Ok(krate) = Crate::from_cache_slice(&cache_bytes, &self.head_str) {
+                if let Ok(krate) = IndexKrate::from_cache_slice(&cache_bytes, &self.head_str) {
                     return Some(krate);
                 }
             }
@@ -151,14 +154,12 @@ impl<'a> BareIndexRepo<'a> {
         self.krate_from_blob(&rel_path).ok()
     }
 
-    fn krate_from_blob(&self, path: &str) -> Result<Crate, Error> {
+    fn krate_from_blob(&self, path: &str) -> Result<IndexKrate, Error> {
         let entry = self.tree.as_ref().unwrap().get_path(&Path::new(path))?;
         let object = entry.to_object(&self.repo)?;
-        let blob = object
-            .as_blob()
-            .ok_or_else(|| Error::Io(io::Error::new(io::ErrorKind::NotFound, path.to_owned())))?;
+        let blob = object.as_blob().context("unable to get blob contents")?;
 
-        Crate::from_slice(blob.content()).map_err(Error::Io)
+        IndexKrate::from_slice(blob.content())
     }
 }
 
@@ -167,6 +168,34 @@ impl<'a> Drop for BareIndexRepo<'a> {
         // Just be sure to drop this before our other fields
         self.tree.take();
     }
+}
+
+fn crate_name_to_relative_path(crate_name: &str) -> Option<String> {
+    if !crate_name.is_ascii() {
+        return None;
+    }
+
+    let name_lower = crate_name.to_ascii_lowercase();
+    let mut rel_path = String::with_capacity(crate_name.len() + 6);
+    match name_lower.len() {
+        0 => return None,
+        1 => rel_path.push('1'),
+        2 => rel_path.push('2'),
+        3 => {
+            rel_path.push('3');
+            rel_path.push(std::path::MAIN_SEPARATOR);
+            rel_path.push_str(&name_lower[0..1]);
+        }
+        _ => {
+            rel_path.push_str(&name_lower[0..2]);
+            rel_path.push(std::path::MAIN_SEPARATOR);
+            rel_path.push_str(&name_lower[2..4]);
+        }
+    };
+    rel_path.push(std::path::MAIN_SEPARATOR);
+    rel_path.push_str(&name_lower);
+
+    Some(rel_path)
 }
 
 /// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
@@ -216,12 +245,12 @@ fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     let (url, scheme_ind) = {
         let scheme_ind = url
             .find("://")
-            .ok_or_else(|| Error::Url(format!("'{}' is not a valid url", url)))?;
+            .with_context(|| format!("'{}' is not a valid url", url))?;
 
         let scheme_str = &url[..scheme_ind];
         if let Some(ind) = scheme_str.find('+') {
             if &scheme_str[..ind] != "registry" {
-                return Err(Error::Url(format!("'{}' is not a valid registry url", url)));
+                anyhow::bail!("'{}' is not a valid registry url", url);
             }
 
             (&url[ind + 1..], scheme_ind - ind - 1)
@@ -266,15 +295,25 @@ fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     Ok((format!("{}-{}", host, ident), canonical))
 }
 
+fn fetch_opts() -> git2::FetchOptions<'static> {
+    let mut proxy_opts = git2::ProxyOptions::new();
+    proxy_opts.auto();
+    let mut fetch_opts = git2::FetchOptions::new();
+    fetch_opts.proxy_options(proxy_opts);
+    fetch_opts
+}
+
 #[cfg(test)]
 mod test {
+    const CRATES_IO_URL: &str = "https://github.com/rust-lang/crates.io-index";
+
     #[test]
     fn matches_cargo() {
         assert_eq!(
-            super::url_to_local_dir(crate::INDEX_GIT_URL).unwrap(),
+            super::url_to_local_dir(CRATES_IO_URL).unwrap(),
             (
                 "github.com-1ecc6299db9ec823".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
+                CRATES_IO_URL.to_owned()
             )
         );
 
@@ -297,12 +336,12 @@ mod test {
         assert_eq!(
             super::url_to_local_dir(&format!(
                 "registry+{}.git?one=1&two=2#fragment",
-                crate::INDEX_GIT_URL
+                CRATES_IO_URL
             ))
             .unwrap(),
             (
                 "github.com-c786010fb7ef2e6e".to_owned(),
-                crate::INDEX_GIT_URL.to_owned()
+                CRATES_IO_URL.to_owned()
             )
         );
     }

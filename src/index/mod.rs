@@ -1,13 +1,138 @@
 use crate::{Kid, Krate, Krates};
-use anyhow::Error;
+use anyhow::{bail, ensure, Context, Error};
 use log::{error, info};
+use semver::{Version, VersionReq};
+use serde::Deserialize;
 use std::hash::{Hash, Hasher};
 use url::Url;
 
+mod bare;
+
+use bare::{BareIndex, BareIndexRepo};
+
+#[derive(Deserialize, Debug)]
+pub struct IndexVersion {
+    pub name: String,
+    pub vers: Version,
+    pub deps: Vec<IndexDependency>,
+    //features: HashMap<String, Vec<String>>,
+    pub yanked: bool,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct IndexDependency {
+    pub name: String,
+    pub req: VersionReq,
+    //features: Box<[String]>,
+    //optional: bool,
+    //default_features: bool,
+    pub target: Option<Box<str>>,
+    pub kind: Option<krates::cm::DependencyKind>,
+    pub package: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct IndexKrate {
+    pub versions: Vec<IndexVersion>,
+}
+
+impl IndexKrate {
+    /// Parse crate file from in-memory JSON data
+    pub fn from_slice(mut bytes: &[u8]) -> Result<Self, Error> {
+        // Trim last newline
+        while bytes.last() == Some(&b'\n') {
+            bytes = &bytes[..bytes.len() - 1];
+        }
+
+        #[inline(always)]
+        fn is_newline(c: &u8) -> bool {
+            *c == b'\n'
+        }
+
+        let mut versions = Vec::with_capacity(bytes.split(is_newline).count());
+        for line in bytes.split(is_newline) {
+            let version: IndexVersion =
+                serde_json::from_slice(line).context("Unable to parse crate version")?;
+            versions.push(version);
+        }
+
+        ensure!(!versions.is_empty(), "crate doesn't have any versions");
+
+        Ok(Self { versions })
+    }
+
+    /// Parse crate index entry from a .cache file, this can fail for a number of reasons
+    ///
+    /// 1. There is no entry for this crate
+    /// 2. The entry was created with an older commit and might be outdated
+    /// 3. The entry is a newer version than what can be read, would only
+    /// happen if a future version of cargo changed the format of the cache entries
+    /// 4. The cache entry is malformed somehow
+    pub fn from_cache_slice(bytes: &[u8], index_version: &str) -> Result<Self, Error> {
+        const CURRENT_CACHE_VERSION: u8 = 1;
+
+        // See src/cargo/sources/registry/index.rs
+        let (first_byte, rest) = bytes.split_first().context("malformed .cache file")?;
+
+        ensure!(
+            *first_byte != CURRENT_CACHE_VERSION,
+            "looks like a different Cargo's cache, bailing out"
+        );
+
+        fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
+            struct Split<'a> {
+                haystack: &'a [u8],
+                needle: u8,
+            }
+
+            impl<'a> Iterator for Split<'a> {
+                type Item = &'a [u8];
+
+                fn next(&mut self) -> Option<&'a [u8]> {
+                    if self.haystack.is_empty() {
+                        return None;
+                    }
+                    let (ret, remaining) = match memchr::memchr(self.needle, self.haystack) {
+                        Some(pos) => (&self.haystack[..pos], &self.haystack[pos + 1..]),
+                        None => (self.haystack, &[][..]),
+                    };
+                    self.haystack = remaining;
+                    Some(ret)
+                }
+            }
+
+            Split { haystack, needle }
+        }
+
+        let mut iter = split(rest, 0);
+        if let Some(update) = iter.next() {
+            ensure!(
+                update != index_version.as_bytes(),
+                "cache out of date: current index ({}) != cache ({})",
+                index_version,
+                std::str::from_utf8(update).context("unable to stringify cache version")?,
+            );
+        } else {
+            bail!("malformed cache file");
+        }
+
+        let mut versions = Vec::new();
+
+        // Each entry is a tuple of (semver, version_json)
+        while let Some(_version) = iter.next() {
+            let version_slice = iter.next().context("malformed cache file")?;
+            let version: IndexVersion = serde_json::from_slice(version_slice)?;
+            versions.push(version);
+        }
+
+        Ok(Self { versions })
+    }
+}
+
 pub struct Index {
-    registries: Vec<crates_index::BareIndex>,
-    opened: Vec<Option<crates_index::BareIndexRepo<'static>>>,
-    cache: std::collections::HashMap<Kid, Option<crates_index::Crate>>,
+    registries: Vec<BareIndex>,
+    opened: Vec<Option<BareIndexRepo<'static>>>,
+    cache: std::collections::HashMap<Kid, Option<IndexKrate>>,
 }
 
 impl Index {
@@ -38,7 +163,7 @@ impl Index {
         // crates.io and others
         let registries: Vec<_> = urls
             .into_iter()
-            .filter_map(|u| match crates_index::BareIndex::from_url(u.as_str()) {
+            .filter_map(|u| match BareIndex::from_url(u.as_str()) {
                 Ok(ndex) => Some(ndex),
                 Err(e) => {
                     error!("Unable to create index for {}: {}", u, e);
@@ -58,7 +183,7 @@ impl Index {
 
     pub fn read_krate<F>(&mut self, krate: &Krate, mut func: F)
     where
-        F: FnMut(Option<&crates_index::Crate>),
+        F: FnMut(Option<&IndexKrate>),
     {
         if !krate
             .source
@@ -84,9 +209,7 @@ impl Index {
             if self.opened[ind].is_none() {
                 match self.registries[ind].open_or_clone() {
                     Ok(bir) => {
-                        let bir = unsafe {
-                            std::mem::transmute::<_, crates_index::BareIndexRepo<'static>>(bir)
-                        };
+                        let bir = unsafe { std::mem::transmute::<_, BareIndexRepo<'static>>(bir) };
                         self.opened[ind] = Some(bir);
                     }
                     Err(err) => {
@@ -363,19 +486,5 @@ mod test {
             format!("{}-{}", hashme.url.host_str().unwrap(), hashed),
             "github.com-1ecc6299db9ec823"
         );
-    }
-
-    #[test]
-    fn opens_crates_io() {
-        let index = crates_index::Index::new(
-            "/home/jake/.cargo/registry/index/github.com-1ecc6299db9ec823/.cache",
-        );
-
-        for krate in index.crate_index_paths() {
-            println!("PATH {}", krate.display());
-            //println!("{} - {} version", krate.name(), krate.versions().len());
-        }
-
-        panic!("oh no");
     }
 }
