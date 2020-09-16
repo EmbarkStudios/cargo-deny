@@ -1,6 +1,6 @@
 use crate::{Kid, Krate, Krates};
 use anyhow::{bail, ensure, Context, Error};
-use log::{error, info};
+use log::{debug, error};
 use semver::{Version, VersionReq};
 use serde::Deserialize;
 use std::hash::{Hash, Hasher};
@@ -23,9 +23,6 @@ pub struct IndexVersion {
 pub struct IndexDependency {
     pub name: String,
     pub req: VersionReq,
-    //features: Box<[String]>,
-    //optional: bool,
-    //default_features: bool,
     pub target: Option<Box<str>>,
     pub kind: Option<krates::cm::DependencyKind>,
     pub package: Option<String>,
@@ -38,7 +35,7 @@ pub struct IndexKrate {
 
 impl IndexKrate {
     /// Parse crate file from in-memory JSON data
-    pub fn from_slice(mut bytes: &[u8]) -> Result<Self, Error> {
+    fn from_slice(mut bytes: &[u8]) -> Result<Self, Error> {
         // Trim last newline
         while bytes.last() == Some(&b'\n') {
             bytes = &bytes[..bytes.len() - 1];
@@ -68,7 +65,7 @@ impl IndexKrate {
     /// 3. The entry is a newer version than what can be read, would only
     /// happen if a future version of cargo changed the format of the cache entries
     /// 4. The cache entry is malformed somehow
-    pub fn from_cache_slice(bytes: &[u8], index_version: &str) -> Result<Self, Error> {
+    fn from_cache_slice(bytes: &[u8], index_version: &str) -> Result<Self, Error> {
         const CURRENT_CACHE_VERSION: u8 = 1;
 
         // See src/cargo/sources/registry/index.rs
@@ -152,7 +149,7 @@ impl Index {
             }
         }
 
-        info!("Found {} unique remote crate registries", urls.len());
+        debug!("Found {} unique remote crate registries", urls.len(),);
 
         // It's either intentional or a bug, but it seems (at least today, using
         // a cloudsmith registry), that cargo actually only seems to populate

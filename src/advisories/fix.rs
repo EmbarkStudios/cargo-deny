@@ -3,6 +3,18 @@ use anyhow::{Context, Error};
 use rustsec::advisory::Metadata;
 use semver::{Version, VersionReq};
 
+fn to_string<T: std::fmt::Display>(v: &[T]) -> String {
+    let mut dv = String::with_capacity(64);
+
+    for req in v {
+        use std::fmt::Write;
+        write!(&mut dv, "{}, ", req).expect("failed to write string");
+    }
+
+    dv.truncate(dv.len() - 2);
+    dv
+}
+
 #[derive(Debug)]
 pub struct Patch<'a> {
     /// The advisories the patch is attempting to address
@@ -22,7 +34,7 @@ pub enum Semver {
 #[derive(Debug)]
 pub struct PatchSet<'a> {
     //diagnostics: Vec<Pack>,
-    patches: Vec<Patch<'a>>,
+    pub patches: Vec<Patch<'a>>,
 }
 
 struct Patchable<'a> {
@@ -88,8 +100,8 @@ impl super::Report {
             // fixing by using newer versions than older versions
             if patchable.patched.is_empty() {
                 log::error!(
-                    "advisory {:#?} has no available patches",
-                    patchable.advisory
+                    "advisory {} has no available patches",
+                    patchable.advisory.id,
                 );
                 // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
                 // pack.push(
@@ -113,19 +125,21 @@ impl super::Report {
 
                         req = Some(
                             index_krate
-                                .versions()
+                                .versions
                                 .iter()
+                                // Disregard any versions older than the current one
+                                .skip_while(|vs| vs.vers < vuln_krate.version)
                                 .filter_map(|vs| {
-                                    vs.version().parse().ok().and_then(
-                                        |version: rustsec::Version| {
-                                            if patched.iter().any(|v| v.matches(&version)) {
-                                                // rustsec uses an older version of semver
-                                                vs.version().parse::<Version>().ok()
-                                            } else {
-                                                None
-                                            }
-                                        },
-                                    )
+                                    // Map to rustsec's Version, as it uses an older version
+                                    // for now
+                                    let rs_vers: rustsec::Version =
+                                        vs.vers.to_string().parse().unwrap();
+
+                                    if patched.iter().any(|v| v.matches(&rs_vers)) {
+                                        Some(vs.vers.clone())
+                                    } else {
+                                        None
+                                    }
                                 })
                                 .collect(),
                         );
@@ -140,8 +154,8 @@ impl super::Report {
 
             if required.is_empty() {
                 log::error!(
-                    "Advisory {:#?} has no available versions that meet the patch requirements",
-                    patchable.advisory
+                    "Advisory {} has no available versions that meet the patch requirements",
+                    patchable.advisory.id
                 );
                 // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
                 // pack.push(
@@ -157,21 +171,17 @@ impl super::Report {
             let mut krate_stack = vec![(ind, vuln_krate, required)];
             let mut visited = std::collections::HashSet::new();
 
-            log::warn!("ADVISORY {:#?}", patchable.advisory);
-
             while let Some((nid, dep, required)) = krate_stack.pop() {
                 for edge in graph.edges_directed(nid, Direction::Incoming) {
                     // We only need to visit each unique edge once
                     let edge_id = edge.id();
                     if !visited.insert(edge_id) {
-                        log::warn!("Already visited {} => {}", &graph[edge.source()], dep);
+                        //log::warn!("Already visited {} => {}", &graph[edge.source()], dep);
                         continue;
                     }
 
                     let parent_id = edge.source();
                     let parent = &graph[parent_id];
-
-                    log::warn!("Visiting {} => {}", parent.krate, dep);
 
                     if let Some(src) = &parent.krate.source {
                         if src.is_registry() {
@@ -207,7 +217,7 @@ impl super::Report {
                     }
 
                     match candidates.iter_mut().find(|c| c.0 == edge_id) {
-                        Some(mut cand) => {
+                        Some(cand) => {
                             cand.1.push(PatchCandidate {
                                 advisory: patchable.advisory,
                                 required: required.clone(),
@@ -240,7 +250,7 @@ impl super::Report {
             // Get the maximum version, either of the possible versions that we
             // require or of the maximum from the set of semver compatible
             // versions. I honestly expect the semver compatible one to never
-            // actually work, but provide it just because
+            // actually work, but provide it just because ¯\_(ツ)_/¯
             let version = match semv {
                 Semver::Compatible => {
                     match local_krate.deps.iter().find(|dep| {
@@ -264,7 +274,7 @@ impl super::Report {
                                         }
                                     },
                                     None => {
-                                        log::warn!("Local crate {:#?} has a requirement of {} on {}, which does not meet any of the required versions {:#?}", local_krate, req, to_patch.name, pc.required);
+                                        log::warn!("Local crate {} has a requirement of {} on {}, which does not match any of the possible required versions [{}]", local_krate.name, req, to_patch.name, to_string(&pc.required));
                                         // TODO: Emit warning that there are no semver compatible
                                         // versions we can update to
                                         all_compatible = false;
@@ -287,7 +297,18 @@ impl super::Report {
             };
 
             let version = match version {
-                Some(v) => v.clone(),
+                Some(v) => {
+                    if v == &to_patch.version {
+                        log::warn!(
+                            "A newer version of '{} = {}' is not currently available",
+                            to_patch.name,
+                            to_patch.version
+                        );
+                        continue;
+                    }
+
+                    v.clone()
+                }
                 None => {
                     log::warn!("Local crate {:#?} dependency for {}, does not meet any of the required versions {:#?}", local_krate, to_patch.name, candidates);
                     // TODO: Emit warning about no version to update to
@@ -321,49 +342,42 @@ impl super::Report {
                 Some(parent_krate) => {
                     // Grab all of the versions of the parent crate that have a version requirement that accepts
                     // any of the specified required versions
-                    let available: Vec<_> = parent_krate.versions().iter().filter_map(|kv| {
-                        let version: Version = match kv.version().parse() {
-                            Ok(vs) => {
-                                if vs < parent.version {
+                    let available: Vec<_> = parent_krate
+                        .versions
+                        .iter()
+                        // Disregard any versions older than the current one
+                        .skip_while(|vs| vs.vers < parent.version)
+                        .filter_map(|kv| {
+                            let version = &kv.vers;
+
+                            if let Some(dep) = kv.deps.iter().find(|dep| {
+                                dep.kind != Some(krates::cm::DependencyKind::Development)
+                                    && dep.name == child.name
+                            }) {
+                                if !required.iter().any(|vs| dep.req.matches(&vs)) {
                                     return None;
                                 }
-
-                                vs
-                            },
-                            Err(err) => {
-                                log::warn!("Unable to parse version '{}' for index crate '{}': {}", kv.version(), parent.name, err);
-                                return None;
                             }
-                        };
 
-
-                        if let Some(dep) = kv.dependencies().iter().find(|dep| dep.kind() != crates_index::DependencyKind::Dev && dep.name() == child.name) {
-                            let req: VersionReq = match dep.requirement().parse() {
-                                Ok(req) => req,
-                                Err(err) => {
-                                    log::warn!("Unable to parse version requirement '{}' for index crate '{}', dependency '{}': {}", dep.requirement(), parent.name, child.name, err);
-                                    return None;
-                                }
-                            };
-
-                            if !required.iter().any(|vs| req.matches(&vs)) {
-                                return None;
-                            }
-                        }
-
-                        // If the dependency has been removed from a future version, it is
-                        // also a candidate
-                        Some(version)
-                    }).collect();
+                            // If the dependency has been removed from a future version, it is
+                            // also a candidate
+                            Some(version.clone())
+                        })
+                        .collect();
 
                     if available.is_empty() {
-                        res = Some(Err(anyhow::anyhow!("No versions were available that used a required version of the crate")));
+                        res = Some(Err(anyhow::anyhow!(
+                            "No versions were available that used a required version of the crate"
+                        )));
                     } else {
                         res = Some(Ok(available));
                     }
                 }
                 None => {
-                    res = Some(Err(anyhow::anyhow!("Unable to find registry index entry for crate '{}'", parent.name)));
+                    res = Some(Err(anyhow::anyhow!(
+                        "Unable to find registry index entry for crate '{}'",
+                        parent.name
+                    )));
                 }
             }
         });

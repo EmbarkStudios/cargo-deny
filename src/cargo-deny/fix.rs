@@ -2,6 +2,7 @@ use anyhow::{Context, Error};
 use cargo_deny::{
     advisories,
     diag::{Diagnostic, Files},
+    manifest,
 };
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -180,7 +181,7 @@ pub fn cmd(
         log::info!("No vulnerabilities were detected");
     }
 
-    let patches = report
+    let patch_set = report
         .gather_patches(
             &krates,
             if args.allow_incompatible {
@@ -191,7 +192,105 @@ pub fn cmd(
         )
         .context("failed to gather patches")?;
 
-    log::warn!("{:#?}", patches);
+    // Print diagnostics
+    //println!("{:#?}", patch_set);
 
-    Ok(())
+    // Apply patches for each unique manifest
+    let mut manifests = std::collections::HashMap::new();
+
+    for patch in &patch_set.patches {
+        if !manifests.contains_key(&patch.manifest_to_patch.id) {
+            manifests.insert(
+                patch.manifest_to_patch.id.clone(),
+                (&patch.manifest_to_patch, Vec::new()),
+            );
+        }
+
+        // The patches will be unique per edge so we don't have to worry about
+        // duplicates for the same dependency here
+        let dep_update = manifest::dep::Dependency::new(patch.crate_to_patch.0.to_owned())
+            // We just use the stringified Version as the new requirement for simplicity
+            .set_version(patch.crate_to_patch.1.to_string());
+
+        if let Some(kp) = manifests.get_mut(&patch.manifest_to_patch.id) {
+            kp.1.push(dep_update);
+        }
+    }
+
+    let mut num_errors = 0;
+
+    for (krate, patches) in manifests.values() {
+        let path = &krate.manifest_path;
+        log::info!("Patching '{}'", path.display());
+
+        let manifest_contents = match std::fs::read_to_string(path) {
+            Ok(mc) => mc,
+            Err(e) => {
+                log::error!(
+                    "Unable to read manifest '{}' for crate '{} = {}': {}",
+                    path.display(),
+                    krate.name,
+                    krate.version,
+                    e
+                );
+                num_errors += 1;
+                continue;
+            }
+        };
+
+        let mut manifest: manifest::Manifest = match manifest_contents.parse() {
+            Ok(man) => man,
+            Err(e) => {
+                log::error!(
+                    "Unable to parse manifest '{}' for crate '{} = {}': {}",
+                    path.display(),
+                    krate.name,
+                    krate.version,
+                    e
+                );
+                num_errors += 1;
+                continue;
+            }
+        };
+
+        match manifest.upgrade(&patches) {
+            Ok(_) => {
+                let updated_contents = manifest.doc.to_string_in_original_order();
+
+                // If we're doing a dry run, just print what the diff would be
+                // if we actually serialized to disk
+                if args.dry_run {
+                    let cs =
+                        difference::Changeset::new(&manifest_contents, &updated_contents, "\n");
+
+                    log::info!("Patch for {} = {}\n{}", krate.name, krate.version, cs);
+                } else {
+                    match std::fs::write(path, &updated_contents) {
+                        Ok(_) => log::info!("Patched {}", path.display()),
+                        Err(e) => {
+                            log::error!("Failed to update '{}': {}", path.display(), e);
+                            num_errors += 1;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                log::error!(
+                    "Failed to apply patch(es) to manifest '{}': {}",
+                    path.display(),
+                    e
+                );
+                num_errors += 1;
+            }
+        }
+    }
+
+    if num_errors > 0 {
+        anyhow::bail!(
+            "Encountered {} errors while attempting to apply patches",
+            num_errors
+        );
+    } else {
+        Ok(())
+    }
 }

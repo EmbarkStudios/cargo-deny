@@ -26,14 +26,6 @@ impl BareIndex {
         })
     }
 
-    /// Creates a bare index at the provided path with the specified repository URL.
-    pub fn with_path(path: PathBuf, url: &str) -> Self {
-        Self {
-            path,
-            url: url.to_owned(),
-        }
-    }
-
     /// Opens the local index, which acts as a kind of lock for source control
     /// operations
     pub fn open_or_clone(&self) -> Result<BareIndexRepo<'_>, Error> {
@@ -43,7 +35,6 @@ impl BareIndex {
 
 pub struct BareIndexRepo<'a> {
     inner: &'a BareIndex,
-    head: git2::Oid,
     repo: git2::Repository,
     tree: Option<git2::Tree<'static>>,
     head_str: String,
@@ -86,46 +77,10 @@ impl<'a> BareIndexRepo<'a> {
 
         Ok(Self {
             inner: index,
-            head,
             head_str,
             repo,
             tree: Some(tree),
         })
-    }
-
-    /// Fetches latest from the remote index repository. Note that using this
-    /// method will mean no cache entries will be used, if a new commit is fetched
-    /// from the repository, as their commit version will no longer match.
-    pub fn fetch(&mut self) -> Result<(), Error> {
-        {
-            let mut origin_remote = self
-                .repo
-                .find_remote("origin")
-                .or_else(|_| self.repo.remote_anonymous(&self.inner.url))?;
-
-            origin_remote.fetch(
-                &["+refs/heads/*:refs/remotes/origin/*"],
-                Some(&mut fetch_opts()),
-                None,
-            )?;
-        }
-
-        let head = self
-            .repo
-            .refname_to_id("FETCH_HEAD")
-            .or_else(|_| self.repo.refname_to_id("HEAD"))?;
-        let head_str = head.to_string();
-
-        let commit = self.repo.find_commit(head)?;
-        let tree = commit.tree()?;
-
-        let tree = unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) };
-
-        self.head = head;
-        self.head_str = head_str;
-        self.tree = Some(tree);
-
-        Ok(())
     }
 
     /// Reads a crate from the index, it will attempt to use a cached entry if

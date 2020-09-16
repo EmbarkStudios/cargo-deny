@@ -1,5 +1,4 @@
 pub mod cfg;
-#[cfg(feature = "fix")]
 pub mod fix;
 mod helpers;
 

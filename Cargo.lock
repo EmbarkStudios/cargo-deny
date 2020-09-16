@@ -226,7 +226,6 @@ dependencies = [
  "clap",
  "codespan",
  "codespan-reporting",
- "crates-index 0.15.3",
  "crossbeam",
  "difference",
  "fern",
@@ -236,9 +235,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memchr",
- "percent-encoding",
  "rayon",
- "regex",
  "rustsec",
  "semver 0.10.0",
  "serde",
@@ -416,22 +413,6 @@ dependencies = [
  "glob",
  "hex 0.4.2",
  "home",
- "serde",
- "serde_derive",
- "serde_json",
- "smol_str",
-]
-
-[[package]]
-name = "crates-index"
-version = "0.15.3"
-dependencies = [
- "git2",
- "glob",
- "hex 0.4.2",
- "home",
- "memchr",
- "semver 0.10.0",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1394,7 +1375,7 @@ checksum = "b2f7c2b431b329341b1ee7193b7403269153b99804ff5850a0b8966aed26f558"
 dependencies = [
  "cargo-lock",
  "chrono",
- "crates-index 0.15.0",
+ "crates-index",
  "cvss",
  "git2",
  "home",

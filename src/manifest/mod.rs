@@ -2,6 +2,12 @@
 //! being a CLI and has a lot of dependencies that can be annoying to upgrade
 //! throughout our graph, so for now we just copy some pieces we need
 
+use anyhow::Error;
+
+pub mod dependency;
+
+pub use dependency as dep;
+
 fn merge_inline_table(old_dep: &mut toml_edit::Item, new: &toml_edit::Item) {
     for (k, v) in new
         .as_inline_table()
@@ -12,7 +18,11 @@ fn merge_inline_table(old_dep: &mut toml_edit::Item, new: &toml_edit::Item) {
     }
 }
 
-fn merge_dependencies(old_dep: &mut toml_edit::Item, new: &Dependency) {
+fn str_or_1_len_table(item: &toml_edit::Item) -> bool {
+    item.is_str() || item.as_table_like().map(|t| t.len() == 1).unwrap_or(false)
+}
+
+fn merge_dependencies(old_dep: &mut toml_edit::Item, new: &dep::Dependency) {
     assert!(!old_dep.is_none());
 
     let new_toml = new.to_toml().1;
@@ -39,26 +49,26 @@ fn merge_dependencies(old_dep: &mut toml_edit::Item, new: &Dependency) {
     }
 }
 
-struct Manifest {
+pub struct Manifest {
     pub doc: toml_edit::Document,
 }
 
 impl Manifest {
-    pub fn get_sections(&self) -> Vec<(Vec<String>, toml_edit::Item)> {
+    pub fn get_dep_sections(&self) -> Vec<(Vec<String>, toml_edit::Item)> {
         let mut sections = Vec::new();
 
         for dependency_type in &["dev-dependencies", "build-dependencies", "dependencies"] {
             // Dependencies can be in the three standard sections...
-            if self.data[dependency_type].is_table_like() {
+            if self.doc[dependency_type].is_table_like() {
                 sections.push((
                     vec![String::from(*dependency_type)],
-                    self.data[dependency_type].clone(),
+                    self.doc[dependency_type].clone(),
                 ))
             }
 
             // ... and in `target.<target>.(build-/dev-)dependencies`.
             let target_sections = self
-                .data
+                .doc
                 .as_table()
                 .get("target")
                 .and_then(toml_edit::Item::as_table_like)
@@ -84,65 +94,74 @@ impl Manifest {
         sections
     }
 
+    pub fn get_table<'a>(
+        &'a mut self,
+        table_path: &[String],
+    ) -> Result<&'a mut toml_edit::Item, Error> {
+        /// Descend into a manifest until the required table is found.
+        fn descend<'a>(
+            input: &'a mut toml_edit::Item,
+            path: &[String],
+        ) -> Result<&'a mut toml_edit::Item, Error> {
+            if let Some(segment) = path.get(0) {
+                let value = input[&segment].or_insert(toml_edit::table());
+
+                if value.is_table_like() {
+                    descend(value, &path[1..])
+                } else {
+                    anyhow::bail!("Unable to find '{}'", segment);
+                }
+            } else {
+                Ok(input)
+            }
+        }
+
+        descend(&mut self.doc.root, table_path)
+    }
+
     pub fn update_table_named_entry(
         &mut self,
         table_path: &[String],
         item_name: &str,
-        dep: &Dependency,
-        dry_run: bool,
-    ) -> Result<()> {
+        dep: &dep::Dependency,
+    ) -> Result<(), Error> {
         let table = self.get_table(table_path)?;
-        let new_dep = dep.to_toml().1;
 
         // If (and only if) there is an old entry, merge the new one in.
         if !table[item_name].is_none() {
-            // if let Err(e) = print_upgrade_if_necessary(&dep.name, &table[item_name], &new_dep) {
-            //     eprintln!("Error while displaying upgrade message, {}", e);
-            // }
-            if !dry_run {
-                merge_dependencies(&mut table[item_name], dep);
-                if let Some(t) = table.as_inline_table_mut() {
-                    t.fmt()
-                }
+            merge_dependencies(&mut table[item_name], dep);
+            if let Some(t) = table.as_inline_table_mut() {
+                t.fmt()
             }
         }
 
         Ok(())
     }
 
-    pub fn upgrade(
-        &mut self,
-        dependency: &Dependency,
-        dry_run: bool,
-        skip_compatible: bool,
-    ) -> Result<()> {
-        for (table_path, table) in self.get_sections() {
+    pub fn upgrade(&mut self, deps: &[dep::Dependency]) -> Result<(), Error> {
+        for (table_path, table) in self.get_dep_sections() {
             let table_like = table.as_table_like().expect("Unexpected non-table");
             for (name, toml_item) in table_like.iter() {
                 let dep_name = toml_item
                     .as_table_like()
                     .and_then(|t| t.get("package").and_then(|p| p.as_str()))
                     .unwrap_or(name);
-                if dep_name == dependency.name {
-                    if skip_compatible {
-                        if let Some(old_version) = get_version(toml_item)?.as_str() {
-                            if old_version_compatible(dependency, old_version)? {
-                                continue;
-                            }
-                        }
-                    }
-                    self.manifest.update_table_named_entry(
-                        &table_path,
-                        &name,
-                        dependency,
-                        dry_run,
-                    )?;
+
+                if let Some(update_dep) = deps.iter().find(|dep| dep.name == dep_name) {
+                    self.update_table_named_entry(&table_path, &name, update_dep)?;
                 }
             }
         }
 
-        let mut file = self.get_file()?;
-        self.write_to_file(&mut file)
-            .chain_err(|| "Failed to write new manifest contents")
+        Ok(())
+    }
+}
+
+impl std::str::FromStr for Manifest {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let doc: toml_edit::Document = s.parse()?;
+        Ok(Self { doc })
     }
 }

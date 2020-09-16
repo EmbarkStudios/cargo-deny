@@ -75,27 +75,9 @@ impl DbSet {
 
 /// Convert an advisory url to a directory underneath a specified root
 fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
-    // Take the domain and path portion of the url to ensure we have a unique directory
-    // for each unique url
-    db_path.push(
-        url.domain()
-            .with_context(|| format!("Advisory url '{}' has no domain name", url))?,
-    );
-
-    for ps in url.path_segments().with_context(|| {
-        format!(
-            "Advisory db url '{}' is invalid as it cannot be a base",
-            url
-        )
-    })? {
-        let segment = percent_encoding::percent_decode_str(ps)
-            .decode_utf8()
-            .with_context(|| {
-                format!("failed to decode path segment '{}' from url '{}'", ps, url)
-            })?;
-        db_path.push(segment.as_ref());
-    }
-
+    use std::convert::TryFrom;
+    let canonicalized = crate::index::Canonicalized::try_from(url)?;
+    db_path.push(canonicalized.ident());
     Ok(db_path)
 }
 
@@ -142,8 +124,8 @@ pub struct PrunedLockfile(pub(crate) Lockfile);
 
 impl PrunedLockfile {
     pub fn prune(mut lf: Lockfile, krates: &Krates) -> Self {
-        // Remove any packages from the rustsec's view of the lockfile that we have
-        // filtered out of the graph we are actually checking
+        // Remove any packages from the rustsec's view of the lockfile that we
+        // have filtered out of the graph we are actually checking
         lf.packages
             .retain(|pkg| krate_for_pkg(krates, pkg).is_some());
 
