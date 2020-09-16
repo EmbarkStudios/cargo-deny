@@ -1,5 +1,3 @@
-use toml_edit;
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum GitSpec {
     Rev,
