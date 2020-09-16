@@ -407,16 +407,16 @@ pub fn check(
                                                 .with_message("...which is banned here"),
                                         ]),
                                 );
-                                allowed = true;
+                                allowed = false;
                             }
                         }
                         allowed
                     }
                 });
 
-            let is_allowed = is_allowed || features_allowed;
+            let denied = !is_allowed || !features_allowed;
 
-            if !is_allowed {
+            if denied {
                 pack.push(
                     Diagnostic::error()
                         .with_message(format!("detected banned crate {}", krate,))
