@@ -10,8 +10,10 @@ targets = [
 vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
+unsound = "deny"
 ignore = [
     # askalono uses failure, which is now unmaintained
+    "RUSTSEC-2019-0036",
     "RUSTSEC-2020-0036",
 ]
 
