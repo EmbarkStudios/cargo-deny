@@ -75,9 +75,9 @@ impl DbSet {
 
 /// Convert an advisory url to a directory underneath a specified root
 fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
-    use std::convert::TryFrom;
-    let canonicalized = crate::index::Canonicalized::try_from(url)?;
-    db_path.push(canonicalized.ident());
+    let (ident, _) = crate::index::url_to_local_dir(url.as_str())?;
+    db_path.push(ident);
+
     Ok(db_path)
 }
 

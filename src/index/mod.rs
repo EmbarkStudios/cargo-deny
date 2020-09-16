@@ -3,8 +3,6 @@ use anyhow::{bail, ensure, Context, Error};
 use log::{debug, error};
 use semver::{Version, VersionReq};
 use serde::Deserialize;
-use std::hash::{Hash, Hasher};
-use url::Url;
 
 mod bare;
 
@@ -236,252 +234,99 @@ impl Drop for Index {
     }
 }
 
-fn to_hex(num: u64) -> String {
-    const CHARS: &[u8] = b"0123456789abcdef";
+/// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
+/// the root directory name where cargo itself will fetch it on disk
+pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+    fn to_hex(num: u64) -> String {
+        const CHARS: &[u8] = b"0123456789abcdef";
 
-    let bytes = &[
-        num as u8,
-        (num >> 8) as u8,
-        (num >> 16) as u8,
-        (num >> 24) as u8,
-        (num >> 32) as u8,
-        (num >> 40) as u8,
-        (num >> 48) as u8,
-        (num >> 56) as u8,
-    ];
+        let bytes = &[
+            num as u8,
+            (num >> 8) as u8,
+            (num >> 16) as u8,
+            (num >> 24) as u8,
+            (num >> 32) as u8,
+            (num >> 40) as u8,
+            (num >> 48) as u8,
+            (num >> 56) as u8,
+        ];
 
-    let mut output = vec![0u8; 16];
+        let mut output = vec![0u8; 16];
 
-    let mut ind = 0;
+        let mut ind = 0;
 
-    for &byte in bytes {
-        output[ind] = CHARS[(byte >> 4) as usize];
-        output[ind + 1] = CHARS[(byte & 0xf) as usize];
+        for &byte in bytes {
+            output[ind] = CHARS[(byte >> 4) as usize];
+            output[ind + 1] = CHARS[(byte & 0xf) as usize];
 
-        ind += 2;
+            ind += 2;
+        }
+
+        String::from_utf8(output).expect("valid utf-8 hex string")
     }
 
-    String::from_utf8(output).expect("valid utf-8 hex string")
-}
-
-fn hash_u64<H: Hash>(hashable: H) -> u64 {
     #[allow(deprecated)]
-    let mut hasher = std::hash::SipHasher::new_with_keys(0, 0);
-    hashable.hash(&mut hasher);
-    hasher.finish()
-}
+    fn hash_u64(url: &str) -> u64 {
+        use std::hash::{Hash, Hasher, SipHasher};
 
-fn short_hash<H: Hash>(hashable: &H) -> String {
-    to_hex(hash_u64(hashable))
-}
-
-pub struct Canonicalized(Url);
-
-impl Hash for Canonicalized {
-    fn hash<S: Hasher>(&self, into: &mut S) {
-        self.0.as_str().hash(into);
+        let mut hasher = SipHasher::new_with_keys(0, 0);
+        // Registry
+        2usize.hash(&mut hasher);
+        // Url
+        url.hash(&mut hasher);
+        hasher.finish()
     }
-}
 
-impl Canonicalized {
-    pub(crate) fn ident(&self) -> String {
-        // This is the same identity function used by cargo
-        let ident = self
-            .0
-            .path_segments()
-            .and_then(|mut s| s.next_back())
-            .unwrap_or("");
+    // Ensure we have a registry or bare url
+    let (url, scheme_ind) = {
+        let scheme_ind = url
+            .find("://")
+            .with_context(|| format!("'{}' is not a valid url", url))?;
 
-        let ident = if ident == "" { "_empty" } else { ident };
-
-        format!("{}-{}", ident, short_hash(&self.0))
-    }
-}
-
-impl AsRef<Url> for Canonicalized {
-    fn as_ref(&self) -> &Url {
-        &self.0
-    }
-}
-
-impl Into<Url> for Canonicalized {
-    fn into(self) -> Url {
-        self.0
-    }
-}
-
-impl std::convert::TryFrom<&Url> for Canonicalized {
-    type Error = Error;
-
-    fn try_from(url: &Url) -> Result<Self, Self::Error> {
-        // This is the same canonicalization that cargo does, except the URLs
-        // they use don't have any query params or fragments, even though
-        // they do occur in Cargo.lock files
-
-        // cannot-be-a-base-urls (e.g., `github.com:rust-lang-nursery/rustfmt.git`)
-        // are not supported.
-        if url.cannot_be_a_base() {
-            anyhow::bail!(
-                "invalid url `{}`: cannot-be-a-base-URLs are not supported",
-                url
-            )
-        }
-
-        let mut url_str = String::new();
-
-        let is_github = url.host_str() == Some("github.com");
-
-        // HACK: for GitHub URLs specifically, just lower-case
-        // everything. GitHub treats both the same, but they hash
-        // differently, and we're gonna be hashing them. This wants a more
-        // general solution, and also we're almost certainly not using the
-        // same case conversion rules that GitHub does. (See issue #84.)
-        if is_github {
-            url_str.push_str("https://");
-        } else {
-            url_str.push_str(url.scheme());
-            url_str.push_str("://");
-        }
-
-        // Not handling username/password
-
-        if let Some(host) = url.host_str() {
-            url_str.push_str(host);
-        }
-
-        if let Some(port) = url.port() {
-            use std::fmt::Write;
-            url_str.push(':');
-            write!(&mut url_str, "{}", port)?;
-        }
-
-        if is_github {
-            url_str.push_str(&url.path().to_lowercase());
-        } else {
-            url_str.push_str(url.path());
-        }
-
-        // Strip a trailing slash.
-        if url_str.ends_with('/') {
-            url_str.pop();
-        }
-
-        // Repos can generally be accessed with or without `.git` extension.
-        if url_str.ends_with(".git") {
-            url_str.truncate(url_str.len() - 4);
-        }
-
-        let url = Url::parse(&url_str)?;
-
-        Ok(Self(url))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use std::convert::TryFrom;
-    use url::Url;
-
-    #[test]
-    fn hashes_same_as_cargo() {
-        let crates_io_index = Url::parse("https://github.com/rust-lang/crates.io-index").unwrap();
-
-        let canon = Canonicalized::try_from(&crates_io_index).unwrap();
-
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub enum GitReference {
-            /// From a tag.
-            Tag(String),
-
-            /// From the HEAD of a branch.
-            Branch(String),
-
-            /// From a specific revision.
-            Rev(String),
-        }
-
-        #[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
-        enum SourceKind {
-            /// A git repository.
-            Git(GitReference),
-
-            /// A local path..
-            Path,
-
-            /// A remote registry.
-            Registry,
-
-            /// A local filesystem-based registry.
-            LocalRegistry,
-
-            /// A directory-based registry.
-            Directory,
-        }
-        struct HashMe {
-            url: Url,
-            canonical_url: Canonicalized,
-            kind: SourceKind,
-            /// For example, the exact Git revision of the specified branch for a Git Source.
-            precise: Option<String>,
-            /// Name of the registry source for alternative registries
-            /// WARNING: this is not always set for alt-registries when the name is
-            /// not known.
-            name: Option<String>,
-        }
-
-        impl Hash for HashMe {
-            fn hash<S: Hasher>(&self, into: &mut S) {
-                match &self.kind {
-                    SourceKind::Git(GitReference::Tag(a)) => {
-                        0usize.hash(into);
-                        0usize.hash(into);
-                        a.hash(into);
-                    }
-                    SourceKind::Git(GitReference::Branch(a)) => {
-                        0usize.hash(into);
-                        1usize.hash(into);
-                        a.hash(into);
-                    }
-                    // For now hash `DefaultBranch` the same way as `Branch("master")`,
-                    // and for more details see module comments in
-                    // src/cargo/sources/git/utils.rs for why `DefaultBranch`
-                    // SourceKind::Git(GitReference::DefaultBranch) => {
-                    //     0usize.hash(into);
-                    //     1usize.hash(into);
-                    //     "master".hash(into);
-                    // }
-                    SourceKind::Git(GitReference::Rev(a)) => {
-                        0usize.hash(into);
-                        2usize.hash(into);
-                        a.hash(into);
-                    }
-
-                    SourceKind::Path => 1usize.hash(into),
-                    SourceKind::Registry => 2usize.hash(into),
-                    SourceKind::LocalRegistry => 3usize.hash(into),
-                    SourceKind::Directory => 4usize.hash(into),
-                }
-                match self.kind {
-                    SourceKind::Git(_) => self.canonical_url.hash(into),
-                    _ => self.url.as_str().hash(into),
-                }
+        let scheme_str = &url[..scheme_ind];
+        if let Some(ind) = scheme_str.find('+') {
+            if &scheme_str[..ind] != "registry" {
+                anyhow::bail!("'{}' is not a valid registry url", url);
             }
+
+            (&url[ind + 1..], scheme_ind - ind - 1)
+        } else {
+            (url, scheme_ind)
         }
+    };
 
-        let hashme = HashMe {
-            url: crates_io_index,
-            canonical_url: canon,
-            kind: SourceKind::Registry,
-            precise: Some("locked".to_owned()),
-            name: None,
-        };
+    // Could use the Url crate for this, but it's simple enough and we don't
+    // need to deal with every possible url (I hope...)
+    let host = match url[scheme_ind + 3..].find('/') {
+        Some(end) => &url[scheme_ind + 3..scheme_ind + 3 + end],
+        None => &url[scheme_ind + 3..],
+    };
 
-        let hashed = super::short_hash(&hashme);
+    // cargo special cases github.com for reasons, so do the same
+    let mut canonical = if host == "github.com" {
+        url.to_lowercase()
+    } else {
+        url.to_owned()
+    };
 
-        assert_eq!(
-            format!("{}-{}", hashme.url.host_str().unwrap(), hashed),
-            "github.com-1ecc6299db9ec823"
-        );
+    // Chop off any query params/fragments
+    if let Some(hash) = canonical.rfind('#') {
+        canonical.truncate(hash);
     }
+
+    if let Some(query) = canonical.rfind('?') {
+        canonical.truncate(query);
+    }
+
+    let ident = to_hex(hash_u64(&canonical));
+
+    if canonical.ends_with('/') {
+        canonical.pop();
+    }
+
+    if canonical.ends_with(".git") {
+        canonical.truncate(canonical.len() - 4);
+    }
+
+    Ok((format!("{}-{}", host, ident), canonical))
 }
