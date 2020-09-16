@@ -334,37 +334,78 @@ pub fn check(
                     let exact = &denied_info[bind].exact_features;
                     let af = &denied_info[bind].allow_features;
                     let df = &denied_info[bind].deny_features;
-                    let cf = &node
+                    let dep = node
                         .krate
                         .deps
                         .iter()
                         .find(|dep| dep.name == krate.name)
-                        .unwrap()
-                        .features;
+                        .unwrap();
+                    let cf = &dep.features;
+
+                    let mut cached_span = None;
+                    let feature_set_span = |features: &[String]| match cached_span {
+                        Some(cached) => cached,
+                        None => {
+                            let manifest = format!(
+                                "[dependencies]\n{} = {{ version = {}, features = [{}] }}\n",
+                                dep.name,
+                                dep.req,
+                                features
+                                    .iter()
+                                    .map(|name| format!("\"{}\"", name))
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
+                            );
+                        }
+                    };
 
                     if exact.value {
                         // TODO: We need to properly report the invalid feature set.
                         // How should we report it?
-                        let mut check_len = || {
-                            if cf.len() == af.value.len() {
-                                true
-                            } else {
-                                pack.push(
-                                    Diagnostic::error()
-                                        .with_message(format!("invalid feature set for {}", krate))
-                                        .with_labels(vec![
-                                            Label::primary(file_id, af.span.clone())
-                                                .with_message("lengths of the feature sets do not match..."),
-                                            Label::secondary(file_id, exact.span.clone())
-                                                .with_message("but they have to, because `exact_features` is defined here")
-                                        ]),
-                                );
-                                false
+                        if cf.len() == af.value.len() {
+                            let mut allowed = true;
+                            for f in &af.value {
+                                if !cf.contains(&f.value) {
+                                    pack.push(
+                                        Diagnostic::error()
+                                            .with_message(format!(
+                                                "invalid feature set for {}",
+                                                krate
+                                            ))
+                                            .with_labels(vec![
+                                                Label::primary(
+                                                    spans_id,
+                                                    krate_spans[nid.index()].clone(),
+                                                )
+                                                .with_message(format!(
+                                                    "this crate has feature `{}` enabled",
+                                                    f.value
+                                                )),
+                                                Label::secondary(file_id, f.span.clone())
+                                                    .with_message("which is banned here"),
+                                            ]),
+                                    );
+                                    allowed = false;
+                                }
                             }
-                        };
-                        check_len() && af.value.iter().all(|f| cf.contains(&f.value))
+                            allowed
+                        } else {
+                            pack.push(
+                                Diagnostic::error()
+                                    .with_message(format!("invalid feature set for {}", krate))
+                                    .with_labels(vec![Label::primary(file_id, af.span.clone())
+                                        .with_message(
+                                            "lengths of the feature sets do not match...",
+                                        )])
+                                    .with_notes(vec![
+                                        "but they have to, because `exact_features` is enabled"
+                                            .into(),
+                                    ]),
+                            );
+                            false
+                        }
                     } else {
-                        false
+                        todo!()
                     }
                 });
 
