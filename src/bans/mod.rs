@@ -342,23 +342,6 @@ pub fn check(
                         .unwrap();
                     let cf = &dep.features;
 
-                    let mut cached_span = None;
-                    let feature_set_span = |features: &[String]| match cached_span {
-                        Some(cached) => cached,
-                        None => {
-                            let manifest = format!(
-                                "[dependencies]\n{} = {{ version = {}, features = [{}] }}\n",
-                                dep.name,
-                                dep.req,
-                                features
-                                    .iter()
-                                    .map(|name| format!("\"{}\"", name))
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                            );
-                        }
-                    };
-
                     if exact.value {
                         // TODO: We need to properly report the invalid feature set.
                         // How should we report it?
@@ -405,7 +388,29 @@ pub fn check(
                             false
                         }
                     } else {
-                        todo!()
+                        let mut allowed = true;
+                        for f in &df.value {
+                            if !cf.contains(&f.value) {
+                                pack.push(
+                                    Diagnostic::error()
+                                        .with_message(format!("invalid feature set for {}", krate))
+                                        .with_labels(vec![
+                                            Label::primary(
+                                                spans_id,
+                                                krate_spans[nid.index()].clone(),
+                                            )
+                                            .with_message(format!(
+                                                "this crate has feature `{}` enabled...",
+                                                f.value
+                                            )),
+                                            Label::secondary(file_id, f.span.clone())
+                                                .with_message("...which is banned here"),
+                                        ]),
+                                );
+                                allowed = true;
+                            }
+                        }
+                        allowed
                     }
                 });
 
