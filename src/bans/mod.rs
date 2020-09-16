@@ -378,11 +378,11 @@ pub fn check(
                                                     krate_spans[nid.index()].clone(),
                                                 )
                                                 .with_message(format!(
-                                                    "this crate has feature `{}` enabled",
+                                                    "this crate has feature `{}` enabled...",
                                                     f.value
                                                 )),
                                                 Label::secondary(file_id, f.span.clone())
-                                                    .with_message("which is banned here"),
+                                                    .with_message("...which is banned here"),
                                             ]),
                                     );
                                     allowed = false;
@@ -409,13 +409,7 @@ pub fn check(
                     }
                 });
 
-            let is_allowed = if !is_allowed && features_allowed {
-                true
-            } else if is_allowed {
-                true
-            } else {
-                false
-            };
+            let is_allowed = is_allowed || features_allowed;
 
             if !is_allowed {
                 pack.push(
