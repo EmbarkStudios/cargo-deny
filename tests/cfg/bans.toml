@@ -18,6 +18,15 @@ wrappers = ["specific-versiona"]
 name = "specific-versiond"
 version = "=0.1.9"
 
+[[bans.deny]]
+name = "log"
+deny-features = ["max_level_off"]
+
+[[bans.deny]]
+name = "syn"
+allow-features = ["full"]
+exact-features = true
+
 [[bans.skip]]
 name = "rand"
 version = "=0.6.5"
