@@ -322,7 +322,7 @@ pub fn check(
                 let af = &denied_info[bind].allow_features.value;
                 let df = &denied_info[bind].deny_features.value;
 
-                false || (*exact || !af.is_empty() || !df.is_empty())
+                *exact || !af.is_empty() || !df.is_empty()
             };
 
             // Ensure that the feature set of this krate, wherever it's used
