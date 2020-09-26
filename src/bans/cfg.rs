@@ -338,8 +338,17 @@ mod test {
             vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
         );
         assert_eq!(
-            validated.denied,
-            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
+            validated
+                .denied
+                .into_iter()
+                .map(|ban| ban.id.value)
+                .collect::<Vec<_>>(),
+            vec![
+                kid!("all-versionsd"),
+                kid!("log"),
+                kid!("specific-versiond", "=0.1.9"),
+                kid!("syn")
+            ]
         );
         assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
         assert_eq!(
