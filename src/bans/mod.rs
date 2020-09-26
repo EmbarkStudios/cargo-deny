@@ -318,7 +318,11 @@ pub fn check(
                         is_allowed
                     })
             } else {
-                false
+                let exact = &denied_info[bind].exact_features.value;
+                let af = &denied_info[bind].allow_features.value;
+                let df = &denied_info[bind].deny_features.value;
+
+                false || (*exact || !af.is_empty() || !df.is_empty())
             };
 
             // Ensure that the feature set of this krate, wherever it's used
@@ -364,8 +368,13 @@ pub fn check(
                                                     "this crate has feature `{}` enabled...",
                                                     f.value
                                                 )),
-                                                Label::secondary(file_id, f.span.clone())
-                                                    .with_message("...which is banned here"),
+                                                Label::secondary(file_id, af.span.clone())
+                                                    .with_message(
+                                                        "...which is not defined in `allow-features`...",
+                                                    ),
+                                            ])
+                                            .with_notes(vec![
+                                                "but it has to, because `exact-features` is enabled".into(),
                                             ]),
                                     );
                                     allowed = false;
@@ -388,9 +397,10 @@ pub fn check(
                             false
                         }
                     } else {
+                        // TODO: Compare lengths of feature sets
                         let mut allowed = true;
                         for f in &df.value {
-                            if !cf.contains(&f.value) {
+                            if cf.contains(&f.value) {
                                 pack.push(
                                     Diagnostic::error()
                                         .with_message(format!("invalid feature set for {}", krate))
@@ -410,13 +420,34 @@ pub fn check(
                                 allowed = false;
                             }
                         }
+
+                        for f in cf {
+                            if !af.value.iter().any(|af| af == f) {
+                                pack.push(
+                                    Diagnostic::error()
+                                        .with_message(format!("invalid feature set for {}", krate))
+                                        .with_labels(vec![
+                                            Label::primary(
+                                                spans_id,
+                                                krate_spans[nid.index()].clone(),
+                                            )
+                                            .with_message(format!(
+                                                "this crate has feature `{}` enabled...", f
+                                            )),
+                                            Label::secondary(file_id, af.span.clone())
+                                                .with_message("...which is not allowed here"),
+                                        ])
+                                        .with_notes(vec![format!("crate {} can only have features enabled that are explicitly allowed", krate.name)]),
+                                );
+                                allowed = false;
+                            }
+                        }
+
                         allowed
                     }
                 });
 
-            let denied = !is_allowed || !features_allowed;
-
-            if denied {
+            if !is_allowed || !features_allowed {
                 pack.push(
                     Diagnostic::error()
                         .with_message(format!("detected banned crate {}", krate,))
