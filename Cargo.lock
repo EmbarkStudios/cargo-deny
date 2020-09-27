@@ -146,6 +146,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
+ "smol_str",
  "spdx",
  "structopt",
  "tempfile",
