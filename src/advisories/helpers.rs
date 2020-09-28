@@ -266,7 +266,7 @@ mod test {
             let url = Url::parse("https://github.com/RustSec/advisory-db").unwrap();
             assert_eq!(
                 url_to_path(root_path.clone(), &url).unwrap(),
-                root_path.join("github.com/RustSec/advisory-db")
+                root_path.join("github.com-2f857891b7f43c59")
             );
         }
 
@@ -274,7 +274,7 @@ mod test {
             let url = Url::parse("https://bare.com").unwrap();
             assert_eq!(
                 url_to_path(root_path.clone(), &url).unwrap(),
-                root_path.join("bare.com")
+                root_path.join("bare.com-9c003d1ed306b28c")
             );
         }
 
@@ -282,7 +282,7 @@ mod test {
             let url = Url::parse("https://example.com/countries/việt nam").unwrap();
             assert_eq!(
                 url_to_path(root_path.clone(), &url).unwrap(),
-                root_path.join("example.com/countries/việt nam")
+                root_path.join("example.com-1c03f84825fb7438")
             );
         }
     }
