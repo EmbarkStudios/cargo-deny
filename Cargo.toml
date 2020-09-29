@@ -44,8 +44,6 @@ bitvec = { version = "0.18", features = ["alloc"] }
 cargo = { version = "0.46.1", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
-# Use it directly in some cases
-clap = "2.33"
 # Used for diagnostic reporting
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"

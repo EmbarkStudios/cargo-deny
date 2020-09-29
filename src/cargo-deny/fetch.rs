@@ -3,9 +3,8 @@ use cargo_deny::{
     advisories,
     diag::{Diagnostic, Files},
 };
-use clap::arg_enum;
 use std::path::PathBuf;
-use structopt::StructOpt;
+use structopt::{clap::arg_enum, StructOpt};
 
 arg_enum! {
     #[derive(Debug, PartialEq, Copy, Clone)]

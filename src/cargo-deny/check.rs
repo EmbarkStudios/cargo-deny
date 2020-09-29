@@ -5,11 +5,10 @@ use cargo_deny::{
     diag::{CargoSpans, Diagnostic, Files, Severity},
     licenses, sources, CheckCtx,
 };
-use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
 use std::{path::PathBuf, time::Instant};
-use structopt::StructOpt;
+use structopt::{clap::arg_enum, StructOpt};
 
 arg_enum! {
     #[derive(Debug, PartialEq, Copy, Clone)]

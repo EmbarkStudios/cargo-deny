@@ -223,7 +223,6 @@ dependencies = [
  "bitvec",
  "cargo",
  "chrono",
- "clap",
  "codespan",
  "codespan-reporting",
  "crossbeam",
