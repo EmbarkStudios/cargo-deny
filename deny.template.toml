@@ -113,7 +113,7 @@ exceptions = [
 #[[licenses.clarify]]
 # The name of the crate the clarification applies to
 #name = "ring"
-# THe optional version constraint for the crate
+# The optional version constraint for the crate
 #version = "*"
 # The SPDX expression for the license requirements of the crate
 #expression = "MIT AND ISC AND OpenSSL"
