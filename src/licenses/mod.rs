@@ -801,7 +801,6 @@ fn evaluate_expression(
         ExplicitAllowance,
         ExplicitException,
         IsCopyleft,
-        NotExplicitlyAllowed,
         Default,
     }
 
@@ -823,29 +822,37 @@ fn evaluate_expression(
 
     let mut warnings = 0;
 
+    let mut eval_res: Option<_> = None;
+
     // Check to see if the crate matches an exception, which has its own
-    // allow list separate from the general allow list
-    let eval_res = match cfg.exceptions.iter().position(|exc| {
+    // allow list additional to the general allow list
+    if let Some(ind) = cfg.exceptions.iter().position(|exc| {
         exc.name.as_ref() == &krate_lic_nfo.krate.name
             && exc.version.matches(&krate_lic_nfo.krate.version)
     }) {
-        Some(ind) => {
-            let exception = &cfg.exceptions[ind];
+        let exception = &cfg.exceptions[ind];
 
+        let exepiton_res = expr.evaluate_with_failures(|req| {
+            for allow in &exception.allowed {
+                if allow.value.satisfies(req) {
+                    allow!(ExplicitException);
+                }
+            }
+            false
+        });
+
+        // If the exeption licence do not match it is possible that a licence from
+        // the general list matches. So only return positiv results.
+        if exepiton_res.is_ok() {
             // Note that hit the exception
             hits.exceptions.as_mut_bitslice().set(ind, true);
-
-            expr.evaluate_with_failures(|req| {
-                for allow in &exception.allowed {
-                    if allow.value.satisfies(req) {
-                        allow!(ExplicitException);
-                    }
-                }
-
-                deny!(NotExplicitlyAllowed);
-            })
+            eval_res = Some(exepiton_res);
         }
-        None => expr.evaluate_with_failures(|req| {
+    }
+
+    // If we have no match from the exeption list we try the general list.
+    if eval_res.is_none() {
+        eval_res = Some(expr.evaluate_with_failures(|req| {
             // 1. Licenses explicitly denied are of course hard failures,
             // but failing one license in an expression is not necessarily
             // going to actually ban the crate, for example, the canonical
@@ -934,20 +941,21 @@ fn evaluate_expression(
                     allow!(Default);
                 }
             }
-        }),
-    };
+        }));
+    }
 
-    let (message, severity) = match eval_res {
-        Err(_) => ("failed to satisfy license requirements", Severity::Error),
-        Ok(_) => (
-            "license requirements satisfied",
-            if warnings > 0 {
-                Severity::Warning
-            } else {
-                Severity::Help
-            },
-        ),
-    };
+    let (message, severity) =
+        match eval_res.expect("Is set by the logic above. Otherwise we have a bug here.") {
+            Err(_) => ("failed to satisfy license requirements", Severity::Error),
+            Ok(_) => (
+                "license requirements satisfied",
+                if warnings > 0 {
+                    Severity::Warning
+                } else {
+                    Severity::Help
+                },
+            ),
+        };
 
     let mut labels = Vec::with_capacity(reasons.len() + 1);
 
@@ -977,7 +985,6 @@ fn evaluate_expression(
                 if reason.1 { "accepted" } else { "rejected" },
                 match reason.0 {
                     Reason::Denied => "explicitly denied",
-                    Reason::NotExplicitlyAllowed => "not explicitly allowed",
                     Reason::IsFsfFree =>
                         "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
                     Reason::IsOsiApproved =>

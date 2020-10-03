@@ -158,7 +158,7 @@ pub struct Config {
     /// it exactly matches the specified license files and hashes
     #[serde(default)]
     pub clarify: Vec<Clarification>,
-    /// Allow 1 or more licenses on a per-crate basis, so particular licenses
+    /// Allow 1 or more additional licenses on a per-crate basis, so particular licenses
     /// aren't accepted for every possible crate and must be opted into
     #[serde(default)]
     pub exceptions: Vec<Exception>,
