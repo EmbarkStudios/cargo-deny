@@ -1,6 +1,7 @@
 use super::OrgType;
 use crate::{cfg, diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize, Default)]
 pub struct Orgs {
@@ -113,7 +114,8 @@ impl cfg::UnvalidatedConfig for Config {
             .chain(self.allow_git.into_iter())
         {
             match url::Url::parse(aurl.as_ref()) {
-                Ok(url) => {
+                Ok(mut url) => {
+                    normalize_url(&mut url);
                     allowed_sources.push(UrlSpan {
                         value: url,
                         span: aurl.span,
@@ -162,6 +164,18 @@ impl cfg::UnvalidatedConfig for Config {
             allowed_orgs,
             required_git_spec: self.required_git_spec,
         })
+    }
+}
+
+fn normalize_url(url: &mut Url) {
+    let git_extension = ".git";
+    let needs_chopping = url.path().ends_with(&git_extension);
+    if needs_chopping {
+        let last = {
+            let last = url.path_segments().unwrap().last().unwrap();
+            last[..last.len() - git_extension.len()].to_owned()
+        };
+        url.path_segments_mut().unwrap().pop().push(&last);
     }
 }
 

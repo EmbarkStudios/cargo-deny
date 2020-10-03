@@ -6,7 +6,7 @@ allow-registry = [
     "https://sekretz.com/registry/index",
 ]
 allow-git = [
-    "https://notgithub.com/orgname/reponame",
+    "https://notgithub.com/orgname/reponame.git",
 ]
 [sources.allow-org]
 github = [
