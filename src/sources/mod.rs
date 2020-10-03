@@ -5,6 +5,7 @@ use crate::{
     diag::{Check, Diagnostic, Label, Pack, Severity},
     LintLevel,
 };
+use url::Url;
 
 pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
     use bitvec::prelude::*;
@@ -34,6 +35,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             let mut url = source.url().clone();
             url.set_query(None);
             url.set_fragment(None);
+            normalize_url(&mut url);
             url
         };
 
@@ -216,6 +218,23 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                     .into(),
             )
             .unwrap();
+    }
+}
+
+fn normalize_url(url: &mut Url) {
+    // Normalizes the URL so that different represatations can be compared to each other.
+    // At the moment we just remove a tailing `.git` but there are more possible optimisations.
+    // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
+    // for what cargo does
+
+    let git_extension = ".git";
+    let needs_chopping = url.path().ends_with(&git_extension);
+    if needs_chopping {
+        let last = {
+            let last = url.path_segments().unwrap().last().unwrap();
+            last[..last.len() - git_extension.len()].to_owned()
+        };
+        url.path_segments_mut().unwrap().pop().push(&last);
     }
 }
 
