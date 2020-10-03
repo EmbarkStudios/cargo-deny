@@ -436,7 +436,7 @@ pub fn check(
                     (
                         Check::Advisories,
                         Diagnostic::warning()
-                            .with_message("advisory is not actually in the database at all")
+                            .with_message("this advisory is not in any RustSec database")
                             .with_labels(vec![Label::primary(
                                 ctx.cfg.file_id,
                                 ignored.span.clone(),
