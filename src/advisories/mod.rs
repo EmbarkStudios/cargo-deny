@@ -428,6 +428,30 @@ pub fn check(
     }
 
     // Check for advisory identifers that were set to be ignored, but
+    // are not actually in any database. Warn the user about.
+    for (ignored, mut ignored_hit) in ctx.cfg.ignore.iter().zip(ignore_hits.iter_mut()) {
+        if advisory_dbs.get(&ignored.value).is_none() {
+            sender
+                .send(
+                    (
+                        Check::Advisories,
+                        Diagnostic::warning()
+                            .with_message("advisory is not actually in the database at all")
+                            .with_labels(vec![Label::primary(
+                                ctx.cfg.file_id,
+                                ignored.span.clone(),
+                            )
+                            .with_message("unknown advisory")]),
+                    )
+                        .into(),
+                )
+                .unwrap();
+            // Set advisory as used. Otherwise we would get two warings for the same advisory.
+            *ignored_hit = true;
+        }
+    }
+
+    // Check for advisory identifers that were set to be ignored, but
     // were not actually encountered, for cases where a crate, or specific
     // verison of that crate, has been removed or replaced and the advisory
     // no longer applies to it so that users can cleanup their configuration
