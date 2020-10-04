@@ -142,9 +142,9 @@ pub fn cmd(
         if fetch_db {
             s.spawn(|_| {
                 // This function already logs internally
-                db = Some(advisories::load_db(
-                    cfg.advisories.db_url.as_ref().map(AsRef::as_ref),
-                    cfg.advisories.db_path.as_ref().cloned(),
+                db = Some(advisories::load_dbs(
+                    cfg.advisories.db_urls.iter().map(AsRef::as_ref).collect(),
+                    cfg.advisories.db_paths,
                     advisories::Fetch::Allow,
                 ))
             });

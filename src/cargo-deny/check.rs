@@ -231,9 +231,13 @@ pub(crate) fn cmd(
 
         if check_advisories {
             s.spawn(|_| {
-                advisory_db = Some(advisories::load_db(
-                    cfg.advisories.db_url.as_ref().map(AsRef::as_ref),
-                    cfg.advisories.db_path.as_ref().cloned(),
+                advisory_db = Some(advisories::load_dbs(
+                    cfg.advisories.db_urls.iter().map(AsRef::as_ref).collect(),
+                    cfg.advisories
+                        .db_paths
+                        .iter()
+                        .map(|p| p.to_path_buf())
+                        .collect(),
                     if args.disable_fetch {
                         advisories::Fetch::Disallow
                     } else {

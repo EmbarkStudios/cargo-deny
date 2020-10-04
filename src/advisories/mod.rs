@@ -7,7 +7,10 @@ use crate::{
 use anyhow::{Context, Error};
 use log::debug;
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database};
-use rustsec::{repository as repo, Repository};
+use rustsec::{
+    database::{scope::Package, Query},
+    repository as repo, Advisory, Repository, Vulnerability,
+};
 use std::path::{Path, PathBuf};
 
 /// Whether the database will be fetched or not
@@ -17,30 +20,109 @@ pub enum Fetch {
     Disallow,
 }
 
-pub fn load_db(
-    db_url: Option<&str>,
-    db_path: Option<PathBuf>,
+/// A collection of [`Database`]s that is used to query advisories
+/// in many different databases.
+///
+/// It mirrors the API of a single [`Database`], but will query all databases.
+///
+/// [`Database`]: https://docs.rs/rustsec/0.21.0/rustsec/database/struct.Database.html
+pub struct DatabaseCollection {
+    dbs: Vec<Database>,
+}
+
+impl DatabaseCollection {
+    pub fn new(dbs: Vec<Database>) -> Self {
+        Self { dbs }
+    }
+
+    pub fn get(&self, id: &Id) -> Option<&Advisory> {
+        self.dbs.iter().flat_map(|db| db.get(id)).next()
+    }
+
+    pub fn query(&self, query: &Query) -> Vec<&Advisory> {
+        let mut results = self
+            .dbs
+            .iter()
+            .flat_map(|db| db.query(query))
+            .collect::<Vec<_>>();
+        results.dedup();
+        results
+    }
+
+    pub fn query_vulnerabilities(
+        &self,
+        lockfile: &Lockfile,
+        query: &Query,
+        package_scope: impl Into<Package>,
+    ) -> Vec<Vulnerability> {
+        let package_scope = package_scope.into();
+        let mut results = self
+            .dbs
+            .iter()
+            .flat_map(|db| db.query_vulnerabilities(lockfile, query, package_scope.clone()))
+            .collect::<Vec<_>>();
+        results.dedup();
+        results
+    }
+
+    pub fn vulnerabilities(&self, lockfile: &Lockfile) -> Vec<Vulnerability> {
+        let mut results = self
+            .dbs
+            .iter()
+            .flat_map(|db| db.vulnerabilities(lockfile))
+            .collect::<Vec<_>>();
+        results.dedup();
+        results
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, Database> {
+        self.dbs.iter()
+    }
+}
+
+pub fn load_dbs(
+    mut db_urls: Vec<&str>,
+    mut db_paths: Vec<PathBuf>,
+    fetch: Fetch,
+) -> Result<DatabaseCollection, Error> {
+    db_urls.dedup();
+    if db_urls.is_empty() {
+        db_urls.push(repo::DEFAULT_URL);
+    }
+
+    db_paths.dedup();
+    if db_paths.is_empty() {
+        db_paths.push(Repository::default_path());
+    }
+
+    let dbs = db_urls
+        .into_iter()
+        .zip(db_paths)
+        .map(|(url, path)| load_db(&url, path, fetch))
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    Ok(DatabaseCollection::new(dbs))
+}
+
+fn load_db(
+    advisory_db_url: &str,
+    advisory_db_path: PathBuf,
     fetch: Fetch,
 ) -> Result<Database, Error> {
-    let advisory_db_url = db_url.unwrap_or(repo::DEFAULT_URL);
-    let advisory_db_path = db_path
-        .and_then(|path| {
-            if path.starts_with("~") {
-                match home::home_dir() {
-                    Some(home) => Some(home.join(path.strip_prefix("~").unwrap())),
-                    None => {
-                        log::warn!(
-                            "unable to resolve path '{}', falling back to the default advisory path",
-                            path.display()
-                        );
-                        None
-                    }
-                }
-            } else {
-                Some(path)
+    let advisory_db_path = if advisory_db_path.starts_with("~") {
+        match home::home_dir() {
+            Some(home) => home.join(advisory_db_path.strip_prefix("~").unwrap()),
+            None => {
+                log::warn!(
+                    "unable to resolve path '{}', falling back to the default advisory path",
+                    advisory_db_path.display()
+                );
+                Repository::default_path()
             }
-        })
-        .unwrap_or_else(Repository::default_path);
+        }
+    } else {
+        advisory_db_path
+    };
 
     let advisory_db_repo = match fetch {
         Fetch::Allow => {
@@ -116,7 +198,7 @@ fn krate_for_pkg<'a>(
 /// unmaintained crates
 pub fn check(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
-    advisory_db: &Database,
+    advisory_dbs: &DatabaseCollection,
     mut lockfile: rustsec::lockfile::Lockfile,
     sender: crossbeam::channel::Sender<diag::Pack>,
 ) {
@@ -148,8 +230,13 @@ pub fn check(
         .packages
         .retain(|pkg| krate_for_pkg(&ctx.krates, pkg).is_some());
 
-    let (report, yanked) = rayon::join(
-        || rustsec::Report::generate(&advisory_db, &lockfile, &settings),
+    let (reports, yanked) = rayon::join(
+        || {
+            advisory_dbs
+                .iter()
+                .map(|db| rustsec::Report::generate(db, &lockfile, &settings))
+                .collect::<Vec<_>>()
+        },
         || {
             let index = rustsec::registry::Index::open()?;
             let mut yanked = Vec::new();
@@ -278,8 +365,11 @@ pub fn check(
     };
 
     // Check if any vulnerabilities were found
-    if report.vulnerabilities.found {
-        for vuln in &report.vulnerabilities.list {
+    if reports.iter().any(|report| report.vulnerabilities.found) {
+        for vuln in reports
+            .iter()
+            .flat_map(|report| &report.vulnerabilities.list)
+        {
             sender
                 .send(make_diag(&vuln.package, &vuln.advisory))
                 .unwrap();
@@ -287,9 +377,9 @@ pub fn check(
     }
 
     // Check for informational advisories for crates, including unmaintained
-    for (_kind, warnings) in report.warnings {
+    for (_kind, warnings) in reports.iter().flat_map(|report| &report.warnings) {
         for warning in warnings {
-            if let Some(advisory) = warning.advisory {
+            if let Some(advisory) = &warning.advisory {
                 let diag = make_diag(&warning.package, &advisory);
                 sender.send(diag).unwrap();
             }

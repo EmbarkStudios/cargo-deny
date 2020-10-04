@@ -1,4 +1,4 @@
-use super::OrgType;
+use super::{normalize_url, OrgType};
 use crate::{cfg, diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
 
@@ -113,7 +113,8 @@ impl cfg::UnvalidatedConfig for Config {
             .chain(self.allow_git.into_iter())
         {
             match url::Url::parse(aurl.as_ref()) {
-                Ok(url) => {
+                Ok(mut url) => {
+                    normalize_url(&mut url);
                     allowed_sources.push(UrlSpan {
                         value: url,
                         span: aurl.span,
