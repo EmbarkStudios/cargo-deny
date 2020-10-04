@@ -1,13 +1,14 @@
 mod cfg;
+mod diags;
 pub use cfg::{Config, GitSpec, ValidConfig};
 
 use crate::{
-    diag::{Check, Diagnostic, Label, Pack, Severity},
+    diag::{CfgCoord, Check, Diagnostic, ErrorSink, Label, Pack, Severity},
     LintLevel,
 };
 use url::Url;
 
-pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::Sender<Pack>) {
+pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
     use bitvec::prelude::*;
 
     // early out if everything is allowed
@@ -21,6 +22,16 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
     // warning if the user has listed a source that no crates are actually using
     let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
     let mut org_hits = bitvec![0; ctx.cfg.allowed_orgs.len()];
+
+    let min_git_spec = ctx.cfg.required_git_spec.as_ref().map(|rgs| {
+        (
+            rgs.value,
+            CfgCoord {
+                span: rgs.span.clone(),
+                file: ctx.cfg.file_id,
+            },
+        )
+    });
 
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let source = match &krate.source {
@@ -49,7 +60,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             let last_space = krate.id.repr.rfind(' ').unwrap();
 
             span.start = span.start + last_space + 1;
-            Label::primary(ctx.spans_id, span).with_message("source")
+            Label::primary(ctx.krate_spans.file_id, span).with_message("source")
         };
 
         // get allowed list of sources to check
@@ -57,7 +68,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
             (ctx.cfg.unknown_registry, "registry")
         } else if source.is_git() {
             // Ensure the git source has at least the minimum specification
-            if let Some(cfg_min) = &ctx.cfg.required_git_spec {
+            if let Some((min, cfg_coord)) = &min_git_spec {
                 pub use rustsec::package::source::GitReference;
 
                 let spec = source
@@ -78,19 +89,13 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                     })
                     .unwrap_or_default();
 
-                if spec < cfg_min.value {
-                    pack.push(
-                        Diagnostic::new(Severity::Error)
-                            .with_message(format!(
-                                "'git' source is underspecified, expected '{}', found '{}'",
-                                cfg_min.value, spec,
-                            ))
-                            .with_labels(vec![
-                                source_label.clone(),
-                                Label::primary(ctx.cfg.file_id, cfg_min.span.clone())
-                                    .with_message("minimum spec configuration"),
-                            ]),
-                    );
+                if spec < *min {
+                    pack.push(diags::BelowMinimumRequiredSpec {
+                        src_label: &source_label,
+                        min_spec: *min,
+                        actual_spec: spec,
+                        min_spec_cfg: cfg_coord.clone(),
+                    });
                 }
             }
 
@@ -111,66 +116,49 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
                 // it's crates.io since that will be a vast majority of crates and
                 // is the default, so we might not have a real source location anyways
                 if source_url.as_str() != "https://github.com/rust-lang/crates.io-index" {
-                    pack.push(
-                        Diagnostic::new(Severity::Note)
-                            .with_message(format!("'{}' source explicitly allowed", type_name,))
-                            .with_labels(vec![
-                                source_label,
-                                Label::primary(
-                                    ctx.cfg.file_id,
-                                    ctx.cfg.allowed_sources[ind].span.clone(),
-                                )
-                                .with_message("url allowance"),
-                            ]),
-                    );
+                    pack.push(diags::ExplicitlyAllowedSource {
+                        src_label: &source_label,
+                        type_name,
+                        allow_cfg: CfgCoord {
+                            file: ctx.cfg.file_id,
+                            span: ctx.cfg.allowed_sources[ind].span.clone(),
+                        },
+                    });
                 }
 
                 source_hits.as_mut_bitslice().set(ind, true)
             }
             None => {
-                let diag = match get_org(&source_url) {
+                let diag: crate::diag::Diag = match get_org(&source_url) {
                     Some((orgt, orgname)) => {
                         match ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
                             orgt == *sorgt && sorgn.value.as_str() == orgname
                         }) {
                             Some(ind) => {
                                 org_hits.as_mut_bitslice().set(ind, true);
-                                Diagnostic::new(Severity::Note)
-                                    .with_message(format!(
-                                        "'{}' source explicitly allowed",
-                                        type_name,
-                                    ))
-                                    .with_labels(vec![
-                                        source_label,
-                                        Label::primary(
-                                            ctx.cfg.file_id,
-                                            ctx.cfg.allowed_orgs[ind].1.span.clone(),
-                                        )
-                                        .with_message("org allowance"),
-                                    ])
+                                diags::SourceAllowedByOrg {
+                                    src_label: &source_label,
+                                    org_cfg: CfgCoord {
+                                        file: ctx.cfg.file_id,
+                                        span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
+                                    },
+                                }
+                                .into()
                             }
-                            None => Diagnostic::new(match lint_level {
-                                LintLevel::Warn => Severity::Warning,
-                                LintLevel::Deny => Severity::Error,
-                                LintLevel::Allow => Severity::Note,
-                            })
-                            .with_message(format!(
-                                "detected '{}' source not specifically allowed",
+                            None => diags::SourceNotExplicitlyAllowed {
+                                src_label: &source_label,
+                                lint_level,
                                 type_name,
-                            ))
-                            .with_labels(vec![source_label]),
+                            }
+                            .into(),
                         }
                     }
-                    None => Diagnostic::new(match lint_level {
-                        LintLevel::Warn => Severity::Warning,
-                        LintLevel::Deny => Severity::Error,
-                        LintLevel::Allow => Severity::Note,
-                    })
-                    .with_message(format!(
-                        "detected '{}' source not specifically allowed",
+                    None => diags::SourceNotExplicitlyAllowed {
+                        src_label: &source_label,
+                        lint_level,
                         type_name,
-                    ))
-                    .with_labels(vec![source_label]),
+                    }
+                    .into(),
                 };
 
                 pack.push(diag);
@@ -178,46 +166,41 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sender: crossbeam::channel::
         }
 
         if !pack.is_empty() {
-            sender.send(pack).unwrap();
+            sink.push(pack);
         }
     }
+
+    let mut pack = Pack::new(Check::Sources);
 
     for src in source_hits
         .into_iter()
         .zip(ctx.cfg.allowed_sources.into_iter())
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
-        sender
-            .send(
-                (
-                    Check::Sources,
-                    Diagnostic::warning()
-                        .with_message("allowed source was not encountered")
-                        .with_labels(vec![Label::primary(ctx.cfg.file_id, src.span)
-                            .with_message("no crate source matched these criteria")]),
-                )
-                    .into(),
-            )
-            .unwrap();
+        pack.push(diags::UnmatchedAllowSource {
+            allow_src_cfg: CfgCoord {
+                span: src.span,
+                file: ctx.cfg.file_id,
+            },
+        });
     }
 
-    for (orgt, orgs) in org_hits
+    for (org_type, orgs) in org_hits
         .into_iter()
         .zip(ctx.cfg.allowed_orgs.into_iter())
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
-        sender
-            .send(
-                (
-                    Check::Sources,
-                    Diagnostic::warning()
-                        .with_message(format!("allowed {} organization was not encountered", orgt))
-                        .with_labels(vec![Label::primary(ctx.cfg.file_id, orgs.span)
-                            .with_message("no crate source fell under this organization")]),
-                )
-                    .into(),
-            )
-            .unwrap();
+        pack.push(diags::UnmatchedAllowOrg {
+            allow_org_cfg: CfgCoord {
+                span: orgs.span,
+                file: ctx.cfg.file_id,
+            },
+            org_type,
+        });
+    }
+
+    if !pack.is_empty() {
+        sink.push(pack);
     }
 }
 
@@ -238,7 +221,7 @@ fn normalize_url(url: &mut Url) {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum OrgType {
     Github,
     Gitlab,

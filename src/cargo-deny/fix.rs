@@ -1,7 +1,7 @@
 use anyhow::{Context, Error};
 use cargo_deny::{
     advisories,
-    diag::{Diagnostic, Files},
+    diag::{self, Diagnostic, Files},
     manifest,
 };
 use std::path::PathBuf;
@@ -181,6 +181,22 @@ pub fn cmd(
         log::info!("No vulnerabilities were detected");
     }
 
+    let (krate_spans, cargo_spans) = {
+        let (spans, contents, raw_cargo_spans) = diag::KrateSpans::synthesize(&krates);
+        let id = files.add(krates.lock_path(), contents);
+
+        let mut cargo_spans = diag::CargoSpans::new();
+        for (key, val) in raw_cargo_spans {
+            let cargo_id = files.add(val.0, val.1);
+            cargo_spans.insert(key, (cargo_id, val.2));
+        }
+
+        (
+            cargo_deny::diag::KrateSpans::with_spans(spans, id),
+            cargo_spans,
+        )
+    };
+
     let patch_set = report
         .gather_patches(
             &krates,
@@ -189,6 +205,7 @@ pub fn cmd(
             } else {
                 advisories::fix::Semver::Compatible
             },
+            &krate_spans,
         )
         .context("failed to gather patches")?;
 

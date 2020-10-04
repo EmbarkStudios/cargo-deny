@@ -1,4 +1,9 @@
-use crate::{diag::Pack, index::Index, Krate, Krates};
+use super::diags;
+use crate::{
+    diag::{self, Check, Diagnostic, Label, Pack},
+    index::Index,
+    Krate, Krates,
+};
 use anyhow::{Context, Error};
 use rustsec::advisory::Metadata;
 use semver::{Version, VersionReq};
@@ -72,6 +77,7 @@ impl super::Report {
         &'a self,
         krates: &'a Krates,
         semv: Semver,
+        krate_spans: &'a diag::KrateSpans,
     ) -> Result<PatchSet<'a>, Error> {
         use krates::petgraph as pg;
         use pg::{visit::EdgeRef, Direction};
@@ -80,7 +86,7 @@ impl super::Report {
         let mut index = Index::load(krates)?;
 
         let mut candidates: Vec<(pg::graph::EdgeIndex<u32>, Vec<PatchCandidate<'_>>)> = Vec::new();
-        //let mut diags = Vec::new();
+        let mut diags = Vec::new();
 
         #[derive(Debug)]
         struct PatchCandidate<'a> {
@@ -99,18 +105,12 @@ impl super::Report {
             // We could also see if there are unaffected versions, but easier to just say we only support
             // fixing by using newer versions than older versions
             if patchable.patched.is_empty() {
-                log::error!(
-                    "advisory {} has no available patches",
-                    patchable.advisory.id,
-                );
-                // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
-                // pack.push(
-                //     Diagnostic::error()
-                //         .with_message()
-                //         .with_labels(vec![ctx.label_for_span(i.index(), message)])
-                //         .with_code(id.as_str().to_owned())
-                //         .with_notes(notes),
-                // );
+                let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
+                pack.push(diags::NoAvailablePatches {
+                    affected_krate_coord: krate_spans.get_coord(ind.index()),
+                    advisory: &patchable.advisory,
+                });
+                diags.push(pack);
                 continue;
             }
 
@@ -153,18 +153,12 @@ impl super::Report {
             };
 
             if required.is_empty() {
-                log::error!(
-                    "Advisory {} has no available versions that meet the patch requirements",
-                    patchable.advisory.id
-                );
-                // let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
-                // pack.push(
-                //     Diagnostic::error()
-                //         .with_message()
-                //         .with_labels(vec![ctx.label_for_span(i.index(), message)])
-                //         .with_code(id.as_str().to_owned())
-                //         .with_notes(notes),
-                // );
+                let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
+                pack.push(diags::NoAvailablePatchedVersions {
+                    affected_krate_coord: krate_spans.get_coord(ind.index()),
+                    advisory: &patchable.advisory,
+                });
+                diags.push(pack);
                 continue;
             }
 
@@ -176,7 +170,6 @@ impl super::Report {
                     // We only need to visit each unique edge once
                     let edge_id = edge.id();
                     if !visited.insert(edge_id) {
-                        //log::warn!("Already visited {} => {}", &graph[edge.source()], dep);
                         continue;
                     }
 
@@ -375,8 +368,7 @@ impl super::Report {
                 }
                 None => {
                     res = Some(Err(anyhow::anyhow!(
-                        "Unable to find registry index entry for crate '{}'",
-                        parent.name
+                        "Unable to find registry index entry for crate",
                     )));
                 }
             }

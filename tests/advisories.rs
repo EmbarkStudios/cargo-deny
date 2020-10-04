@@ -11,6 +11,22 @@ struct TestCtx {
     krates: Krates,
 }
 
+fn find_by_code<'a>(
+    diags: &'a [serde_json::Value],
+    code: &'_ str,
+) -> Option<&'a serde_json::Value> {
+    diags.iter().find(|v| {
+        v.pointer("/fields/notes")
+            .and_then(|notes| notes.as_array())
+            .map(|s| {
+                s.iter()
+                    .filter_map(|s| s.as_str())
+                    .any(|s| s.contains(code))
+            })
+            .unwrap_or(false)
+    })
+}
+
 fn load() -> TestCtx {
     let md: krates::cm::Metadata = serde_json::from_str(
         &std::fs::read_to_string("tests/test_data/advisories/06_advisories.json").unwrap(),
@@ -52,7 +68,7 @@ fn detects_vulnerabilities() {
         "detects_vulnerabilities",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -64,10 +80,7 @@ fn detects_vulnerabilities() {
     )
     .unwrap();
 
-    let vuln_diag = diags
-        .iter()
-        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2019-0001")))
-        .unwrap();
+    let vuln_diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
 
     assert_field_eq!(vuln_diag, "/fields/severity", "error");
     assert_field_eq!(
@@ -94,7 +107,7 @@ fn detects_unmaintained() {
         "detects_unmaintained",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -106,10 +119,7 @@ fn detects_unmaintained() {
     )
     .unwrap();
 
-    let unmaintained_diag = diags
-        .iter()
-        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2016-0004")))
-        .unwrap();
+    let unmaintained_diag = find_by_code(&diags, "RUSTSEC-2016-0004").unwrap();
 
     assert_field_eq!(unmaintained_diag, "/fields/severity", "warning");
     assert_field_eq!(
@@ -136,7 +146,7 @@ fn detects_unsound() {
         "detects_unsound",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -148,10 +158,7 @@ fn detects_unsound() {
     )
     .unwrap();
 
-    let unsound_diag = diags
-        .iter()
-        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2019-0035")))
-        .unwrap();
+    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0035").unwrap();
 
     assert_field_eq!(unsound_diag, "/fields/severity", "warning");
     assert_field_eq!(unsound_diag, "/fields/message", "Unaligned memory access");
@@ -180,7 +187,7 @@ fn downgrades_lint_levels() {
         "downgrades_lint_levels",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -193,19 +200,13 @@ fn downgrades_lint_levels() {
     .unwrap();
 
     assert_field_eq!(
-        diags
-            .iter()
-            .find(|v| field_eq!(v, "/fields/code", "RUSTSEC-2016-0004"))
-            .unwrap(),
+        find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
         "/fields/severity",
         "help"
     );
 
     assert_field_eq!(
-        diags
-            .iter()
-            .find(|v| field_eq!(v, "/fields/code", "RUSTSEC-2019-0001"))
-            .unwrap(),
+        find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
         "/fields/severity",
         "help"
     );
@@ -229,7 +230,7 @@ fn detects_yanked() {
         "detects_yanked",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,

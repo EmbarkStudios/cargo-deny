@@ -2,7 +2,7 @@
 
 use anyhow::{Context, Error};
 use cargo_deny::{
-    diag::{Files, KrateSpans, Pack},
+    diag::{CargoSpans, ErrorSink, Files, KrateSpans, Pack},
     CheckCtx,
 };
 
@@ -20,7 +20,7 @@ pub fn get_test_data_krates(name: &str) -> Result<cargo_deny::Krates, Error> {
 pub fn gather_diagnostics<
     C: serde::de::DeserializeOwned + Default + cargo_deny::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, crossbeam::channel::Sender<Pack>) + Send,
+    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, ErrorSink) + Send,
 >(
     krates: cargo_deny::Krates,
     test_name: &str,
@@ -28,9 +28,12 @@ pub fn gather_diagnostics<
     timeout: Option<std::time::Duration>,
     runner: R,
 ) -> Result<Vec<serde_json::Value>, Error> {
-    let (spans, content, hashmap) = KrateSpans::new(&krates);
+    let (spans, content, hashmap) = KrateSpans::synthesize(&krates);
     let mut files = Files::new();
+
     let spans_id = files.add(format!("{}/Cargo.lock", test_name), content);
+
+    let spans = KrateSpans::with_spans(spans, spans_id);
 
     let (config, cfg_id) = match cfg {
         Some(cfg) => {
@@ -46,7 +49,7 @@ pub fn gather_diagnostics<
         ),
     };
 
-    let mut newmap = std::collections::HashMap::new();
+    let mut newmap = CargoSpans::new();
     for (key, val) in hashmap {
         let cargo_id = files.add(val.0, val.1);
         newmap.insert(key, (cargo_id, val.2));
@@ -69,12 +72,10 @@ pub fn gather_diagnostics<
             let ctx = cargo_deny::CheckCtx {
                 krates: &krates,
                 krate_spans: &spans,
-                spans_id,
                 cfg,
                 serialize_extra: true,
-                cargo_spans: Some(newmap),
             };
-            runner(ctx, tx);
+            runner(ctx, newmap, ErrorSink::Channel(tx));
         },
         || {
             let mut diagnostics = Vec::new();

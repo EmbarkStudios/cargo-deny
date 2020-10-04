@@ -17,7 +17,7 @@ pub struct Orgs {
 
 /// The types of specifiers that can be used on git sources by cargo, in order
 /// of their specificity from least to greatest
-#[derive(Deserialize, PartialEq, Debug, PartialOrd)]
+#[derive(Deserialize, PartialEq, Debug, PartialOrd, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GitSpec {
     /// Specifies the HEAD of the `master` branch, though eventually this might

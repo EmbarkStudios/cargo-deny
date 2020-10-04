@@ -2,7 +2,7 @@ use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{
     advisories, bans,
-    diag::{CargoSpans, Diagnostic, Files, Severity},
+    diag::{CargoSpans, Diagnostic, ErrorSink, Files, Severity},
     licenses, sources, CheckCtx,
 };
 use log::error;
@@ -226,7 +226,9 @@ pub(crate) fn cmd(
                         });
                     }
 
-                    s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
+                    s.spawn(|_| {
+                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(&krates))
+                    });
                 });
             }
 
@@ -267,7 +269,7 @@ pub(crate) fn cmd(
         None
     };
 
-    let (krate_spans, spans_id, cargo_spans) = krate_spans
+    let (krate_spans, cargo_spans) = krate_spans
         .map(|(spans, contents, raw_cargo_spans)| {
             let id = files.add(krates.lock_path(), contents);
 
@@ -276,7 +278,11 @@ pub(crate) fn cmd(
                 let cargo_id = files.add(val.0, val.1);
                 cargo_spans.insert(key, (cargo_id, val.2));
             }
-            (spans, id, cargo_spans)
+
+            (
+                cargo_deny::diag::KrateSpans::with_spans(spans, id),
+                cargo_spans,
+            )
         })
         .unwrap();
 
@@ -347,15 +353,13 @@ pub(crate) fn cmd(
                 cfg: lic_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(move |_| {
                 log::info!("checking licenses...");
                 let start = Instant::now();
-                licenses::check(ctx, summary, lic_tx);
+                licenses::check(ctx, summary, ErrorSink::Channel(lic_tx));
                 let end = Instant::now();
 
                 log::info!("licenses checked in {}ms", (end - start).as_millis());
@@ -400,15 +404,13 @@ pub(crate) fn cmd(
                 cfg: ban_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: Some(cargo_spans),
             };
 
             s.spawn(|_| {
                 log::info!("checking bans...");
                 let start = Instant::now();
-                bans::check(ctx, output_graph, ban_tx);
+                bans::check(ctx, output_graph, cargo_spans, ErrorSink::Channel(ban_tx));
                 let end = Instant::now();
 
                 log::info!("bans checked in {}ms", (end - start).as_millis());
@@ -423,15 +425,13 @@ pub(crate) fn cmd(
                 cfg: sources_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(|_| {
                 log::info!("checking sources...");
                 let start = Instant::now();
-                sources::check(ctx, sources_tx);
+                sources::check(ctx, ErrorSink::Channel(sources_tx));
                 let end = Instant::now();
 
                 log::info!("sources checked in {}ms", (end - start).as_millis());
@@ -445,9 +445,7 @@ pub(crate) fn cmd(
                 cfg: adv_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(move |_| {
@@ -464,7 +462,7 @@ pub(crate) fn cmd(
                     None
                 };
 
-                advisories::check(ctx, &db, lf, audit_reporter, tx);
+                advisories::check(ctx, &db, lf, audit_reporter, ErrorSink::Channel(tx));
                 let end = Instant::now();
 
                 log::info!("advisories checked in {}ms", (end - start).as_millis());
