@@ -50,11 +50,12 @@ checksum = "6b602bfe940d21c130f3895acd65221e8a61270debe89d628b9cb4e3ccb8569b"
 
 [[package]]
 name = "askalono"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8842f6180e21bd1f9072bbd5a4a5185d61cea66f31f722962f064c7acb624d9b"
+checksum = "4c12726b90d9c483f418038faf41cb92a76e5d2c50135546574e4479bfd13ef0"
 dependencies = [
  "failure",
+ "flate2",
  "lazy_static",
  "log",
  "rayon",
@@ -1299,9 +1300,9 @@ dependencies = [
 
 [[package]]
 name = "rmp-serde"
-version = "0.13.7"
+version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "011e1d58446e9fa3af7cdc1fb91295b10621d3ac4cb3a85cc86385ee9ca50cd3"
+checksum = "4ce7d70c926fe472aed493b902010bccc17fa9f7284145cb8772fd22fdb052d8"
 dependencies = [
  "byteorder",
  "rmp",
