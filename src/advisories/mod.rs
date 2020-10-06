@@ -120,26 +120,10 @@ pub fn check<R>(
     }
 
     // Check for advisory identifers that were set to be ignored, but
-    // are not actually in any database. Warn the user about.
-    for (ignored, mut ignored_hit) in ctx.cfg.ignore.iter().zip(ignore_hits.iter_mut()) {
-        if advisory_dbs.get(&ignored.value).is_none() {
-            sender
-                .send(
-                    (
-                        Check::Advisories,
-                        Diagnostic::warning()
-                            .with_message("this advisory is not in any RustSec database")
-                            .with_labels(vec![Label::primary(
-                                ctx.cfg.file_id,
-                                ignored.span.clone(),
-                            )
-                            .with_message("unknown advisory")]),
-                    )
-                        .into(),
-                )
-                .unwrap();
-            // Set advisory as used. Otherwise we would get two warings for the same advisory.
-            *ignored_hit = true;
+    // are not actually in any database.
+    for ignored in &ctx.cfg.ignore {
+        if !advisory_dbs.has_advisory(&ignored.value) {
+            sink.push(ctx.diag_for_unknown_advisory(ignored));
         }
     }
 

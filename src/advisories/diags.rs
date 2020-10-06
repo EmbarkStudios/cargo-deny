@@ -175,6 +175,18 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         )
             .into()
     }
+
+    pub(crate) fn diag_for_unknown_advisory(&self, unknown: &crate::cfg::Spanned<Id>) -> Pack {
+        (
+            Check::Advisories,
+            Diagnostic::warning()
+                .with_message("advisory not found in any advisory database")
+                .with_code("A008")
+                .with_labels(vec![Label::primary(self.cfg.file_id, unknown.span.clone())
+                    .with_message("unknown advisory")]),
+        )
+            .into()
+    }
 }
 
 pub(crate) struct NoAvailablePatches<'a> {

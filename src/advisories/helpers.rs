@@ -71,6 +71,10 @@ impl DbSet {
     pub fn iter(&self) -> impl Iterator<Item = &(Url, Database)> {
         self.dbs.iter()
     }
+
+    pub fn has_advisory(&self, id: &Id) -> bool {
+        self.dbs.iter().any(|db| db.1.get(id).is_some())
+    }
 }
 
 /// Convert an advisory url to a directory underneath a specified root
