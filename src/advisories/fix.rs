@@ -1,12 +1,12 @@
 use super::diags;
 use crate::{
-    diag::{self, Check, Diagnostic, Label, Pack},
+    diag::{self, Check, Pack},
     index::Index,
     Krate, Krates,
 };
-use anyhow::{Context, Error};
+use anyhow::Error;
 use rustsec::advisory::Metadata;
-use semver::{Version, VersionReq};
+use semver::Version;
 
 fn to_string<T: std::fmt::Display>(v: &[T]) -> String {
     let mut dv = String::with_capacity(64);
@@ -327,7 +327,7 @@ impl super::Report {
         parent: &Krate,
         child: &Krate,
         required: &[Version],
-    ) -> Result<Vec<Version>, Error> {
+    ) -> Result<Vec<Version>, &'static str> {
         let mut res = None;
 
         index.read_krate(&parent, |ik| {
@@ -359,17 +359,15 @@ impl super::Report {
                         .collect();
 
                     if available.is_empty() {
-                        res = Some(Err(anyhow::anyhow!(
-                            "No versions were available that used a required version of the crate"
-                        )));
+                        res = Some(Err(
+                            "No versions were available that used a required version of the crate",
+                        ));
                     } else {
                         res = Some(Ok(available));
                     }
                 }
                 None => {
-                    res = Some(Err(anyhow::anyhow!(
-                        "Unable to find registry index entry for crate",
-                    )));
+                    res = Some(Err("Unable to find registry index entry for crate"));
                 }
             }
         });
