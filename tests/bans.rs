@@ -11,8 +11,8 @@ fn cyclic_dependencies_do_not_cause_infinite_loop() {
         "cyclic_dependencies_do_not_cause_infinite_loop",
         None,
         Some(std::time::Duration::from_millis(10000)),
-        |ctx, tx| {
-            bans::check(ctx, None, tx);
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
         },
     )
     .unwrap();
@@ -31,8 +31,8 @@ wrappers = ["safe-wrapper"]
 "#,
         ),
         None,
-        |ctx, tx| {
-            bans::check(ctx, None, tx);
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
         },
     )
     .unwrap();
@@ -45,10 +45,12 @@ wrappers = ["safe-wrapper"]
     assert_field_eq!(
         diag,
         "/fields/message",
-        "banned crate dangerous-dep = 0.1.0 allowed by direct dependency from safe-wrapper = 0.1.0"
+        "banned crate 'dangerous-dep = 0.1.0' allowed by wrapper 'safe-wrapper = 0.1.0'"
     );
-    assert_field_eq!(diag, "/fields/labels/0/message", "ban exception");
-    assert_field_eq!(diag, "/fields/labels/0/span", "\"safe-wrapper\"");
+    assert_field_eq!(diag, "/fields/labels/0/message", "banned here");
+    assert_field_eq!(diag, "/fields/labels/0/span", "\"dangerous-dep\"");
+    assert_field_eq!(diag, "/fields/labels/1/message", "allowed wrapper");
+    assert_field_eq!(diag, "/fields/labels/1/span", "\"safe-wrapper\"");
 }
 
 #[test]
@@ -63,8 +65,8 @@ name = "dangerous-dep"
 "#,
         ),
         None,
-        |ctx, tx| {
-            bans::check(ctx, None, tx);
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
         },
     )
     .unwrap();
@@ -77,9 +79,9 @@ name = "dangerous-dep"
     assert_field_eq!(
         diag,
         "/fields/message",
-        "detected banned crate dangerous-dep = 0.1.0"
+        "crate 'dangerous-dep = 0.1.0' is explicitly banned"
     );
-    assert_field_eq!(diag, "/fields/labels/0/message", "matching ban entry");
+    assert_field_eq!(diag, "/fields/labels/0/message", "banned here");
     assert_field_eq!(diag, "/fields/labels/0/span", "\"dangerous-dep\"");
 }
 
@@ -90,8 +92,8 @@ fn deny_wildcards() {
         "deny_wildcards",
         Some("wildcards = 'deny'"),
         Some(std::time::Duration::from_millis(10000)),
-        |ctx, tx| {
-            bans::check(ctx, None, tx);
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
         },
     )
     .unwrap();

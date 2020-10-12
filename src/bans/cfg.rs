@@ -116,7 +116,7 @@ impl Default for Config {
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
+    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
         use rayon::prelude::*;
 
         let from = |s: Spanned<CrateId>| {
@@ -128,8 +128,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 s.span,
             )
         };
-
-        let mut diagnostics = Vec::new();
 
         let mut denied: Vec<_> = self
             .deny
@@ -154,7 +152,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         skipped.par_sort();
 
         let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
-            diagnostics.push(
+            diags.push(
                 Diagnostic::error()
                     .with_message(format!(
                         "a crate was specified in both `{}` and `{}`",
@@ -184,23 +182,19 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
-        if !diagnostics.is_empty() {
-            Err(diagnostics)
-        } else {
-            Ok(ValidConfig {
-                file_id: cfg_file,
-                multiple_versions: self.multiple_versions,
-                highlight: self.highlight,
-                denied,
-                allowed,
-                skipped,
-                wildcards: self.wildcards,
-                tree_skipped: self
-                    .skip_tree
-                    .into_iter()
-                    .map(crate::Spanned::from)
-                    .collect(),
-            })
+        ValidConfig {
+            file_id: cfg_file,
+            multiple_versions: self.multiple_versions,
+            highlight: self.highlight,
+            denied,
+            allowed,
+            skipped,
+            wildcards: self.wildcards,
+            tree_skipped: self
+                .skip_tree
+                .into_iter()
+                .map(crate::Spanned::from)
+                .collect(),
         }
     }
 }
@@ -282,7 +276,9 @@ mod test {
 
         let cd: ConfigData<Bans> = load("tests/cfg/bans.toml");
 
-        let validated = cd.config.bans.validate(cd.id).unwrap();
+        let mut diags = Vec::new();
+        let validated = cd.config.bans.validate(cd.id, &mut diags);
+        assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.multiple_versions, LintLevel::Deny);

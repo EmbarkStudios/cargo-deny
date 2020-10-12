@@ -13,7 +13,7 @@ fn fails_unknown_git() {
         "fails_unknown_git",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             sources::check(ctx, tx);
         },
     )
@@ -63,7 +63,7 @@ fn allows_git() {
         "fails_unknown_git",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             sources::check(ctx, tx);
         },
     )
@@ -108,7 +108,7 @@ fn allows_github_org() {
         "allows_github_org",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             sources::check(ctx, tx);
         },
     )
@@ -157,7 +157,7 @@ fn allows_gitlab_org() {
         "allows_gitlab_org",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             sources::check(ctx, tx);
         },
     )
@@ -203,7 +203,7 @@ fn allows_bitbucket_org() {
         "allows_bitbucket_org",
         Some(cfg),
         None,
-        |ctx, tx| {
+        |ctx, _, tx| {
             sources::check(ctx, tx);
         },
     )
@@ -267,7 +267,7 @@ fn validates_git_source_specs() {
             "validates_git_source_specs",
             Some(&cfg),
             None,
-            |ctx, tx| {
+            |ctx, _, tx| {
                 sources::check(ctx, tx);
             },
         )

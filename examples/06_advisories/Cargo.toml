@@ -4,14 +4,15 @@ version = "0.1.0"
 authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 # ammonia had a stack overflow < 2.1.0
 # https://github.com/RustSec/advisory-db/blob/01ac6725d549dbc7873250fe2a55e54d528fe945/crates/ammonia/RUSTSEC-2019-0001.toml
-ammonia = "1.0.0"
+ammonia = "=0.7.0"
 # libusb is unmaintained
 # https://github.com/RustSec/advisory-db/blob/5b35b71cf74eed58696aeeb5a764a9f0a66fe7ba/crates/libusb/RUSTSEC-2016-0004.toml
 libusb = "0.3.0"
 # This version of spdx has been yanked
 spdx = "=0.3.1"
+
+# Transitively depends on an ammonia 1.2.0
+artifact_serde = "0.3.1"

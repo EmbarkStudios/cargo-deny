@@ -1,10 +1,9 @@
 use ansi_term::Color;
 use anyhow::{Context, Error};
 use cargo_deny::{diag::Files, licenses, Kid};
-use clap::arg_enum;
 use serde::Serialize;
 use std::path::PathBuf;
-use structopt::StructOpt;
+use structopt::{clap::arg_enum, StructOpt};
 
 arg_enum! {
     #[derive(Copy, Clone, Debug)]

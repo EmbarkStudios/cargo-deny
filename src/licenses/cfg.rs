@@ -189,10 +189,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    fn validate(self, cfg_file: FileId) -> Result<Self::ValidCfg, Vec<Diagnostic>> {
+    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
         use rayon::prelude::*;
-
-        let mut diagnostics = Vec::new();
 
         let mut parse_license = |ls: &Spanned<String>, v: &mut Vec<Licensee>| {
             match spdx::Licensee::parse(ls.as_ref()) {
@@ -202,13 +200,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 Err(pe) => {
                     let offset = ls.span.start + 1;
                     let span = pe.span.start + offset..pe.span.end + offset;
-                    let diag = Diagnostic::error()
-                        .with_message("invalid licensee")
-                        .with_labels(vec![
-                            Label::primary(cfg_file, span).with_message(format!("{}", pe.reason))
-                        ]);
-
-                    diagnostics.push(diag);
+                    diags.push(
+                        Diagnostic::error()
+                            .with_message("invalid licensee")
+                            .with_labels(vec![Label::primary(cfg_file, span)
+                                .with_message(format!("{}", pe.reason))]),
+                    );
                 }
             }
         };
@@ -248,15 +245,16 @@ impl crate::cfg::UnvalidatedConfig for Config {
         // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(&d) {
-                let diag = Diagnostic::error()
-                    .with_message("a license id was specified in both `allow` and `deny`")
-                    .with_labels(vec![
-                        Label::secondary(cfg_file, self.deny[di].span.clone()).with_message("deny"),
-                        Label::secondary(cfg_file, self.allow[ai].span.clone())
-                            .with_message("allow"),
-                    ]);
-
-                diagnostics.push(diag);
+                diags.push(
+                    Diagnostic::error()
+                        .with_message("a license id was specified in both `allow` and `deny`")
+                        .with_labels(vec![
+                            Label::secondary(cfg_file, self.deny[di].span.clone())
+                                .with_message("deny"),
+                            Label::secondary(cfg_file, self.allow[ai].span.clone())
+                                .with_message("allow"),
+                        ]),
+                );
             }
         }
 
@@ -268,7 +266,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     let offset = c.expression.span.start + 1;
                     let expr_span = offset + err.span.start..offset + err.span.end;
 
-                    diagnostics.push(
+                    diags.push(
                         Diagnostic::error()
                             .with_message("unable to parse license expression")
                             .with_labels(vec![Label::primary(cfg_file, expr_span)
@@ -293,22 +291,18 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         clarifications.par_sort();
 
-        if !diagnostics.is_empty() {
-            Err(diagnostics)
-        } else {
-            Ok(ValidConfig {
-                file_id: cfg_file,
-                private: self.private,
-                unlicensed: self.unlicensed,
-                copyleft: self.copyleft,
-                default: self.default,
-                allow_osi_fsf_free: self.allow_osi_fsf_free,
-                confidence_threshold: self.confidence_threshold,
-                clarifications,
-                exceptions,
-                denied,
-                allowed,
-            })
+        ValidConfig {
+            file_id: cfg_file,
+            private: self.private,
+            unlicensed: self.unlicensed,
+            copyleft: self.copyleft,
+            default: self.default,
+            allow_osi_fsf_free: self.allow_osi_fsf_free,
+            confidence_threshold: self.confidence_threshold,
+            clarifications,
+            exceptions,
+            denied,
+            allowed,
         }
     }
 }
@@ -363,7 +357,9 @@ mod test {
 
         let cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
 
-        let validated = cd.config.licenses.validate(cd.id).unwrap();
+        let mut diags = Vec::new();
+        let validated = cd.config.licenses.validate(cd.id, &mut diags);
+        assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.private.ignore, true);

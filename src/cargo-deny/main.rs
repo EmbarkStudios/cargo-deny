@@ -8,6 +8,7 @@ use structopt::StructOpt;
 mod check;
 mod common;
 mod fetch;
+mod fix;
 mod init;
 mod list;
 mod stats;
@@ -20,6 +21,9 @@ enum Command {
     /// Fetches remote data
     #[structopt(name = "fetch")]
     Fetch(fetch::Args),
+    /// Attempts to fix security advisories by updating Cargo.toml manifests
+    #[structopt(name = "fix")]
+    Fix(fix::Args),
     /// Creates a cargo-deny config from a template
     #[structopt(name = "init")]
     Init(init::Args),
@@ -28,7 +32,7 @@ enum Command {
     List(list::Args),
 }
 
-#[derive(StructOpt, Copy, Clone, Debug)]
+#[derive(StructOpt, Copy, Clone, Debug, PartialEq)]
 pub enum Format {
     Human,
     Json,
@@ -328,6 +332,7 @@ fn real_main() -> Result<(), Error> {
             }
         }
         Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
+        Command::Fix(fargs) => fix::cmd(log_ctx, fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
         Command::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
     }

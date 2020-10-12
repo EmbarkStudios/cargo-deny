@@ -1,8 +1,12 @@
 pub mod cfg;
+mod diags;
 mod graph;
 
 use self::cfg::{TreeSkip, ValidConfig};
-use crate::{diag::FileId, Kid, Krate, Krates, LintLevel};
+use crate::{
+    diag::{self, CfgCoord, FileId, KrateCoord},
+    Kid, Krate, Krates, LintLevel,
+};
 use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::{cmp::Ordering, fmt};
@@ -88,17 +92,18 @@ use bitvec::prelude::*;
 // each dependency as a skipped crate at the specific version
 struct TreeSkipper {
     roots: Vec<SkipRoot>,
-    file_id: FileId,
+    cfg_file_id: FileId,
 }
 
 impl TreeSkipper {
     fn build(
         skip_roots: Vec<crate::Spanned<TreeSkip>>,
         krates: &Krates,
-        file_id: FileId,
-        sender: crossbeam::channel::Sender<Pack>,
-    ) -> Self {
+        cfg_file_id: FileId,
+    ) -> (Self, Pack) {
         let mut roots = Vec::with_capacity(skip_roots.len());
+
+        let mut pack = Pack::new(Check::Bans);
 
         for ts in skip_roots {
             let num_roots = roots.len();
@@ -107,25 +112,19 @@ impl TreeSkipper {
                 roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 
+            // If no roots were added, add a diagnostic that the user's configuration
+            // is outdated so they can fix or clean it up
             if roots.len() == num_roots {
-                sender
-                    .send(
-                        (
-                            Check::Bans,
-                            Diagnostic::warning()
-                                .with_message(
-                                    "skip tree root was not found in the dependency graph",
-                                )
-                                .with_labels(vec![Label::primary(file_id, ts.span)
-                                    .with_message("no crate matched these criteria")]),
-                        )
-                            .into(),
-                    )
-                    .unwrap();
+                pack.push(diags::UnmatchedSkipRoot {
+                    skip_root_cfg: CfgCoord {
+                        file: cfg_file_id,
+                        span: ts.span,
+                    },
+                });
             }
         }
 
-        Self { roots, file_id }
+        (Self { roots, cfg_file_id }, pack)
     }
 
     fn build_skip_root(
@@ -169,12 +168,13 @@ impl TreeSkipper {
 
         for root in &mut self.roots {
             if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
-                pack.push(
-                    Diagnostic::help()
-                        .with_message(format!("skipping crate {} = {}", krate.name, krate.version))
-                        .with_labels(vec![Label::primary(self.file_id, root.span.clone())
-                            .with_message("matched root filter")]),
-                );
+                pack.push(diags::SkippedByRoot {
+                    krate,
+                    skip_root_cfg: CfgCoord {
+                        file: self.cfg_file_id,
+                        span: root.span.clone(),
+                    },
+                });
 
                 root.skip_hits.as_mut_bitslice().set(i, true);
                 skip = true;
@@ -192,13 +192,14 @@ pub struct DupGraph {
 
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
-use crate::diag::{Check, Diag, Diagnostic, Label, Pack, Severity};
+use crate::diag::{Check, Diag, Pack, Severity};
 use krates::petgraph::{visit::EdgeRef, Direction};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
     output_graph: Option<Box<OutputGraph>>,
-    sender: crossbeam::channel::Sender<Pack>,
+    cargo_spans: diag::CargoSpans,
+    mut sink: diag::ErrorSink,
 ) {
     let wildcard = VersionReq::parse("*").expect("Parsing wildcard mustnt fail");
 
@@ -214,9 +215,12 @@ pub fn check(
         ..
     } = ctx.cfg;
 
-    let spans_id = ctx.spans_id;
     let krate_spans = &ctx.krate_spans;
-    let mut tree_skipper = TreeSkipper::build(tree_skipped, ctx.krates, file_id, sender.clone());
+    let (mut tree_skipper, build_diags) = TreeSkipper::build(tree_skipped, ctx.krates, file_id);
+
+    if !build_diags.is_empty() {
+        sink.push(build_diags);
+    }
 
     let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
         denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
@@ -239,11 +243,18 @@ pub fn check(
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
-        if let Ok((bind, ban)) = binary_search(&denied_ids, krate) {
+        //let krate_coord = krate_spans.get_coord(i);
+
+        if let Ok((bind, _ban)) = binary_search(&denied_ids, krate) {
+            let ban_cfg = CfgCoord {
+                file: file_id,
+                span: denied_ids[bind].span.clone(),
+            };
+
             // The crate is banned, but it might have be allowed if it's wrapped
             // by one or more particular crates
             let allowed_wrappers = &ban_wrappers[bind];
-            let allowed = if !allowed_wrappers.is_empty() {
+            let is_allowed = if !allowed_wrappers.is_empty() {
                 let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                 let graph = ctx.krates.graph();
 
@@ -254,49 +265,45 @@ pub fn check(
                     .map(|edge| edge.source())
                     .all(|nid| {
                         let node = &graph[nid];
-                        let (diag, allowed) = match allowed_wrappers.iter().find(|aw| aw.value == node.krate.name) {
-                            Some(aw) => {
-                                (
-                                    Diagnostic::help()
-                                        .with_message(format!("banned crate {} allowed by direct dependency from {}", krate, node.krate))
-                                        .with_labels(vec![
-                                            Label::primary(file_id, aw.span.clone()).with_message("ban exception"),
-                                            Label::secondary(spans_id, krate_spans[nid.index()].clone())
-                                                .with_message("wrapper crate"),
-                                        ]),
-                                    true
-                                )
-                            }
-                            None => {
-                                (
-                                    Diagnostic::error()
-                                    .with_message(format!(
-                                        "direct dependency on banned crate {} was not explicitly allowed",
-                                        krate
-                                    ))
-                                    .with_labels(vec![
-                                        Label::secondary(spans_id, krate_spans[nid.index()].clone())
-                                        .with_message("direct dependency"),
-                                    ]),
-                                    false,
-                                )
-                            }
+                        //let krate_coord = krate_spans.get_coord(nid.index());
+
+                        let (diag, is_allowed): (Diag, _) = match allowed_wrappers
+                            .iter()
+                            .find(|aw| aw.value == node.krate.name)
+                        {
+                            Some(aw) => (
+                                diags::BannedAllowedByWrapper {
+                                    ban_cfg: ban_cfg.clone(),
+                                    ban_exception_cfg: CfgCoord {
+                                        file: file_id,
+                                        span: aw.span.clone(),
+                                    },
+                                    banned_krate: krate,
+                                    wrapper_krate: &node.krate,
+                                }
+                                .into(),
+                                true,
+                            ),
+                            None => (
+                                diags::BannedUnmatchedWrapper {
+                                    ban_cfg: ban_cfg.clone(),
+                                    banned_krate: krate,
+                                    parent_krate: &node.krate,
+                                }
+                                .into(),
+                                false,
+                            ),
                         };
 
                         pack.push(diag);
-                        allowed
+                        is_allowed
                     })
             } else {
                 false
             };
 
-            if !allowed {
-                pack.push(
-                    Diagnostic::error()
-                        .with_message(format!("detected banned crate {}", krate,))
-                        .with_labels(vec![Label::primary(file_id, ban.span.clone())
-                            .with_message("matching ban entry")]),
-                );
+            if !is_allowed {
+                pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
             }
         }
 
@@ -305,39 +312,28 @@ pub fn check(
             // also emit which allow filters actually passed each crate
             match binary_search(&allowed, krate) {
                 Ok((_, allow)) => {
-                    pack.push(
-                        Diagnostic::note()
-                            .with_message(format!("allowed {} = {}", krate.name, krate.version))
-                            .with_labels(vec![Label::primary(file_id, allow.span.clone())
-                                .with_message("matching allow entry")]),
-                    );
+                    pack.push(diags::ExplicitlyAllowed {
+                        krate,
+                        allow_cfg: CfgCoord {
+                            file: file_id,
+                            span: allow.span.clone(),
+                        },
+                    });
                 }
-                Err(mut ind) => {
-                    if ind >= allowed.len() {
-                        ind = allowed.len() - 1;
-                    }
-
-                    pack.push(
-                        Diagnostic::error()
-                            .with_message(format!(
-                                "detected crate not specifically allowed {} = {}",
-                                krate.name, krate.version
-                            ))
-                            .with_labels(vec![Label::primary(file_id, allowed[ind].span.clone())
-                                .with_message("closest match")]),
-                    );
+                Err(_) => {
+                    pack.push(diags::ImplicitlyBanned { krate });
                 }
             }
         }
 
         if let Ok((index, skip)) = binary_search(&skipped, krate) {
-            pack.push(
-                Diagnostic::help()
-                    .with_message(format!("skipping crate {} = {}", krate.name, krate.version))
-                    .with_labels(vec![
-                        Label::primary(file_id, skip.span.clone()).with_message("matched filter")
-                    ]),
-            );
+            pack.push(diags::Skipped {
+                krate,
+                skip_cfg: CfgCoord {
+                    file: file_id,
+                    span: skip.span.clone(),
+                },
+            });
 
             // Keep a count of the number of times each skip filter is hit
             // so that we can report unused filters to the user so that they
@@ -376,23 +372,25 @@ pub fn check(
                         kids.push(krate.id.clone());
                     }
 
-                    let mut diag = Diag::new(
-                        Diagnostic::new(severity)
-                            .with_message(format!(
-                                "found {} duplicate entries for crate '{}'",
-                                kids.len(),
-                                multi_detector.name
-                            ))
-                            .with_labels(vec![Label::primary(ctx.spans_id, all_start..all_end)
-                                .with_message("lock entries")]),
-                    );
+                    {
+                        let mut diag: Diag = diags::Duplicates {
+                            krate_name: multi_detector.name,
+                            num_dupes: kids.len(),
+                            krates_coord: KrateCoord {
+                                file: krate_spans.file_id,
+                                span: all_start..all_end,
+                            },
+                            severity,
+                        }
+                        .into();
 
-                    diag.kids = kids;
+                        diag.kids = kids;
 
-                    let mut pack = Pack::new(Check::Bans);
-                    pack.push(diag);
+                        let mut pack = Pack::new(Check::Bans);
+                        pack.push(diag);
 
-                    sender.send(pack).unwrap();
+                        sink.push(pack);
+                    }
 
                     if let Some(ref og) = output_graph {
                         match graph::create_graph(
@@ -432,73 +430,44 @@ pub fn check(
                     LintLevel::Allow => unreachable!(),
                 };
 
-                let wildcards = krate
+                let wildcards: Vec<_> = krate
                     .deps
                     .iter()
                     .filter(|dep| dep.req == wildcard)
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 if !wildcards.is_empty() {
-                    let labels = if let Some(ref cargo_spans) = ctx.cargo_spans {
-                        let (file_id, map) = &cargo_spans[&krate.id];
-
-                        wildcards
-                            .into_iter()
-                            .map(|dep| {
-                                Label::primary(*file_id, map[&dep.name].clone())
-                                    .with_message("wildcard crate entry")
-                            })
-                            .collect::<Vec<_>>()
-                    } else {
-                        vec![]
-                    };
-
-                    let msg = if labels.len() == 1 {
-                        format!("found 1 wildcard dependency for crate '{}'", krate.name)
-                    } else {
-                        format!(
-                            "found {} wildcard dependencies for crate '{}'",
-                            labels.len(),
-                            krate.name
-                        )
-                    };
-                    let diag = Diag::new(
-                        Diagnostic::new(severity)
-                            .with_message(msg)
-                            .with_labels(labels),
-                    );
-
-                    let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
-                    pack.push(diag);
-
-                    sender.send(pack).unwrap();
+                    sink.push(diags::Wildcards {
+                        krate,
+                        severity,
+                        wildcards,
+                        cargo_spans: &cargo_spans,
+                    });
                 }
             }
         }
 
         if !pack.is_empty() {
-            sender.send(pack).unwrap();
+            sink.push(pack);
         }
     }
+
+    let mut pack = Pack::new(Check::Bans);
 
     for skip in skip_hit
         .into_iter()
         .zip(skipped.into_iter())
         .filter_map(|(hit, skip)| if !hit { Some(skip) } else { None })
     {
-        sender
-            .send(
-                (
-                    Check::Bans,
-                    Diagnostic::warning()
-                        .with_message("skipped crate was not encountered")
-                        .with_labels(vec![Label::primary(ctx.cfg.file_id, skip.span)
-                            .with_message("no crate matched these criteria")]),
-                )
-                    .into(),
-            )
-            .unwrap();
+        pack.push(diags::UnmatchedSkip {
+            skip_cfg: CfgCoord {
+                file: file_id,
+                span: skip.span,
+            },
+        });
     }
+
+    sink.push(pack);
 }
 
 #[cfg(test)]

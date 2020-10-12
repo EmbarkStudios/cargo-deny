@@ -6,9 +6,25 @@ use cargo_deny::{
 mod utils;
 
 struct TestCtx {
-    dbs: advisories::DatabaseCollection,
-    lock: advisories::Lockfile,
+    dbs: advisories::DbSet,
+    lock: advisories::PrunedLockfile,
     krates: Krates,
+}
+
+fn find_by_code<'a>(
+    diags: &'a [serde_json::Value],
+    code: &'_ str,
+) -> Option<&'a serde_json::Value> {
+    diags.iter().find(|v| {
+        v.pointer("/fields/notes")
+            .and_then(|notes| notes.as_array())
+            .map(|s| {
+                s.iter()
+                    .filter_map(|s| s.as_str())
+                    .any(|s| s.contains(code))
+            })
+            .unwrap_or(false)
+    })
 }
 
 fn load() -> TestCtx {
@@ -28,17 +44,14 @@ fn load() -> TestCtx {
 
     let db = {
         let tmp = tempfile::tempdir().unwrap();
-        advisories::load_dbs(
-            vec![],
-            vec![tmp.path().to_owned()],
-            advisories::Fetch::Allow,
-        )
-        .unwrap()
+        advisories::DbSet::load(Some(tmp), vec![], advisories::Fetch::Allow).unwrap()
     };
+
+    let lockfile = advisories::PrunedLockfile::prune(lock, &krates);
 
     TestCtx {
         dbs: db,
-        lock,
+        lock: lockfile,
         krates,
     }
 }
@@ -55,16 +68,19 @@ fn detects_vulnerabilities() {
         "detects_vulnerabilities",
         Some(cfg),
         None,
-        |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
 
-    let vuln_diag = diags
-        .iter()
-        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2019-0001")))
-        .unwrap();
+    let vuln_diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
 
     assert_field_eq!(vuln_diag, "/fields/severity", "error");
     assert_field_eq!(
@@ -91,16 +107,19 @@ fn detects_unmaintained() {
         "detects_unmaintained",
         Some(cfg),
         None,
-        |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
 
-    let unmaintained_diag = diags
-        .iter()
-        .find(|v| v.pointer("/fields/code") == Some(&serde_json::json!("RUSTSEC-2016-0004")))
-        .unwrap();
+    let unmaintained_diag = find_by_code(&diags, "RUSTSEC-2016-0004").unwrap();
 
     assert_field_eq!(unmaintained_diag, "/fields/severity", "warning");
     assert_field_eq!(
@@ -117,6 +136,46 @@ fn detects_unmaintained() {
 
 #[test]
 #[ignore]
+fn detects_unsound() {
+    let TestCtx { dbs, lock, krates } = load();
+
+    let cfg = "unsound = 'warn'";
+
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        krates,
+        "detects_unsound",
+        Some(cfg),
+        None,
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
+        },
+    )
+    .unwrap();
+
+    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0035").unwrap();
+
+    assert_field_eq!(unsound_diag, "/fields/severity", "warning");
+    assert_field_eq!(unsound_diag, "/fields/message", "Unaligned memory access");
+    assert_field_eq!(
+        unsound_diag,
+        "/fields/labels/0/message",
+        "unsound advisory detected"
+    );
+    assert_field_eq!(
+        unsound_diag,
+        "/fields/labels/0/span",
+        "rand_core 0.3.1 registry+https://github.com/rust-lang/crates.io-index"
+    );
+}
+
+#[test]
+#[ignore]
 fn downgrades_lint_levels() {
     let TestCtx { dbs, lock, krates } = load();
 
@@ -128,26 +187,26 @@ fn downgrades_lint_levels() {
         "downgrades_lint_levels",
         Some(cfg),
         None,
-        |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();
 
     assert_field_eq!(
-        diags
-            .iter()
-            .find(|v| field_eq!(v, "/fields/code", "RUSTSEC-2016-0004"))
-            .unwrap(),
+        find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
         "/fields/severity",
         "help"
     );
 
     assert_field_eq!(
-        diags
-            .iter()
-            .find(|v| field_eq!(v, "/fields/code", "RUSTSEC-2019-0001"))
-            .unwrap(),
+        find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
         "/fields/severity",
         "help"
     );
@@ -171,8 +230,14 @@ fn detects_yanked() {
         "detects_yanked",
         Some(cfg),
         None,
-        |ctx, tx| {
-            advisories::check(ctx, &dbs, lock, tx);
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
         },
     )
     .unwrap();

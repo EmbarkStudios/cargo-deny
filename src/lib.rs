@@ -79,8 +79,10 @@ pub mod advisories;
 pub mod bans;
 mod cfg;
 pub mod diag;
+mod index;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
+pub mod manifest;
 pub mod sources;
 
 pub use cfg::{Spanned, UnvalidatedConfig};
@@ -302,17 +304,7 @@ pub struct CheckCtx<'ctx, T> {
     pub krates: &'ctx Krates,
     /// The spans for each unique crate in a synthesized "lock file"
     pub krate_spans: &'ctx diag::KrateSpans,
-    /// The codespan file id for the synthesized krate_spans
-    pub spans_id: diag::FileId,
     /// Requests for additional information the check can provide to be
     /// serialized to the diagnostic
     pub serialize_extra: bool,
-    pub cargo_spans: Option<diag::CargoSpans>,
-}
-
-impl<'ctx, T> CheckCtx<'ctx, T> {
-    pub(crate) fn label_for_span(&self, krate_index: usize, msg: impl Into<String>) -> diag::Label {
-        diag::Label::secondary(self.spans_id, self.krate_spans[krate_index].clone())
-            .with_message(msg)
-    }
 }

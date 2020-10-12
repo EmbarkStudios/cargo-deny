@@ -2,14 +2,13 @@ use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{
     advisories, bans,
-    diag::{CargoSpans, Diagnostic, Files, Severity},
+    diag::{CargoSpans, Diagnostic, ErrorSink, Files, Severity},
     licenses, sources, CheckCtx,
 };
-use clap::arg_enum;
 use log::error;
 use serde::Deserialize;
 use std::{path::PathBuf, time::Instant};
-use structopt::StructOpt;
+use structopt::{clap::arg_enum, StructOpt};
 
 arg_enum! {
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -46,6 +45,11 @@ pub struct Args {
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
     disable_fetch: bool,
+    /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
+    ///
+    /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
+    #[structopt(long)]
+    audit_compatible_output: bool,
     /// Show stats for all the checks, regardless of the log-level
     #[structopt(short, long = "show-stats")]
     pub show_stats: bool,
@@ -111,22 +115,21 @@ impl ValidConfig {
 
         let id = files.add(&cfg_path, cfg_contents);
 
-        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
-            let advisories = cfg.advisories.unwrap_or_default().validate(id)?;
-            let bans = cfg.bans.unwrap_or_default().validate(id)?;
-            let licenses = cfg.licenses.unwrap_or_default().validate(id)?;
+        let validate = || -> (Vec<Diagnostic>, Self) {
+            // Accumulate all configuration diagnostics rather than earlying out so
+            // the user has the full list of problems to fix
 
-            // Sources has a special case where it has a default value if one isn't specified,
-            // which doesn't play nicely with the toml::Spanned type, so we pass in the
-            // file contents as well so that sources validation can scan the contents itself
-            // if needed.
-            let sources = cfg.sources.unwrap_or_default().validate(id)?;
+            let mut diags = Vec::new();
 
-            let mut diagnostics = Vec::new();
-            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
+            let advisories = cfg.advisories.unwrap_or_default().validate(id, &mut diags);
+            let bans = cfg.bans.unwrap_or_default().validate(id, &mut diags);
+            let licenses = cfg.licenses.unwrap_or_default().validate(id, &mut diags);
+            let sources = cfg.sources.unwrap_or_default().validate(id, &mut diags);
 
-            Ok((
-                diagnostics,
+            let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
+
+            (
+                diags,
                 Self {
                     advisories,
                     bans,
@@ -134,7 +137,7 @@ impl ValidConfig {
                     sources,
                     targets,
                 },
-            ))
+            )
         };
 
         let print = |diags: Vec<Diagnostic>| {
@@ -150,19 +153,20 @@ impl ValidConfig {
             }
         };
 
-        match validate() {
-            Ok((diags, vc)) => {
-                print(diags);
-                Ok(vc)
-            }
-            Err(diags) => {
-                print(diags);
+        let (diags, valid_cfg) = validate();
 
-                anyhow::bail!(
-                    "failed to validate configuration file {}",
-                    cfg_path.display()
-                );
-            }
+        let has_errors = diags.iter().any(|d| d.severity <= Severity::Error);
+        print(diags);
+
+        // While we could continue in the face of configuration errors, the user
+        // may end up with unexpected results, so just abort so they can fix them
+        if has_errors {
+            anyhow::bail!(
+                "failed to validate configuration file {}",
+                cfg_path.display()
+            );
+        } else {
+            Ok(valid_cfg)
         }
     }
 }
@@ -204,7 +208,7 @@ pub(crate) fn cmd(
 
     let mut krates = None;
     let mut license_store = None;
-    let mut advisory_db = None;
+    let mut advisory_dbs = None;
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
@@ -222,7 +226,9 @@ pub(crate) fn cmd(
                         });
                     }
 
-                    s.spawn(|_| krate_spans = Some(cargo_deny::diag::KrateSpans::new(&krates)));
+                    s.spawn(|_| {
+                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(&krates))
+                    });
                 });
             }
 
@@ -231,12 +237,12 @@ pub(crate) fn cmd(
 
         if check_advisories {
             s.spawn(|_| {
-                advisory_db = Some(advisories::load_dbs(
-                    cfg.advisories.db_urls.iter().map(AsRef::as_ref).collect(),
+                advisory_dbs = Some(advisories::DbSet::load(
+                    cfg.advisories.db_path.clone(),
                     cfg.advisories
-                        .db_paths
+                        .db_urls
                         .iter()
-                        .map(|p| p.to_path_buf())
+                        .map(|us| us.as_ref().clone())
                         .collect(),
                     if args.disable_fetch {
                         advisories::Fetch::Disallow
@@ -255,7 +261,7 @@ pub(crate) fn cmd(
     let krates = krates.unwrap()?;
 
     let advisory_ctx = if check_advisories {
-        let db = advisory_db.unwrap()?;
+        let db = advisory_dbs.unwrap()?;
         let lockfile = advisory_lockfile.unwrap()?;
 
         Some((db, lockfile))
@@ -263,7 +269,7 @@ pub(crate) fn cmd(
         None
     };
 
-    let (krate_spans, spans_id, cargo_spans) = krate_spans
+    let (krate_spans, cargo_spans) = krate_spans
         .map(|(spans, contents, raw_cargo_spans)| {
             let id = files.add(krates.lock_path(), contents);
 
@@ -272,7 +278,11 @@ pub(crate) fn cmd(
                 let cargo_id = files.add(val.0, val.1);
                 cargo_spans.insert(key, (cargo_id, val.2));
             }
-            (spans, id, cargo_spans)
+
+            (
+                cargo_deny::diag::KrateSpans::with_spans(spans, id),
+                cargo_spans,
+            )
         })
         .unwrap();
 
@@ -316,6 +326,8 @@ pub(crate) fn cmd(
         crate::Format::Json => true,
         crate::Format::Human => false,
     };
+    let audit_compatible_output =
+        args.audit_compatible_output && log_ctx.format == crate::Format::Json;
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
@@ -341,15 +353,13 @@ pub(crate) fn cmd(
                 cfg: lic_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(move |_| {
                 log::info!("checking licenses...");
                 let start = Instant::now();
-                licenses::check(ctx, summary, lic_tx);
+                licenses::check(ctx, summary, ErrorSink::Channel(lic_tx));
                 let end = Instant::now();
 
                 log::info!("licenses checked in {}ms", (end - start).as_millis());
@@ -394,15 +404,13 @@ pub(crate) fn cmd(
                 cfg: ban_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: Some(cargo_spans),
             };
 
             s.spawn(|_| {
                 log::info!("checking bans...");
                 let start = Instant::now();
-                bans::check(ctx, output_graph, ban_tx);
+                bans::check(ctx, output_graph, cargo_spans, ErrorSink::Channel(ban_tx));
                 let end = Instant::now();
 
                 log::info!("bans checked in {}ms", (end - start).as_millis());
@@ -417,15 +425,13 @@ pub(crate) fn cmd(
                 cfg: sources_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(|_| {
                 log::info!("checking sources...");
                 let start = Instant::now();
-                sources::check(ctx, sources_tx);
+                sources::check(ctx, ErrorSink::Channel(sources_tx));
                 let end = Instant::now();
 
                 log::info!("sources checked in {}ms", (end - start).as_millis());
@@ -439,15 +445,24 @@ pub(crate) fn cmd(
                 cfg: adv_cfg,
                 krates: &krates,
                 krate_spans: &krate_spans,
-                spans_id,
                 serialize_extra,
-                cargo_spans: None,
             };
 
             s.spawn(move |_| {
                 log::info!("checking advisories...");
                 let start = Instant::now();
-                advisories::check(ctx, &db, lockfile, tx);
+
+                let lf = advisories::PrunedLockfile::prune(lockfile, &krates);
+
+                let audit_reporter = if audit_compatible_output {
+                    Some(|val: serde_json::Value| {
+                        println!("{}", val.to_string());
+                    })
+                } else {
+                    None
+                };
+
+                advisories::check(ctx, &db, lf, audit_reporter, ErrorSink::Channel(tx));
                 let end = Instant::now();
 
                 log::info!("advisories checked in {}ms", (end - start).as_millis());

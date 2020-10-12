@@ -25,44 +25,79 @@ path = "src/cargo-deny/main.rs"
 
 [features]
 default = ["vendored-openssl"]
+# Allows the use of a vendored version openssl when compiling libgit, which allows
+# us to compile static executables (eg musl) and avoid system dependencies
 vendored-openssl = ["rustsec/vendored-openssl"]
+# Allows embedding cargo as a library so that we can run in minimal (eg container)
+# environments that don't need to have cargo/rust installed on them for cargo-deny
+# to still function
 standalone = ["cargo"]
 
 [dependencies]
-ansi_term = "0.12.1"
+# Output coloring
+ansi_term = "0.12"
+# Easy errors
 anyhow = "1.0"
+# Used for detecting the license type of a file
 askalono = "0.4"
+# Used to detect if an output stream is a TTY to control default coloring
 atty = "0.2"
-bitvec = { version = "0.17", features = ["alloc"] }
-cargo = { version = "0.46.1", optional = true }
+# Used to track various things during check runs
+bitvec = { version = "0.19", features = ["alloc"] }
+# Allows us to do eg cargo metadata operations without relying on an external cargo
+cargo = { version = "0.48", optional = true }
+# Timey wimey stuff
 chrono = "0.4"
-clap = "2.33"
+# Used for diagnostic reporting
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
-crossbeam = "0.7.3"
-fern = "0.6.0"
-home = "0.5.3"
-krates = { version = "0.4.0", features = ["targets"] }
-log = "0.4.8"
-rayon = "1.3.0"
-regex = { version = "1.3", default-features = true }
+# Brrrrr
+crossbeam = "0.7" # Keep at this version until the rest of the ecosystem updates to 0.8
+# We use this for displaying diffs for dry runs of the `fix` subcommand, as
+# as in tests for printing easy to read errors
+difference = "2.0.0"
+# Logging utilities
+fern = "0.6"
+# We directly interact with git when doing index operations eg during fix
+git2 = { version = "0.13", features = ["vendored-openssl"] }
+# We need to figure out HOME/CARGO_HOME in some cases
+home = "0.5"
+# Provides graphs on top of cargo_metadata
+krates = { version = "0.4", features = ["targets"] }
+# Log macros
+log = "0.4"
+# Used when parsing binary files in registry index caches
+memchr = "2.3"
+#percent-encoding = "2.1"
+# Moar brrrr
+rayon = "1.4"
+#regex = { version = "1.3", default-features = true }
+# Used for interacting with advisory databases
+rustsec = "0.21"
+# Parsing and checking of versions/version requirements
 semver = "0.10"
+# Gee what could it be
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# Avoid some heap allocations when we likely won't need them
 smallvec = "1.4"
 # Versions of smol_str > 0.1.16 include code that only works on latest stable
 # (1.46+) which is far too aggressive for what is just a transitive dependency
 smol_str = { version = "=0.1.16" }
+# Used for parsing and checking SPDX license expressions
 spdx = "0.3"
+# Handles all of the argument parsing
 structopt = "0.3"
+# Deserialization of configuration files and crate manifests
 toml = "0.5"
+# Used by fix to modify crate manifests
+toml_edit = "0.2"
+# Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
+# Url parsing/manipulation
 url = "2.1"
-rustsec = "0.21"
 
 [dev-dependencies]
-# We use this for pretty printing errors
-difference = "2.0.0"
 # Avoid loading license check many times
 lazy_static = "1.4.0"
 # We use this for creating fake crate directories for
