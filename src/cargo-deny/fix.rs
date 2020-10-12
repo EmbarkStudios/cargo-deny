@@ -181,7 +181,7 @@ pub fn cmd(
         log::info!("No vulnerabilities were detected");
     }
 
-    let (krate_spans, cargo_spans) = {
+    let (krate_spans, _cargo_spans) = {
         let (spans, contents, raw_cargo_spans) = diag::KrateSpans::synthesize(&krates);
         let id = files.add(krates.lock_path(), contents);
 
@@ -210,7 +210,18 @@ pub fn cmd(
         .context("failed to gather patches")?;
 
     // Print diagnostics
-    //println!("{:#?}", patch_set);
+    if !patch_set.diagnostics.is_empty() {
+        if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, Some(&krates)) {
+            let mut lock = printer.lock();
+            for diag in patch_set
+                .diagnostics
+                .into_iter()
+                .flat_map(|p| p.into_iter())
+            {
+                lock.print_krate_diag(diag, &files);
+            }
+        }
+    }
 
     // Apply patches for each unique manifest
     let mut manifests = std::collections::HashMap::new();

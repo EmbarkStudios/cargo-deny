@@ -3,7 +3,7 @@ mod diags;
 pub use cfg::{Config, GitSpec, ValidConfig};
 
 use crate::{
-    diag::{CfgCoord, Check, Diagnostic, ErrorSink, Label, Pack, Severity},
+    diag::{CfgCoord, Check, ErrorSink, Label, Pack},
     LintLevel,
 };
 use url::Url;

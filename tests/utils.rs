@@ -2,7 +2,7 @@
 
 use anyhow::{Context, Error};
 use cargo_deny::{
-    diag::{CargoSpans, ErrorSink, Files, KrateSpans, Pack},
+    diag::{CargoSpans, ErrorSink, Files, KrateSpans},
     CheckCtx,
 };
 

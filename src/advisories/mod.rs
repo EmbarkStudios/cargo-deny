@@ -3,10 +3,7 @@ mod diags;
 pub mod fix;
 mod helpers;
 
-use crate::{
-    diag::{self, Check, Diagnostic, Label, Severity},
-    LintLevel,
-};
+use crate::{diag, LintLevel};
 use helpers::*;
 pub use helpers::{load_lockfile, DbSet, Fetch, PrunedLockfile, Report};
 

@@ -290,8 +290,6 @@ pub fn check(
                 .any(|wm| wm.id == krate_lic_nfo.krate.id)
             && krate_lic_nfo.krate.is_private(&private_registries)
         {
-            let i = ctx.krates.nid_for_kid(&krate_lic_nfo.krate.id).unwrap();
-
             pack.push(diags::SkippedPrivateWorkspaceCrate {
                 krate: &krate_lic_nfo.krate,
             });

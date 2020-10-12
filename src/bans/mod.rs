@@ -4,7 +4,7 @@ mod graph;
 
 use self::cfg::{TreeSkip, ValidConfig};
 use crate::{
-    diag::{self, CfgCoord, FileId, KrateCoord, KrateSpans},
+    diag::{self, CfgCoord, FileId, KrateCoord},
     Kid, Krate, Krates, LintLevel,
 };
 use anyhow::Error;
@@ -90,18 +90,15 @@ use bitvec::prelude::*;
 
 // If trees are being skipped, walk each one down to the specified depth and add
 // each dependency as a skipped crate at the specific version
-struct TreeSkipper<'a> {
+struct TreeSkipper {
     roots: Vec<SkipRoot>,
     cfg_file_id: FileId,
-    krates: &'a Krates,
-    krate_spans: &'a KrateSpans,
 }
 
-impl<'a> TreeSkipper<'a> {
+impl TreeSkipper {
     fn build(
         skip_roots: Vec<crate::Spanned<TreeSkip>>,
-        krates: &'a Krates,
-        krate_spans: &'a KrateSpans,
+        krates: &Krates,
         cfg_file_id: FileId,
     ) -> (Self, Pack) {
         let mut roots = Vec::with_capacity(skip_roots.len());
@@ -127,15 +124,7 @@ impl<'a> TreeSkipper<'a> {
             }
         }
 
-        (
-            Self {
-                roots,
-                cfg_file_id,
-                krates,
-                krate_spans,
-            },
-            pack,
-        )
+        (Self { roots, cfg_file_id }, pack)
     }
 
     fn build_skip_root(
@@ -203,7 +192,7 @@ pub struct DupGraph {
 
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
-use crate::diag::{Check, Diag, Diagnostic, Label, Pack, Severity};
+use crate::diag::{Check, Diag, Pack, Severity};
 use krates::petgraph::{visit::EdgeRef, Direction};
 
 pub fn check(
@@ -226,10 +215,8 @@ pub fn check(
         ..
     } = ctx.cfg;
 
-    let spans_id = ctx.krate_spans.file_id;
     let krate_spans = &ctx.krate_spans;
-    let (mut tree_skipper, build_diags) =
-        TreeSkipper::build(tree_skipped, ctx.krates, krate_spans, file_id);
+    let (mut tree_skipper, build_diags) = TreeSkipper::build(tree_skipped, ctx.krates, file_id);
 
     if !build_diags.is_empty() {
         sink.push(build_diags);
@@ -256,9 +243,9 @@ pub fn check(
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
-        let krate_coord = krate_spans.get_coord(i);
+        //let krate_coord = krate_spans.get_coord(i);
 
-        if let Ok((bind, ban)) = binary_search(&denied_ids, krate) {
+        if let Ok((bind, _ban)) = binary_search(&denied_ids, krate) {
             let ban_cfg = CfgCoord {
                 file: file_id,
                 span: denied_ids[bind].span.clone(),
@@ -278,7 +265,7 @@ pub fn check(
                     .map(|edge| edge.source())
                     .all(|nid| {
                         let node = &graph[nid];
-                        let krate_coord = krate_spans.get_coord(nid.index());
+                        //let krate_coord = krate_spans.get_coord(nid.index());
 
                         let (diag, is_allowed): (Diag, _) = match allowed_wrappers
                             .iter()

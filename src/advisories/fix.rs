@@ -8,18 +8,6 @@ use anyhow::Error;
 use rustsec::advisory::Metadata;
 use semver::Version;
 
-fn to_string<T: std::fmt::Display>(v: &[T]) -> String {
-    let mut dv = String::with_capacity(64);
-
-    for req in v {
-        use std::fmt::Write;
-        write!(&mut dv, "{}, ", req).expect("failed to write string");
-    }
-
-    dv.truncate(dv.len() - 2);
-    dv
-}
-
 #[derive(Debug)]
 pub struct Patch<'a> {
     /// The advisories the patch is attempting to address
@@ -36,9 +24,29 @@ pub enum Semver {
     Latest,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
+pub enum NoVersionReason {
+    /// No versions were available that used a required version of the crate
+    NoMatchingVersions,
+    /// Unable to find registry index entry for crate
+    NoIndexEntry,
+}
+
+use std::fmt;
+
+impl fmt::Display for NoVersionReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NoMatchingVersions => {
+                f.write_str("No versions were available that used a required version of the crate")
+            }
+            Self::NoIndexEntry => f.write_str("Unable to find registry index entry for crate"),
+        }
+    }
+}
+
 pub struct PatchSet<'a> {
-    //diagnostics: Vec<Pack>,
+    pub diagnostics: Vec<Pack>,
     pub patches: Vec<Patch<'a>>,
 }
 
@@ -94,6 +102,8 @@ impl super::Report {
             required: Vec<Version>,
         }
 
+        let mut visited = std::collections::HashSet::new();
+
         for patchable in self.iter_patchable() {
             // 1. Get the package with the vulnerability
             // 2. Recursively walk up the dependency chain until we've reach all roots
@@ -102,10 +112,11 @@ impl super::Report {
             // available that ultimately includes a patched version of the vulnerable crate
             let (ind, vuln_krate) = super::krate_for_pkg(krates, &patchable.krate).unwrap();
 
+            let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
+
             // We could also see if there are unaffected versions, but easier to just say we only support
             // fixing by using newer versions than older versions
             if patchable.patched.is_empty() {
-                let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
                 pack.push(diags::NoAvailablePatches {
                     affected_krate_coord: krate_spans.get_coord(ind.index()),
                     advisory: &patchable.advisory,
@@ -153,7 +164,6 @@ impl super::Report {
             };
 
             if required.is_empty() {
-                let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
                 pack.push(diags::NoAvailablePatchedVersions {
                     affected_krate_coord: krate_spans.get_coord(ind.index()),
                     advisory: &patchable.advisory,
@@ -163,7 +173,6 @@ impl super::Report {
             }
 
             let mut krate_stack = vec![(ind, vuln_krate, required)];
-            let mut visited = std::collections::HashSet::new();
 
             while let Some((nid, dep, required)) = krate_stack.pop() {
                 for edge in graph.edges_directed(nid, Direction::Incoming) {
@@ -189,22 +198,18 @@ impl super::Report {
                                     continue;
                                 }
                                 Err(e) => {
-                                    log::error!(
-                                        "Unable to patch {} => {}: {}",
-                                        parent.krate,
+                                    pack.push(diags::UnableToFindMatchingVersion {
+                                        parent_krate: &parent.krate,
+                                        reason: e,
                                         dep,
-                                        e
-                                    );
+                                    });
                                     continue;
                                 }
                             }
                         } else if !src.is_path() {
-                            // TODO: Emit warning that we can't update
-                            log::error!(
-                                "Unable to patch {:#?}, not a registry or local source {:#?}",
-                                parent.krate,
-                                src
-                            );
+                            pack.push(diags::UnpatchableSource {
+                                parent_krate: &parent.krate,
+                            });
                             continue;
                         }
                     }
@@ -228,12 +233,19 @@ impl super::Report {
                     }
                 }
             }
+
+            if !pack.is_empty() {
+                diags.push(pack);
+            }
         }
 
         // Now that we've gathered all of the patches that we can apply, try to
         // find a semver compatible version to patch to, or if the user has
         // allowed non-semver patching, just pick the highest version
         let mut patches = Vec::new();
+
+        let mut patch_pack = Pack::new(Check::Advisories);
+
         for (edge, candidates) in candidates {
             let (local_krate, to_patch) = graph
                 .edge_endpoints(edge)
@@ -267,9 +279,12 @@ impl super::Report {
                                         }
                                     },
                                     None => {
-                                        log::warn!("Local crate {} has a requirement of {} on {}, which does not match any of the possible required versions [{}]", local_krate.name, req, to_patch.name, to_string(&pc.required));
-                                        // TODO: Emit warning that there are no semver compatible
-                                        // versions we can update to
+                                        patch_pack.push(diags::IncompatibleLocalKrate {
+                                            local_krate,
+                                            dep_req: req,
+                                            dep: to_patch,
+                                            required_versions: &pc.required,
+                                        });
                                         all_compatible = false;
                                     }
                                 }
@@ -292,19 +307,17 @@ impl super::Report {
             let version = match version {
                 Some(v) => {
                     if v == &to_patch.version {
-                        log::warn!(
-                            "A newer version of '{} = {}' is not currently available",
-                            to_patch.name,
-                            to_patch.version
-                        );
+                        patch_pack.push(diags::NoNewerVersionAvailable {
+                            local_krate,
+                            dep: to_patch,
+                        });
                         continue;
                     }
 
                     v.clone()
                 }
                 None => {
-                    log::warn!("Local crate {:#?} dependency for {}, does not meet any of the required versions {:#?}", local_krate, to_patch.name, candidates);
-                    // TODO: Emit warning about no version to update to
+                    //log::warn!("Local crate {:#?} dependency for {}, does not meet any of the required versions {:#?}", local_krate, to_patch.name, candidates);
                     continue;
                 }
             };
@@ -316,9 +329,13 @@ impl super::Report {
             });
         }
 
+        if !patch_pack.is_empty() {
+            diags.push(patch_pack);
+        }
+
         Ok(PatchSet {
             patches,
-            //diagnostics: diags,
+            diagnostics: diags,
         })
     }
 
@@ -327,7 +344,7 @@ impl super::Report {
         parent: &Krate,
         child: &Krate,
         required: &[Version],
-    ) -> Result<Vec<Version>, &'static str> {
+    ) -> Result<Vec<Version>, NoVersionReason> {
         let mut res = None;
 
         index.read_krate(&parent, |ik| {
@@ -359,15 +376,13 @@ impl super::Report {
                         .collect();
 
                     if available.is_empty() {
-                        res = Some(Err(
-                            "No versions were available that used a required version of the crate",
-                        ));
+                        res = Some(Err(NoVersionReason::NoMatchingVersions));
                     } else {
                         res = Some(Ok(available));
                     }
                 }
                 None => {
-                    res = Some(Err("Unable to find registry index entry for crate"));
+                    res = Some(Err(NoVersionReason::NoIndexEntry));
                 }
             }
         });
