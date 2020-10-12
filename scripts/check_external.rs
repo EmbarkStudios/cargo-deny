@@ -5,7 +5,7 @@ const REPOS: &[&str] = &[
     "git://github.com/bitshifter/glam-rs.git",
     "git://github.com/EmbarkStudios/physx-rs.git",
     "git://github.com/gwihlidal/smush-rs.git",
-    "git://github.com/EmbarkStudios/tame-gcs.git",
+    //"git://github.com/EmbarkStudios/tame-gcs.git",
     "git://github.com/EmbarkStudios/tame-oauth.git",
     "git://github.com/EmbarkStudios/texture-synthesis.git",
     //"git://github.com/hyperium/tonic.git",
@@ -66,7 +66,14 @@ fn main() {
             println!("checking {}", repo);
 
             match Command::new("cargo")
-                .args(&["deny", "-L", "info", "check", "--disable-fetch"])
+                .args(&[
+                    "deny",
+                    "--all-features",
+                    "-L",
+                    "info",
+                    "check",
+                    "--disable-fetch",
+                ])
                 .current_dir(repo_dir)
                 .output()
             {
