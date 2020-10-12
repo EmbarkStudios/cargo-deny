@@ -34,6 +34,8 @@ skip = [
     { name = "semver", version = "0.9.0" },
     # in a surprise twist, semver uses an older version of semver-parser
     { name = "semver-parser", version = "=0.7.0" },
+    # cfg-if reached 1.0 but many crates still depend on the 0.1 version
+    { name = "cfg-if", version = "=0.1.10" },
 ]
 
 [sources]

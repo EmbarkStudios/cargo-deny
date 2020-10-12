@@ -45,15 +45,14 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "0.19", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.46.1", optional = true }
+cargo = { version = "0.48", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
 # Used for diagnostic reporting
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
-#crates-index = { version = "0.15.2", optional = true, path = "../rust-crates-index" }
 # Brrrrr
-crossbeam = "0.7"
+crossbeam = "0.7" # Keep at this version until the rest of the ecosystem updates to 0.8
 # We use this for displaying diffs for dry runs of the `fix` subcommand, as
 # as in tests for printing easy to read errors
 difference = "2.0.0"
