@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - [#265](https://github.com/EmbarkStudios/cargo-deny/issues/265) A transitive dependency (`smol_str`) forced the usage of the latest Rust stable version (1.46) which was unintended. We now state the MSRV in the README and check for it in CI so that changing the MSRV is a conscious decision.
+- [PR#287](https://github.com/EmbarkStudios/cargo-deny/pull/287) fixed [#286](https://github.com/EmbarkStudios/cargo-deny/issues/286), which could happen if using a git source where the representation differed slightly between the user specified id and the id used for dependencies.
 
 ## [0.7.3] - 2020-08-06
 ### Added
