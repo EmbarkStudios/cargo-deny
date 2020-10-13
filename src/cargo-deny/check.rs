@@ -155,7 +155,7 @@ impl ValidConfig {
 
         let (diags, valid_cfg) = validate();
 
-        let has_errors = diags.iter().any(|d| d.severity <= Severity::Error);
+        let has_errors = diags.iter().any(|d| d.severity >= Severity::Error);
         print(diags);
 
         // While we could continue in the face of configuration errors, the user

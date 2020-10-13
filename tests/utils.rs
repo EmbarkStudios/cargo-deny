@@ -60,7 +60,7 @@ pub fn gather_diagnostics<
 
     if cfg_diags
         .iter()
-        .any(|d| d.severity <= cargo_deny::diag::Severity::Error)
+        .any(|d| d.severity >= cargo_deny::diag::Severity::Error)
     {
         anyhow::anyhow!("encountered errors validating config: {:#?}", cfg_diags);
     }
