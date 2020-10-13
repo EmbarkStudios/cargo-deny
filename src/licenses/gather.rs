@@ -600,7 +600,7 @@ impl Gatherer {
                         // Check to see if the clarification provided exactly matches
                         // the set of detected licenses, if they do, we use the clarification's
                         // license expression as the license requirements for this crate
-                        if clarification.license_files.iter().all(|clf| {
+                        let clarifications_match = clarification.license_files.iter().all(|clf| {
                             match lp.license_files_match(&clf) {
                                 Ok(_) => true,
                                 Err(reason) => {
@@ -617,7 +617,9 @@ impl Gatherer {
                                     false
                                 }
                             }
-                        }) {
+                        });
+
+                        if clarifications_match {
                             return KrateLicense {
                                 krate,
                                 lic_info: LicenseInfo::SPDXExpression {
