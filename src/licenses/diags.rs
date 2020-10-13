@@ -64,3 +64,15 @@ impl Into<Diag> for UnmatchedLicenseAllowance {
             .into()
     }
 }
+
+pub(crate) struct MissingClarificationFile<'a> {
+    pub(crate) expected: &'a crate::cfg::Spanned<std::path::PathBuf>,
+    pub(crate) cfg_file_id: crate::diag::FileId,
+}
+
+impl<'a> Into<Label> for MissingClarificationFile<'a> {
+    fn into(self) -> Label {
+        Label::secondary(self.cfg_file_id, self.expected.span.clone())
+            .with_message("unable to locate specified license file")
+    }
+}
