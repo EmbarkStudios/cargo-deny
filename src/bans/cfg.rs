@@ -199,7 +199,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 if let Ok(fi) = &d.deny_features.value.binary_search(allowed_f) {
                     let deny_f = &d.deny_features.value[*fi];
 
-                    diagnostics.push(
+                    diags.push(
                         Diagnostic::error()
                             .with_message(
                                 "a feature was specified in both `allowed-features` and `deny-features`",
@@ -216,7 +216,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             if d.exact_features.value && !d.deny_features.value.is_empty() {
                 // TODO: Should this really be like this?
-                diagnostics.push(
+                diags.push(
                     Diagnostic::error()
                         .with_message("can not deny features if `exact-features` is enabled")
                         .with_labels(vec![

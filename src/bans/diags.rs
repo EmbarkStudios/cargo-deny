@@ -219,10 +219,96 @@ impl<'a> Into<Diag> for SkippedByRoot<'a> {
     fn into(self) -> Diag {
         Diagnostic::new(Severity::Help)
             .with_message(format!("skipping crate '{}' due to root skip", self.krate))
+            .with_code("B011")
             .with_labels(vec![self
                 .skip_root_cfg
                 .into_label()
                 .with_message("matched skip root")])
+            .into()
+    }
+}
+
+pub(crate) struct ExactFeaturesMismatch<'a> {
+    pub(crate) missing_allowed: Vec<CfgCoord>,
+    pub(crate) not_allowed: &'a [&'a str],
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+    pub(crate) exact_coord: CfgCoord,
+}
+
+impl<'a> Into<Diag> for ExactFeaturesMismatch<'a> {
+    fn into(self) -> Diag {
+        let mut labels: Vec<_> = self
+            .missing_allowed
+            .into_iter()
+            .map(|ma| ma.into_label().with_message("allowed feature not present"))
+            .collect();
+
+        labels.push(
+            self.exact_coord
+                .into_label()
+                .with_message("exact-features declared here"),
+        );
+
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "feature set declared by '{}' for '{}' did not match exactly",
+                self.parent, self.dep_name
+            ))
+            .with_code("B012")
+            .with_labels(labels)
+            .with_notes(
+                self.not_allowed
+                    .iter()
+                    .map(|na| format!("'{}' feature was enabled bot not explicitly allowed", na))
+                    .collect(),
+            )
+            .into()
+    }
+}
+
+pub(crate) struct FeaturesNotExplicitlyAllowed<'a> {
+    pub(crate) not_allowed: &'a [&'a str],
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+}
+
+impl<'a> Into<Diag> for FeaturesNotExplicitlyAllowed<'a> {
+    fn into(self) -> Diag {
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "features declared by '{}' for '{}' were not explicitly allowed",
+                self.parent, self.dep_name
+            ))
+            .with_code("B013")
+            .with_notes(vec![format!(
+                "Features: {}",
+                crate::diag::to_string(self.not_allowed)
+            )])
+            .into()
+    }
+}
+
+pub(crate) struct FeaturesExplicitlyDenied<'a> {
+    pub(crate) found_denied: Vec<CfgCoord>,
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+}
+
+impl<'a> Into<Diag> for FeaturesExplicitlyDenied<'a> {
+    fn into(self) -> Diag {
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "features declared by '{}' for '{}' were explicitly denied",
+                self.parent, self.dep_name
+            ))
+            .with_code("B014")
+            .with_labels(
+                self.found_denied
+                    .into_iter()
+                    .map(|fd| fd.into_label())
+                    .collect(),
+            )
             .into()
     }
 }

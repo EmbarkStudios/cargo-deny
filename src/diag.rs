@@ -235,3 +235,15 @@ struct NodePrint<'a> {
     id: krates::NodeId,
     kind: &'static str,
 }
+
+pub(crate) fn to_string<T: std::fmt::Display>(v: &[T]) -> String {
+    let mut dv = String::with_capacity(64);
+
+    for req in v {
+        use std::fmt::Write;
+        write!(&mut dv, "{}, ", req).expect("failed to write string");
+    }
+
+    dv.truncate(dv.len() - 2);
+    dv
+}
