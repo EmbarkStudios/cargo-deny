@@ -269,18 +269,6 @@ impl<'a> Into<Diag> for UnpatchableSource<'a> {
     }
 }
 
-fn to_string<T: std::fmt::Display>(v: &[T]) -> String {
-    let mut dv = String::with_capacity(64);
-
-    for req in v {
-        use std::fmt::Write;
-        write!(&mut dv, "{}, ", req).expect("failed to write string");
-    }
-
-    dv.truncate(dv.len() - 2);
-    dv
-}
-
 pub(crate) struct IncompatibleLocalKrate<'a> {
     pub(crate) local_krate: &'a Krate,
     pub(crate) dep_req: &'a semver::VersionReq,
@@ -297,7 +285,7 @@ impl<'a> Into<Diag> for IncompatibleLocalKrate<'a> {
                 self.dep_req,
                 self.dep.name,
             ))
-            .with_notes(vec![format!("Required versions: [{}]", to_string(self.required_versions))])
+            .with_notes(vec![format!("Required versions: [{}]", crate::diag::to_string(self.required_versions))])
             .with_code("AF005")
             .into();
 

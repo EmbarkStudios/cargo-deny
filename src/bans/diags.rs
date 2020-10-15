@@ -1,5 +1,5 @@
 use crate::{
-    diag::{CfgCoord, Check, Diag, Diagnostic, KrateCoord, Label, Pack, Severity},
+    diag::{CfgCoord, Check, Diag, Diagnostic, FileId, KrateCoord, Label, Pack, Severity},
     Krate,
 };
 
@@ -219,6 +219,7 @@ impl<'a> Into<Diag> for SkippedByRoot<'a> {
     fn into(self) -> Diag {
         Diagnostic::new(Severity::Help)
             .with_message(format!("skipping crate '{}' due to root skip", self.krate))
+            .with_code("B011")
             .with_labels(vec![self
                 .skip_root_cfg
                 .into_label()
@@ -226,3 +227,202 @@ impl<'a> Into<Diag> for SkippedByRoot<'a> {
             .into()
     }
 }
+
+pub(crate) struct ExactFeaturesMismatch<'a> {
+    pub(crate) missing_allowed: Vec<CfgCoord>,
+    pub(crate) not_allowed: &'a [&'a str],
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+    pub(crate) exact_coord: CfgCoord,
+}
+
+impl<'a> Into<Diag> for ExactFeaturesMismatch<'a> {
+    fn into(self) -> Diag {
+        let mut labels: Vec<_> = self
+            .missing_allowed
+            .into_iter()
+            .map(|ma| ma.into_label().with_message("allowed feature not present"))
+            .collect();
+
+        labels.push(
+            self.exact_coord
+                .into_label()
+                .with_message("exact-features declared here"),
+        );
+
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "feature set declared by '{}' for '{}' did not match exactly",
+                self.parent, self.dep_name
+            ))
+            .with_code("B012")
+            .with_labels(labels)
+            .with_notes(
+                self.not_allowed
+                    .iter()
+                    .map(|na| format!("'{}' feature was enabled but not explicitly allowed", na))
+                    .collect(),
+            )
+            .into()
+    }
+}
+
+pub(crate) struct FeaturesNotExplicitlyAllowed<'a> {
+    pub(crate) not_allowed: &'a [&'a str],
+    pub(crate) allowed: Vec<CfgCoord>,
+    pub(crate) enabled_features: &'a [&'a str],
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+    pub(crate) colorize: bool,
+}
+
+impl<'a> Into<Diag> for FeaturesNotExplicitlyAllowed<'a> {
+    fn into(self) -> Diag {
+        use std::fmt::Write;
+
+        let mut note = String::with_capacity(100);
+        write!(&mut note, "Enabled features: ").unwrap();
+
+        if self.colorize {
+            note.push('[');
+
+            for enabled in self.enabled_features {
+                if self
+                    .not_allowed
+                    .iter()
+                    .find(|na| **na == *enabled)
+                    .is_some()
+                {
+                    write!(&mut note, "{}, ", ansi_term::Color::Red.paint(*enabled)).unwrap();
+                } else {
+                    write!(&mut note, "{}, ", ansi_term::Color::Green.paint(*enabled)).unwrap();
+                }
+            }
+
+            note.truncate(note.len() - 2);
+            note.push(']');
+        } else {
+            write!(
+                &mut note,
+                "[{}]",
+                crate::diag::to_string(self.enabled_features)
+            )
+            .unwrap();
+        }
+
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "features declared by '{}' for '{}' were not explicitly allowed",
+                self.parent, self.dep_name
+            ))
+            .with_code("B013")
+            .with_labels(
+                self.allowed
+                    .into_iter()
+                    .map(|cc| cc.into_label().with_message("feature allowed here"))
+                    .collect(),
+            )
+            .with_notes(vec![note])
+            .into()
+    }
+}
+
+pub(crate) struct FeaturesExplicitlyDenied<'a> {
+    pub(crate) cfg_file_id: FileId,
+    pub(crate) found_denied: Vec<&'a crate::cfg::Spanned<String>>,
+    pub(crate) enabled_features: &'a [&'a str],
+    pub(crate) parent: &'a Krate,
+    pub(crate) dep_name: &'a str,
+    pub(crate) colorize: bool,
+}
+
+impl<'a> Into<Diag> for FeaturesExplicitlyDenied<'a> {
+    fn into(self) -> Diag {
+        use std::fmt::Write;
+
+        let mut note = String::with_capacity(100);
+        write!(&mut note, "Enabled features: ").unwrap();
+
+        if self.colorize {
+            note.push('[');
+
+            for enabled in self.enabled_features {
+                if self
+                    .found_denied
+                    .iter()
+                    .find(|fd| fd.value == *enabled)
+                    .is_some()
+                {
+                    write!(&mut note, "{}, ", ansi_term::Color::Red.paint(*enabled)).unwrap();
+                } else {
+                    write!(&mut note, "{}, ", enabled).unwrap();
+                }
+            }
+
+            note.truncate(note.len() - 2);
+            note.push(']');
+        } else {
+            write!(
+                &mut note,
+                "[{}]",
+                crate::diag::to_string(self.enabled_features)
+            )
+            .unwrap();
+        }
+
+        let cfg_file_id = self.cfg_file_id;
+
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "features declared by '{}' for '{}' were explicitly denied",
+                self.parent, self.dep_name
+            ))
+            .with_code("B014")
+            .with_labels(
+                self.found_denied
+                    .into_iter()
+                    .map(|fd| {
+                        Label::primary(cfg_file_id, fd.span.clone())
+                            .with_message("feature denied here")
+                    })
+                    .collect(),
+            )
+            .with_notes(vec![note])
+            .into()
+    }
+}
+
+pub(crate) struct UnableToGetDefaultFeatures<'a> {
+    pub(crate) parent_krate: &'a Krate,
+    pub(crate) dep: &'a krates::cm::Dependency,
+}
+
+impl<'a> Into<Diag> for UnableToGetDefaultFeatures<'a> {
+    fn into(self) -> Diag {
+        Diagnostic::new(Severity::Warning)
+            .with_message(format!(
+                "unable to get default features for '{}' used by '{}'",
+                self.dep.name, self.parent_krate,
+            ))
+            .with_code("B015")
+            .into()
+    }
+}
+// pub(crate) struct EnabledFeatures<'a> {
+//     pub(crate) enabled_features: &'a [&'a str],
+//     pub(crate) parent: &'a Krate,
+//     pub(crate) dep_name: &'a str,
+// }
+
+// impl<'a> Into<Diag> for EnabledFeatures<'a> {
+//     fn into(self) -> Diag {
+//         Diagnostic::new(Severity::Note)
+//             .with_message(format!(
+//                 "enabled features for '{}' from '{}'",
+//                 self.dep_name, self.parent
+//             ))
+//             .with_code("B015")
+//             .with_notes(vec![crate::diag::to_string(self.enabled_features)])
+//             .into()
+//     }
+// }

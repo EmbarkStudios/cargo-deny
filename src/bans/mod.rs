@@ -11,7 +11,7 @@ use anyhow::Error;
 use semver::{Version, VersionReq};
 use std::{cmp::Ordering, fmt};
 
-#[derive(Eq)]
+#[derive(Eq, Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
     pub(crate) name: String,
@@ -185,6 +185,101 @@ impl TreeSkipper {
     }
 }
 
+fn get_features<'a>(krate: &'a Krate, dep: &'a krates::cm::Dependency) -> Vec<&'a str> {
+    let mut feats = Vec::with_capacity(10);
+
+    let default = std::iter::once_with(|| {
+        if dep.uses_default_features {
+            "default"
+        } else {
+            ""
+        }
+    });
+
+    for feat in dep.features.iter().map(|s| s.as_str()).chain(default) {
+        if krate.features.contains_key(feat) {
+            let mut feat_stack = smallvec::SmallVec::<[&str; 10]>::new();
+            feat_stack.push(feat);
+
+            while let Some(feat) = feat_stack.pop() {
+                match feats.binary_search(&feat) {
+                    Ok(i) => continue,
+                    Err(i) => feats.insert(i, feat),
+                }
+                if let Some(feats) = krate.features.get(feat) {
+                    for sub_feat in feats {
+                        feat_stack.push(sub_feat);
+                    }
+                }
+            }
+        }
+    }
+
+    feats
+}
+
+fn get_enabled_features<'a>(
+    edge: krates::petgraph::graph::EdgeReference<'a, krates::Edge>,
+    krates: &'a Krates,
+) -> Option<Vec<&'a str>> {
+    // Walk up the dependency graph to figure out which features are actually, really
+    // enabled for the actual crate we've been asked to gather features for
+    let mut node_stack =
+        smallvec::SmallVec::<[krates::petgraph::graph::EdgeReference<'_, krates::Edge>; 10]>::new();
+    node_stack.push(edge);
+
+    let graph = krates.graph();
+
+    let dep_feature_stack = Vec::new();
+
+    while let Some(edge) = node_stack.pop() {
+        let dep = &krates[edge.target()];
+        let parent = &krates[edge.source()];
+
+        let kind = edge.weight().kind;
+
+        // We don't care about dev dependencies for non-workspace crates
+        if kind == krates::DepKind::Dev
+            && krates
+                .workspace_members()
+                .find(|n| n.id == parent.id)
+                .is_none()
+        {
+            continue;
+        }
+
+        // This should never happen, but better than panicing!
+        let dep_node = match parent
+            .deps
+            .iter()
+            .find(|d| kind == d.kind && dep.name == d.name)
+        {
+            Some(d) => d,
+            None => return None,
+        };
+
+        if !parent.features.is_empty() {
+            for pedge in graph.edges_directed(edge.source(), krates::petgraph::Direction::Incoming)
+            {
+                node_stack.push(pedge);
+            }
+        }
+
+        dep_node.features.iter().map(|s| s.as_ref()).collect();
+    }
+
+    let mut enabled = Vec::new();
+    let mut add_default_features = false;
+
+    let dep = &krates[edge.target()];
+
+    if add_default_features && dep.features.contains_key("default") {}
+
+    enabled.sort();
+    enabled.dedup();
+    Some(enabled)
+}
+
 pub struct DupGraph {
     pub duplicate: String,
     pub graph: String,
@@ -215,15 +310,16 @@ pub fn check(
         ..
     } = ctx.cfg;
 
+    let krates = &ctx.krates;
     let krate_spans = &ctx.krate_spans;
-    let (mut tree_skipper, build_diags) = TreeSkipper::build(tree_skipped, ctx.krates, file_id);
+    let (mut tree_skipper, build_diags) = TreeSkipper::build(tree_skipped, krates, file_id);
 
     if !build_diags.is_empty() {
         sink.push(build_diags);
     }
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
-        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+    let denied_ids: Vec<_> = denied.iter().map(|kb| kb.id.clone()).collect();
+    let denied_info = denied;
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -236,11 +332,13 @@ pub fn check(
     }
 
     let mut multi_detector = MultiDetector {
-        name: &ctx.krates.krates().next().unwrap().krate.name,
+        name: &krates.krates().next().unwrap().krate.name,
         dupes: smallvec::SmallVec::new(),
     };
 
-    for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
+    let colorize = ctx.colorize;
+
+    for (i, krate) in krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
         //let krate_coord = krate_spans.get_coord(i);
@@ -253,10 +351,10 @@ pub fn check(
 
             // The crate is banned, but it might have be allowed if it's wrapped
             // by one or more particular crates
-            let allowed_wrappers = &ban_wrappers[bind];
+            let allowed_wrappers = &denied_info[bind].wrappers;
             let is_allowed = if !allowed_wrappers.is_empty() {
-                let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                let graph = ctx.krates.graph();
+                let nid = krates.nid_for_kid(&krate.id).unwrap();
+                let graph = krates.graph();
 
                 // Ensure that every single crate that has a direct dependency
                 // on the banned crate is an allowed wrapper
@@ -265,7 +363,6 @@ pub fn check(
                     .map(|edge| edge.source())
                     .all(|nid| {
                         let node = &graph[nid];
-                        //let krate_coord = krate_spans.get_coord(nid.index());
 
                         let (diag, is_allowed): (Diag, _) = match allowed_wrappers
                             .iter()
@@ -299,10 +396,149 @@ pub fn check(
                         is_allowed
                     })
             } else {
-                false
+                let exact = &denied_info[bind].exact_features.value;
+                let af = &denied_info[bind].allow_features.value;
+                let df = &denied_info[bind].deny_features.value;
+
+                *exact || !af.is_empty() || !df.is_empty()
             };
 
-            if !is_allowed {
+            // Ensure that the feature set of this krate, wherever it's used
+            // as a dependency, matches the ban entry.
+            let nid = krates.nid_for_kid(&krate.id).unwrap();
+            let graph = krates.graph();
+
+            let feature_set_allowed = graph
+                .edges_directed(nid, Direction::Incoming)
+                .map(|edge| edge.source())
+                .all(|pid| {
+                    let parent = &graph[pid];
+
+                    let exact = &denied_info[bind].exact_features;
+                    let allowed_features = &denied_info[bind].allow_features;
+                    let denied_features = &denied_info[bind].deny_features;
+                    let dep = parent
+                        .krate
+                        .deps
+                        .iter()
+                        .find(|dep| dep.name == krate.name)
+                        .unwrap();
+
+                    // We need to retrieve the features used by the dependency, and if default
+                    // features are enabled, crawl all of them from the package itself
+                    // to retrieve the true enabled set
+                    let enabled_features = match get_enabled_features(&dep, krates) {
+                        Some(ef) => ef,
+                        None => {
+                            pack.push(diags::UnableToGetDefaultFeatures {
+                                parent_krate: &parent.krate,
+                                dep,
+                            });
+                            return false;
+                        }
+                    };
+
+                    // Gather features that were present, but not explicitly allowed
+                    let not_allowed: Vec<_> = enabled_features
+                        .iter()
+                        .filter_map(|df| {
+                            if allowed_features
+                                .value
+                                .iter()
+                                .find(|af| &af.value == df)
+                                .is_none()
+                            {
+                                Some(df.as_ref())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+
+                    if exact.value {
+                        // Gather features allowed, but not present
+                        let missing_allowed: Vec<_> = allowed_features
+                            .value
+                            .iter()
+                            .filter_map(|af| {
+                                if enabled_features
+                                    .iter()
+                                    .find(|df| **df == af.value)
+                                    .is_none()
+                                {
+                                    Some(CfgCoord {
+                                        file: file_id,
+                                        span: af.span.clone(),
+                                    })
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+
+                        if missing_allowed.is_empty() && not_allowed.is_empty() {
+                            true
+                        } else {
+                            pack.push(diags::ExactFeaturesMismatch {
+                                missing_allowed,
+                                not_allowed: &not_allowed,
+                                parent: &parent.krate,
+                                dep_name: &dep.name,
+                                exact_coord: CfgCoord {
+                                    file: file_id,
+                                    span: exact.span.clone(),
+                                },
+                            });
+                            false
+                        }
+                    } else {
+                        // Add diagnostics if features were explicitly allowed, but weren't present
+                        let mut feature_set_allowed = true;
+                        if !allowed_features.value.is_empty() && !not_allowed.is_empty() {
+                            pack.push(diags::FeaturesNotExplicitlyAllowed {
+                                not_allowed: &not_allowed,
+                                enabled_features: &enabled_features,
+                                parent: &parent.krate,
+                                dep_name: &dep.name,
+                                allowed: allowed_features
+                                    .value
+                                    .iter()
+                                    .map(|af| CfgCoord {
+                                        file: file_id,
+                                        span: af.span.clone(),
+                                    })
+                                    .collect(),
+                                colorize,
+                            });
+
+                            feature_set_allowed = false;
+                        }
+
+                        let found_denied: Vec<_> = denied_features
+                            .value
+                            .iter()
+                            .filter(|deny_f| enabled_features.contains(&deny_f.value.as_str()))
+                            .collect();
+
+                        // Add diagnostics for features that were explicitly denied
+                        if !found_denied.is_empty() {
+                            pack.push(diags::FeaturesExplicitlyDenied {
+                                cfg_file_id: file_id,
+                                found_denied,
+                                enabled_features: &enabled_features,
+                                parent: &parent.krate,
+                                dep_name: &dep.name,
+                                colorize,
+                            });
+
+                            feature_set_allowed = false;
+                        }
+
+                        feature_set_allowed
+                    }
+                });
+
+            if !is_allowed || !feature_set_allowed {
                 pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
             }
         }
