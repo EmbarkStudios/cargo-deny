@@ -1,0 +1,16 @@
+[package]
+name = "feature-bans"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+edition = "2018"
+
+[dependencies]
+reqwest = { version = "0.10.8", default-features = false }
+
+[dependencies.sentry]
+version = "0.20.1"
+default-features = false
+features = ["with_rustls"]
+
+[dev-dependencies]
+reqwest = { version = "0.10.8", features = ["rustls"] }
