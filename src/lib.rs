@@ -307,4 +307,6 @@ pub struct CheckCtx<'ctx, T> {
     /// Requests for additional information the check can provide to be
     /// serialized to the diagnostic
     pub serialize_extra: bool,
+    /// Allows for ANSI colorization of diagnostic content
+    pub colorize: bool,
 }
