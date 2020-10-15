@@ -185,53 +185,95 @@ impl TreeSkipper {
     }
 }
 
+fn get_features<'a>(krate: &'a Krate, dep: &'a krates::cm::Dependency) -> Vec<&'a str> {
+    let mut feats = Vec::with_capacity(10);
+
+    let default = std::iter::once_with(|| {
+        if dep.uses_default_features {
+            "default"
+        } else {
+            ""
+        }
+    });
+
+    for feat in dep.features.iter().map(|s| s.as_str()).chain(default) {
+        if krate.features.contains_key(feat) {
+            let mut feat_stack = smallvec::SmallVec::<[&str; 10]>::new();
+            feat_stack.push(feat);
+
+            while let Some(feat) = feat_stack.pop() {
+                match feats.binary_search(&feat) {
+                    Ok(i) => continue,
+                    Err(i) => feats.insert(i, feat),
+                }
+                if let Some(feats) = krate.features.get(feat) {
+                    for sub_feat in feats {
+                        feat_stack.push(sub_feat);
+                    }
+                }
+            }
+        }
+    }
+
+    feats
+}
+
 fn get_enabled_features<'a>(
     edge: krates::petgraph::graph::EdgeReference<'a, krates::Edge>,
     krates: &'a Krates,
 ) -> Option<Vec<&'a str>> {
-    let mut enabled = Vec::new();
-    let mut add_default_features = false;
-
     // Walk up the dependency graph to figure out which features are actually, really
     // enabled for the actual crate we've been asked to gather features for
     let mut node_stack =
         smallvec::SmallVec::<[krates::petgraph::graph::EdgeReference<'_, krates::Edge>; 10]>::new();
     node_stack.push(edge);
 
-    let krate_name = &krates[edge.target()].name;
+    let graph = krates.graph();
+
+    let dep_feature_stack = Vec::new();
 
     while let Some(edge) = node_stack.pop() {
         let dep = &krates[edge.target()];
         let parent = &krates[edge.source()];
 
         let kind = edge.weight().kind;
+
+        // We don't care about dev dependencies for non-workspace crates
+        if kind == krates::DepKind::Dev
+            && krates
+                .workspace_members()
+                .find(|n| n.id == parent.id)
+                .is_none()
+        {
+            continue;
+        }
+
         // This should never happen, but better than panicing!
         let dep_node = match parent
             .deps
             .iter()
-            .find(|d| krates::DepKind::from(d.kind) == kind && d.name == dep.name)
+            .find(|d| kind == d.kind && dep.name == d.name)
         {
             Some(d) => d,
             None => return None,
         };
 
+        if !parent.features.is_empty() {
+            for pedge in graph.edges_directed(edge.source(), krates::petgraph::Direction::Incoming)
+            {
+                node_stack.push(pedge);
+            }
+        }
+
         dep_node.features.iter().map(|s| s.as_ref()).collect();
     }
 
+    let mut enabled = Vec::new();
+    let mut add_default_features = false;
+
     let dep = &krates[edge.target()];
 
-    if add_default_features && dep.features.contains_key("default") {
-        let mut feature_stack = vec!["default"];
-
-        while let Some(feat) = feature_stack.pop() {
-            enabled.push(feat);
-            if let Some(feats) = dep.features.get(feat) {
-                for sub_feat in feats {
-                    feature_stack.push(sub_feat);
-                }
-            }
-        }
-    }
+    if add_default_features && dep.features.contains_key("default") {}
 
     enabled.sort();
     enabled.dedup();
