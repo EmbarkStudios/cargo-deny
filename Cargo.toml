@@ -93,7 +93,7 @@ toml = "0.5"
 # Used by fix to modify crate manifests
 toml_edit = "0.2"
 # Small fast hash crate
-twox-hash = { version = "1.5", default-features = false }
+twox-hash = { version = "1.6", default-features = false }
 # Url parsing/manipulation
 url = "2.1"
 
