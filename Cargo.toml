@@ -52,7 +52,7 @@ chrono = "0.4"
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
 # Brrrrr
-crossbeam = "0.7" # Keep at this version until the rest of the ecosystem updates to 0.8
+crossbeam = "0.8" # Keep at this version until the rest of the ecosystem updates to 0.8
 # We use this for displaying diffs for dry runs of the `fix` subcommand, as
 # as in tests for printing easy to read errors
 difference = "2.0.0"
