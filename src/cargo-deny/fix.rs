@@ -95,7 +95,7 @@ impl ValidConfig {
 
         let has_errors = diags
             .iter()
-            .any(|d| d.severity <= cargo_deny::diag::Severity::Error);
+            .any(|d| d.severity >= cargo_deny::diag::Severity::Error);
         print(diags);
 
         if has_errors {

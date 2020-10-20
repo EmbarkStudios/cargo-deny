@@ -8,9 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Added
 - [PR#238](https://github.com/EmbarkStudios/cargo-deny/pull/238) resolved [#225](https://github.com/EmbarkStudios/cargo-deny/issues/225) by adding a `wrappers` field to `[bans.deny]` entries, which allows the banned crate to be used only if it is a direct dependency of one of the wrapper crates. Thanks [@Stupremee](https://github.com/Stupremee)!
+- [PR#244](https://github.com/EmbarkStudios/cargo-deny/pull/244) resolved [#69](https://github.com/EmbarkStudios/cargo-deny/issues/69) by adding support for multiple advisory databases, which will all be checked during the `advisory` check. Thanks [@Stupremee](https://github.com/Stupremee)!
+- [PR#243](https://github.com/EmbarkStudios/cargo-deny/pull/243) resolved [#54](https://github.com/EmbarkStudios/cargo-deny/issues/54) by adding support for compiling and using `cargo` crate directly via the `standalone` feature. This allows `cargo-deny` to be used eg minimal container images without needing to have rust/cargo installed in them. Thanks [@Stupremee](https://github.com/Stupremee)!
+- [PR#275](https://github.com/EmbarkStudios/cargo-deny/pull/275) resolved [#64](https://github.com/EmbarkStudios/cargo-deny/issues/64) by adding a diagnostic when a user tries to ignore an advisory identifier that doesn't exist in any database.
+- [PR#262](https://github.com/EmbarkStudios/cargo-deny/pull/262) added the `fix` subcommand, which was added to bring `cargo-deny` to feature parity with `cargo-audit` so that it can take over for `cargo-audit` as the [official frontend](https://github.com/EmbarkStudios/cargo-deny/issues/194) for the the [RustSec Advisory Database](https://github.com/RustSec/advisory-db).
+
+### Changed
+- `advisories.db-url` has been deprecated in favor of `advisories.db-urls` since multiple databses are now supported.
+- `advisories.db-path` is now no longer the directory into which the advisory database is cloned into, but rather a root directory where each unique database is placed in a canonicalized directory similar to how `.cargo/registry/index` directories work.
+- [PR#274](https://github.com/EmbarkStudios/cargo-deny/pull/274) resolved [#115](https://github.com/EmbarkStudios/cargo-deny/issues/115) by normalizing git urls. Thanks [@senden9](https://github.com/senden9)!
 
 ### Fixed
 - [#265](https://github.com/EmbarkStudios/cargo-deny/issues/265) A transitive dependency (`smol_str`) forced the usage of the latest Rust stable version (1.46) which was unintended. We now state the MSRV in the README and check for it in CI so that changing the MSRV is a conscious decision.
+- [PR#287](https://github.com/EmbarkStudios/cargo-deny/pull/287) fixed [#286](https://github.com/EmbarkStudios/cargo-deny/issues/286), which could happen if using a git source where the representation differed slightly between the user specified id and the id used for dependencies.
+- [PR#249](https://github.com/EmbarkStudios/cargo-deny/pull/249) fixed [#190](https://github.com/EmbarkStudios/cargo-deny/issues/190) by printing a different diagnostic for when the path specified for a clarification license file could not be found. Thanks [@khodzha](https://github.com/khodzha)!
 
 ## [0.7.3] - 2020-08-06
 ### Added
