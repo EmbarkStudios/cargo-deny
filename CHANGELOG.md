@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.8.0] - 2020-10-20
 ### Added
 - [PR#238](https://github.com/EmbarkStudios/cargo-deny/pull/238) resolved [#225](https://github.com/EmbarkStudios/cargo-deny/issues/225) by adding a `wrappers` field to `[bans.deny]` entries, which allows the banned crate to be used only if it is a direct dependency of one of the wrapper crates. Thanks [@Stupremee](https://github.com/Stupremee)!
 - [PR#244](https://github.com/EmbarkStudios/cargo-deny/pull/244) resolved [#69](https://github.com/EmbarkStudios/cargo-deny/issues/69) by adding support for multiple advisory databases, which will all be checked during the `advisory` check. Thanks [@Stupremee](https://github.com/Stupremee)!
@@ -218,7 +219,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.3...0.8.0
 [0.7.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.0...0.7.1
