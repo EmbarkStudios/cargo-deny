@@ -186,11 +186,20 @@ fn get_metadata(
     no_default_features: bool,
     all_features: bool,
     features: Vec<String>,
-    manifest_path: PathBuf,
+    mut manifest_path: PathBuf,
 ) -> Result<krates::cm::Metadata, anyhow::Error> {
+    use anyhow::Context;
     use cargo::{core, ops, util};
 
     let config = util::Config::default()?;
+
+    // Cargo doesn't like non-absolute paths
+    if !manifest_path.is_absolute() {
+        manifest_path = std::env::current_dir()
+            .context("unable to determine current directory")?
+            .join(manifest_path);
+    }
+
     let ws = core::Workspace::new(&manifest_path, &config)?;
     let options = ops::OutputMetadataOptions {
         features,
