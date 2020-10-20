@@ -8,6 +8,9 @@ fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
     let mut n = Vec::new();
 
     n.push(format!("ID: {}", advisory.id));
+    if let Some(url) = advisory.id.url() {
+        n.push(format!("URL: {}", &url));
+    }
     n.push(advisory.description.clone());
 
     if let Some(ref url) = advisory.url {
