@@ -476,87 +476,39 @@ mod test {
 
     #[test]
     fn binary_search_() {
+        macro_rules! cid {
+            ($name:expr, $vers:expr) => {
+                CrateId {
+                    name: $name.to_owned(),
+                    version: VersionReq::parse_compat($vers, semver::Compat::Cargo).unwrap(),
+                }
+            };
+        }
+
         let versions = [
-            CrateId {
-                name: "unicase".to_owned(),
-                version: VersionReq::parse("=1.4.2").unwrap(),
-            },
-            CrateId {
-                name: "crossbeam-deque".to_owned(),
-                version: VersionReq::parse("=0.6.3").unwrap(),
-            },
-            CrateId {
-                name: "parking_lot".to_owned(),
-                version: VersionReq::parse("=0.7.1").unwrap(),
-            },
-            CrateId {
-                name: "parking_lot_core".to_owned(),
-                version: VersionReq::parse("=0.4.0").unwrap(),
-            },
-            CrateId {
-                name: "lock_api".to_owned(),
-                version: VersionReq::parse("=0.1.5").unwrap(),
-            },
-            CrateId {
-                name: "rand".to_owned(),
-                version: VersionReq::parse("=0.6.5").unwrap(),
-            },
-            CrateId {
-                name: "rand_chacha".to_owned(),
-                version: VersionReq::parse("=0.1.1").unwrap(),
-            },
-            CrateId {
-                name: "rand_core".to_owned(),
-                version: VersionReq::parse("=0.4.0").unwrap(),
-            },
-            CrateId {
-                name: "rand_core".to_owned(),
-                version: VersionReq::parse("=0.3.1").unwrap(),
-            },
-            CrateId {
-                name: "rand_hc".to_owned(),
-                version: VersionReq::parse("=0.1.0").unwrap(),
-            },
-            CrateId {
-                name: "rand_pcg".to_owned(),
-                version: VersionReq::parse("=0.1.2").unwrap(),
-            },
-            CrateId {
-                name: "winapi".to_owned(),
-                version: VersionReq::parse("<0.3").unwrap(),
-            },
+            cid!("unicase", "=1.4.2"),
+            cid!("crossbeam-deque", "=0.6.3"),
+            cid!("parking_lot", "=0.7.1"),
+            cid!("parking_lot_core", "=0.4.0"),
+            cid!("lock_api", "=0.1.5"),
+            cid!("rand", "=0.6.5"),
+            cid!("rand_chacha", "=0.1.1"),
+            cid!("rand_core", "=0.4.0"),
+            cid!("rand_core", "=0.3.1"),
+            cid!("rand_hc", "=0.1.0"),
+            cid!("rand_pcg", "=0.1.2"),
+            cid!("winapi", "<0.3"),
             CrateId {
                 name: "serde".to_owned(),
                 version: VersionReq::any(),
             },
-            CrateId {
-                name: "scopeguard".to_owned(),
-                version: VersionReq::parse("=0.3.3").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse("=0.1.43").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse("<0.1").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse("<0.2").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse("0.1.*").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse("<0.1.42").unwrap(),
-            },
-            CrateId {
-                name: "num-traits".to_owned(),
-                version: VersionReq::parse(">0.1.43").unwrap(),
-            },
+            cid!("scopeguard", "=0.3.3"),
+            cid!("num-traits", "=0.1.43"),
+            cid!("num-traits", "<0.1"),
+            cid!("num-traits", "<0.2"),
+            cid!("num-traits", "0.1.*"),
+            cid!("num-traits", "<0.1.42"),
+            cid!("num-traits", ">0.1.43"),
         ];
 
         let mut versions: Vec<_> = versions
@@ -638,7 +590,7 @@ mod test {
             )
             .map(|(_, s)| &s.value.version)
             .unwrap(),
-            &(VersionReq::parse("<0.1.42").unwrap())
+            &(VersionReq::parse("0.1.*").unwrap())
         );
 
         assert_eq!(
