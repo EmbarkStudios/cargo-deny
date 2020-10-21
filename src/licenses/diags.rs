@@ -57,6 +57,7 @@ impl Into<Diag> for UnmatchedLicenseAllowance {
     fn into(self) -> Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("license was not encountered")
+            .with_code("L006")
             .with_labels(vec![self
                 .allowed_license_cfg
                 .into_label()
