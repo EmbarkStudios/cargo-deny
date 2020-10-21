@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.8.1] - 2020-10-21
 ### Fixed
 - [PR#297](https://github.com/EmbarkStudios/cargo-deny/pull/297) fixed a couple of diagnostics to have codes.
 - [PR#296](https://github.com/EmbarkStudios/cargo-deny/pull/296) resolved [#288](https://github.com/EmbarkStudios/cargo-deny/issues/288) by improving the information in diagnostics pertaining to advisories. Thanks [@tomasfarias](https://github.com/tomasfarias)!
@@ -223,7 +224,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.3...0.8.0
 [0.7.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.7.1...0.7.2
