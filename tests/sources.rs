@@ -34,7 +34,7 @@ fn fails_unknown_git() {
                     && field_eq!(
                         v,
                         "/fields/message",
-                        "detected 'git' source not specifically allowed"
+                        "detected 'git' source not explicitly allowed"
                     )
                     && v.pointer("/fields/labels/0/span")
                         .unwrap()
