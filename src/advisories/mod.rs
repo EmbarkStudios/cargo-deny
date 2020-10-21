@@ -37,7 +37,7 @@ pub fn check<R>(
 ) where
     R: AuditReporter,
 {
-    use rustsec::{advisory::metadata::Metadata, package::Package};
+    use rustsec::{advisory::metadata::Metadata, advisory::versions::Versions, package::Package};
 
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
@@ -65,26 +65,30 @@ pub fn check<R>(
     use bitvec::prelude::*;
     let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
 
-    let mut send_diag = |pkg: &Package, advisory: &Metadata| match krate_for_pkg(&ctx.krates, pkg) {
-        Some((i, krate)) => {
-            let diag = ctx.diag_for_advisory(krate, i, advisory, |index| {
-                ignore_hits.as_mut_bitslice().set(index, true)
-            });
+    let mut send_diag =
+        |pkg: &Package, advisory: &Metadata, versions: Option<&Versions>| match krate_for_pkg(
+            &ctx.krates,
+            pkg,
+        ) {
+            Some((i, krate)) => {
+                let diag = ctx.diag_for_advisory(krate, i, advisory, versions, |index| {
+                    ignore_hits.as_mut_bitslice().set(index, true)
+                });
 
-            sink.push(diag);
-        }
-        None => {
-            unreachable!(
-                "the advisory database report contained an advisory 
+                sink.push(diag);
+            }
+            None => {
+                unreachable!(
+                    "the advisory database report contained an advisory
                     that somehow matched a crate we don't know about:\n{:#?}",
-                advisory
-            );
-        }
-    };
+                    advisory
+                );
+            }
+        };
 
     // Emit diagnostics for any vulnerabilities that were found
     for vuln in &report.vulnerabilities {
-        send_diag(&vuln.package, &vuln.advisory);
+        send_diag(&vuln.package, &vuln.advisory, Some(&vuln.versions));
     }
 
     // Emit diagnostics for informational advisories for crates, including unmaintained and unsound
@@ -92,7 +96,7 @@ pub fn check<R>(
         .iter_warnings()
         .filter_map(|(_, wi)| wi.advisory.as_ref().map(|wia| (wi, wia)))
     {
-        send_diag(&warning.package, &advisory);
+        send_diag(&warning.package, &advisory, warning.versions.as_ref());
     }
 
     match yanked {
