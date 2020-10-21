@@ -9,12 +9,12 @@ fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
 
     n.push(format!("ID: {}", advisory.id));
     if let Some(url) = advisory.id.url() {
-        n.push(format!("URL: {}", &url));
+        n.push(format!("Advisory: {}", &url));
     }
     n.push(advisory.description.clone());
 
     if let Some(ref url) = advisory.url {
-        n.push(format!("URL: {}", url));
+        n.push(format!("Announcement: {}", url));
     }
 
     n
@@ -102,7 +102,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
 
         if let Some(versions) = versions {
             if versions.patched.is_empty() {
-                notes.push(String::from("Solution: No safe upgrade is available!"))
+                notes.push("Solution: No safe upgrade is available!".to_owned())
             } else {
                 notes.push(format!(
                     "Solution: Upgrade to {}",
