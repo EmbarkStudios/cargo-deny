@@ -11,6 +11,7 @@
   - [config](checks/cfg.md)
   - [licenses](checks/licenses/README.md)
     - [config](checks/licenses/cfg.md)
+    - [diagnostics](checks/licenses/diags.md)
   - [bans](checks/bans/README.md)
     - [config](checks/bans/cfg.md)
   - [advisories](checks/advisories/README.md)
