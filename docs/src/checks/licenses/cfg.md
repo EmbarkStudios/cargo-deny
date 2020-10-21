@@ -63,11 +63,11 @@ allow licenses only for particular crates, to make a clear distinction between
 licenses which you are fine with everywhere, versus ones which you want to be
 more selective about, and not have implicitly allowed in the future.
 
-#### The `name` field
+#### The `exceptions.name` field
 
 The name of the crate that you are adding an exception for
 
-#### The `version` field (optional)
+#### The `exceptions.version` field (optional)
 
 An optional version constraint specifying the range of crate versions you are
 excepting. Defaults to all versions (`*`).
@@ -148,6 +148,15 @@ for the crate by manually assigning its SPDX expression, based on one or more
 files in the crate's source. cargo-deny will use that expression for as long as
 the source files in the crate exactly match the clarification's hashes.
 
+```ini
+[[licenses.clarify]]
+name = "webpki"
+expression = "ISC"
+license-files = [
+    { path = "LICENSE", hash = 0x001c7e6c },
+]
+```
+
 #### The `name` field
 
 The name of the crate that you are clarifying
@@ -177,7 +186,7 @@ An opaque hash calculated from the file contents. This hash can be obtained
 from the output of the license check when cargo-deny can't determine the license
 of the file in question.
 
-### The `private` field
+### The `private` field (optional)
 
 It's often not useful or wanted to check for licenses in your own private
 workspace crates. So the private field allows you to do so.
