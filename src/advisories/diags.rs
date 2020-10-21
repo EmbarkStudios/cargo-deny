@@ -2,7 +2,7 @@ use crate::{
     diag::{Check, Diag, Diagnostic, KrateCoord, Label, Pack, Severity},
     Krate, LintLevel,
 };
-use rustsec::advisory::{informational::Informational, metadata::Metadata, Id};
+use rustsec::advisory::{informational::Informational, metadata::Metadata, versions::Versions, Id};
 
 fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
     let mut n = Vec::new();
@@ -26,6 +26,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         krate: &crate::Krate,
         krate_index: krates::NodeId,
         advisory: &Metadata,
+        versions: Option<&Versions>,
         mut on_ignore: F,
     ) -> Pack
     where
@@ -97,7 +98,24 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             )
         };
 
-        let notes = get_notes_from_advisory(&advisory);
+        let mut notes = get_notes_from_advisory(&advisory);
+
+        if let Some(versions) = versions {
+            if versions.patched.is_empty() {
+                notes.push(String::from("Solution: No safe upgrade is available!"))
+            } else {
+                notes.push(format!(
+                    "Solution: Upgrade to {}",
+                    versions
+                        .patched
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .as_slice()
+                        .join(" OR ")
+                ))
+            }
+        };
 
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
