@@ -1,6 +1,6 @@
 # [cargo-deny](https://github.com/EmbarkStudios/cargo-deny)
 
-cargo-deny is a cargo plugin that lets you lint your project's dependency graph 
+cargo-deny is a cargo plugin that lets you lint your project's dependency graph
 to ensure all your dependencies conform to your expectations and requirements.
 
 ## Quickstart
@@ -19,7 +19,7 @@ see the link for the available commands and options.
 
 ## Checks
 
-cargo-deny supports several classes of checks, see [Checks](checks/index.html) 
+cargo-deny supports several classes of checks, see [Checks](checks/index.html)
 for the available checks and their configuration options.
 
 ## API
@@ -30,7 +30,7 @@ its functionality is within a library whose docs you may view on
 
 ## GitHub Action
 
-For GitHub projects, one can run cargo-deny automatically as part of continous 
+For GitHub projects, one can run cargo-deny automatically as part of continous
 integration using a GitHub Action:
 
 ```yaml
@@ -40,10 +40,10 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: EmbarkStudios/cargo-deny-action@v0
+    - uses: actions/checkout@v2
+    - uses: EmbarkStudios/cargo-deny-action@v1
 ```
 
-For more information, see 
-[`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action) 
+For more information, see
+[`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action)
 repository.
