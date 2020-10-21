@@ -10,24 +10,24 @@ Contains all of the configuration for `cargo deny check license`.
 
 ### The `unlicensed` field (optional)
 
-Determines what happens when a crate has not explicitly specified its license 
-terms, and no license information could be confidently detected via `LICENSE*` 
+Determines what happens when a crate has not explicitly specified its license
+terms, and no license information could be confidently detected via `LICENSE*`
 files in the crate's source.
 
-* `deny` (default) - All unlicensed crates will emit an error and fail the 
+* `deny` (default) - All unlicensed crates will emit an error and fail the
 license check
-* `allow` - All unlicensed crates will show a note, but will not fail the 
+* `allow` - All unlicensed crates will show a note, but will not fail the
 license check
-* `warn` - All unlicensed crates will show a warning, but will not fail the 
+* `warn` - All unlicensed crates will show a warning, but will not fail the
 license check
 
 ### The `allow` and `deny` fields (optional)
 
-The licenses that should be allowed or denied. The license must be a valid SPDX 
-v2.1 identifier, which must either be in version 3.7 of the 
-[SPDX License List](https://spdx.org/licenses/), with an optional 
-[exception](https://spdx.org/licenses/exceptions-index.html) specified by 
-`WITH <exception-id>`, or else a user defined license reference denoted by 
+The licenses that should be allowed or denied. The license must be a valid SPDX
+v2.1 identifier, which must either be in version 3.7 of the
+[SPDX License List](https://spdx.org/licenses/), with an optional
+[exception](https://spdx.org/licenses/exceptions-index.html) specified by
+`WITH <exception-id>`, or else a user defined license reference denoted by
 `LicenseRef-<idstring>` for a license not in the SPDX License List.
 
 **NOTE:** The same license cannot appear in both the `allow` and `deny` lists.
@@ -39,13 +39,13 @@ v2.1 identifier, which must either be in version 3.7 of the
 * LGPL
 * GFDL
 
-The GNU licenses are, of course, different from all the other licenses in the 
-SPDX list which makes them annoying to deal with. When supplying one of the 
-above licenses, to either `allow` or `deny`, you **must not** use the suffixes 
-`-only` or `-or-later`, as they can only be used by the license holder 
+The GNU licenses are, of course, different from all the other licenses in the
+SPDX list which makes them annoying to deal with. When supplying one of the
+above licenses, to either `allow` or `deny`, you **must not** use the suffixes
+`-only` or `-or-later`, as they can only be used by the license holder
 themselves to decide under which terms to license their code.
 
-So, for example, if you wanted to disallow `GPL-2.0` licenses, but allow 
+So, for example, if you wanted to disallow `GPL-2.0` licenses, but allow
 `GPL-3.0` licenses, you could use the following configuration.
 
 ```ini
@@ -56,20 +56,20 @@ deny = [ "GPL-2.0" ]
 
 ### The `exceptions` field (optional)
 
-The license configuration generally applies to the entire crate graph, but this 
-means that allowing any one license applies to all possible crates, even if 
-only 1 crate actually uses that license. The `exceptions` field is meant to 
-allow licenses only for particular crates, to make a clear distinction between 
-licenses which you are fine with everywhere, versus ones which you want to be 
+The license configuration generally applies to the entire crate graph, but this
+means that allowing any one license applies to all possible crates, even if
+only 1 crate actually uses that license. The `exceptions` field is meant to
+allow licenses only for particular crates, to make a clear distinction between
+licenses which you are fine with everywhere, versus ones which you want to be
 more selective about, and not have implicitly allowed in the future.
 
-#### The `name` field
+#### The `exceptions.name` field
 
 The name of the crate that you are adding an exception for
 
-#### The `version` field (optional)
+#### The `exceptions.version` field (optional)
 
-An optional version constraint specifying the range of crate versions you are 
+An optional version constraint specifying the range of crate versions you are
 excepting. Defaults to all versions (`*`).
 
 #### The `allow` field
@@ -95,7 +95,7 @@ exceptions = [
 Determines what happens when a license that is considered
 [copyleft](https://en.wikipedia.org/wiki/Copyleft) is encountered.
 
-* `warn` (default) - Will emit a warning that a copyleft license was detected, 
+* `warn` (default) - Will emit a warning that a copyleft license was detected,
 but will not fail the license check
 * `deny` - The license is not accepted if it is copyleft, but the license check
 might not fail if the expression still evaluates to true
@@ -103,8 +103,8 @@ might not fail if the expression still evaluates to true
 
 ### The `allow-osi-fsf-free` field (optional)
 
-Determines what happens when licenses aren't explicitly allowed or denied, but 
-**are** marked as [OSI Approved](https://opensource.org/licenses) or 
+Determines what happens when licenses aren't explicitly allowed or denied, but
+**are** marked as [OSI Approved](https://opensource.org/licenses) or
 [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version
 3.7 of the [SPDX License List](https://spdx.org/licenses/).
 
@@ -122,18 +122,18 @@ Determines what happens when a license is encountered that:
 1. Isn't `copyleft`
 1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
 
-* `warn` - Will emit a warning that the license was detected, but will not fail 
+* `warn` - Will emit a warning that the license was detected, but will not fail
 the license check
-* `deny` (default) - The license is not accepted, but the license check might 
+* `deny` (default) - The license is not accepted, but the license check might
 not fail if the expression still evaluates to true
 * `allow` - The license is accepted
 
 ### The `confidence-threshold` field (optional)
 
-`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the 
+`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the
 license of a LICENSE file. Due to variability in license texts because of things
 like authors, copyright year, and so forth, askalano assigns a confidence score
-to its determination, from `0.0` (no confidence) to `1.0` (perfect match). The 
+to its determination, from `0.0` (no confidence) to `1.0` (perfect match). The
 confidence threshold value is used to reject the license determination if the
 score does not match or exceed the threshold.
 
@@ -144,9 +144,18 @@ score does not match or exceed the threshold.
 In some exceptional cases, a crate will not have easily machine readable license
 information, and would by default be considered "unlicensed" by cargo-deny. As a
 (hopefully) temporary patch for using the crate, you can specify a clarification
-for the crate by manually assigning its SPDX expression, based on one or more 
+for the crate by manually assigning its SPDX expression, based on one or more
 files in the crate's source. cargo-deny will use that expression for as long as
 the source files in the crate exactly match the clarification's hashes.
+
+```ini
+[[licenses.clarify]]
+name = "webpki"
+expression = "ISC"
+license-files = [
+    { path = "LICENSE", hash = 0x001c7e6c },
+]
+```
 
 #### The `name` field
 
@@ -159,13 +168,13 @@ clarifying. Defaults to all versions (`*`).
 
 #### The `expression` field
 
-The [SPDX license expression][SPDX-expr] you are specifying as the license 
+The [SPDX license expression][SPDX-expr] you are specifying as the license
 requirements for the crate.
 
 #### The `license-files` field
 
-Contains one or more files that will be checked to ensure the license 
-expression still applies to a version of the crate. 
+Contains one or more files that will be checked to ensure the license
+expression still applies to a version of the crate.
 
 ##### The `path` field
 
@@ -177,7 +186,7 @@ An opaque hash calculated from the file contents. This hash can be obtained
 from the output of the license check when cargo-deny can't determine the license
 of the file in question.
 
-### The `private` field
+### The `private` field (optional)
 
 It's often not useful or wanted to check for licenses in your own private
 workspace crates. So the private field allows you to do so.
@@ -203,7 +212,7 @@ private = { ignore = true }
 ### The `registries` field
 
 A list of private registries you may publish your workspace crates to. If a
-workspace member **only** publishes to private registries, it will also be 
+workspace member **only** publishes to private registries, it will also be
 ignored if `private.ignore = true`
 
 ```ini

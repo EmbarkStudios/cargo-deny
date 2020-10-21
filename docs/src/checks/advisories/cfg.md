@@ -8,39 +8,52 @@ Contains all of the configuration for `cargo deny check advisories`
 {{#include ../../../../tests/cfg/advisories.toml}}
 ```
 
-### The `db-url` field (optional)
+### The `db-urls` field (optional)
 
-URL to the advisory database's git repo
+URLs to one or more advisory databases.
 
-Default: https://github.com/RustSec/advisory-db
+Default: [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
 ### The `db-path` field (optional)
 
-Path to the local copy of advisory database's git repo
+Path to the root directory into which one or more advisory databases are cloned
+into
 
 Default: ~/.cargo/advisory-db
 
 ### The `vulnerability` field (optional)
 
-Determines what happens when a crate with a security vulnerability is 
+Determines what happens when a crate with a security vulnerability is
 encountered.
 
-* `deny` (default) - Will emit an error with details about each vulnerability, 
+* `deny` (default) - Will emit an error with details about each vulnerability,
 and fail the check.
 * `warn` - Prints a warning for each vulnerability, but does not fail the check.
-* `allow` - Prints a note about the security vulnerability, but does not 
+* `allow` - Prints a note about the security vulnerability, but does not
 fail the check.
 
 ### The `unmaintained` field (optional)
 
-Determines what happens when a crate with an `unmaintained` advisory is 
+Determines what happens when a crate with an `unmaintained` advisory is
 encountered.
 
-* `deny` - Will emit an error with details about the unmaintained advisory, and 
+* `deny` - Will emit an error with details about the unmaintained advisory, and
 fail the check.
-* `warn` (default) - Prints a warning for each unmaintained advisory, but does 
+* `warn` (default) - Prints a warning for each unmaintained advisory, but does
 not fail the check.
-* `allow` - Prints a note about the unmaintained advisory, but does not fail 
+* `allow` - Prints a note about the unmaintained advisory, but does not fail
+the check.
+
+### The `unsound` field (optional)
+
+Determines what happens when a crate with an `unsound` advisory is
+encountered.
+
+* `deny` - Will emit an error with details about the unsound advisory, and
+fail the check.
+* `warn` (default) - Prints a warning for each unsound advisory, but does
+not fail the check.
+* `allow` - Prints a note about the unsound advisory, but does not fail
 the check.
 
 ### The `yanked` field (optional)
@@ -58,29 +71,29 @@ yanked, but does not fail the check.
 
 Determines what happens when a crate with a `notice` advisory is encountered.
 
-**NOTE**: As of 2019-12-17 there are no `notice` advisories in 
-https://github.com/RustSec/advisory-db
+**NOTE**: As of 2019-12-17 there are no `notice` advisories in
+the [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
-* `deny` - Will emit an error with details about the notice advisory, and fail 
+* `deny` - Will emit an error with details about the notice advisory, and fail
 the check.
-* `warn` (default) - Prints a warning for each notice advisory, but does not 
+* `warn` (default) - Prints a warning for each notice advisory, but does not
 fail the check.
-* `allow` - Prints a note about the notice advisory, but does not fail the 
+* `allow` - Prints a note about the notice advisory, but does not fail the
 check.
 
 ### The `ignore` field (optional)
 
-Every advisory in the advisory database contains a unique identifier, eg. 
-`RUSTSEC-2019-0001`. Putting an identifier in this array will cause the 
+Every advisory in the advisory database contains a unique identifier, eg.
+`RUSTSEC-2019-0001`. Putting an identifier in this array will cause the
 advisory to be treated as a note, rather than a warning or error.
 
 ### The `severity-threshold` field (optional)
 
-The threshold for security vulnerabilities to be turned into notes instead of 
+The threshold for security vulnerabilities to be turned into notes instead of
 warnings or errors, depending upon its
-[CVSS](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System) score. 
-So having a high threshold means some vulnerabilities might not fail the check, 
-but having a log level `>= info` will mean that a note will be printed instead 
+[CVSS](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System) score.
+So having a high threshold means some vulnerabilities might not fail the check,
+but having a log level `>= info` will mean that a note will be printed instead
 of a warning or error, depending on `[advisories.vulnerability]`.
 
 * `None` (default) - CVSS Score 0.0
