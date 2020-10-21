@@ -79,7 +79,7 @@ impl<'a> Into<Diag> for SourceNotExplicitlyAllowed<'a> {
     fn into(self) -> Diag {
         Diagnostic::new(self.lint_level.into())
             .with_message(format!(
-                "detected '{}' source not specifically allowed",
+                "detected '{}' source not explicitly allowed",
                 self.type_name,
             ))
             .with_code("S004")
