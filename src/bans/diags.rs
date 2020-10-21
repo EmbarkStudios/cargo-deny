@@ -219,6 +219,7 @@ impl<'a> Into<Diag> for SkippedByRoot<'a> {
     fn into(self) -> Diag {
         Diagnostic::new(Severity::Help)
             .with_message(format!("skipping crate '{}' due to root skip", self.krate))
+            .with_code("B011")
             .with_labels(vec![self
                 .skip_root_cfg
                 .into_label()
