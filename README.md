@@ -8,6 +8,7 @@
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.7-blue.svg)](https://spdx.org/licenses/)
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](http://embark.dev)
+[![Embark Discord](https://img.shields.io/badge/chat-Discord-purple.svg)](https://discord.gg/Fg4u4VX)
 
 `cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
 
