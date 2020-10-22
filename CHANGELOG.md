@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#303](https://github.com/EmbarkStudios/cargo-deny/pull/303) fixed [#302](https://github.com/EmbarkStudios/cargo-deny/issues/302) by reverting an unintended behavior change in how the default path for advisory databases was resolved.
+
 ## [0.8.1] - 2020-10-21
 ### Fixed
 - [PR#297](https://github.com/EmbarkStudios/cargo-deny/pull/297) fixed a couple of diagnostics to have codes.
