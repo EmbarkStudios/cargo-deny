@@ -15,7 +15,7 @@ fn yanked() -> Spanned<LintLevel> {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
-    /// Path to the root directory where advisory databases are stored (default: ~/.cargo/advisory-dbs)
+    /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
     pub db_path: Option<PathBuf>,
     /// URL to the advisory database's git repo (default: https://github.com/RustSec/advisory-db)
     pub db_url: Option<Spanned<String>>,

@@ -5,8 +5,6 @@ pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
 use std::path::{Path, PathBuf};
 use url::Url;
 
-const ADVISORY_DB_ROOT: &str = "~/.cargo/advisory-dbs";
-
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
 pub enum Fetch {
@@ -28,25 +26,31 @@ impl DbSet {
         mut urls: Vec<Url>,
         fetch: Fetch,
     ) -> Result<Self, Error> {
-        let root = root
-            .as_ref()
-            .map(AsRef::as_ref)
-            .unwrap_or_else(|| Path::new(ADVISORY_DB_ROOT));
+        let root_db_path = match root {
+            Some(root) => {
+                let user_root = root.as_ref();
+                if user_root.starts_with("~") {
+                    match home::home_dir() {
+                        Some(home) => home.join(user_root.strip_prefix("~").unwrap()),
+                        None => {
+                            log::warn!(
+                                "unable to resolve path '{}', falling back to the default advisory path",
+                                user_root.display()
+                            );
 
-        let root_db_path = if root.starts_with("~") {
-            match home::home_dir() {
-                Some(home) => home.join(root.strip_prefix("~").unwrap()),
-                None => {
-                    log::warn!(
-                        "unable to resolve path '{}', falling back to the default advisory path",
-                        root.display()
-                    );
-
-                    home::cargo_home().context("failed to resolve CARGO_HOME")?
+                            // This would only succeed of CARGO_HOME was explicitly set
+                            home::cargo_home()
+                                .context("failed to resolve CARGO_HOME")?
+                                .join("advisory-dbs")
+                        }
+                    }
+                } else {
+                    user_root.to_owned()
                 }
             }
-        } else {
-            root.to_owned()
+            None => home::cargo_home()
+                .context("failed to resolve CARGO_HOME")?
+                .join("advisory-dbs"),
         };
 
         if urls.is_empty() {
