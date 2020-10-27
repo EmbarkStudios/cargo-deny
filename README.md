@@ -1,7 +1,7 @@
 # ❌ cargo-deny
 
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
-[![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/dAuKfZS)
+[![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/Fg4u4VX)
 [![Crates.io](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 [![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![API Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
