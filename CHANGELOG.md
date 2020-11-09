@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Fix `deny.template.toml` to use `db-urls` instead of `db-url`.
+
 ## [0.8.2] - 2020-10-22
 ### Fixed
 - [PR#303](https://github.com/EmbarkStudios/cargo-deny/pull/303) fixed [#302](https://github.com/EmbarkStudios/cargo-deny/issues/302) by reverting an unintended behavior change in how the default path for advisory databases was resolved.
