@@ -14,6 +14,8 @@
 
 To run on CI as a GitHub Action, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action).
 
+_Please Note: This is a tool that we use (and like!) and it makes sense to us to release it as open source. However, we can’t take any responsibility for your use of the tool, if it will function correctly or fulfil your needs. No functionality in - or information provided by - cargo-deny constitutes legal advice._
+
 ## [Quickstart](https://embarkstudios.github.io/cargo-deny/)
 
 ```bash
