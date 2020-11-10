@@ -65,7 +65,7 @@ pub fn gather_diagnostics<
         anyhow::anyhow!("encountered errors validating config: {:#?}", cfg_diags);
     }
 
-    let (tx, rx) = crossbeam::unbounded();
+    let (tx, rx) = crossbeam::channel::unbounded();
 
     let (_, gathered) = rayon::join(
         || {
@@ -82,7 +82,7 @@ pub fn gather_diagnostics<
 
             match timeout {
                 Some(timeout) => {
-                    let trx = crossbeam::after(timeout);
+                    let trx = crossbeam::channel::after(timeout);
                     loop {
                         crossbeam::select! {
                             recv(rx) -> msg => {
