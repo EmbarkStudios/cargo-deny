@@ -141,12 +141,7 @@ impl super::Report {
                                 // Disregard any versions older than the current one
                                 .skip_while(|vs| vs.vers < vuln_krate.version)
                                 .filter_map(|vs| {
-                                    // Map to rustsec's Version, as it uses an older version
-                                    // for now
-                                    let rs_vers: rustsec::Version =
-                                        vs.vers.to_string().parse().unwrap();
-
-                                    if patched.iter().any(|v| v.matches(&rs_vers)) {
+                                    if patched.iter().any(|v| v.matches(&vs.vers)) {
                                         Some(vs.vers.clone())
                                     } else {
                                         None

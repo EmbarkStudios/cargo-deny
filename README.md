@@ -5,7 +5,7 @@
 [![Crates.io](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
 [![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![API Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
-[![MSRV](https://img.shields.io/badge/Rust-1.43-blue?color=fc8d62&logo=rust)](https://blog.rust-lang.org/2020/04/23/Rust-1.43.0.html)
+[![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.44.1-blue?color=fc8d62&logo=rust)](https://blog.rust-lang.org/2020/06/18/Rust.1.44.1.html)
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.7-blue.svg)](https://spdx.org/licenses/)
 [![dependency status](https://deps.rs/repo/github/EmbarkStudios/cargo-deny/status.svg)](https://deps.rs/repo/github/EmbarkStudios/cargo-deny)
 [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
@@ -13,6 +13,8 @@
 `cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
 
 To run on CI as a GitHub Action, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action).
+
+_Please Note: This is a tool that we use (and like!) and it makes sense to us to release it as open source. However, we can’t take any responsibility for your use of the tool, if it will function correctly or fulfil your needs. No functionality in - or information provided by - cargo-deny constitutes legal advice._
 
 ## [Quickstart](https://embarkstudios.github.io/cargo-deny/)
 

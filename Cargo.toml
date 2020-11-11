@@ -52,7 +52,7 @@ chrono = "0.4"
 codespan = { version = "0.9", features = ["reporting"] }
 codespan-reporting = "0.9"
 # Brrrrr
-crossbeam = "0.7" # Keep at this version until the rest of the ecosystem updates to 0.8
+crossbeam = "0.8"
 # We use this for displaying diffs for dry runs of the `fix` subcommand, as
 # as in tests for printing easy to read errors
 difference = "2.0.0"
@@ -73,7 +73,7 @@ memchr = "2.3"
 rayon = "1.4"
 #regex = { version = "1.3", default-features = true }
 # Used for interacting with advisory databases
-rustsec = "0.21"
+rustsec = "0.22"
 # Parsing and checking of versions/version requirements
 semver = "0.11"
 # Gee what could it be

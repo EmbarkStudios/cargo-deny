@@ -15,7 +15,7 @@ ignore = [
     # askalono uses failure, which is now unmaintained
     "RUSTSEC-2019-0036",
     "RUSTSEC-2020-0036",
-    # sized-chunks has soundness issues, but is used by cargo
+    # cargo uses a a vulnerable version of sized-chunks
     "RUSTSEC-2020-0041",
 ]
 
@@ -26,18 +26,15 @@ deny = [
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
+    # cargo/ignore use an older version of this
+    { name = "crossbeam-utils", version = "=0.7.2" },
     # cargo uses crypto-hash, which uses an old version
     { name = "hex", version = "=0.3.2" },
     # cargo depends on both 2.0.1 (direct) and 1.3.0 via env_logger
     { name = "humantime", version = "=1.3.0" },
-    # rustsec uses an older version of semver
-    { name = "semver", version = "=0.9.0" },
-    # ..so does cargo
+    # cargo uses an older version of semver
     { name = "semver", version = "=0.10.0" },
-    # in a surprise twist, semver uses an older version of semver-parser
     { name = "semver-parser", version = "=0.7.0" },
-    # rustsec uses a slightly older version
-    { name = "semver-parser", version = "=0.9.0" },
     # cfg-if reached 1.0 but many crates still depend on the 0.1 version
     { name = "cfg-if", version = "=0.1.10" },
 ]
@@ -62,4 +59,5 @@ allow = [
 
 exceptions = [
     { allow = ["Zlib"], name = "tinyvec" },
+    { allow = ["Apache-2.0", "BSD-2-Clause"], name = "crossbeam-queue" },
 ]

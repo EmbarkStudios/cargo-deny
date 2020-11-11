@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated dependencies, notably `rustsec`, `crossbeam`*, and `cargo`.
+- Bumped the Minimum Stable Rust Version to **1.44.1**.
+
 ## [0.8.3] - 2020-11-09
 ### Fixed
 - Fix `deny.template.toml` to use `db-urls` instead of `db-url`.

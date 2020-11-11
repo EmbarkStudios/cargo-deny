@@ -56,9 +56,9 @@ impl DbSet {
         if urls.is_empty() {
             info!(
                 "No advisory database configured, falling back to default '{}'",
-                rustsec::repository::DEFAULT_URL
+                rustsec::repository::git::DEFAULT_URL
             );
-            urls.push(Url::parse(rustsec::repository::DEFAULT_URL).unwrap());
+            urls.push(Url::parse(rustsec::repository::git::DEFAULT_URL).unwrap());
         }
 
         use rayon::prelude::*;
@@ -90,26 +90,26 @@ fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
 }
 
 fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database, Error> {
-    use rustsec::Repository;
+    use rustsec::repository::GitRepository;
     let db_path = url_to_path(root_db_path, db_url)?;
 
     let db_repo = match fetch {
         Fetch::Allow => {
             debug!("Fetching advisory database from '{}'", db_url);
 
-            Repository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
+            GitRepository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
                 .context("failed to fetch advisory database")?
         }
         Fetch::Disallow => {
             debug!("Opening advisory database at '{}'", db_path.display());
 
-            Repository::open(&db_path).context("failed to open advisory database")?
+            GitRepository::open(&db_path).context("failed to open advisory database")?
         }
     };
 
     debug!("loading advisory database from {}", db_path.display());
 
-    let res = Database::load(&db_repo).context("failed to load advisory database");
+    let res = Database::load_from_repo(&db_repo).context("failed to load advisory database");
 
     debug!(
         "finished loading advisory database from {}",
@@ -149,19 +149,12 @@ pub(crate) fn krate_for_pkg<'a>(
     krates
         .krates_by_name(pkg.name.as_str())
         .find(|(_, kn)| {
-            // Temporary hack due to cargo-lock using an older version of semver
-            let pkg_version: Result<semver::Version, _> = pkg.version.to_string().parse();
-
-            if let Ok(pkg_version) = pkg_version {
-                pkg_version == kn.krate.version
-                    && match (&pkg.source, &kn.krate.source) {
-                        (Some(psrc), Some(ksrc)) => psrc == ksrc,
-                        (None, None) => true,
-                        _ => false,
-                    }
-            } else {
-                false
-            }
+            pkg.version == kn.krate.version
+                && match (&pkg.source, &kn.krate.source) {
+                    (Some(psrc), Some(ksrc)) => psrc == ksrc,
+                    (None, None) => true,
+                    _ => false,
+                }
         })
         .map(|(ind, krate)| (ind, &krate.krate))
 }
