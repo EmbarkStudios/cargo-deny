@@ -361,7 +361,7 @@ impl LicensePack {
             writeln!(synth_toml, " }},").unwrap();
         }
 
-        synth_toml.push_str("]");
+        synth_toml.push(']');
 
         if fails.is_empty() {
             Ok((synth_toml, spdx::Expression::parse(&expr).unwrap()))
