@@ -90,6 +90,7 @@ impl KrateContext {
     pub fn gather_krates(
         self,
         cfg_targets: Vec<(krates::Target, Vec<String>)>,
+        cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path.display());
         let start = std::time::Instant::now();
@@ -116,10 +117,11 @@ impl KrateContext {
         gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
         gb.workspace(self.workspace);
 
-        if !self.exclude.is_empty() {
+        if !self.exclude.is_empty() || !cfg_excludes.is_empty() {
             gb.exclude(
                 self.exclude
                     .into_iter()
+                    .chain(cfg_excludes)
                     .filter_map(|spec| match spec.parse() {
                         Ok(spec) => Some(spec),
                         Err(e) => {

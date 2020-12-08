@@ -65,10 +65,13 @@ pub struct Args {
 struct Config {
     #[serde(default)]
     targets: Vec<crate::common::Target>,
+    #[serde(default)]
+    exclude: Vec<String>,
 }
 
 struct ValidConfig {
     targets: Vec<(krates::Target, Vec<String>)>,
+    exclude: Vec<String>,
 }
 
 impl ValidConfig {
@@ -92,6 +95,7 @@ impl ValidConfig {
 
                 return Ok(Self {
                     targets: Vec::new(),
+                    exclude: Vec::new(),
                 });
             }
             None => {
@@ -99,6 +103,7 @@ impl ValidConfig {
 
                 return Ok(Self {
                     targets: Vec::new(),
+                    exclude: Vec::new(),
                 });
             }
         };
@@ -116,8 +121,9 @@ impl ValidConfig {
         let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
             let mut diagnostics = Vec::new();
             let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
+            let exclude = cfg.exclude;
 
-            Ok((diagnostics, Self { targets }))
+            Ok((diagnostics, Self { targets, exclude }))
         };
 
         let print = |diags: Vec<Diagnostic>| {
@@ -163,7 +169,7 @@ pub fn cmd(
     let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files, log_ctx)?;
 
     let (krates, store) = rayon::join(
-        || krate_ctx.gather_krates(cfg.targets),
+        || krate_ctx.gather_krates(cfg.targets, cfg.exclude),
         crate::common::load_license_store,
     );
 

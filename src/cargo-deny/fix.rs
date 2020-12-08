@@ -33,11 +33,14 @@ struct Config {
     advisories: Option<advisories::cfg::Config>,
     #[serde(default)]
     targets: Vec<crate::common::Target>,
+    #[serde(default)]
+    exclude: Vec<String>,
 }
 
 struct ValidConfig {
     advisories: advisories::cfg::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
+    exclude: Vec<String>,
 }
 
 impl ValidConfig {
@@ -92,6 +95,7 @@ impl ValidConfig {
         let mut diags = Vec::new();
         let advisories = cfg.advisories.unwrap_or_default().validate(id, &mut diags);
         let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
+        let exclude = cfg.exclude;
 
         let has_errors = diags
             .iter()
@@ -107,6 +111,7 @@ impl ValidConfig {
             Ok(Self {
                 advisories,
                 targets,
+                exclude,
             })
         }
     }
@@ -123,6 +128,7 @@ pub fn cmd(
     let ValidConfig {
         advisories,
         targets,
+        exclude,
     } = ValidConfig::load(cfg_path, &mut files, log_ctx)?;
 
     // Parallel all the things
@@ -154,7 +160,7 @@ pub fn cmd(
         });
 
         s.spawn(|_| {
-            krates = Some(ctx.gather_krates(targets));
+            krates = Some(ctx.gather_krates(targets, exclude));
             if let Ok(krates) = krates.as_ref().unwrap() {
                 lockfile = Some(advisories::load_lockfile(krates.lock_path()));
             }

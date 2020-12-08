@@ -69,6 +69,8 @@ struct Config {
     sources: Option<sources::Config>,
     #[serde(default)]
     targets: Vec<crate::common::Target>,
+    #[serde(default)]
+    exclude: Vec<String>,
 }
 
 struct ValidConfig {
@@ -77,6 +79,7 @@ struct ValidConfig {
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
+    exclude: Vec<String>,
 }
 
 impl ValidConfig {
@@ -127,6 +130,7 @@ impl ValidConfig {
             let sources = cfg.sources.unwrap_or_default().validate(id, &mut diags);
 
             let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
+            let exclude = cfg.exclude;
 
             (
                 diags,
@@ -136,6 +140,7 @@ impl ValidConfig {
                     licenses,
                     sources,
                     targets,
+                    exclude,
                 },
             )
         };
@@ -177,7 +182,14 @@ pub(crate) fn cmd(
     krate_ctx: crate::common::KrateContext,
 ) -> Result<AllStats, Error> {
     let mut files = Files::new();
-    let mut cfg = ValidConfig::load(
+    let ValidConfig {
+        advisories,
+        bans,
+        licenses,
+        sources,
+        targets,
+        exclude,
+    } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         &mut files,
         log_ctx,
@@ -212,11 +224,9 @@ pub(crate) fn cmd(
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
-    let targets = std::mem::replace(&mut cfg.targets, Vec::new());
-
     rayon::scope(|s| {
         s.spawn(|_| {
-            let gathered = krate_ctx.gather_krates(targets);
+            let gathered = krate_ctx.gather_krates(targets, exclude);
 
             if let Ok(ref krates) = gathered {
                 rayon::scope(|s| {
@@ -238,8 +248,8 @@ pub(crate) fn cmd(
         if check_advisories {
             s.spawn(|_| {
                 advisory_dbs = Some(advisories::DbSet::load(
-                    cfg.advisories.db_path.clone(),
-                    cfg.advisories
+                    advisories.db_path.clone(),
+                    advisories
                         .db_urls
                         .iter()
                         .map(|us| us.as_ref().clone())
@@ -290,9 +300,9 @@ pub(crate) fn cmd(
         let store = license_store.unwrap()?;
         let gatherer = licenses::Gatherer::default()
             .with_store(std::sync::Arc::new(store))
-            .with_confidence_threshold(cfg.licenses.confidence_threshold);
+            .with_confidence_threshold(licenses.confidence_threshold);
 
-        Some(gatherer.gather(&krates, &mut files, Some(&cfg.licenses)))
+        Some(gatherer.gather(&krates, &mut files, Some(&licenses)))
     } else {
         None
     };
@@ -347,10 +357,9 @@ pub(crate) fn cmd(
 
         if let Some(summary) = license_summary {
             let lic_tx = tx.clone();
-            let lic_cfg = cfg.licenses;
 
             let ctx = CheckCtx {
-                cfg: lic_cfg,
+                cfg: licenses,
                 krates: &krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
@@ -398,10 +407,9 @@ pub(crate) fn cmd(
             });
 
             let ban_tx = tx.clone();
-            let ban_cfg = cfg.bans;
 
             let ctx = CheckCtx {
-                cfg: ban_cfg,
+                cfg: bans,
                 krates: &krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
@@ -419,10 +427,9 @@ pub(crate) fn cmd(
 
         if check_sources {
             let sources_tx = tx.clone();
-            let sources_cfg = cfg.sources;
 
             let ctx = CheckCtx {
-                cfg: sources_cfg,
+                cfg: sources,
                 krates: &krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
@@ -439,10 +446,9 @@ pub(crate) fn cmd(
         }
 
         if let Some((db, lockfile)) = advisory_ctx {
-            let adv_cfg = cfg.advisories;
 
             let ctx = CheckCtx {
-                cfg: adv_cfg,
+                cfg: advisories,
                 krates: &krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
