@@ -446,7 +446,6 @@ pub(crate) fn cmd(
         }
 
         if let Some((db, lockfile)) = advisory_ctx {
-
             let ctx = CheckCtx {
                 cfg: advisories,
                 krates: &krates,
