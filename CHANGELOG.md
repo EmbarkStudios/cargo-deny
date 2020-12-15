@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#315](https://github.com/EmbarkStudios/cargo-deny/pull/315) resolved [#312](https://github.com/EmbarkStudios/cargo-deny/issues/312) by adding support for excluding packages in the deny configuration file, in addition to the existing support for the `--exclude` CLI option. Thanks [@luser](https://github.com/luser)!
+
+### Fixed
+- [PR#318](https://github.com/EmbarkStudios/cargo-deny/pull/318) fixed [#316](https://github.com/EmbarkStudios/cargo-deny/issues/316) by adding a workaround for crate versions with pre-release identifiers in them that could be erroneously marked as matching advisories in an advisory database. Thanks for reporting this [@djc](https://github.com/djc)!
+
 ## [0.8.4] - 2020-11-11
 ### Changed
 - Updated dependencies, notably `rustsec`, `crossbeam`*, and `cargo`.
