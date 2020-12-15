@@ -214,7 +214,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         krate: &crate::Krate,
         krate_index: krates::NodeId,
         advisory: &Metadata,
-        patched: &semver::VersionReq,
+        matched: &semver::VersionReq,
     ) -> Pack {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
@@ -225,7 +225,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 n.push(format!("Advisory: {}", &url));
             }
 
-            n.push(format!("Satisfied patch requirement: {}", patched));
+            n.push(format!("Satisfied version requirement: {}", matched));
 
             n
         };

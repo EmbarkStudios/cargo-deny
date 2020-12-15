@@ -131,7 +131,7 @@ fn skips_prereleases() {
 
     assert!(iter_notes(vuln_diag)
         .expect("expected notes on diag")
-        .any(|s| s == "Satisfied patch requirement: >=0.5.0-alpha.3"));
+        .any(|s| s == "Satisfied version requirement: >=0.5.0-alpha.3"));
 }
 
 #[test]

@@ -93,6 +93,15 @@ pub fn check<R>(
                                 return;
                             }
                         }
+
+                        for unaffected in versions.unaffected.iter().rev() {
+                            if unaffected.matches(&rematch) {
+                                let skipped_diag =
+                                    ctx.diag_for_prerelease_skipped(krate, i, advisory, unaffected);
+                                sink.push(skipped_diag);
+                                return;
+                            }
+                        }
                     }
                 }
 
