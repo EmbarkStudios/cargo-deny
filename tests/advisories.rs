@@ -11,19 +11,19 @@ struct TestCtx {
     krates: Krates,
 }
 
+fn iter_notes(diag: &serde_json::Value) -> Option<impl Iterator<Item = &str>> {
+    diag.pointer("/fields/notes")
+        .and_then(|notes| notes.as_array())
+        .map(|array| array.iter().filter_map(|s| s.as_str()))
+}
+
 fn find_by_code<'a>(
     diags: &'a [serde_json::Value],
     code: &'_ str,
 ) -> Option<&'a serde_json::Value> {
-    diags.iter().find(|v| {
-        v.pointer("/fields/notes")
-            .and_then(|notes| notes.as_array())
-            .map(|s| {
-                s.iter()
-                    .filter_map(|s| s.as_str())
-                    .any(|s| s.contains(code))
-            })
-            .unwrap_or(false)
+    diags.iter().find(|v| match iter_notes(v) {
+        Some(mut notes) => notes.any(|note| note.contains(code)),
+        None => false,
     })
 }
 
@@ -93,6 +93,45 @@ fn detects_vulnerabilities() {
         "/fields/labels/0/message",
         "security vulnerability detected"
     );
+}
+
+#[test]
+#[ignore]
+fn skips_prereleases() {
+    let TestCtx { dbs, lock, krates } = load();
+
+    let cfg = "vulnerability = 'deny'";
+
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        krates,
+        "skips_prereleases",
+        Some(cfg),
+        None,
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
+        },
+    )
+    .unwrap();
+
+    let vuln_diag = find_by_code(&diags, "RUSTSEC-2018-0007").unwrap();
+
+    assert_field_eq!(vuln_diag, "/fields/severity", "warning");
+    assert_field_eq!(
+        vuln_diag,
+        "/fields/message",
+        "advisory for a crate with a pre-release was skipped as it matched a patch"
+    );
+    assert_field_eq!(vuln_diag, "/fields/labels/0/message", "pre-release crate");
+
+    assert!(iter_notes(vuln_diag)
+        .expect("expected notes on diag")
+        .any(|s| s == "Satisfied version requirement: >=0.5.0-alpha.3"));
 }
 
 #[test]
@@ -242,10 +281,7 @@ fn detects_yanked() {
     )
     .unwrap();
 
-    let yanked = [
-        "quote 1.0.2 registry+https://github.com/rust-lang/crates.io-index",
-        "spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index",
-    ];
+    let yanked = ["spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"];
 
     for yanked in &yanked {
         assert!(
