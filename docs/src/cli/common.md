@@ -43,6 +43,11 @@ This uses a similar (though slightly more strict)
 [Package ID specification](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html)
 to other cargo subcommands.
 
+Packages can also be excluded in your
+[configuration](../checks/cfg.md#the-exclude-field-optional) files, specifying
+this on the command line will append the package ID to the list that may exist
+in your configuration.
+
 #### `-L, --log-level`
 
 The log level for messages, only log messages at or above the level will be
