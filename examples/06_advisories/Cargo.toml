@@ -12,6 +12,9 @@ ammonia = "=0.7.0"
 # Transitively depends on an ammonia 1.2.0
 artifact_serde = "0.3.1"
 
+# Failure has an unsound advisory (and is unmaintained)
+failure = "=0.1.8"
+
 # libusb is unmaintained
 # https://github.com/RustSec/advisory-db/blob/5b35b71cf74eed58696aeeb5a764a9f0a66fe7ba/crates/libusb/RUSTSEC-2016-0004.toml
 libusb = "0.3.0"

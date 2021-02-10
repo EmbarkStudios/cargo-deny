@@ -22,7 +22,7 @@ fn is_false(v: &bool) -> bool {
 }
 
 fn is_normal(v: &'static str) -> bool {
-    v == ""
+    v.is_empty()
 }
 
 #[allow(clippy::ptr_arg)]

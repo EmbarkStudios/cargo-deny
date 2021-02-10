@@ -17,6 +17,8 @@ ignore = [
     "RUSTSEC-2020-0036",
     # cargo uses a a vulnerable version of sized-chunks
     "RUSTSEC-2020-0041",
+    # difference is unmaintained but suits our needs just fine
+    "RUSTSEC-2020-0095",
 ]
 
 [bans]
@@ -30,8 +32,6 @@ skip = [
     { name = "crossbeam-utils", version = "=0.7.2" },
     # cargo uses crypto-hash, which uses an old version
     { name = "hex", version = "=0.3.2" },
-    # cargo depends on both 2.0.1 (direct) and 1.3.0 via env_logger
-    { name = "humantime", version = "=1.3.0" },
     # cargo uses an older version of semver
     { name = "semver", version = "=0.10.0" },
     { name = "semver-parser", version = "=0.7.0" },
