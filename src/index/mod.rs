@@ -74,7 +74,7 @@ impl IndexKrate {
             "looks like a different Cargo's cache, bailing out"
         );
 
-        fn split<'a>(haystack: &'a [u8], needle: u8) -> impl Iterator<Item = &'a [u8]> + 'a {
+        fn split(haystack: &[u8], needle: u8) -> impl Iterator<Item = &[u8]> {
             struct Split<'a> {
                 haystack: &'a [u8],
                 needle: u8,
