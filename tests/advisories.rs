@@ -197,10 +197,14 @@ fn detects_unsound() {
     )
     .unwrap();
 
-    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0035").unwrap();
+    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
 
     assert_field_eq!(unsound_diag, "/fields/severity", "warning");
-    assert_field_eq!(unsound_diag, "/fields/message", "Unaligned memory access");
+    assert_field_eq!(
+        unsound_diag,
+        "/fields/message",
+        "Type confusion if __private_get_type_id__ is overriden"
+    );
     assert_field_eq!(
         unsound_diag,
         "/fields/labels/0/message",
@@ -209,7 +213,7 @@ fn detects_unsound() {
     assert_field_eq!(
         unsound_diag,
         "/fields/labels/0/span",
-        "rand_core 0.3.1 registry+https://github.com/rust-lang/crates.io-index"
+        "failure 0.1.8 registry+https://github.com/rust-lang/crates.io-index"
     );
 }
 
