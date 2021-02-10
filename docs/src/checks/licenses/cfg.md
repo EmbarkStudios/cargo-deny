@@ -19,6 +19,15 @@ allow = [
     # A custom license identifier
     "LicenseRef-Embark-Custom",
 ]
+
+# Custom license refs can be specified for crates which don't use a license
+# in the SPDX list
+[[licenses.clarify]]
+name = "a-crate"
+expression = "LicenseRef-Embark-Custom"
+license-files = [
+    { path = "LICENSE", hash = 0x001c7e6c },
+]
 ```
 
 License identifiers can also be coupled with an optional [exception](https://spdx.org/licenses/exceptions-index.html) by appending `WITH <exception-id>` to the license identifier. Licenses coupled with exceptions are considered distinct from the same license without the exception.
