@@ -27,7 +27,7 @@ cargo install cargo-deny && cargo deny init && cargo deny check
 ### [Install](https://embarkstudios.github.io/cargo-deny/cli/index.html) cargo-deny
 
 If you want to use `cargo-deny` without having `cargo` installed,
-build `cargo-deny` with the `standalone1 feature.
+build `cargo-deny` with the `standalone` feature.
 This can be useful in Docker Images.
 
 ```bash
