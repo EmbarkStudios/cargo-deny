@@ -45,12 +45,9 @@ allow = [
 
 Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via `LICENSE*` files in the crate's source.
 
-* `deny` (default) - All unlicensed crates will emit an error and fail the
-license check
-* `allow` - All unlicensed crates will show a note, but will not fail the
-license check
-* `warn` - All unlicensed crates will show a warning, but will not fail the
-license check
+* `deny` (default) - All unlicensed crates will emit an error and fail the license check
+* `allow` - All unlicensed crates will show a note, but will not fail the license check
+* `warn` - All unlicensed crates will show a warning, but will not fail the license check
 
 ### The `allow` and `deny` fields (optional)
 
@@ -108,10 +105,8 @@ exceptions = [
 
 Determines what happens when a license that is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft) is encountered.
 
-* `warn` (default) - Will emit a warning that a copyleft license was detected,
-but will not fail the license check
-* `deny` - The license is not accepted if it is copyleft, but the license check
-might not fail if the expression still evaluates to true
+* `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
+* `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true
 * `allow` - The license is accepted if it is copyleft
 
 ### The `allow-osi-fsf-free` field (optional)
@@ -132,10 +127,8 @@ Determines what happens when a license is encountered that:
 1. Isn't `copyleft`
 1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
 
-* `warn` - Will emit a warning that the license was detected, but will not fail
-the license check
-* `deny` (default) - The license is not accepted, but the license check might
-not fail if the expression still evaluates to true
+* `warn` - Will emit a warning that the license was detected, but will not fail the license check
+* `deny` (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true
 * `allow` - The license is accepted
 
 ### The `confidence-threshold` field (optional)
@@ -204,9 +197,7 @@ private = { ignore = true }
 
 ### The `registries` field
 
-A list of private registries you may publish your workspace crates to. If a
-workspace member **only** publishes to private registries, it will also be
-ignored if `private.ignore = true`
+A list of private registries you may publish your workspace crates to. If a workspace member **only** publishes to private registries, it will also be ignored if `private.ignore = true`
 
 ```ini
 [package]
