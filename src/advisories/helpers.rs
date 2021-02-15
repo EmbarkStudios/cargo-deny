@@ -90,20 +90,20 @@ fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
 }
 
 fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database, Error> {
-    use rustsec::repository::GitRepository;
+    use rustsec::repository::git::Repository;
     let db_path = url_to_path(root_db_path, db_url)?;
 
     let db_repo = match fetch {
         Fetch::Allow => {
             debug!("Fetching advisory database from '{}'", db_url);
 
-            GitRepository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
+            Repository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
                 .context("failed to fetch advisory database")?
         }
         Fetch::Disallow => {
             debug!("Opening advisory database at '{}'", db_path.display());
 
-            GitRepository::open(&db_path).context("failed to open advisory database")?
+            Repository::open(&db_path).context("failed to open advisory database")?
         }
     };
 
