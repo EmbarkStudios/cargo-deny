@@ -68,10 +68,8 @@ krates = { version = "0.6", features = ["targets"] }
 log = "0.4"
 # Used when parsing binary files in registry index caches
 memchr = "2.3"
-#percent-encoding = "2.1"
 # Moar brrrr
 rayon = "1.4"
-#regex = { version = "1.3", default-features = true }
 # Used for interacting with advisory databases
 rustsec = "0.23"
 # Parsing and checking of versions/version requirements
