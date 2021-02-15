@@ -19,7 +19,7 @@ fn merge_inline_table(old_dep: &mut toml_edit::Item, new: &toml_edit::Item) {
 }
 
 fn str_or_1_len_table(item: &toml_edit::Item) -> bool {
-    item.is_str() || item.as_table_like().map(|t| t.len() == 1).unwrap_or(false)
+    item.is_str() || item.as_table_like().map_or(false, |t| t.len() == 1)
 }
 
 fn merge_dependencies(old_dep: &mut toml_edit::Item, new: &dep::Dependency) {
@@ -148,7 +148,7 @@ impl Manifest {
                     .unwrap_or(name);
 
                 if let Some(update_dep) = deps.iter().find(|dep| dep.name == dep_name) {
-                    self.update_table_named_entry(&table_path, &name, update_dep)?;
+                    self.update_table_named_entry(&table_path, name, update_dep)?;
                 }
             }
         }

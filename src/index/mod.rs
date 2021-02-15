@@ -180,12 +180,7 @@ impl Index {
     where
         F: FnMut(Option<&IndexKrate>),
     {
-        if !krate
-            .source
-            .as_ref()
-            .map(|src| src.is_registry())
-            .unwrap_or(false)
-        {
+        if !krate.source.as_ref().map_or(false, |src| src.is_registry()) {
             func(None);
             return;
         }
@@ -204,6 +199,7 @@ impl Index {
             if self.opened[ind].is_none() {
                 match self.registries[ind].open_or_clone() {
                     Ok(bir) => {
+                        #[allow(unsafe_code)] // TODO: Can we get rid of this transmute?
                         let bir = unsafe { std::mem::transmute::<_, BareIndexRepo<'static>>(bir) };
                         self.opened[ind] = Some(bir);
                     }
@@ -234,7 +230,7 @@ impl Drop for Index {
     }
 }
 
-/// Converts a full url, eg https://github.com/rust-lang/crates.io-index, into
+/// Converts a full url, eg <https://github.com/rust-lang/crates.io-index>, into
 /// the root directory name where cargo itself will fetch it on disk
 pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {

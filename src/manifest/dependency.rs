@@ -113,8 +113,7 @@ impl Dependency {
     pub fn set_features(mut self, features: Option<Vec<String>>) -> Dependency {
         self.features = features.map(|f| {
             f.iter()
-                .map(|x| x.split(' ').map(String::from))
-                .flatten()
+                .flat_map(|x| x.split(' ').map(String::from))
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<String>>()
         });
@@ -137,7 +136,7 @@ impl Dependency {
     /// that is, either the alias (rename field if Some),
     /// or the official package name (name field).
     pub fn name_in_manifest(&self) -> &str {
-        &self.rename().unwrap_or(&self.name)
+        self.rename().unwrap_or(&self.name)
     }
 
     /// Set the value of registry for the dependency
@@ -170,7 +169,7 @@ impl Dependency {
     /// Get the alias for the dependency (if any)
     pub fn rename(&self) -> Option<&str> {
         match &self.rename {
-            Some(rename) => Some(&rename),
+            Some(rename) => Some(rename),
             None => None,
         }
     }

@@ -245,7 +245,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         // denied and allowed, that's confusing and probably not intended, so
         // they should pick one
         for (di, d) in denied.iter().enumerate() {
-            if let Ok(ai) = allowed.binary_search(&d) {
+            if let Ok(ai) = allowed.binary_search(d) {
                 diags.push(
                     Diagnostic::error()
                         .with_message("a license id was specified in both `allow` and `deny`")

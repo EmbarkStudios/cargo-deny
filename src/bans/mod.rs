@@ -212,7 +212,6 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
-        ..
     } = ctx.cfg;
 
     let krate_spans = &ctx.krate_spans;

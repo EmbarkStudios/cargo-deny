@@ -11,7 +11,7 @@ pub trait AuditReporter {
     fn report(&mut self, report: serde_json::Value);
 }
 
-/// For when you just want to satisfy AuditReporter without doing anything
+/// For when you just want to satisfy `AuditReporter` without doing anything
 pub struct NoneReporter;
 impl AuditReporter for NoneReporter {
     fn report(&mut self, _report: serde_json::Value) {}
@@ -67,8 +67,7 @@ pub fn check<R>(
 
     let mut send_diag =
         |pkg: &Package, advisory: &Metadata, versions: Option<&Versions>| match krate_for_pkg(
-            &ctx.krates,
-            pkg,
+            ctx.krates, pkg,
         ) {
             Some((i, krate)) => {
                 // This is a workaround for https://github.com/steveklabnik/semver/issues/172,
@@ -130,13 +129,13 @@ pub fn check<R>(
         .iter_warnings()
         .filter_map(|(_, wi)| wi.advisory.as_ref().map(|wia| (wi, wia)))
     {
-        send_diag(&warning.package, &advisory, warning.versions.as_ref());
+        send_diag(&warning.package, advisory, warning.versions.as_ref());
     }
 
     match yanked {
         Ok(yanked) => {
             for pkg in yanked {
-                match krate_for_pkg(&ctx.krates, &pkg) {
+                match krate_for_pkg(ctx.krates, pkg) {
                     Some((ind, krate)) => {
                         sink.push(ctx.diag_for_yanked(krate, ind));
                     }
