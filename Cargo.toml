@@ -100,4 +100,4 @@ lazy_static = "1.4.0"
 tempfile = "3.1.0"
 
 [patch.crates-io]
-rustsec = { git = "https://github.com/EmbarkStudios/rustsec-crate", rev = "f8ec004" }
+rustsec = { git = "https://github.com/EmbarkStudios/rustsec-crate", rev = "527290c" }
