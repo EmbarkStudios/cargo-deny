@@ -1409,7 +1409,7 @@ dependencies = [
 [[package]]
 name = "rustsec"
 version = "0.23.0"
-source = "git+https://github.com/EmbarkStudios/rustsec-crate?rev=f8ec004#f8ec00441be84b3124ec7e3192bba40b49c62210"
+source = "git+https://github.com/EmbarkStudios/rustsec-crate?rev=527290c#527290cda4f444e3c4c2559a2b8305dd82124a13"
 dependencies = [
  "cargo-lock",
  "crates-index",
