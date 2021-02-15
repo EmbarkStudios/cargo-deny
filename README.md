@@ -19,7 +19,7 @@ _Please Note: This is a tool that we use (and like!) and it makes sense to us to
 ## [Quickstart](https://embarkstudios.github.io/cargo-deny/)
 
 ```bash
-cargo install cargo-deny && cargo deny init && cargo deny check
+cargo install --locked cargo-deny && cargo deny init && cargo deny check
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ build `cargo-deny` with the `standalone` feature.
 This can be useful in Docker Images.
 
 ```bash
-cargo install cargo-deny
+cargo install --locked cargo-deny
 
 # Or, if you're an Arch user
 yay -S cargo-deny

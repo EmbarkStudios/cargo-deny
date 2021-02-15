@@ -9,7 +9,7 @@ Installs cargo-deny, initializes your project with a default configuration,
 then runs all of the checks against your project.
 
 ```bash
-cargo install cargo-deny && cargo deny init && cargo deny check
+cargo install --locked cargo-deny && cargo deny init && cargo deny check
 ```
 
 ## Command Line Interface

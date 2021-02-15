@@ -58,7 +58,7 @@
 //! ## [Quickstart](https://embarkstudios.github.io/cargo-deny/)
 //!
 //! ```bash
-//! cargo install cargo-deny && cargo deny init && cargo deny check
+//! cargo install --locked cargo-deny && cargo deny init && cargo deny check
 //! ```
 //!
 //! ## Usage
@@ -66,7 +66,7 @@
 //! ### [Install](https://embarkstudios.github.io/cargo-deny/cli/index.html) cargo-deny
 //!
 //! ```bash
-//! cargo install cargo-deny
+//! cargo install --locked cargo-deny
 //! ```
 //!
 //! ### [Initialize](https://embarkstudios.github.io/cargo-deny/cli/init.html) your project

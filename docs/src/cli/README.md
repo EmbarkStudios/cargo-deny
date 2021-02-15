@@ -37,7 +37,7 @@ Installing cargo-deny is relatively easy if you already have Rust and Cargo
 installed. You just have to type this snippet in your terminal:
 
 ```bash
-cargo install cargo-deny
+cargo install --locked cargo-deny
 ```
 
 This will fetch the source code for the latest release from
@@ -55,7 +55,7 @@ the latest bug-fixes and features, that will be released in the next version on
 version yourself.
 
 ```bash
-cargo install --git https://github.com/EmbarkStudios/cargo-deny cargo-deny
+cargo install --locked --git https://github.com/EmbarkStudios/cargo-deny cargo-deny
 ```
 
 Run `cargo deny help` in your terminal to verify if it works. Congratulations,
