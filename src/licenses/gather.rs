@@ -279,7 +279,7 @@ impl LicensePack {
                                     // but we want to see what it thinks the license is if the confidence
                                     // is somewhat ok at least
                                     if lic_match.score >= confidence {
-                                        match spdx::license_id(&identified.name) {
+                                        match spdx::license_id(identified.name) {
                                             Some(id) => {
                                                 if lic_count > 0 {
                                                     expr.push_str(" AND ");
@@ -587,7 +587,7 @@ impl Gatherer {
                 let mut license_pack = None;
 
                 // 1
-                if let Some(ref cfg) = cfg {
+                if let Some(cfg) = cfg {
                     for clarification in iter_clarifications(&cfg.clarifications, krate) {
                         let lp = match license_pack {
                             Some(ref lp) => lp,
@@ -601,7 +601,7 @@ impl Gatherer {
                         // the set of detected licenses, if they do, we use the clarification's
                         // license expression as the license requirements for this crate
                         let clarifications_match = clarification.license_files.iter().all(|clf| {
-                            match lp.license_files_match(&clf) {
+                            match lp.license_files_match(clf) {
                                 Ok(_) => true,
                                 Err(reason) => {
                                     if let MismatchReason::FileNotFound = reason {

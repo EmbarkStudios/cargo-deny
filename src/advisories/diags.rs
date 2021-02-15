@@ -98,7 +98,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             )
         };
 
-        let mut notes = get_notes_from_advisory(&advisory);
+        let mut notes = get_notes_from_advisory(advisory);
 
         if let Some(versions) = versions {
             if versions.patched.is_empty() {

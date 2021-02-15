@@ -1,4 +1,4 @@
-//! This is a copy of https://github.com/frewsxcv/rust-crates-index/pull/41 so
+//! This is a copy of <https://github.com/frewsxcv/rust-crates-index/pull/41> so
 //! that we can make releases of cargo-deny until/if it is merged and released
 
 use super::IndexKrate;
@@ -72,7 +72,10 @@ impl<'a> BareIndexRepo<'a> {
             let commit = repo.find_commit(head)?;
             let tree = commit.tree()?;
 
-            unsafe { std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree) }
+            #[allow(unsafe_code)] // TODO: Can we get rid of this transmute?
+            unsafe {
+                std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree)
+            }
         };
 
         Ok(Self {
@@ -110,7 +113,7 @@ impl<'a> BareIndexRepo<'a> {
     }
 
     fn krate_from_blob(&self, path: &str) -> Result<IndexKrate, Error> {
-        let entry = self.tree.as_ref().unwrap().get_path(&Path::new(path))?;
+        let entry = self.tree.as_ref().unwrap().get_path(Path::new(path))?;
         let object = entry.to_object(&self.repo)?;
         let blob = object.as_blob().context("unable to get blob contents")?;
 

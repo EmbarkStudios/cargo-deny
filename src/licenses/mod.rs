@@ -291,7 +291,7 @@ pub fn check(
             && krate_lic_nfo.krate.is_private(&private_registries)
         {
             pack.push(diags::SkippedPrivateWorkspaceCrate {
-                krate: &krate_lic_nfo.krate,
+                krate: krate_lic_nfo.krate,
             });
             sink.push(pack);
             continue;
@@ -302,8 +302,8 @@ pub fn check(
                 pack.push(evaluate_expression(
                     &ctx.cfg,
                     &krate_lic_nfo,
-                    &expr,
-                    &nfo,
+                    expr,
+                    nfo,
                     &mut hits,
                 ));
             }
@@ -315,7 +315,7 @@ pub fn check(
                 };
 
                 pack.push(diags::Unlicensed {
-                    krate: &krate_lic_nfo.krate,
+                    krate: krate_lic_nfo.krate,
                     severity,
                     breadcrumbs: krate_lic_nfo.labels.into_iter().collect(),
                 });

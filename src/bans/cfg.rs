@@ -177,7 +177,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         }
 
         for a in &allowed {
-            if let Ok(si) = skipped.binary_search(&a) {
+            if let Ok(si) = skipped.binary_search(a) {
                 add_diag((a, "allow"), (&skipped[si], "skip"));
             }
         }

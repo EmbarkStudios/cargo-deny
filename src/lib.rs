@@ -1,5 +1,46 @@
-#![warn(clippy::all)]
-#![warn(rust_2018_idioms)]
+// Standard Embark lints
+#![deny(unsafe_code)]
+#![warn(
+    clippy::all,
+    clippy::doc_markdown,
+    clippy::dbg_macro,
+    clippy::todo,
+    clippy::empty_enum,
+    clippy::enum_glob_use,
+    clippy::pub_enum_variant_names,
+    clippy::mem_forget,
+    clippy::unused_self,
+    clippy::filter_map_next,
+    clippy::needless_continue,
+    clippy::explicit_into_iter_loop,
+    clippy::needless_borrow,
+    clippy::match_wildcard_for_single_variants,
+    clippy::if_let_mutex,
+    clippy::mismatched_target_os,
+    clippy::await_holding_lock,
+    clippy::match_on_vec_items,
+    clippy::imprecise_flops,
+    clippy::suboptimal_flops,
+    clippy::lossy_float_literal,
+    clippy::let_unit_value,
+    clippy::debug_assert_with_mut_call,
+    clippy::ref_option_ref,
+    clippy::map_flatten,
+    clippy::rest_pat_in_fully_bound_structs,
+    clippy::fn_params_excessive_bools,
+    clippy::exit,
+    clippy::inefficient_to_string,
+    clippy::linkedlist,
+    clippy::string_to_string,
+    clippy::macro_use_imports,
+    clippy::option_option,
+    clippy::verbose_file_reads,
+    clippy::unnested_or_patterns,
+    clippy::map_unwrap_or,
+    rust_2018_idioms,
+    future_incompatible,
+    nonstandard_style
+)]
 #![cfg_attr(docsrs, feature(external_doc))]
 
 //! # ❌ cargo-deny
@@ -244,17 +285,14 @@ impl Krate {
     /// Returns true if the crate is marked as `publish = false`, or
     /// it is only published to the specified private registries
     pub(crate) fn is_private(&self, private_registries: &[&str]) -> bool {
-        self.publish
-            .as_ref()
-            .map(|v| {
-                if v.is_empty() {
-                    true
-                } else {
-                    v.iter()
-                        .all(|reg| private_registries.contains(&reg.as_str()))
-                }
-            })
-            .unwrap_or(false)
+        self.publish.as_ref().map_or(false, |v| {
+            if v.is_empty() {
+                true
+            } else {
+                v.iter()
+                    .all(|reg| private_registries.contains(&reg.as_str()))
+            }
+        })
     }
 }
 

@@ -73,7 +73,7 @@ impl super::Report {
 
                 warning.versions.as_ref().and_then(|vs| {
                     warning.advisory.as_ref().map(|adv| Patchable {
-                        advisory: &adv,
+                        advisory: adv,
                         patched: &vs.patched,
                         krate: &warning.package,
                     })
@@ -110,7 +110,7 @@ impl super::Report {
             // (workspace/local crates) that depend on the vulnerable crate version
             // 3. For each crate in the chain, check to see if has a version
             // available that ultimately includes a patched version of the vulnerable crate
-            let (ind, vuln_krate) = super::krate_for_pkg(krates, &patchable.krate).unwrap();
+            let (ind, vuln_krate) = super::krate_for_pkg(krates, patchable.krate).unwrap();
 
             let mut pack = Pack::with_kid(Check::Advisories, vuln_krate.id.clone());
 
@@ -119,7 +119,7 @@ impl super::Report {
             if patchable.patched.is_empty() {
                 pack.push(diags::NoAvailablePatches {
                     affected_krate_coord: krate_spans.get_coord(ind.index()),
-                    advisory: &patchable.advisory,
+                    advisory: patchable.advisory,
                 });
                 diags.push(pack);
                 continue;
@@ -161,7 +161,7 @@ impl super::Report {
             if required.is_empty() {
                 pack.push(diags::NoAvailablePatchedVersions {
                     affected_krate_coord: krate_spans.get_coord(ind.index()),
-                    advisory: &patchable.advisory,
+                    advisory: patchable.advisory,
                 });
                 diags.push(pack);
                 continue;
@@ -342,7 +342,7 @@ impl super::Report {
     ) -> Result<Vec<Version>, NoVersionReason> {
         let mut res = None;
 
-        index.read_krate(&parent, |ik| {
+        index.read_krate(parent, |ik| {
             match ik {
                 Some(parent_krate) => {
                     // Grab all of the versions of the parent crate that have a version requirement that accepts
@@ -359,7 +359,7 @@ impl super::Report {
                                 dep.kind != Some(krates::cm::DependencyKind::Development)
                                     && dep.name == child.name
                             }) {
-                                if !required.iter().any(|vs| dep.req.matches(&vs)) {
+                                if !required.iter().any(|vs| dep.req.matches(vs)) {
                                     return None;
                                 }
                             }
