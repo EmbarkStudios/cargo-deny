@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated dependencies, notably `cargo`.
+- Updated documentation to clarify SPDX identifiers, and how to use custom ones.
+
 ## [0.8.5] - 2020-12-15
 ### Added
 - [PR#315](https://github.com/EmbarkStudios/cargo-deny/pull/315) resolved [#312](https://github.com/EmbarkStudios/cargo-deny/issues/312) by adding support for excluding packages in the deny configuration file, in addition to the existing support for the `--exclude` CLI option. Thanks [@luser](https://github.com/luser)!
