@@ -294,9 +294,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e7295b602ecd3f5c3b30983c61e1244910d78a87df2c217c7392a97ab004baa"
+checksum = "2b81b9640fc656040fbf0d3f2bafacadcf17d55f2b0dc89589c1b80b0658fd5a"
 dependencies = [
  "smallvec",
  "target-lexicon",
