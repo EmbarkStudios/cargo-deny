@@ -95,8 +95,7 @@ url = "2.1"
 [dev-dependencies]
 # Avoid loading license check many times
 lazy_static = "1.4.0"
-# We use this for creating fake crate directories for
-# crawling license files on disk
+# We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 
 [patch.crates-io]
