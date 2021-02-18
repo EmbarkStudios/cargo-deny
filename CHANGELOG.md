@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.8.7] - 2021-02-18
 ### Fixed
 - Resolved [#331](https://github.com/EmbarkStudios/cargo-deny/issues/331) by updating `bitvec` and `funty`.
 
@@ -252,7 +253,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.6...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...HEAD
+[0.8.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.6...0.8.7
 [0.8.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.5...0.8.6
 [0.8.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.4...0.8.5
 [0.8.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.3...0.8.4
