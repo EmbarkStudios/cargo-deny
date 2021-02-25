@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.8.8] - 2021-02-25
 ### Changed
 - Updated dependencies, notably `cargo` and `rustsec`.
 - Increase MSRV to `1.46.0` due to bump of `smol_str`/`rustsec`.
@@ -259,7 +260,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...HEAD
+[0.8.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.6...0.8.7
 [0.8.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.5...0.8.6
 [0.8.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.4...0.8.5
