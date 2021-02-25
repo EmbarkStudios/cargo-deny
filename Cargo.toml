@@ -45,12 +45,12 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "0.21", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.50", optional = true }
+cargo = { version = "0.51", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
 # Used for diagnostic reporting
-codespan = { version = "0.9", features = ["reporting"] }
-codespan-reporting = "0.9"
+codespan = "0.11"
+codespan-reporting = "0.11"
 # Brrrrr
 crossbeam = "0.8"
 # We use this for displaying diffs for dry runs of the `fix` subcommand, as
@@ -63,17 +63,15 @@ git2 = { version = "0.13", features = ["vendored-openssl"] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.5", features = ["targets"] }
+krates = { version = "0.6", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Used when parsing binary files in registry index caches
 memchr = "2.3"
-#percent-encoding = "2.1"
 # Moar brrrr
 rayon = "1.4"
-#regex = { version = "1.3", default-features = true }
 # Used for interacting with advisory databases
-rustsec = "0.22"
+rustsec = "0.23"
 # Parsing and checking of versions/version requirements
 semver = "0.11"
 # Gee what could it be
@@ -81,9 +79,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
 smallvec = "1.6"
-# Versions of smol_str > 0.1.16 include code that only works on latest stable
-# (1.46+) which is far too aggressive for what is just a transitive dependency
-smol_str = { version = "=0.1.16" }
 # Used for parsing and checking SPDX license expressions
 spdx = "0.3"
 # Handles all of the argument parsing
@@ -100,6 +95,5 @@ url = "2.1"
 [dev-dependencies]
 # Avoid loading license check many times
 lazy_static = "1.4.0"
-# We use this for creating fake crate directories for
-# crawling license files on disk
+# We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"

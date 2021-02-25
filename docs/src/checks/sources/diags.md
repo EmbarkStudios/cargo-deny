@@ -2,8 +2,7 @@
 
 ### `S001` - 'git' source is underspecified
 
-A `git` source uses a specification that doesn't meet the minimum specifier
-required by [`sources.required-git-spec`](cfg.md#the-required-git-spec-optional).
+A `git` source uses a specification that doesn't meet the minimum specifier required by [`sources.required-git-spec`](cfg.md#the-required-git-spec-optional).
 
 ### `S002` - source explicitly allowed
 
@@ -19,11 +18,8 @@ A crate source was not explicitly allowed.
 
 ### `S005` - allowed source was not encountered
 
-An allowed source in [`sources.allow-git`](cfg.md#the-allow-git-field-optional)
-or [`sources.allow-registry`](cfg.md#the-allow-registry-field-optional) was not
-encountered.
+An allowed source in [`sources.allow-git`](cfg.md#the-allow-git-field-optional) or [`sources.allow-registry`](cfg.md#the-allow-registry-field-optional) was not encountered.
 
 ### `S006` - allowed organization  was not encountered
 
-An allowed source in [`sources.allow-org`](cfg.md#the-allow-org-field-optional)
-was not encountered.
+An allowed source in [`sources.allow-org`](cfg.md#the-allow-org-field-optional) was not encountered.

@@ -1,7 +1,6 @@
 # advisories
 
-The advisories check is used to detect issues for crates by looking in an
-advisory database.
+The advisories check is used to detect issues for crates by looking in an advisory database.
 
 ```bash
 cargo deny check advisories
@@ -11,16 +10,10 @@ cargo deny check advisories
 
 ## Use Case - Detecting security vulnerabilities
 
-Security vulnerabilities are generally considered "not great" by most people, 
-luckily, Rust has a great [advisory 
-database](https://github.com/RustSec/advisory-db) which cargo-deny can use to 
-check that you don't have any crates with (known) security vulnerabilities.
+Security vulnerabilities are generally considered "not great" by most people, luckily, Rust has a great [advisory database](https://github.com/RustSec/advisory-db) which cargo-deny can use to check that you don't have any crates with (known) security vulnerabilities.
 
-The database can be changed to use your own as well, as long as it follows the
-same format.
+You can also use your own advisory databases instead of, or in addition to, the above default, as long as it follows the same format.
 
 ## Use Case - Detecting unmaintained crates
 
-The [advisory database](https://github.com/RustSec/advisory-db) also contains 
-advisories for unmaintained crates, which in most cases users will want to 
-avoid in favor of more actively maintained crates.
+The [advisory database](https://github.com/RustSec/advisory-db) also contains advisories for unmaintained crates, which in most cases users will want to avoid in favor of more actively maintained crates.

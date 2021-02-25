@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated dependencies, notably `cargo` and `rustsec`.
+- Increase MSRV to `1.46.0` due to bump of `smol_str`/`rustsec`.
+- Updated SPDX license list supported from 3.8 to 3.11 due to update of `spdx`.
+- Add use of the `--locked` flag in all `cargo install` instructions, to avoid the default (broken) behavior as shown in [#331](https://github.com/EmbarkStudios/cargo-deny/issues/331).
+
 ## [0.8.7] - 2021-02-18
 ### Fixed
 - Resolved [#331](https://github.com/EmbarkStudios/cargo-deny/issues/331) by updating `bitvec` and `funty`.

@@ -68,7 +68,7 @@ ignore = [
 unlicensed = "deny"
 # List of explictly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
-# [possible values: any SPDX 3.7 short identifier (+ optional exception)].
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
     #"MIT",
     #"Apache-2.0",
@@ -76,7 +76,7 @@ allow = [
 ]
 # List of explictly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
-# [possible values: any SPDX 3.7 short identifier (+ optional exception)].
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 deny = [
     #"Nokia",
 ]

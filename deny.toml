@@ -15,8 +15,6 @@ ignore = [
     # askalono uses failure, which is now unmaintained
     "RUSTSEC-2019-0036",
     "RUSTSEC-2020-0036",
-    # cargo uses a a vulnerable version of sized-chunks
-    "RUSTSEC-2020-0041",
     # difference is unmaintained but suits our needs just fine
     "RUSTSEC-2020-0095",
 ]
@@ -28,15 +26,15 @@ deny = [
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
-    # cargo/ignore use an older version of this
-    { name = "crossbeam-utils", version = "=0.7.2" },
+    # cfg-if reached 1.0 but many crates still depend on the 0.1 version
+    { name = "cfg-if", version = "=0.1.10" },
     # cargo uses crypto-hash, which uses an old version
     { name = "hex", version = "=0.3.2" },
+    # im-rc, used by cargo, uses an old version of rand_core
+    { name = "rand_core", version = "=0.5.1" },
     # cargo uses an older version of semver
     { name = "semver", version = "=0.10.0" },
     { name = "semver-parser", version = "=0.7.0" },
-    # cfg-if reached 1.0 but many crates still depend on the 0.1 version
-    { name = "cfg-if", version = "=0.1.10" },
 ]
 
 [sources]
