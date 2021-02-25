@@ -49,8 +49,8 @@ cargo = { version = "0.51", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
 # Used for diagnostic reporting
-codespan = { version = "0.9", features = ["reporting"] }
-codespan-reporting = "0.9"
+codespan = "0.11"
+codespan-reporting = "0.11"
 # Brrrrr
 crossbeam = "0.8"
 # We use this for displaying diffs for dry runs of the `fix` subcommand, as
