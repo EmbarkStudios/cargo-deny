@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Updated rustsec crate to address fetch failures due to the renaming of the `master` branch to `main` for https://github.com/rustsec/advisory-db
+
 ## [0.8.8] - 2021-02-25
 ### Changed
 - Updated dependencies, notably `cargo` and `rustsec`.
