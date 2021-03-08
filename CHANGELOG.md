@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.8.9] - 2021-03-08
 ### Fixed
 - Updated rustsec crate to address fetch failures due to the renaming of the `master` branch to `main` for https://github.com/rustsec/advisory-db
 
@@ -263,7 +264,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...HEAD
+[0.8.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.6...0.8.7
 [0.8.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.5...0.8.6
