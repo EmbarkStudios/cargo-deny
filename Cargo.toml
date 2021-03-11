@@ -63,7 +63,7 @@ git2 = { version = "0.13", features = ["vendored-openssl"] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.6", features = ["targets"] }
+krates = { version = "0.7", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Used when parsing binary files in registry index caches
