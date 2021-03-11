@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.9.0] - 2021-03-11
 ### Changed
 - Updated `krates`, which in turn uses an updated `cargo_metadata` which uses [`camino`](https://docs.rs/camino) for utf-8 paths. Rather than support both vanilla Path/Buf and Utf8Path/Buf, cargo-deny now just uses Utf8Path/Buf, which means that non-utf-8 paths for things like your Cargo.toml manifest or license paths will no longer function. This is a breaking change, that can be reverted if it disruptive for users, but the assumption is that cargo-deny is operating on normal checkouts of rust repositories that are overwhelmingly going to be utf-8 compatible paths.
 
@@ -267,7 +268,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...0.9.0
 [0.8.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.6...0.8.7
