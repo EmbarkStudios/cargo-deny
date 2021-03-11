@@ -6,7 +6,7 @@ pub use obj_grapher::{cs_diag_to_json, diag_to_json, ObjectGrapher};
 pub use sink::ErrorSink;
 pub use text_grapher::TextGrapher;
 
-use std::{collections::HashMap, ops::Range, path::PathBuf};
+use std::{collections::HashMap, ops::Range};
 
 use crate::{Kid, Krates};
 pub use codespan_reporting::diagnostic::Severity;
@@ -17,7 +17,7 @@ pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<FileId>;
 pub type Label = codespan_reporting::diagnostic::Label<FileId>;
 pub type Files = codespan::Files<String>;
 // Map of crate id => (path to cargo.toml, synthetic cargo.toml content, map(cratename => crate span))
-pub type RawCargoSpans = HashMap<Kid, (PathBuf, String, HashMap<String, Range<usize>>)>;
+pub type RawCargoSpans = HashMap<Kid, (krates::Utf8PathBuf, String, HashMap<String, Range<usize>>)>;
 // Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
 pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
 
@@ -164,7 +164,7 @@ impl KrateSpans {
                     "{} {} {}",
                     krate.name,
                     krate.version,
-                    krate.manifest_path.parent().unwrap().to_string_lossy()
+                    krate.manifest_path.parent().unwrap()
                 )
                 .expect("unable to synthesize lockfile"),
             };

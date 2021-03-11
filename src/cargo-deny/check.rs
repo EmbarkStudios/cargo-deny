@@ -153,7 +153,7 @@ impl ValidConfig {
             if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
-                    lock.print(diag, &files);
+                    lock.print(diag, files);
                 }
             }
         };
@@ -237,7 +237,7 @@ pub(crate) fn cmd(
                     }
 
                     s.spawn(|_| {
-                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(&krates))
+                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates))
                     });
                 });
             }
@@ -360,7 +360,7 @@ pub(crate) fn cmd(
 
             let ctx = CheckCtx {
                 cfg: licenses,
-                krates: &krates,
+                krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
             };
@@ -410,7 +410,7 @@ pub(crate) fn cmd(
 
             let ctx = CheckCtx {
                 cfg: bans,
-                krates: &krates,
+                krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
             };
@@ -430,7 +430,7 @@ pub(crate) fn cmd(
 
             let ctx = CheckCtx {
                 cfg: sources,
-                krates: &krates,
+                krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
             };
@@ -448,7 +448,7 @@ pub(crate) fn cmd(
         if let Some((db, lockfile)) = advisory_ctx {
             let ctx = CheckCtx {
                 cfg: advisories,
-                krates: &krates,
+                krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
             };
@@ -457,7 +457,7 @@ pub(crate) fn cmd(
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
-                let lf = advisories::PrunedLockfile::prune(lockfile, &krates);
+                let lf = advisories::PrunedLockfile::prune(lockfile, krates);
 
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
@@ -500,7 +500,7 @@ fn print_diagnostics(
                     Check::Sources => stats.sources.as_mut().unwrap(),
                 };
 
-                for diag in pack.into_iter() {
+                for diag in pack {
                     match diag.diag.severity {
                         Severity::Error => check_stats.errors += 1,
                         Severity::Warning => check_stats.warnings += 1,

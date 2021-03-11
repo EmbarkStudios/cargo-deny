@@ -87,7 +87,7 @@ impl ValidConfig {
             if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
-                    lock.print(diag, &files);
+                    lock.print(diag, files);
                 }
             }
         };
@@ -255,14 +255,14 @@ pub fn cmd(
 
     for (krate, patches) in manifests.values() {
         let path = &krate.manifest_path;
-        log::info!("Patching '{}'", path.display());
+        log::info!("Patching '{}'", path);
 
         let manifest_contents = match std::fs::read_to_string(path) {
             Ok(mc) => mc,
             Err(e) => {
                 log::error!(
                     "Unable to read manifest '{}' for crate '{} = {}': {}",
-                    path.display(),
+                    path,
                     krate.name,
                     krate.version,
                     e
@@ -277,7 +277,7 @@ pub fn cmd(
             Err(e) => {
                 log::error!(
                     "Unable to parse manifest '{}' for crate '{} = {}': {}",
-                    path.display(),
+                    path,
                     krate.name,
                     krate.version,
                     e
@@ -287,7 +287,7 @@ pub fn cmd(
             }
         };
 
-        match manifest.upgrade(&patches) {
+        match manifest.upgrade(patches) {
             Ok(_) => {
                 let updated_contents = manifest.doc.to_string_in_original_order();
 
@@ -300,20 +300,16 @@ pub fn cmd(
                     log::info!("Patch for {} = {}\n{}", krate.name, krate.version, cs);
                 } else {
                     match std::fs::write(path, &updated_contents) {
-                        Ok(_) => log::info!("Patched {}", path.display()),
+                        Ok(_) => log::info!("Patched {}", path),
                         Err(e) => {
-                            log::error!("Failed to update '{}': {}", path.display(), e);
+                            log::error!("Failed to update '{}': {}", path, e);
                             num_errors += 1;
                         }
                     }
                 }
             }
             Err(e) => {
-                log::error!(
-                    "Failed to apply patch(es) to manifest '{}': {}",
-                    path.display(),
-                    e
-                );
+                log::error!("Failed to apply patch(es) to manifest '{}': {}", path, e);
                 num_errors += 1;
             }
         }

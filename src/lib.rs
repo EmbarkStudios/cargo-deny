@@ -1,48 +1,3 @@
-// Standard Embark lints
-#![deny(unsafe_code)]
-#![warn(
-    clippy::all,
-    clippy::doc_markdown,
-    clippy::dbg_macro,
-    clippy::todo,
-    clippy::empty_enum,
-    clippy::enum_glob_use,
-    clippy::pub_enum_variant_names,
-    clippy::mem_forget,
-    clippy::unused_self,
-    clippy::filter_map_next,
-    clippy::needless_continue,
-    clippy::explicit_into_iter_loop,
-    clippy::needless_borrow,
-    clippy::match_wildcard_for_single_variants,
-    clippy::if_let_mutex,
-    clippy::mismatched_target_os,
-    clippy::await_holding_lock,
-    clippy::match_on_vec_items,
-    clippy::imprecise_flops,
-    clippy::suboptimal_flops,
-    clippy::lossy_float_literal,
-    clippy::let_unit_value,
-    clippy::debug_assert_with_mut_call,
-    clippy::ref_option_ref,
-    clippy::map_flatten,
-    clippy::rest_pat_in_fully_bound_structs,
-    clippy::fn_params_excessive_bools,
-    clippy::exit,
-    clippy::inefficient_to_string,
-    clippy::linkedlist,
-    clippy::string_to_string,
-    clippy::macro_use_imports,
-    clippy::option_option,
-    clippy::verbose_file_reads,
-    clippy::unnested_or_patterns,
-    clippy::map_unwrap_or,
-    rust_2018_idioms,
-    future_incompatible,
-    nonstandard_style
-)]
-#![cfg_attr(docsrs, feature(external_doc))]
-
 //! # ❌ cargo-deny
 //!
 //! [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
@@ -113,8 +68,61 @@
 //! cargo deny check sources
 //! ```
 
+// BEGIN - Embark standard lints v0.3
+// do not change or add/remove here, but one can add exceptions after this section
+// for more info see: <https://github.com/EmbarkStudios/rust-ecosystem/issues/59>
+#![deny(unsafe_code)]
+#![warn(
+    clippy::all,
+    clippy::await_holding_lock,
+    clippy::dbg_macro,
+    clippy::debug_assert_with_mut_call,
+    clippy::doc_markdown,
+    clippy::empty_enum,
+    clippy::enum_glob_use,
+    clippy::exit,
+    clippy::explicit_into_iter_loop,
+    clippy::filter_map_next,
+    clippy::fn_params_excessive_bools,
+    clippy::if_let_mutex,
+    clippy::imprecise_flops,
+    clippy::inefficient_to_string,
+    clippy::large_types_passed_by_value,
+    clippy::let_unit_value,
+    clippy::linkedlist,
+    clippy::lossy_float_literal,
+    clippy::macro_use_imports,
+    clippy::map_err_ignore,
+    clippy::map_flatten,
+    clippy::map_unwrap_or,
+    clippy::match_on_vec_items,
+    clippy::match_same_arms,
+    clippy::match_wildcard_for_single_variants,
+    clippy::mem_forget,
+    clippy::mismatched_target_os,
+    clippy::needless_borrow,
+    clippy::needless_continue,
+    clippy::option_option,
+    clippy::pub_enum_variant_names,
+    clippy::ref_option_ref,
+    clippy::rest_pat_in_fully_bound_structs,
+    clippy::string_add_assign,
+    clippy::string_add,
+    clippy::string_to_string,
+    clippy::suboptimal_flops,
+    clippy::todo,
+    clippy::unimplemented,
+    clippy::unnested_or_patterns,
+    clippy::unused_self,
+    clippy::verbose_file_reads,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms
+)]
+// END - Embark standard lints v0.3
+
 pub use semver::Version;
-use std::{cmp, collections::HashMap, fmt, path::PathBuf};
+use std::{cmp, collections::HashMap, fmt};
 
 pub mod advisories;
 pub mod bans;
@@ -128,7 +136,7 @@ pub mod sources;
 
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
-pub use krates::{DepKind, Kid};
+pub use krates::{DepKind, Kid, Utf8PathBuf};
 pub use rustsec::package::source::SourceId;
 
 /// The possible lint levels for the various lints. These function similarly
@@ -173,9 +181,9 @@ pub struct Krate {
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
-    pub manifest_path: PathBuf,
+    pub manifest_path: Utf8PathBuf,
     pub license: Option<String>,
-    pub license_file: Option<PathBuf>,
+    pub license_file: Option<Utf8PathBuf>,
     pub deps: Vec<cm::Dependency>,
     pub features: HashMap<String, Vec<String>>,
     pub targets: Vec<cm::Target>,
@@ -199,7 +207,7 @@ impl Default for Krate {
             license_file: None,
             targets: Vec::new(),
             features: HashMap::new(),
-            manifest_path: PathBuf::new(),
+            manifest_path: Utf8PathBuf::new(),
             repository: None,
             publish: None,
         }
