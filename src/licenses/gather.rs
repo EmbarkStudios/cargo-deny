@@ -4,13 +4,10 @@ use crate::{
     Krate,
 };
 use anyhow::Error;
+use krates::{Utf8Path, Utf8PathBuf};
 use rayon::prelude::*;
 use smallvec::SmallVec;
-use std::{
-    cmp, fmt,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{cmp, fmt, sync::Arc};
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../../resources/spdx_cache.bin.zstd");
 
@@ -83,14 +80,20 @@ impl fmt::Debug for FileSource {
     }
 }
 
-fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+fn find_license_files(dir: &Utf8Path) -> Result<Vec<Utf8PathBuf>, std::io::Error> {
     let entries = std::fs::read_dir(dir)?;
     Ok(entries
         .filter_map(|e| {
             e.ok().and_then(|e| {
-                let p = e.path();
-                let file_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                if p.is_file() && file_name.starts_with("LICENSE") {
+                let p = match Utf8PathBuf::from_path_buf(e.path()) {
+                    Ok(pb) => pb,
+                    Err(e) => {
+                        log::warn!("{} contains invalid utf-8, skipping", e.display());
+                        return None;
+                    }
+                };
+
+                if p.is_file() && p.file_name().map_or(false, |f| f.starts_with("LICENSE")) {
                     Some(p)
                 } else {
                     None
@@ -100,7 +103,7 @@ fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
         .collect())
 }
 
-fn get_file_source(path: PathBuf) -> PackFile {
+fn get_file_source(path: Utf8PathBuf) -> PackFile {
     use std::io::BufRead;
 
     // Normalize on plain newlines to handle terrible Windows conventions
@@ -154,7 +157,7 @@ enum PackFileData {
 }
 
 struct PackFile {
-    path: PathBuf,
+    path: Utf8PathBuf,
     data: PackFileData,
 }
 
@@ -262,7 +265,7 @@ impl LicensePack {
             write!(
                 synth_toml,
                 "    {{ path = \"{}\", ",
-                lic_contents.path.strip_prefix(root_path).unwrap().display(),
+                lic_contents.path.strip_prefix(root_path).unwrap(),
             )
             .unwrap();
 
@@ -338,11 +341,7 @@ impl LicensePack {
                             }
                         }
                         Err(e) => {
-                            // the elimination strategy can't currently fail
-                            unimplemented!(
-                                "I guess askalano's elimination strategy can now fail: {}",
-                                e
-                            );
+                            panic!("askalono's elimination strategy failed (this used to be impossible): {}", e);
                         }
                     }
                 }
@@ -781,7 +780,7 @@ impl Gatherer {
 mod test {
     #[test]
     fn normalizes_line_endings() {
-        let pf = super::get_file_source(std::path::PathBuf::from("./tests/LICENSE-RING"));
+        let pf = super::get_file_source(krates::Utf8PathBuf::from("./tests/LICENSE-RING"));
 
         let expected = {
             let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();

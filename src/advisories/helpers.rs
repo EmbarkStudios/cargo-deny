@@ -119,7 +119,7 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database
     res
 }
 
-pub fn load_lockfile(path: &Path) -> Result<Lockfile, Error> {
+pub fn load_lockfile(path: &krates::Utf8Path) -> Result<Lockfile, Error> {
     let mut lockfile = Lockfile::load(path)?;
 
     // Remove the metadata as it is irrelevant

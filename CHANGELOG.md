@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- Updated `krates`, which in turn uses an updated `cargo_metadata` which uses [`camino`](https://docs.rs/camino) for utf-8 paths. Rather than support both vanilla Path/Buf and Utf8Path/Buf, cargo-deny now just uses Utf8Path/Buf, which means that non-utf-8 paths for things like your Cargo.toml manifest or license paths will no longer function. This is a breaking change, that can be reverted if it disruptive for users, but the assumption is that cargo-deny is operating on normal checkouts of rust repositories that are overwhelmingly going to be utf-8 compatible paths.
+
 ## [0.8.9] - 2021-03-08
 ### Fixed
 - Updated rustsec crate to address fetch failures due to the renaming of the `master` branch to `main` for https://github.com/rustsec/advisory-db

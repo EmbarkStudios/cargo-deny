@@ -224,8 +224,7 @@ pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
         log::LevelFilter::Error => Some(Severity::Error),
         log::LevelFilter::Warn => Some(Severity::Warning),
         log::LevelFilter::Info => Some(Severity::Note),
-        log::LevelFilter::Debug => Some(Severity::Help),
-        log::LevelFilter::Trace => Some(Severity::Help),
+        log::LevelFilter::Debug | log::LevelFilter::Trace => Some(Severity::Help),
     }
 }
 
