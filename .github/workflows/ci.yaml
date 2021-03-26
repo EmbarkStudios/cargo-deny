@@ -10,7 +10,7 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -32,7 +32,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-20.04, windows-latest, macOS-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -52,9 +52,8 @@ jobs:
     name: Check Users
     strategy:
       matrix:
-        os: [ubuntu-latest]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             target: x86_64-unknown-linux-musl
     runs-on: ${{ matrix.os }}
     env:
@@ -67,7 +66,7 @@ jobs:
           override: true
           target: ${{ matrix.target }}
       - name: Install musl tools
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install -y musl-tools
       - name: cargo fetch
@@ -87,7 +86,7 @@ jobs:
   # Build `mdBook` documentation and upload it as a temporary build artifact
   doc-book:
     name: Build the book
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - run: |
@@ -102,7 +101,7 @@ jobs:
 
   publish-check:
     name: Publish Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -115,7 +114,7 @@ jobs:
 
   msrv-check:
     name: Minimum Stable Rust Version Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -132,9 +131,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             rust: stable
             target: x86_64-unknown-linux-musl
             bin: cargo-deny
@@ -155,7 +153,7 @@ jobs:
           override: true
           target: ${{ matrix.target }}
       - name: Install musl tools
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install -y musl-tools
       - name: Checkout
@@ -201,7 +199,7 @@ jobs:
   publish:
     name: Publish Docs
     needs: [doc-book]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Download book
