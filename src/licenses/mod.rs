@@ -122,7 +122,7 @@ fn evaluate_expression(
             // 3. If the license isn't explicitly allowed, it still may
             // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
             // allowances
-            if let spdx::LicenseItem::SPDX { id, .. } = req.license {
+            if let spdx::LicenseItem::Spdx { id, .. } = req.license {
                 if id.is_copyleft() {
                     match cfg.copyleft {
                         LintLevel::Allow => {
