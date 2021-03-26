@@ -5,9 +5,7 @@ use crate::{
 use rustsec::advisory::{informational::Informational, metadata::Metadata, versions::Versions, Id};
 
 fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
-    let mut n = Vec::new();
-
-    n.push(format!("ID: {}", advisory.id));
+    let mut n = vec![format!("ID: {}", advisory.id)];
     if let Some(url) = advisory.id.url() {
         n.push(format!("Advisory: {}", &url));
     }
@@ -219,8 +217,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
         let notes = {
-            let mut n = Vec::new();
-            n.push(format!("ID: {}", advisory.id));
+            let mut n = vec![format!("ID: {}", advisory.id)];
             if let Some(url) = advisory.id.url() {
                 n.push(format!("Advisory: {}", &url));
             }

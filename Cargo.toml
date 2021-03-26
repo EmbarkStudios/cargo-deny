@@ -45,7 +45,7 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "0.21", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.51", optional = true }
+cargo = { version = "0.52", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
 # Used for diagnostic reporting

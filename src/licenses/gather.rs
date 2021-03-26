@@ -394,7 +394,7 @@ pub enum LicenseExprSource {
 pub enum LicenseInfo {
     /// An SPDX expression parsed or generated from the
     /// license information provided by a crate
-    SPDXExpression {
+    SpdxExpression {
         expr: spdx::Expression,
         nfo: LicenseExprInfo,
     },
@@ -621,7 +621,7 @@ impl Gatherer {
                         if clarifications_match {
                             return KrateLicense {
                                 krate,
-                                lic_info: LicenseInfo::SPDXExpression {
+                                lic_info: LicenseInfo::SpdxExpression {
                                     expr: clarification.expression.clone(),
                                     nfo: LicenseExprInfo {
                                         file_id: cfg.file_id,
@@ -652,7 +652,7 @@ impl Gatherer {
 
                                 return KrateLicense {
                                     krate,
-                                    lic_info: LicenseInfo::SPDXExpression {
+                                    lic_info: LicenseInfo::SpdxExpression {
                                         expr: validated,
                                         nfo: LicenseExprInfo {
                                             file_id: id,
@@ -717,7 +717,7 @@ impl Gatherer {
 
                             return KrateLicense {
                                 krate,
-                                lic_info: LicenseInfo::SPDXExpression {
+                                lic_info: LicenseInfo::SpdxExpression {
                                     expr,
                                     nfo: LicenseExprInfo {
                                         file_id: id,

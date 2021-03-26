@@ -247,7 +247,7 @@ fn color_to_choice(color: crate::Color, stream: atty::Stream) -> ColorChoice {
     }
 }
 
-type CSDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
+type CsDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
 
 pub struct Human<'a> {
     stream: term::termcolor::StandardStream,
@@ -319,7 +319,7 @@ pub enum OutputLock<'a, 'b> {
 }
 
 impl<'a, 'b> OutputLock<'a, 'b> {
-    pub fn print(&mut self, diag: CSDiag, files: &Files) {
+    pub fn print(&mut self, diag: CsDiag, files: &Files) {
         match self {
             Self::Human(cfg, max, l) => {
                 if diag.severity < *max {

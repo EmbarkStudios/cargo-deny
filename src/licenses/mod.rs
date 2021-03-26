@@ -298,7 +298,7 @@ pub fn check(
         }
 
         match &krate_lic_nfo.lic_info {
-            LicenseInfo::SPDXExpression { expr, nfo } => {
+            LicenseInfo::SpdxExpression { expr, nfo } => {
                 pack.push(evaluate_expression(
                     &ctx.cfg,
                     &krate_lic_nfo,
