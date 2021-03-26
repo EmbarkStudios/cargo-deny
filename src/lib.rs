@@ -120,6 +120,7 @@
     rust_2018_idioms
 )]
 // END - Embark standard lints v0.3
+#![allow(clippy::from_over_into)]
 
 pub use semver::Version;
 use std::{cmp, collections::HashMap, fmt};

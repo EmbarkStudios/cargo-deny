@@ -224,7 +224,7 @@ pub fn cmd(
             };
 
             match krate_lic_nfo.lic_info {
-                LicenseInfo::SPDXExpression { expr, .. } => {
+                LicenseInfo::SpdxExpression { expr, .. } => {
                     for req in expr.requirements() {
                         let s = req.req.to_string();
 

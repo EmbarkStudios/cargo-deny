@@ -53,7 +53,7 @@ impl<'a> ObjectGrapher<'a> {
             kind: "",
         };
 
-        Ok(self.write_parent(np, &mut visited)?)
+        self.write_parent(np, &mut visited)
     }
 
     fn write_parent(
@@ -113,9 +113,9 @@ impl<'a> ObjectGrapher<'a> {
 
 use super::{Diag, FileId, Files, Severity};
 
-pub type CSDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
+pub type CsDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
 
-pub fn cs_diag_to_json(diag: CSDiag, files: &Files) -> serde_json::Value {
+pub fn cs_diag_to_json(diag: CsDiag, files: &Files) -> serde_json::Value {
     let mut val = serde_json::json!({
         "type": "diagnostic",
         "fields": {
