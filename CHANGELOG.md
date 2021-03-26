@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.9.1] - 2021-03-26
 ### Changed
 - Updated dependencies
 
@@ -271,7 +272,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...HEAD
+[0.9.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...0.9.0
 [0.8.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.7...0.8.8
