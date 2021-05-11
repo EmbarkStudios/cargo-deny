@@ -15,8 +15,6 @@ ignore = [
     # askalono uses failure, which is now unmaintained
     "RUSTSEC-2019-0036",
     "RUSTSEC-2020-0036",
-    # difference is unmaintained but suits our needs just fine
-    "RUSTSEC-2020-0095",
 ]
 
 [bans]

@@ -4,6 +4,7 @@ use cargo_deny::{
     diag::{self, Diagnostic, Files},
     manifest,
 };
+use similar::{ChangeTag, TextDiff};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -115,6 +116,21 @@ impl ValidConfig {
             })
         }
     }
+}
+
+fn diff(orig_text: &str, edit_text: &str) -> String {
+    let mut buf = String::new();
+    let diff = TextDiff::from_lines(orig_text, edit_text);
+
+    for change in diff.iter_all_changes() {
+        let c = match change.tag() {
+            ChangeTag::Delete => format!("\x1b[91m{}\x1b[0m", change.value()),
+            ChangeTag::Insert => format!("\x1b[92m{}\x1b[0m", change.value()),
+            ChangeTag::Equal => change.value().to_string(),
+        };
+        buf.push_str(&c);
+    }
+    buf
 }
 
 pub fn cmd(
@@ -294,10 +310,8 @@ pub fn cmd(
                 // If we're doing a dry run, just print what the diff would be
                 // if we actually serialized to disk
                 if args.dry_run {
-                    let cs =
-                        difference::Changeset::new(&manifest_contents, &updated_contents, "\n");
-
-                    log::info!("Patch for {} = {}\n{}", krate.name, krate.version, cs);
+                    let df = diff(&manifest_contents, &updated_contents);
+                    log::info!("Patch for {} = {}\n{}", krate.name, krate.version, df,);
                 } else {
                     match std::fs::write(path, &updated_contents) {
                         Ok(_) => log::info!("Patched {}", path),
