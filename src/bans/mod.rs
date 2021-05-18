@@ -212,6 +212,7 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
+        default_features,
     } = ctx.cfg;
 
     let krate_spans = &ctx.krate_spans;
@@ -440,6 +441,35 @@ pub fn check(
                         krate,
                         severity,
                         wildcards,
+                        cargo_spans: &cargo_spans,
+                    });
+                }
+            }
+            if default_features != LintLevel::Allow {
+                let severity = match default_features {
+                    LintLevel::Warn => Severity::Warning,
+                    LintLevel::Deny => Severity::Error,
+                    LintLevel::Allow => unreachable!(),
+                };
+
+                let default_features: Vec<_> = krate
+                    .deps
+                    .iter()
+                    .filter(|dep| {
+                        if !dep.uses_default_features {
+                            return false;
+                        }
+                        return true;
+                        // FIXME: we should not warn if package
+                        // does not actually define default feature
+                        // let dep_pkg = ctx.krates.
+                    })
+                    .collect();
+                if !default_features.is_empty() {
+                    sink.push(diags::DefaultFeatures {
+                        krate,
+                        severity,
+                        default_features,
                         cargo_spans: &cargo_spans,
                     });
                 }

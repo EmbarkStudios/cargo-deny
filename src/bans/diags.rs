@@ -132,6 +132,45 @@ impl<'a> Into<Pack> for Wildcards<'a> {
     }
 }
 
+pub(crate) struct DefaultFeatures<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) severity: Severity,
+    pub(crate) default_features: Vec<&'a krates::cm::Dependency>,
+    pub(crate) cargo_spans: &'a crate::diag::CargoSpans,
+}
+
+impl<'a> Into<Pack> for DefaultFeatures<'a> {
+    fn into(self) -> Pack {
+        let (file_id, map) = &self.cargo_spans[&self.krate.id];
+
+        let labels: Vec<_> = self
+            .default_features
+            .into_iter()
+            .map(|dep| {
+                Label::primary(*file_id, map[&dep.name].clone())
+                    .with_message("crate entry without default-features = false")
+            })
+            .collect();
+
+        let diag = Diag::new(
+            Diagnostic::new(self.severity)
+                .with_message(format!(
+                    "found {} dependenc{} with default-features enabled for crate '{}'",
+                    labels.len(),
+                    if labels.len() == 1 { "y" } else { "ies" },
+                    self.krate.name
+                ))
+                .with_code("B011")
+                .with_labels(labels),
+        );
+
+        let mut pack = Pack::with_kid(Check::Bans, self.krate.id.clone());
+        pack.push(diag);
+
+        pack
+    }
+}
+
 pub(crate) struct UnmatchedSkip {
     pub(crate) skip_cfg: CfgCoord,
 }
