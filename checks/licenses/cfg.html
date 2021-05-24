@@ -1,0 +1,389 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>config - cargo-deny</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li><a href="../../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li><a href="../../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li><a href="../../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li><a href="../../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li><a href="../../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li><a href="../../cli/fix.html"><strong aria-hidden="true">2.4.</strong> fix</a></li><li><a href="../../cli/list.html"><strong aria-hidden="true">2.5.</strong> list</a></li></ol></li><li><a href="../../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li><a href="../../checks/cfg.html"><strong aria-hidden="true">3.1.</strong> config</a></li><li><a href="../../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li><a href="../../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li><a href="../../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li><li><a href="../../checks/advisories/fix-diags.html"><strong aria-hidden="true">3.2.3.</strong> fix diagnostics</a></li></ol></li><li><a href="../../checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li><a href="../../checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li><a href="../../checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li><a href="../../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li><a href="../../checks/licenses/cfg.html" class="active"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li><a href="../../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li><a href="../../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li><a href="../../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li><a href="../../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">cargo-deny</h1>
+
+                        <div class="right-buttons">
+                            <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#the-licenses-section" id="the-licenses-section">The <code>[licenses]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check license</code>.</p>
+<h2><a class="header" href="#example" id="example">Example</a></h2>
+<pre><code class="language-ini">[licenses]
+unlicensed = &quot;warn&quot;
+allow-osi-fsf-free = &quot;both&quot;
+copyleft = &quot;deny&quot;
+default = &quot;warn&quot;
+confidence-threshold = 0.95
+deny = [
+    &quot;Nokia&quot;,
+    &quot;BSD-2-Clause&quot;,
+]
+allow = [
+    &quot;EUPL-1.2&quot;,
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+]
+
+[licenses.private]
+ignore = true
+registries = [&quot;sekrets&quot;]
+
+[[licenses.exceptions]]
+allow = [&quot;Zlib&quot;]
+name = &quot;adler32&quot;
+version = &quot;0.1.1&quot;
+
+[[licenses.clarify]]
+name = &quot;ring&quot;
+version = &quot;*&quot;
+expression = &quot;MIT AND ISC AND OpenSSL&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0xbd0eed23 }
+]
+
+</code></pre>
+<h2><a class="header" href="#spdx-identifiers" id="spdx-identifiers">SPDX Identifiers</a></h2>
+<p>All identifiers used in the license configuration section are expected to be valid SPDX v2.1 short identifiers, either from version 3.11 of the <a href="https://spdx.org/licenses/">SPDX License List</a>, or use a <a href="https://spdx.github.io/spdx-spec/appendix-V-using-SPDX-short-identifiers-in-source-files/#format-for-spdx-license-identifier">custom identifier</a> by prefixing it with <code>LicenseRef-</code>.</p>
+<pre><code class="language-ini">allow = [
+    # The Apache license identifier
+    &quot;Apache-2.0&quot;,
+    # A custom license identifier
+    &quot;LicenseRef-Embark-Custom&quot;,
+]
+
+# Custom license refs can be specified for crates which don't use a license
+# in the SPDX list
+[[licenses.clarify]]
+name = &quot;a-crate&quot;
+expression = &quot;LicenseRef-Embark-Custom&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0x001c7e6c },
+]
+</code></pre>
+<p>License identifiers can also be coupled with an optional <a href="https://spdx.org/licenses/exceptions-index.html">exception</a> by appending <code>WITH &lt;exception-id&gt;</code> to the license identifier. Licenses coupled with exceptions are considered distinct from the same license without the exception.</p>
+<pre><code class="language-ini">allow = [
+    # The Apache license identifier
+    &quot;Apache-2.0&quot;,
+    # The Apache license + LLVM-exception
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+]
+</code></pre>
+<h3><a class="header" href="#the-unlicensed-field-optional" id="the-unlicensed-field-optional">The <code>unlicensed</code> field (optional)</a></h3>
+<p>Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via <code>LICENSE*</code> files in the crate's source.</p>
+<ul>
+<li><code>deny</code> (default) - All unlicensed crates will emit an error and fail the license check</li>
+<li><code>allow</code> - All unlicensed crates will show a note, but will not fail the license check</li>
+<li><code>warn</code> - All unlicensed crates will show a warning, but will not fail the license check</li>
+</ul>
+<h3><a class="header" href="#the-allow-and-deny-fields-optional" id="the-allow-and-deny-fields-optional">The <code>allow</code> and <code>deny</code> fields (optional)</a></h3>
+<p>The licenses that should be allowed or denied, note that the same license cannot
+appear in both the <code>allow</code> and <code>deny</code> lists.</p>
+<h4><a class="header" href="#note-on-gnu-licenses" id="note-on-gnu-licenses">Note on GNU licenses</a></h4>
+<ul>
+<li>GPL</li>
+<li>AGPL</li>
+<li>LGPL</li>
+<li>GFDL</li>
+</ul>
+<p>The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either <code>allow</code> or <code>deny</code>, you <strong>must not</strong> use the suffixes <code>-only</code> or <code>-or-later</code>, as they can only be used by the license holder themselves to decide under which terms to license their code.</p>
+<p>So, for example, if you wanted to disallow <code>GPL-2.0</code> licenses, but allow <code>GPL-3.0</code> licenses, you could use the following configuration.</p>
+<pre><code class="language-ini">[licenses]
+allow = [ &quot;GPL-3.0&quot; ]
+deny = [ &quot;GPL-2.0&quot; ]
+</code></pre>
+<h3><a class="header" href="#the-exceptions-field-optional" id="the-exceptions-field-optional">The <code>exceptions</code> field (optional)</a></h3>
+<p>The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The <code>exceptions</code> field is meant to allow licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.</p>
+<h4><a class="header" href="#the-exceptionsname-field" id="the-exceptionsname-field">The <code>exceptions.name</code> field</a></h4>
+<p>The name of the crate that you are adding an exception for</p>
+<h4><a class="header" href="#the-exceptionsversion-field-optional" id="the-exceptionsversion-field-optional">The <code>exceptions.version</code> field (optional)</a></h4>
+<p>An optional version constraint specifying the range of crate versions you are excepting. Defaults to all versions (<code>*</code>).</p>
+<h4><a class="header" href="#the-allow-field" id="the-allow-field">The <code>allow</code> field</a></h4>
+<p>This is the exact same as the general <code>allow</code> field.</p>
+<pre><code class="language-ini">[licenses]
+allow = [
+    &quot;Apache-2.0&quot;,
+    &quot;MIT&quot;,
+]
+exceptions = [
+    # This is the only crate that cannot be licensed with either Apache-2.0
+    # or MIT, so we just add an exception for it, meaning we'll get a warning
+    # if we add another crate that also requires this license
+    { name = &quot;cloudabi&quot;, allow = [&quot;BSD-2-Clause&quot;] },
+]
+</code></pre>
+<h3><a class="header" href="#the-copyleft-field-optional" id="the-copyleft-field-optional">The <code>copyleft</code> field (optional)</a></h3>
+<p>Determines what happens when a license that is considered <a href="https://en.wikipedia.org/wiki/Copyleft">copyleft</a> is encountered.</p>
+<ul>
+<li><code>warn</code> (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check</li>
+<li><code>deny</code> - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true</li>
+<li><code>allow</code> - The license is accepted if it is copyleft</li>
+</ul>
+<h3><a class="header" href="#the-allow-osi-fsf-free-field-optional" id="the-allow-osi-fsf-free-field-optional">The <code>allow-osi-fsf-free</code> field (optional)</a></h3>
+<p>Determines what happens when licenses aren't explicitly allowed or denied, but <strong>are</strong> marked as <a href="https://opensource.org/licenses">OSI Approved</a> or <a href="https://www.gnu.org/licenses/license-list.en.html">FSF Free/Libre</a> in version 3.11 of the <a href="https://spdx.org/licenses/">SPDX License List</a>.</p>
+<ul>
+<li><code>both</code> - The license is accepted if it is both OSI approved and FSF Free</li>
+<li><code>either</code> - The license is accepted if it is either OSI approved or FSF Free</li>
+<li><code>osi-only</code> - The license is accepted if it is OSI approved and not FSF Free</li>
+<li><code>fsf-only</code> - The license is accepted if it is FSF Free and not OSI approved</li>
+<li><code>neither</code> (default) - No special consideration is given the license</li>
+</ul>
+<h3><a class="header" href="#the-default-field-optional" id="the-default-field-optional">The <code>default</code> field (optional)</a></h3>
+<p>Determines what happens when a license is encountered that:</p>
+<ol>
+<li>Isn't in the <code>allow</code> or <code>deny</code> lists</li>
+<li>Isn't <code>copyleft</code></li>
+<li>Isn't OSI Approved nor FSF Free/Libre, or <code>allow-osi-fsf-free = &quot;neither&quot;</code></li>
+</ol>
+<ul>
+<li><code>warn</code> - Will emit a warning that the license was detected, but will not fail the license check</li>
+<li><code>deny</code> (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true</li>
+<li><code>allow</code> - The license is accepted</li>
+</ul>
+<h3><a class="header" href="#the-confidence-threshold-field-optional" id="the-confidence-threshold-field-optional">The <code>confidence-threshold</code> field (optional)</a></h3>
+<p><code>cargo-deny</code> uses <a href="https://github.com/amzn/askalono">askalono</a> to determine the license of a LICENSE file. Due to variability in license texts because of things like authors, copyright year, and so forth, askalano assigns a confidence score to its determination, from <code>0.0</code> (no confidence) to <code>1.0</code> (perfect match). The confidence threshold value is used to reject the license determination if the score does not match or exceed the threshold.</p>
+<p><code>0.0</code> - <code>1.0</code> (default <code>0.8</code>)</p>
+<h3><a class="header" href="#the-clarify-field-optional" id="the-clarify-field-optional">The <code>clarify</code> field (optional)</a></h3>
+<p>In some exceptional cases, a crate will not have easily machine readable license information, and would by default be considered &quot;unlicensed&quot; by cargo-deny. As a (hopefully) temporary patch for using the crate, you can specify a clarification for the crate by manually assigning its SPDX expression, based on one or more files in the crate's source. cargo-deny will use that expression for as long as the source files in the crate exactly match the clarification's hashes.</p>
+<pre><code class="language-ini">[[licenses.clarify]]
+name = &quot;webpki&quot;
+expression = &quot;ISC&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0x001c7e6c },
+]
+</code></pre>
+<h4><a class="header" href="#the-name-field" id="the-name-field">The <code>name</code> field</a></h4>
+<p>The name of the crate that you are clarifying</p>
+<h4><a class="header" href="#the-version-field-optional" id="the-version-field-optional">The <code>version</code> field (optional)</a></h4>
+<p>An optional version constraint specifying the range of crate versions you are clarifying. Defaults to all versions (<code>*</code>).</p>
+<h4><a class="header" href="#the-expression-field" id="the-expression-field">The <code>expression</code> field</a></h4>
+<p>The <a href="https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60">SPDX license expression</a> you are specifying as the license requirements for the crate.</p>
+<h4><a class="header" href="#the-license-files-field" id="the-license-files-field">The <code>license-files</code> field</a></h4>
+<p>Contains one or more files that will be checked to ensure the license expression still applies to a version of the crate.</p>
+<h5><a class="header" href="#the-path-field" id="the-path-field">The <code>path</code> field</a></h5>
+<p>The crate relative path to a file to be used as a source of truth.</p>
+<h5><a class="header" href="#the-hash-field" id="the-hash-field">The <code>hash</code> field</a></h5>
+<p>An opaque hash calculated from the file contents. This hash can be obtained from the output of the license check when cargo-deny can't determine the license of the file in question.</p>
+<h3><a class="header" href="#the-private-field-optional" id="the-private-field-optional">The <code>private</code> field (optional)</a></h3>
+<p>It's often not useful or wanted to check for licenses in your own private workspace crates. So the private field allows you to do so.</p>
+<h4><a class="header" href="#the-ignore-field" id="the-ignore-field">The <code>ignore</code> field</a></h4>
+<p>If <code>true</code>, workspace members will not have their license expression checked if they are not published.</p>
+<pre><code class="language-ini">[package]
+name = &quot;sekret&quot;
+license = &quot;¯\_(ツ)_/¯&quot;
+publish = false # &quot;private&quot;!
+</code></pre>
+<pre><code class="language-ini">[licenses]
+# The sekret package would be ignored now
+private = { ignore = true }
+</code></pre>
+<h3><a class="header" href="#the-registries-field" id="the-registries-field">The <code>registries</code> field</a></h3>
+<p>A list of private registries you may publish your workspace crates to. If a workspace member <strong>only</strong> publishes to private registries, it will also be ignored if <code>private.ignore = true</code></p>
+<pre><code class="language-ini">[package]
+name = &quot;sekret&quot;
+license = &quot;¯\_(ツ)_/¯&quot;
+publish = [&quot;sauce&quot;]
+</code></pre>
+<pre><code class="language-ini">[licenses]
+# Still ignored!
+private = { ignore = true, registries = [&quot;sauce&quot;] }
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../checks/licenses/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../checks/licenses/diags.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../../checks/licenses/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../../checks/licenses/diags.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

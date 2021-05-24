@@ -1,0 +1,297 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>config - cargo-deny</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li><a href="../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li><a href="../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li><a href="../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li><a href="../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li><a href="../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li><a href="../cli/fix.html"><strong aria-hidden="true">2.4.</strong> fix</a></li><li><a href="../cli/list.html"><strong aria-hidden="true">2.5.</strong> list</a></li></ol></li><li><a href="../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li><a href="../checks/cfg.html" class="active"><strong aria-hidden="true">3.1.</strong> config</a></li><li><a href="../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li><a href="../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li><a href="../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li><li><a href="../checks/advisories/fix-diags.html"><strong aria-hidden="true">3.2.3.</strong> fix diagnostics</a></li></ol></li><li><a href="../checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li><a href="../checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li><a href="../checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li><a href="../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li><a href="../checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li><a href="../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li><a href="../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li><a href="../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li><a href="../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">cargo-deny</h1>
+
+                        <div class="right-buttons">
+                            <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#config" id="config">config</a></h1>
+<p>The top level config for cargo-deny, by default called <code>deny.toml</code>.</p>
+<h2><a class="header" href="#example---cargo-denys-own-configuration" id="example---cargo-denys-own-configuration">Example - cargo-deny's own configuration</a></h2>
+<pre><code class="language-ini"># cargo-deny is really only ever intended to run on the &quot;normal&quot; tier-1 targets
+targets = [
+    { triple = &quot;x86_64-unknown-linux-gnu&quot; },
+    { triple = &quot;x86_64-unknown-linux-musl&quot; },
+    { triple = &quot;x86_64-apple-darwin&quot; },
+    { triple = &quot;x86_64-pc-windows-msvc&quot; },
+]
+
+[advisories]
+vulnerability = &quot;deny&quot;
+unmaintained = &quot;deny&quot;
+notice = &quot;deny&quot;
+unsound = &quot;deny&quot;
+ignore = [
+    # askalono uses failure, which is now unmaintained
+    &quot;RUSTSEC-2019-0036&quot;,
+    &quot;RUSTSEC-2020-0036&quot;,
+]
+
+[bans]
+multiple-versions = &quot;deny&quot;
+deny = [
+]
+skip = [
+    # clap uses an older version of ansi_term
+    { name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot; },
+    # cfg-if reached 1.0 but many crates still depend on the 0.1 version
+    { name = &quot;cfg-if&quot;, version = &quot;=0.1.10&quot; },
+    # cargo uses crypto-hash, which uses an old version
+    { name = &quot;hex&quot;, version = &quot;=0.3.2&quot; },
+    # im-rc, used by cargo, uses an old version of rand_core
+    { name = &quot;rand_core&quot;, version = &quot;=0.5.1&quot; },
+    # cargo uses an older version of semver
+    { name = &quot;semver&quot;, version = &quot;=0.10.0&quot; },
+    { name = &quot;semver-parser&quot;, version = &quot;=0.7.0&quot; },
+]
+
+[sources]
+unknown-registry = &quot;deny&quot;
+unknown-git = &quot;deny&quot;
+allow-git = []
+
+[licenses]
+unlicensed = &quot;deny&quot;
+allow-osi-fsf-free = &quot;neither&quot;
+copyleft = &quot;deny&quot;
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = [
+    &quot;Apache-2.0&quot;,
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+    &quot;MIT&quot;,
+    &quot;MPL-2.0&quot;,
+]
+
+exceptions = [
+    { allow = [&quot;Zlib&quot;], name = &quot;tinyvec&quot; },
+    { allow = [&quot;Apache-2.0&quot;, &quot;BSD-2-Clause&quot;], name = &quot;crossbeam-queue&quot; },
+]
+
+</code></pre>
+<h3><a class="header" href="#the-targets-field-optional" id="the-targets-field-optional">The <code>targets</code> field (optional)</a></h3>
+<p>By default, cargo-deny will consider every single crate that is resolved by cargo, including target specific dependencies eg</p>
+<pre><code class="language-ini">[target.x86_64-pc-windows-msvc.dependencies]
+winapi = &quot;0.3.8&quot;
+
+[target.'cfg(target_os = &quot;fuchsia&quot;)'.dependencies]
+fuchsia-cprng = &quot;0.1.1&quot;
+</code></pre>
+<p>But unless you are actually targetting <code>x86_64-fuchsia</code> or <code>aarch64-fuchsia</code>, the <code>fuchsia-cprng</code> is never actually going to be compiled or linked into your project, so checking it is pointless for you.</p>
+<p>The <code>targets</code> field allows you to specify one or more targets which you <strong>actually</strong> build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.</p>
+<h4><a class="header" href="#the-triple-field" id="the-triple-field">The <code>triple</code> field</a></h4>
+<p>The <a href="https://forge.rust-lang.org/release/platform-support.html">target triple</a> for the target you wish to filter target specific dependencies with. If the target triple specified is <strong>not</strong> one of the targets builtin to <code>rustc</code>, the configuration check for that target will be limited to only the raw <code>[target.&lt;target-triple&gt;.dependencies]</code> style of target configuration, as <code>cfg()</code> expressions require us to know the details about the target.</p>
+<h4><a class="header" href="#the-exclude-field-optional" id="the-exclude-field-optional">The <code>exclude</code> field (optional)</a></h4>
+<p>Just as with the <a href="../cli/common.html#--exclude"><code>--exclude</code></a> command line option, this field allows you to specify one or more <a href="https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html">Package ID specifications</a> that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.</p>
+<p>Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.</p>
+<h4><a class="header" href="#the-features-field-optional" id="the-features-field-optional">The <code>features</code> field (optional)</a></h4>
+<p>Rust <code>cfg()</code> expressions support the <a href="https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute"><code>target_feature = &quot;feature-name&quot;</code></a> predicate, but at the moment, the only way to actually pass them when compiling is to use the <code>RUSTFLAGS</code> environment variable. The <code>features</code> field allows you to specify 1 or more <code>target_feature</code>s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is <a href="https://github.com/EmbarkStudios/cfg-expr/issues/1">planned</a>.</p>
+<h3><a class="header" href="#the-licenses-section" id="the-licenses-section">The <code>[licenses]</code> section</a></h3>
+<p>See the <a href="licenses/cfg.html">licenses config</a> for more info.</p>
+<h3><a class="header" href="#the-bans-section" id="the-bans-section">The <code>[bans]</code> section</a></h3>
+<p>See the <a href="bans/cfg.html">bans config</a> for more info.</p>
+<h3><a class="header" href="#the-advisories-section" id="the-advisories-section">The <code>[advisories]</code> section</a></h3>
+<p>See the <a href="advisories/cfg.html">advisories config</a> for more info.</p>
+<h3><a class="header" href="#the-sources-section" id="the-sources-section">The <code>[sources]</code> section</a></h3>
+<p>See the <a href="sources/cfg.html">sources config</a> for more info.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../checks/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../checks/advisories/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../checks/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../checks/advisories/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

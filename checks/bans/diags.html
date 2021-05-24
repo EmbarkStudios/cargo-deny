@@ -1,0 +1,231 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>diagnostics - cargo-deny</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li><a href="../../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li><a href="../../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li><a href="../../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li><a href="../../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li><a href="../../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li><a href="../../cli/fix.html"><strong aria-hidden="true">2.4.</strong> fix</a></li><li><a href="../../cli/list.html"><strong aria-hidden="true">2.5.</strong> list</a></li></ol></li><li><a href="../../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li><a href="../../checks/cfg.html"><strong aria-hidden="true">3.1.</strong> config</a></li><li><a href="../../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li><a href="../../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li><a href="../../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li><li><a href="../../checks/advisories/fix-diags.html"><strong aria-hidden="true">3.2.3.</strong> fix diagnostics</a></li></ol></li><li><a href="../../checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li><a href="../../checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li><a href="../../checks/bans/diags.html" class="active"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li><a href="../../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li><a href="../../checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li><a href="../../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li><a href="../../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li><a href="../../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li><a href="../../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">cargo-deny</h1>
+
+                        <div class="right-buttons">
+                            <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#bans-diagnostics" id="bans-diagnostics">Bans diagnostics</a></h1>
+<h3><a class="header" href="#b001---crate-is-explicitly-banned" id="b001---crate-is-explicitly-banned"><code>B001</code> - crate is explicitly banned</a></h3>
+<p>A crate which is <a href="cfg.html#the-allow-and-deny-fields-optional">explicitly banned</a> was detected.</p>
+<h3><a class="header" href="#b002---crate-is-explicitly-allowed" id="b002---crate-is-explicitly-allowed"><code>B002</code> - crate is explicitly allowed</a></h3>
+<p>A crate which is <a href="cfg.html#the-allow-and-deny-fields-optional">explicitly allowed</a> was detected.</p>
+<h3><a class="header" href="#b003---crate-is-implicitly-banned" id="b003---crate-is-implicitly-banned"><code>B003</code> - crate is implicitly banned</a></h3>
+<p>When using <a href="cfg.html#the-allow-and-deny-fields-optional"><code>bans.allow</code></a>, a crate was detected that wasn't in that list.</p>
+<h3><a class="header" href="#b004---found-duplicate-entries-for-crate" id="b004---found-duplicate-entries-for-crate"><code>B004</code> - found duplicate entries for crate</a></h3>
+<p>One or more <a href="cfg.html#the-multiple-versions-field-optional">duplicate versions</a> of the same crate were detected.</p>
+<h3><a class="header" href="#b005---crate-skipped-when-checking-for-duplicates" id="b005---crate-skipped-when-checking-for-duplicates"><code>B005</code> - crate skipped when checking for duplicates</a></h3>
+<p>A crate version that matched an entry in <a href="cfg.html#the-skip-field-optional"><code>bans.skip</code></a> was encountered.</p>
+<h3><a class="header" href="#b006---found-wildcard-dependency-for-crate" id="b006---found-wildcard-dependency-for-crate"><code>B006</code> - found wildcard dependency for crate</a></h3>
+<p>A crate was included via a <a href="cfg.html#the-wildcards-field-optional">wildcard dependency</a> by one or more crates.</p>
+<h3><a class="header" href="#b007---skipped-crate-was-not-encountered" id="b007---skipped-crate-was-not-encountered"><code>B007</code> - skipped crate was not encountered</a></h3>
+<p>A crate version in <a href="cfg.html#the-skip-field-optional"><code>bans.skip</code></a> was not encountered.</p>
+<h3><a class="header" href="#b008---banned-crate-allowed-by-wrapper" id="b008---banned-crate-allowed-by-wrapper"><code>B008</code> - banned crate allowed by wrapper</a></h3>
+<p>A crate in <code>bans.deny</code> was allowed since it was referenced by a <a href="cfg.html#the-wrappers-field-optional"><code>wrappers</code></a> crate.</p>
+<h3><a class="header" href="#b009---direct-parent-of-banned-crate-was-not-marked-as-a-wrapper" id="b009---direct-parent-of-banned-crate-was-not-marked-as-a-wrapper"><code>B009</code> - direct parent of banned crate was not marked as a wrapper</a></h3>
+<p>A crate in <code>bans.deny</code> had one or more <a href="cfg.html#the-wrappers-field-optional"><code>wrappers</code></a> crates, but a crate not in that list had a direct dependency on the banned crate.</p>
+<h3><a class="header" href="#b010---skip-tree-root-was-not-found-in-the-dependency-graph" id="b010---skip-tree-root-was-not-found-in-the-dependency-graph"><code>B010</code> - skip tree root was not found in the dependency graph</a></h3>
+<p>A crate version in <a href="cfg.html#the-skip-tree-field-optional"><code>bans.skip-tree</code></a> was not encountered.</p>
+<h3><a class="header" href="#b011---skipping-crate-due-to-root-skip" id="b011---skipping-crate-due-to-root-skip"><code>B011</code> - skipping crate due to root skip</a></h3>
+<p>A crate was skipped from being checked as a duplicate due to being transitively referenced by a crate version in <a href="cfg.html#the-skip-tree-field-optional"><code>bans.skip-tree</code></a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../checks/bans/cfg.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../checks/licenses/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../../checks/bans/cfg.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../../checks/licenses/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

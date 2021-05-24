@@ -1,0 +1,1294 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>cargo-deny</title>
+        
+        <meta name="robots" content="noindex" />
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li><a href="cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li><a href="cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li><a href="cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li><a href="cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li><a href="cli/fix.html"><strong aria-hidden="true">2.4.</strong> fix</a></li><li><a href="cli/list.html"><strong aria-hidden="true">2.5.</strong> list</a></li></ol></li><li><a href="checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li><a href="checks/cfg.html"><strong aria-hidden="true">3.1.</strong> config</a></li><li><a href="checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li><a href="checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li><a href="checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li><li><a href="checks/advisories/fix-diags.html"><strong aria-hidden="true">3.2.3.</strong> fix diagnostics</a></li></ol></li><li><a href="checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li><a href="checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li><a href="checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li><a href="checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li><a href="checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li><a href="checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li><a href="checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li><a href="checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li><a href="checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">cargo-deny</h1>
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#a-hrefhttpsgithubcomembarkstudioscargo-denycargo-denya" id="a-hrefhttpsgithubcomembarkstudioscargo-denycargo-denya"><a href="https://github.com/EmbarkStudios/cargo-deny">cargo-deny</a></a></h1>
+<p>cargo-deny is a cargo plugin that lets you lint your project's dependency graph
+to ensure all your dependencies conform to your expectations and requirements.</p>
+<h2><a class="header" href="#quickstart" id="quickstart">Quickstart</a></h2>
+<p>Installs cargo-deny, initializes your project with a default configuration, then runs all of the checks against your project.</p>
+<pre><code class="language-bash">cargo install --locked cargo-deny &amp;&amp; cargo deny init &amp;&amp; cargo deny check
+</code></pre>
+<h2><a class="header" href="#command-line-interface" id="command-line-interface">Command Line Interface</a></h2>
+<p>cargo-deny is intended to be used as a <a href="cli/index.html">Command Line Tool</a>, see the link for the available commands and options.</p>
+<h2><a class="header" href="#checks" id="checks">Checks</a></h2>
+<p>cargo-deny supports several classes of checks, see <a href="checks/index.html">Checks</a> for the available checks and their configuration options.</p>
+<h2><a class="header" href="#api" id="api">API</a></h2>
+<p>cargo-deny is primarily meant to be used as a cargo plugin, but a majority of its functionality is within a library whose docs you may view on <a href="https://docs.rs/cargo-deny">docs.rs</a></p>
+<h2><a class="header" href="#github-action" id="github-action">GitHub Action</a></h2>
+<p>For GitHub projects, one can run cargo-deny automatically as part of continous integration using a GitHub Action:</p>
+<pre><code class="language-yaml">name: CI
+on: [push, pull_request]
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: EmbarkStudios/cargo-deny-action@v1
+</code></pre>
+<p>For more information, see <a href="https://github.com/EmbarkStudios/cargo-deny-action"><code>cargo-deny-action</code></a> repository.</p>
+<h1><a class="header" href="#command-line-tool" id="command-line-tool">Command Line Tool</a></h1>
+<p>cargo-deny can be used either as a command line tool or as a <a href="https://crates.io/crates/cargo-deny">Rust crate</a>. Let's focus on the command line tool capabilities first.</p>
+<h2><a class="header" href="#install-from-binaries" id="install-from-binaries">Install From Binaries</a></h2>
+<p>Precompiled binaries are provided for major platforms on a best-effort basis. Visit <a href="https://github.com/EmbarkStudios/cargo-deny/releases">the releases page</a> to download the appropriate version for your platform.</p>
+<h2><a class="header" href="#install-from-aur" id="install-from-aur">Install from AUR</a></h2>
+<p>A community maintained Arch package is available on <a href="https://aur.archlinux.org/packages/cargo-deny/">AUR</a>, you can install it via</p>
+<pre><code class="language-bash">yay -S cargo-deny
+</code></pre>
+<h2><a class="header" href="#install-from-source" id="install-from-source">Install From Source</a></h2>
+<p>cargo-deny can also be installed from source.</p>
+<h3><a class="header" href="#pre-requisites" id="pre-requisites">Pre-requisites</a></h3>
+<p>cargo-deny is written in <strong><a href="https://www.rust-lang.org/">Rust</a></strong> and therefore needs to be compiled with <strong>Cargo</strong>. If you haven't already installed Rust, please go ahead and <a href="https://www.rust-lang.org/tools/install">install it</a> now.</p>
+<p>cargo-deny depends on some crates that use C code, so you will also need to have a C toolchain available on your machine, such as gcc, clang, or msvc.</p>
+<h3><a class="header" href="#install-cratesio-version" id="install-cratesio-version">Install Crates.io version</a></h3>
+<p>Installing cargo-deny is relatively easy if you already have Rust and Cargo installed. You just have to type this snippet in your terminal:</p>
+<pre><code class="language-bash">cargo install --locked cargo-deny
+</code></pre>
+<p>This will fetch the source code for the latest release from <a href="https://crates.io/">Crates.io</a> and compile it. You will have to add Cargo's <code>bin</code> directory to your <code>PATH</code> if you have not done so already.</p>
+<p>Run <code>cargo deny help</code> in your terminal to verify if it works. Congratulations, you have installed cargo-deny!</p>
+<h3><a class="header" href="#install-git-version" id="install-git-version">Install Git version</a></h3>
+<p>The <strong><a href="https://github.com/EmbarkStudios/cargo-deny">git version</a></strong> contains all the latest bug-fixes and features, that will be released in the next version on <strong>Crates.io</strong>, if you can't wait until the next release. You can build the git version yourself.</p>
+<pre><code class="language-bash">cargo install --locked --git https://github.com/EmbarkStudios/cargo-deny cargo-deny
+</code></pre>
+<p>Run <code>cargo deny help</code> in your terminal to verify if it works. Congratulations, you have installed cargo-deny!</p>
+<h2><a class="header" href="#ci-usage" id="ci-usage">CI Usage</a></h2>
+<p>We now have a Github Action for running cargo-deny on your Github repositories, check it out <a href="https://github.com/EmbarkStudios/cargo-deny-action">here</a>.</p>
+<p>If you don't want to use the action, you can manually download (or install) cargo-deny as described above, but here's an example script that you can copy to get you started.</p>
+<pre><code class="language-bash">#!/bin/bash
+set -eu
+
+NAME=&quot;cargo-deny&quot;
+VS=&quot;0.8.5&quot;
+DIR=&quot;/tmp/$NAME&quot;
+
+mkdir $DIR
+
+# Download the tarball
+curl -L -o $DIR/archive.tar.gz https://github.com/EmbarkStudios/$NAME/releases/download/$VS/$NAME-$VS-x86_64-unknown-linux-musl.tar.gz
+
+# Unpack the tarball into the temp directory
+tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
+
+# Run cargo deny check in our current directory
+$DIR/$NAME --context . -L debug check bans licenses advisories
+</code></pre>
+<h1><a class="header" href="#common-options" id="common-options">Common options</a></h1>
+<p>The subcommands share some common options that can be used before the
+subcommand.</p>
+<h4><a class="header" href="#--manifest-path" id="--manifest-path"><code>--manifest-path</code></a></h4>
+<p>The path to a <code>Cargo.toml</code> file which is used as the context for operations.</p>
+<h4><a class="header" href="#--all-features-single-crate-or-workspace" id="--all-features-single-crate-or-workspace"><code>--all-features</code> (single crate or workspace)</a></h4>
+<p>Enables all features when determining which crates to consider. Works for both single crates and workspaces.</p>
+<h4><a class="header" href="#--no-default-features-single-crate-only" id="--no-default-features-single-crate-only"><code>--no-default-features</code> (single crate only)</a></h4>
+<p>Disables the <code>default</code> feature for a crate when determing which crates to consider.</p>
+<h4><a class="header" href="#--features-single-crate-only" id="--features-single-crate-only"><code>--features</code> (single crate only)</a></h4>
+<p>Space-separated list of features to enable when determining which crates to consider.</p>
+<h4><a class="header" href="#--workspace" id="--workspace"><code>--workspace</code></a></h4>
+<p>Forces all workspace crates to be used as roots in the crate graph that we operate on, unless they are excluded by other means. By default, if you specify a <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#virtual-manifest">virtual manifest</a>, all crates in the workspace will be used as roots. However, if you specify a normal package manifest somewhere inside a workspace, only that crate will be used as a graph root, and only other workspaces crates it depends on will be included in the graph. If you want to specify a sub-crate in a workspace, but still include all other crates in the workspace, you can use this flag.</p>
+<h4><a class="header" href="#--exclude" id="--exclude"><code>--exclude</code></a></h4>
+<p>Exclude the specified package(s) from the crate graph. Unlike other cargo subcommands, it doesn't have to be used in conjunction with the <code>--workspace</code> flag. This flag may be specified multiple times.</p>
+<p>This uses a similar (though slightly more strict) <a href="https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html">Package ID specification</a> to other cargo subcommands.</p>
+<p>Packages can also be excluded in your <a href="cli/../checks/cfg.html#the-exclude-field-optional">configuration</a> files, specifying this on the command line will append the package ID to the list that may exist in your configuration.</p>
+<h4><a class="header" href="#-l---log-level" id="-l---log-level"><code>-L, --log-level</code></a></h4>
+<p>The log level for messages, only log messages at or above the level will be emitted.</p>
+<p>Possible values:</p>
+<ul>
+<li><code>off</code> - No output will be emitted</li>
+<li><code>error</code></li>
+<li><code>warn</code> (default)</li>
+<li><code>info</code></li>
+<li><code>debug</code></li>
+<li><code>trace</code></li>
+</ul>
+<h3><a class="header" href="#--format" id="--format"><code>--format</code></a></h3>
+<p>The format of the output of both log and diagnostic messages.</p>
+<p>Possible values:</p>
+<ul>
+<li><code>human</code> (default) - Output for the pesky humans</li>
+<li><code>json</code> - Each log message/diagnostic is outputted as a single line JSON object</li>
+</ul>
+<h3><a class="header" href="#--color" id="--color"><code>--color</code></a></h3>
+<p>Whether coloring is applied to human-formatted output, using it on JSON output has no effect.</p>
+<p>Possible values:</p>
+<ul>
+<li><code>auto</code> (default) - Coloring is applied if the output stream is a TTY</li>
+<li><code>always</code> - Coloring is always applied</li>
+<li><code>never</code> - No coloring is applied for any output</li>
+</ul>
+<h4><a class="header" href="#-t---target" id="-t---target"><code>-t, --target</code></a></h4>
+<p>One or more platforms to filter crates with. If a dependency is target specific, it will be ignored if it does not match at least 1 of the specified targets. This overrides the top-level <a href="cli/../checks/cfg.html"><code>targets = []</code></a> configuration value.</p>
+<h1><a class="header" href="#the-init-command" id="the-init-command">The init command</a></h1>
+<p>cargo-deny's configuration is a little bit complicated, so we provide the <code>init</code> command to create a configuration file from a template for you to give you a starting point for configuring how you want cargo-deny to lint your project.</p>
+<p>The <code>init</code> command is used like this:</p>
+<pre><code class="language-bash">cargo deny init
+</code></pre>
+<h2><a class="header" href="#specify-a-path" id="specify-a-path">Specify a path</a></h2>
+<p>The <code>init</code> command can take a path as an argument to use as path of the config instead of the default which is <code>&lt;cwd&gt;/deny.toml</code>.</p>
+<pre><code class="language-bash">cargo deny init path/to/config.toml
+</code></pre>
+<h2><a class="header" href="#template" id="template">Template</a></h2>
+<p>A <code>deny.toml</code> file will be created in the current working directory that is a direct copy of <a href="https://github.com/EmbarkStudios/cargo-deny/blob/main/deny.template.toml">this template</a>.</p>
+<pre><code class="language-ini"># This template contains all of the possible sections and their default values
+
+# Note that all fields that take a lint level have these possible values:
+# * deny - An error will be produced and the check will fail
+# * warn - A warning will be produced, but the check will not fail
+# * allow - No warning or error will be produced, though in some cases a note
+# will be
+
+# The values provided in this template are the default values that will be used
+# when any section or field is not specified in your own configuration
+
+# If 1 or more target triples (and optionally, target_features) are specified,
+# only the specified targets will be checked when running `cargo deny check`.
+# This means, if a particular package is only ever used as a target specific
+# dependency, such as, for example, the `nix` crate only being used via the
+# `target_family = &quot;unix&quot;` configuration, that only having windows targets in
+# this list would mean the nix crate, as well as any of its exclusive
+# dependencies not shared by any other crates, would be ignored, as the target
+# list here is effectively saying which targets you are building for.
+targets = [
+    # The triple can be any string, but only the target triples built in to
+    # rustc (as of 1.40) can be checked against actual config expressions
+    #{ triple = &quot;x86_64-unknown-linux-musl&quot; },
+    # You can also specify which target_features you promise are enabled for a
+    # particular target. target_features are currently not validated against
+    # the actual valid features supported by the target architecture.
+    #{ triple = &quot;wasm32-unknown-unknown&quot;, features = [&quot;atomics&quot;] },
+]
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+# The path where the advisory database is cloned/fetched into
+db-path = &quot;~/.cargo/advisory-db&quot;
+# The url(s) of the advisory databases to use
+db-urls = [&quot;https://github.com/rustsec/advisory-db&quot;]
+# The lint level for security vulnerabilities
+vulnerability = &quot;deny&quot;
+# The lint level for unmaintained crates
+unmaintained = &quot;warn&quot;
+# The lint level for crates that have been yanked from their source registry
+yanked = &quot;warn&quot;
+# The lint level for crates with security notices. Note that as of
+# 2019-12-17 there are no security notice advisories in
+# https://github.com/rustsec/advisory-db
+notice = &quot;warn&quot;
+# A list of advisory IDs to ignore. Note that ignored advisories will still
+# output a note when they are encountered.
+ignore = [
+    #&quot;RUSTSEC-0000-0000&quot;,
+]
+# Threshold for security vulnerabilities, any vulnerability with a CVSS score
+# lower than the range specified will be ignored. Note that ignored advisories
+# will still output a note when they are encountered.
+# * None - CVSS Score 0.0
+# * Low - CVSS Score 0.1 - 3.9
+# * Medium - CVSS Score 4.0 - 6.9
+# * High - CVSS Score 7.0 - 8.9
+# * Critical - CVSS Score 9.0 - 10.0
+#severity-threshold = 
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+# The lint level for crates which do not have a detectable license
+unlicensed = &quot;deny&quot;
+# List of explictly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    #&quot;MIT&quot;,
+    #&quot;Apache-2.0&quot;,
+    #&quot;Apache-2.0 WITH LLVM-exception&quot;,
+]
+# List of explictly disallowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+deny = [
+    #&quot;Nokia&quot;,
+]
+# Lint level for licenses considered copyleft
+copyleft = &quot;warn&quot;
+# Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
+# * both - The license will be approved if it is both OSI-approved *AND* FSF
+# * either - The license will be approved if it is either OSI-approved *OR* FSF
+# * osi-only - The license will be approved if is OSI-approved *AND NOT* FSF
+# * fsf-only - The license will be approved if is FSF *AND NOT* OSI-approved
+# * neither - This predicate is ignored and the default lint level is used
+allow-osi-fsf-free = &quot;neither&quot;
+# Lint level used when no other predicates are matched
+# 1. License isn't in the allow or deny lists
+# 2. License isn't copyleft
+# 3. License isn't OSI/FSF, or allow-osi-fsf-free = &quot;neither&quot;
+default = &quot;deny&quot;
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = [
+    # Each entry is the crate and version constraint, and its specific allow
+    # list
+    #{ allow = [&quot;Zlib&quot;], name = &quot;adler32&quot;, version = &quot;*&quot; },
+]
+
+# Some crates don't have (easily) machine readable licensing information,
+# adding a clarification entry for it allows you to manually specify the
+# licensing information
+#[[licenses.clarify]]
+# The name of the crate the clarification applies to
+#name = &quot;ring&quot;
+# The optional version constraint for the crate
+#version = &quot;*&quot;
+# The SPDX expression for the license requirements of the crate
+#expression = &quot;MIT AND ISC AND OpenSSL&quot;
+# One or more files in the crate's source used as the &quot;source of truth&quot; for
+# the license expression. If the contents match, the clarification will be used
+# when running the license check, otherwise the clarification will be ignored
+# and the crate will be checked normally, which may produce warnings or errors
+# depending on the rest of your configuration
+#license-files = [
+    # Each entry is a crate relative path, and the (opaque) hash of its contents
+    #{ path = &quot;LICENSE&quot;, hash = 0xbd0eed23 }
+#]
+
+[licenses.private]
+# If true, ignores workspace crates that aren't published, or are only
+# published to private registries
+ignore = false
+# One or more private registries that you might publish crates to, if a crate
+# is only published to private registries, and ignore is true, the crate will
+# not have its license(s) checked
+registries = [
+    #&quot;https://sekretz.com/registry
+]
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+# Lint level for when multiple versions of the same crate are detected
+multiple-versions = &quot;warn&quot;
+# Lint level for when a crate version requirement is `*`
+wildcards = &quot;allow&quot;
+# The graph highlighting used when creating dotgraphs for crates
+# with multiple versions
+# * lowest-version - The path to the lowest versioned duplicate is highlighted
+# * simplest-path - The path to the version with the fewest edges is highlighted
+# * all - Both lowest-version and simplest-path are used
+highlight = &quot;all&quot;
+# List of crates that are allowed. Use with care!
+allow = [
+    #{ name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot; },
+]
+# List of crates to deny
+deny = [
+    # Each entry the name of a crate and a version range. If version is
+    # not specified, all versions will be matched.
+    #{ name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot; },
+    #
+    # Wrapper crates can optionally be specified to allow the crate when it
+    # is a direct dependency of the otherwise banned crate
+    #{ name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot;, wrappers = [] },
+]
+# Certain crates/versions that will be skipped when doing duplicate detection.
+skip = [
+    #{ name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot; },
+]
+# Similarly to `skip` allows you to skip certain crates during duplicate 
+# detection. Unlike skip, it also includes the entire tree of transitive 
+# dependencies starting at the specified crate, up to a certain depth, which is
+# by default infinite
+skip-tree = [
+    #{ name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot;, depth = 20 },
+]
+
+# This section is considered when running `cargo deny check sources`.
+# More documentation about the 'sources' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is not
+# in the allow list is encountered
+unknown-registry = &quot;warn&quot;
+# Lint level for what to happen when a crate from a git repository that is not
+# in the allow list is encountered
+unknown-git = &quot;warn&quot;
+# List of URLs for allowed crate registries. Defaults to the crates.io index
+# if not specified. If it is specified but empty, no registries are allowed.
+allow-registry = [&quot;https://github.com/rust-lang/crates.io-index&quot;]
+# List of URLs for allowed Git repositories
+allow-git = []
+
+[sources.allow-org]
+# 1 or more github.com organizations to allow git sources for
+github = [&quot;&quot;]
+# 1 or more gitlab.com organizations to allow git sources for
+gitlab = [&quot;&quot;]
+# 1 or more bitbucket.org organizations to allow git sources for
+bitbucket = [&quot;&quot;]
+
+</code></pre>
+<h1><a class="header" href="#the-check-command" id="the-check-command">The <code>check</code> command</a></h1>
+<p>The check command is the primary subcommand of cargo-deny as it is what actually runs through all of the crates in your project and checks them against your configuration.</p>
+<h2><a class="header" href="#args" id="args">Args</a></h2>
+<h3><a class="header" href="#which" id="which"><code>&lt;which&gt;</code></a></h3>
+<p>The check(s) to perform. By default, <strong>all</strong> checks will be performed, unless one or more specific checks are specified.</p>
+<p>See <a href="cli/../checks/index.html">checks</a> for the list of available checks.</p>
+<h2><a class="header" href="#flags" id="flags">Flags</a></h2>
+<h3><a class="header" href="#-d---disable-fetch" id="-d---disable-fetch"><code>-d, --disable-fetch</code></a></h3>
+<p>Disables fetching of advisory databases, if they would be loaded. If disabled, and there is not already an existing advisory database locally, an error will occur.</p>
+<h3><a class="header" href="#--hide-inclusion-graph" id="--hide-inclusion-graph"><code>--hide-inclusion-graph</code></a></h3>
+<p>Hides the inclusion graph when printing out info for a crate.</p>
+<p>By default, if a diagnostic message pertains to a specific crate, cargo-deny will append an inverse dependency graph to the diagnostic to show you how that crate was pulled into your project.</p>
+<pre><code class="language-text">some diagnostic message
+
+the-crate
+├── a-crate
+└── b-crate
+    └── c-crate
+</code></pre>
+<h2><a class="header" href="#options" id="options">Options</a></h2>
+<h3><a class="header" href="#-c---config" id="-c---config"><code>-c, --config</code></a></h3>
+<p>The path to the config file used to determine which crates are allowed or denied. Will default to <code>&lt;context&gt;/deny.toml</code> if not specified.</p>
+<h3><a class="header" href="#-g---graph" id="-g---graph"><code>-g, --graph</code></a></h3>
+<p>A root directory to place dotviz graphs into when duplicate crate versions are detected. Will be <code>&lt;dir&gt;/graph_output/&lt;crate_name&gt;.dot</code>. The <code>/graph_output/*</code> is deleted and recreated each run.</p>
+<h1><a class="header" href="#the-fix-command" id="the-fix-command">The <code>fix</code> command</a></h1>
+<p>The fix command attempts to address advisories detected from one or more advisory databases by recursively applying patched versions of crates until it reaches your workspace members and edits one or more of them to reference the fixed version(s) so the advisories no longer apply.</p>
+<p>Note that the larger the workspace and the more dependencies that are used within it, the higher the likelihood that the fix command will not be able to update completely to the fixed version of the crate, as every crate that transitively depends on the crate the advisory applies to needs to have a published version that depends on one more of the fixed versions, when the crate in question even has fixed versions at all.</p>
+<h2><a class="header" href="#flags-1" id="flags-1">Flags</a></h2>
+<h3><a class="header" href="#--allow-incompatible" id="--allow-incompatible"><code>--allow-incompatible</code></a></h3>
+<p>Allows crates to be patched with versions which are incompatible with the current version requirements. So, for example, if you have</p>
+<pre><code class="language-ini">[dependencies]
+vulnerable-crate = &quot;0.5&quot;
+</code></pre>
+<p>and the vulnerability is fixed in version &quot;1.0&quot;, the fix subcommand will be able to edit your manifest to be this</p>
+<pre><code class="language-diff">[dependencies]
+- vulnerable-crate = &quot;0.5&quot;
++ vulnerable-crate = &quot;1.0&quot;
+</code></pre>
+<p>even though they are semver incompatible.</p>
+<h3><a class="header" href="#--dry-run" id="--dry-run"><code>--dry-run</code></a></h3>
+<p>Prints the diff for the manifest changes, but does not actually modify any files on disk</p>
+<h3><a class="header" href="#-d---disable-fetch-1" id="-d---disable-fetch-1"><code>-d, --disable-fetch</code></a></h3>
+<p>Disable fetching of the advisory database and crates.io index</p>
+<p>By default the advisory database and crates.io index are updated before checking the advisories, if disabled via this flag, an error occurs if the advisory database or crates.io index are not available locally already.</p>
+<h2><a class="header" href="#options-1" id="options-1">Options</a></h2>
+<h3><a class="header" href="#-c---config-1" id="-c---config-1"><code>-c, --config</code></a></h3>
+<p>The path to the config file used to determine which crates are allowed or denied. Will default to <code>&lt;context&gt;/deny.toml</code> if not specified.</p>
+<h1><a class="header" href="#the-list-command" id="the-list-command">The <code>list</code> command</a></h1>
+<p>Similarly to <a href="https://github.com/onur/cargo-license">cargo-license</a>, <code>list</code> prints out the license information for each crate.</p>
+<h2><a class="header" href="#options-2" id="options-2">Options</a></h2>
+<h3><a class="header" href="#-f---format" id="-f---format"><code>-f, --format</code></a></h3>
+<p>The format of the output</p>
+<ul>
+<li><code>human</code> (default) - Simple format where each crate or license is its own line</li>
+<li><code>json</code></li>
+<li><code>tsv</code></li>
+</ul>
+<h3><a class="header" href="#--color-1" id="--color-1"><code>--color</code></a></h3>
+<p>Output coloring, only applies to the <code>human</code> format.</p>
+<ul>
+<li><code>auto</code> (default) - Only colors if stdout is a TTY</li>
+<li><code>always</code> - Always emits colors</li>
+<li><code>never</code> - Never emits colors</li>
+</ul>
+<p>Colors:</p>
+<ul>
+<li>SPDX identifier - <img src="https://placehold.it/15/5dade2/000000?text=+" alt="blue" /></li>
+<li>Crate with 1 license - <img src="https://placehold.it/15/717d7e/000000?text=+" alt="white" /></li>
+<li>Crate with 2 or more licenses - <img src="https://placehold.it/15/f1c40f/000000?text=+" alt="yellow" /></li>
+<li>Crate with 0 licenses - <img src="https://placehold.it/15/e74c3c/000000?text=+" alt="yellow" /></li>
+</ul>
+<h3><a class="header" href="#-l---layout" id="-l---layout"><code>-l, --layout</code></a></h3>
+<p>The layout of the output. Does not apply to the <code>tsv</code> format.</p>
+<ul>
+<li><code>license</code> (default) - Each license acts as the key, and the values are all of the crates that use that license</li>
+<li><code>crate</code> - Each crate is a key, and the values are the list of licenses it uses.</li>
+</ul>
+<h3><a class="header" href="#-t---threshold" id="-t---threshold"><code>-t, --threshold</code></a></h3>
+<p>The confidence threshold required for assigning a license identifier to a license text file. See the <a href="cli/../checks/licenses/cfg.html#the-confidence-threshold-field-optional">license configuration</a> for more information.</p>
+<ul>
+<li><code>layout = license, format = human</code> (default)</li>
+</ul>
+<p><img src="https://i.imgur.com/Iejfc7h.png" alt="Imgur" /></p>
+<ul>
+<li><code>layout = crate, format = human</code></li>
+</ul>
+<p><img src="https://i.imgur.com/zZdcFXI.png" alt="Imgur" /></p>
+<ul>
+<li><code>layout = license, format = json</code></li>
+</ul>
+<p><img src="https://i.imgur.com/wC2R0ym.png" alt="Imgur" /></p>
+<ul>
+<li><code>layout = license, format = tsv</code></li>
+</ul>
+<p><img src="https://i.imgur.com/14l8a5K.png" alt="Imgur" /></p>
+<h1><a class="header" href="#checks-1" id="checks-1">Checks</a></h1>
+<p>cargo-deny supports several different classes of checks that can be performed on your project's crate graph. By default, <code>cargo deny check</code> will execute <strong>all</strong> of the supported checks, falling back to the default configuration for that check if one is not explicitly specified.</p>
+<h2><a class="header" href="#a-hrefcheckslicensesindexhtmllicensesa" id="a-hrefcheckslicensesindexhtmllicensesa"><a href="checks/licenses/index.html">licenses</a></a></h2>
+<p>Checks the license information for each crate.</p>
+<h2><a class="header" href="#a-hrefchecksbansindexhtmlbansa" id="a-hrefchecksbansindexhtmlbansa"><a href="checks/bans/index.html">bans</a></a></h2>
+<p>Checks for specific crates in your graph, as well as duplicates.</p>
+<h2><a class="header" href="#a-hrefchecksadvisoriesindexhtmladvisoriesa" id="a-hrefchecksadvisoriesindexhtmladvisoriesa"><a href="checks/advisories/index.html">advisories</a></a></h2>
+<p>Checks advisory databases for crates with security vulnerabilities, or that have been marked as <code>Unmaintained</code>, or which have been yanked from their source registry.</p>
+<h2><a class="header" href="#a-hrefcheckssourcesindexhtmlsourcesa" id="a-hrefcheckssourcesindexhtmlsourcesa"><a href="checks/sources/index.html">sources</a></a></h2>
+<p>Checks the source location for each crate.</p>
+<h1><a class="header" href="#config" id="config">config</a></h1>
+<p>The top level config for cargo-deny, by default called <code>deny.toml</code>.</p>
+<h2><a class="header" href="#example---cargo-denys-own-configuration" id="example---cargo-denys-own-configuration">Example - cargo-deny's own configuration</a></h2>
+<pre><code class="language-ini"># cargo-deny is really only ever intended to run on the &quot;normal&quot; tier-1 targets
+targets = [
+    { triple = &quot;x86_64-unknown-linux-gnu&quot; },
+    { triple = &quot;x86_64-unknown-linux-musl&quot; },
+    { triple = &quot;x86_64-apple-darwin&quot; },
+    { triple = &quot;x86_64-pc-windows-msvc&quot; },
+]
+
+[advisories]
+vulnerability = &quot;deny&quot;
+unmaintained = &quot;deny&quot;
+notice = &quot;deny&quot;
+unsound = &quot;deny&quot;
+ignore = [
+    # askalono uses failure, which is now unmaintained
+    &quot;RUSTSEC-2019-0036&quot;,
+    &quot;RUSTSEC-2020-0036&quot;,
+]
+
+[bans]
+multiple-versions = &quot;deny&quot;
+deny = [
+]
+skip = [
+    # clap uses an older version of ansi_term
+    { name = &quot;ansi_term&quot;, version = &quot;=0.11.0&quot; },
+    # cfg-if reached 1.0 but many crates still depend on the 0.1 version
+    { name = &quot;cfg-if&quot;, version = &quot;=0.1.10&quot; },
+    # cargo uses crypto-hash, which uses an old version
+    { name = &quot;hex&quot;, version = &quot;=0.3.2&quot; },
+    # im-rc, used by cargo, uses an old version of rand_core
+    { name = &quot;rand_core&quot;, version = &quot;=0.5.1&quot; },
+    # cargo uses an older version of semver
+    { name = &quot;semver&quot;, version = &quot;=0.10.0&quot; },
+    { name = &quot;semver-parser&quot;, version = &quot;=0.7.0&quot; },
+]
+
+[sources]
+unknown-registry = &quot;deny&quot;
+unknown-git = &quot;deny&quot;
+allow-git = []
+
+[licenses]
+unlicensed = &quot;deny&quot;
+allow-osi-fsf-free = &quot;neither&quot;
+copyleft = &quot;deny&quot;
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = [
+    &quot;Apache-2.0&quot;,
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+    &quot;MIT&quot;,
+    &quot;MPL-2.0&quot;,
+]
+
+exceptions = [
+    { allow = [&quot;Zlib&quot;], name = &quot;tinyvec&quot; },
+    { allow = [&quot;Apache-2.0&quot;, &quot;BSD-2-Clause&quot;], name = &quot;crossbeam-queue&quot; },
+]
+
+</code></pre>
+<h3><a class="header" href="#the-targets-field-optional" id="the-targets-field-optional">The <code>targets</code> field (optional)</a></h3>
+<p>By default, cargo-deny will consider every single crate that is resolved by cargo, including target specific dependencies eg</p>
+<pre><code class="language-ini">[target.x86_64-pc-windows-msvc.dependencies]
+winapi = &quot;0.3.8&quot;
+
+[target.'cfg(target_os = &quot;fuchsia&quot;)'.dependencies]
+fuchsia-cprng = &quot;0.1.1&quot;
+</code></pre>
+<p>But unless you are actually targetting <code>x86_64-fuchsia</code> or <code>aarch64-fuchsia</code>, the <code>fuchsia-cprng</code> is never actually going to be compiled or linked into your project, so checking it is pointless for you.</p>
+<p>The <code>targets</code> field allows you to specify one or more targets which you <strong>actually</strong> build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.</p>
+<h4><a class="header" href="#the-triple-field" id="the-triple-field">The <code>triple</code> field</a></h4>
+<p>The <a href="https://forge.rust-lang.org/release/platform-support.html">target triple</a> for the target you wish to filter target specific dependencies with. If the target triple specified is <strong>not</strong> one of the targets builtin to <code>rustc</code>, the configuration check for that target will be limited to only the raw <code>[target.&lt;target-triple&gt;.dependencies]</code> style of target configuration, as <code>cfg()</code> expressions require us to know the details about the target.</p>
+<h4><a class="header" href="#the-exclude-field-optional" id="the-exclude-field-optional">The <code>exclude</code> field (optional)</a></h4>
+<p>Just as with the <a href="checks/../cli/common.html#--exclude"><code>--exclude</code></a> command line option, this field allows you to specify one or more <a href="https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html">Package ID specifications</a> that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.</p>
+<p>Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.</p>
+<h4><a class="header" href="#the-features-field-optional" id="the-features-field-optional">The <code>features</code> field (optional)</a></h4>
+<p>Rust <code>cfg()</code> expressions support the <a href="https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute"><code>target_feature = &quot;feature-name&quot;</code></a> predicate, but at the moment, the only way to actually pass them when compiling is to use the <code>RUSTFLAGS</code> environment variable. The <code>features</code> field allows you to specify 1 or more <code>target_feature</code>s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is <a href="https://github.com/EmbarkStudios/cfg-expr/issues/1">planned</a>.</p>
+<h3><a class="header" href="#the-licenses-section" id="the-licenses-section">The <code>[licenses]</code> section</a></h3>
+<p>See the <a href="checks/licenses/cfg.html">licenses config</a> for more info.</p>
+<h3><a class="header" href="#the-bans-section" id="the-bans-section">The <code>[bans]</code> section</a></h3>
+<p>See the <a href="checks/bans/cfg.html">bans config</a> for more info.</p>
+<h3><a class="header" href="#the-advisories-section" id="the-advisories-section">The <code>[advisories]</code> section</a></h3>
+<p>See the <a href="checks/advisories/cfg.html">advisories config</a> for more info.</p>
+<h3><a class="header" href="#the-sources-section" id="the-sources-section">The <code>[sources]</code> section</a></h3>
+<p>See the <a href="checks/sources/cfg.html">sources config</a> for more info.</p>
+<h1><a class="header" href="#advisories" id="advisories">advisories</a></h1>
+<p>The advisories check is used to detect issues for crates by looking in an advisory database.</p>
+<pre><code class="language-bash">cargo deny check advisories
+</code></pre>
+<img src="https://imgur.com/FK50XLb.png"/>
+<h2><a class="header" href="#use-case---detecting-security-vulnerabilities" id="use-case---detecting-security-vulnerabilities">Use Case - Detecting security vulnerabilities</a></h2>
+<p>Security vulnerabilities are generally considered &quot;not great&quot; by most people, luckily, Rust has a great <a href="https://github.com/RustSec/advisory-db">advisory database</a> which cargo-deny can use to check that you don't have any crates with (known) security vulnerabilities.</p>
+<p>You can also use your own advisory databases instead of, or in addition to, the above default, as long as it follows the same format.</p>
+<h2><a class="header" href="#use-case---detecting-unmaintained-crates" id="use-case---detecting-unmaintained-crates">Use Case - Detecting unmaintained crates</a></h2>
+<p>The <a href="https://github.com/RustSec/advisory-db">advisory database</a> also contains advisories for unmaintained crates, which in most cases users will want to avoid in favor of more actively maintained crates.</p>
+<h1><a class="header" href="#the-advisories-section-1" id="the-advisories-section-1">The <code>[advisories]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check advisories</code></p>
+<h2><a class="header" href="#example-config" id="example-config">Example Config</a></h2>
+<pre><code class="language-ini">[advisories]
+db-path = &quot;~/.cargo/advisory-dbs&quot;
+db-url = &quot;https://github.com/RustSec/advisory-db&quot;
+vulnerability = &quot;deny&quot;
+unmaintained = &quot;warn&quot;
+unsound = &quot;warn&quot;
+yanked = &quot;warn&quot;
+notice = &quot;warn&quot;
+ignore = [
+    &quot;RUSTSEC-0000-0000&quot;,
+]
+severity-threshold = &quot;medium&quot;
+</code></pre>
+<h3><a class="header" href="#the-db-urls-field-optional" id="the-db-urls-field-optional">The <code>db-urls</code> field (optional)</a></h3>
+<p>URLs to one or more advisory databases.</p>
+<p>Default: <a href="https://github.com/RustSec/advisory-db">RustSec Advisory DB</a></p>
+<h3><a class="header" href="#the-db-path-field-optional" id="the-db-path-field-optional">The <code>db-path</code> field (optional)</a></h3>
+<p>Path to the root directory into which one or more advisory databases are cloned into</p>
+<p>Default: <code>~/.cargo/advisory-db</code></p>
+<h3><a class="header" href="#the-vulnerability-field-optional" id="the-vulnerability-field-optional">The <code>vulnerability</code> field (optional)</a></h3>
+<p>Determines what happens when a crate with a security vulnerability is encountered.</p>
+<ul>
+<li><code>deny</code> (default) - Will emit an error with details about each vulnerability, and fail the check.</li>
+<li><code>warn</code> - Prints a warning for each vulnerability, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note about the security vulnerability, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-unmaintained-field-optional" id="the-unmaintained-field-optional">The <code>unmaintained</code> field (optional)</a></h3>
+<p>Determines what happens when a crate with an <code>unmaintained</code> advisory is encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error with details about the unmaintained advisory, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each unmaintained advisory, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note about the unmaintained advisory, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-unsound-field-optional" id="the-unsound-field-optional">The <code>unsound</code> field (optional)</a></h3>
+<p>Determines what happens when a crate with an <code>unsound</code> advisory is encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error with details about the unsound advisory, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each unsound advisory, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note about the unsound advisory, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-yanked-field-optional" id="the-yanked-field-optional">The <code>yanked</code> field (optional)</a></h3>
+<p>Determines what happens when a crate with a version that has been yanked from its source registry is encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error with the crate name and version that was yanked, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning with the crate name and version that was yanked, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note about the yanked crate, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-notice-field-optional" id="the-notice-field-optional">The <code>notice</code> field (optional)</a></h3>
+<p>Determines what happens when a crate with a <code>notice</code> advisory is encountered.</p>
+<p><strong>NOTE</strong>: As of 2019-12-17 there are no <code>notice</code> advisories in the <a href="https://github.com/RustSec/advisory-db">RustSec Advisory DB</a></p>
+<ul>
+<li><code>deny</code> - Will emit an error with details about the notice advisory, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each notice advisory, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note about the notice advisory, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-ignore-field-optional" id="the-ignore-field-optional">The <code>ignore</code> field (optional)</a></h3>
+<p>Every advisory in the advisory database contains a unique identifier, eg. <code>RUSTSEC-2019-0001</code>. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.</p>
+<h3><a class="header" href="#the-severity-threshold-field-optional" id="the-severity-threshold-field-optional">The <code>severity-threshold</code> field (optional)</a></h3>
+<p>The threshold for security vulnerabilities to be turned into notes instead of warnings or errors, depending upon its <a href="https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System">CVSS</a> score. So having a high threshold means some vulnerabilities might not fail the check, but having a log level <code>&gt;= info</code> will mean that a note will be printed instead of a warning or error, depending on <code>[advisories.vulnerability]</code>.</p>
+<ul>
+<li><code>None</code> (default) - CVSS Score 0.0</li>
+<li><code>Low</code> - CVSS Score 0.1 - 3.9</li>
+<li><code>Medium</code> - CVSS Score 4.0 - 6.9</li>
+<li><code>High</code> - CVSS Score 7.0 - 8.9</li>
+<li><code>Critical</code> - CVSS Score 9.0 - 10.0</li>
+</ul>
+<h1><a class="header" href="#advisories-diagnostics" id="advisories-diagnostics">Advisories Diagnostics</a></h1>
+<h3><a class="header" href="#a001---security-vulnerability-detected" id="a001---security-vulnerability-detected"><code>A001</code> - security vulnerability detected</a></h3>
+<p>A <a href="checks/advisories/cfg.html#the-vulnerability-field-optional"><code>vulnerability</code></a> advisory was detected for a crate.</p>
+<h3><a class="header" href="#a002---notice-advisory-detected" id="a002---notice-advisory-detected"><code>A002</code> - notice advisory detected</a></h3>
+<p>A <a href="checks/advisories/cfg.html#the-notice-field-optional"><code>notice</code></a> advisory was detected for a crate.</p>
+<h3><a class="header" href="#a003---unmaintained-advisory-detected" id="a003---unmaintained-advisory-detected"><code>A003</code> - unmaintained advisory detected</a></h3>
+<p>An <a href="checks/advisories/cfg.html#the-unmaintained-field-optional"><code>unmaintained</code></a> advisory was detected for a crate.</p>
+<h3><a class="header" href="#a004---unsound-advisory-detected" id="a004---unsound-advisory-detected"><code>A004</code> - unsound advisory detected</a></h3>
+<p>An <a href="checks/advisories/cfg.html#the-unsound-field-optional"><code>unsound</code></a> advisory was detected for a crate.</p>
+<h3><a class="header" href="#a005---detected-yanked-crate" id="a005---detected-yanked-crate"><code>A005</code> - detected yanked crate</a></h3>
+<p>A crate using a version that has been <a href="checks/advisories/cfg.html#the-yanked-field-optional">yanked</a> from the registry index was detected.</p>
+<h3><a class="header" href="#a006---unable-to-check-for-yanked-crates" id="a006---unable-to-check-for-yanked-crates"><code>A006</code> - unable to check for yanked crates</a></h3>
+<p>An error occurred trying to read or update the registry index (typically crates.io) so cargo-deny was unable to check the current yanked status for any crate.</p>
+<h3><a class="header" href="#a007---advisory-was-not-encountered" id="a007---advisory-was-not-encountered"><code>A007</code> - advisory was not encountered</a></h3>
+<p>An advisory in <a href="checks/advisories/cfg.html#the-ignore-field-optional"><code>advisories.ignore</code></a> didn't apply to any crate.</p>
+<h3><a class="header" href="#a008---advisory-not-found-in-any-advisory-database" id="a008---advisory-not-found-in-any-advisory-database"><code>A008</code> - advisory not found in any advisory database</a></h3>
+<p>An advisory in <a href="checks/advisories/cfg.html#the-ignore-field-optional"><code>advisories.ignore</code></a> wasn't found in any of the configured advisory databases.</p>
+<h1><a class="header" href="#fix-diagnostics" id="fix-diagnostics">Fix diagnostics</a></h1>
+<h3><a class="header" href="#af001---advisory-has-no-available-patches" id="af001---advisory-has-no-available-patches"><code>AF001</code> - advisory has no available patches</a></h3>
+<p>An advisory does not reference any patched versions of the crate that fix the issue the advisory pertains to.</p>
+<h3><a class="header" href="#af002---affected-crate-has-no-available-patched-versions" id="af002---affected-crate-has-no-available-patched-versions"><code>AF002</code> - affected crate has no available patched versions</a></h3>
+<p>None of the patched versions for the crate can be found in the registry index.</p>
+<h3><a class="header" href="#af003---unable-to-patch-crate" id="af003---unable-to-patch-crate"><code>AF003</code> - unable to patch crate</a></h3>
+<p>A crate could not be patched because it was either not found in the registry index, or, more likely, no published version of the crate was semver compatible with any of the versions of a dependency that we need update to include a patched version of the crate the advisory applies to.</p>
+<h3><a class="header" href="#af004---unpatchable-source" id="af004---unpatchable-source"><code>AF004</code> - unpatchable source</a></h3>
+<p>The source for a crate was <code>git</code> or <code>local registry</code> and we are unable to patch it.</p>
+<h3><a class="header" href="#af005---local-crate-requirement-does-not-match-any-required-versions" id="af005---local-crate-requirement-does-not-match-any-required-versions"><code>AF005</code> - local crate requirement does not match any required versions</a></h3>
+<p>Can't apply a patch to a local Cargo.toml manifest because it none of the version(s) that are required for the dependency are semver compatible with the version in it. This can be ignored by passing <a href="checks/advisories/../../cli/fix.html#--allow-incompatible"><code>--allow-incompatible</code></a>.</p>
+<h3><a class="header" href="#af006---no-newer-versions-are-available" id="af006---no-newer-versions-are-available"><code>AF006</code> - no newer versions are available</a></h3>
+<p>There are no newer versions of a crate available to patch to.</p>
+<h1><a class="header" href="#bans" id="bans">bans</a></h1>
+<p>The bans check is used to deny (or allow) specific crates, as well as detect and handle multiple versions of the same crate.</p>
+<pre><code class="language-bash">cargo deny check bans
+</code></pre>
+<img src="https://imgur.com/K3UeXcR.png"/>
+<h2><a class="header" href="#use-case---denying-specific-crates" id="use-case---denying-specific-crates">Use Case - Denying specific crates</a></h2>
+<p>Sometimes, certain crates just don't fit in your project, so you have to remove them. However, nothing really stops them from sneaking back in due to innocuous changes like doing a <code>cargo update</code> and getting it transitively, or even forgetting to set <code>default-features = false, features = [&quot;feature-without-the-thing&quot;]</code> when the crate is pulled in via the default features of a crate you already depend on, in your entire workspace.</p>
+<p>For example, we previously depended on OpenSSL as it is the &quot;default&quot; for many crates that provide TLS. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined <code>native-tls</code> or <code>ring</code> crates instead, and now we can make sure that OpenSSL doesn't return from the grave by accident.</p>
+<h2><a class="header" href="#use-case---duplicate-version-detection" id="use-case---duplicate-version-detection">Use Case - Duplicate version detection</a></h2>
+<p>The larger your project and number of external dependencies, the likelihood that you will have multiple versions of the same crate rises. This is due to two fundamental aspects of the Rust ecosystem.</p>
+<ol>
+<li>Cargo's dependency resolution tries to solve all the version constraints to a crate to the same version, but is totally ok with using <a href="https://stephencoakley.com/2019/04/24/how-rust-solved-dependency-hell">multiple versions</a> if it is unable to.</li>
+<li>Rust has a huge (ever growing) number of crates. Every maintainer has different amounts of time and energy they can spend on their crate, not to mention different philosophies on dependecies and how often (or not) they should be updated, so it is inevitable that crates will not always agree on which version of another crate they want to use.</li>
+</ol>
+<p>This tradeoff of allowing multiple version of the same crate is one of the reasons that cargo is such a pleasant experience for many people new to Rust, but as with all tradeoffs, it does come with costs.</p>
+<ol>
+<li>More packages must be <strong>fetched</strong>, which especially impacts CI, as well as devs.</li>
+<li><strong>Compile times</strong> increase, which impacts CI and devs.</li>
+<li><strong>Target directory size</strong> increases, which can impact devs, or static CI environments.</li>
+<li>Final <strong>binary size</strong> will also tend to increase, which can impact users.</li>
+</ol>
+<p>Normally, you will not really notice that you have multiple versions of the same crate unless you constantly watch your build log, but as mentioned above, it <strong>does</strong> introduce papercuts into your workflows.</p>
+<p>The intention of duplicate detection in cargo-deny is not to &quot;correct&quot; cargo's behavior, but rather to draw your attention to duplicates so that you can make an informed decision about how to handle the situation.</p>
+<ul>
+<li>Maybe you want to open up a PR on a crate to use a version of the duplicate that is aligned with the rest of the ecosystem.</li>
+<li>Maybe the crate has actually already been updated, but the maintainer hasn't published a new version yet, and you can ask if they can publish a new one.</li>
+<li>Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily introduce a <code>[patch]</code> to force the crate to use a particular version for your entire workspace.</li>
+<li>Sometimes having the &quot;latest and greatest&quot; is not really that imporant for every version, and you can just specify a lower version in your own project that matches the transitive contraint(s).</li>
+<li>And finally, you don't care about a particular case of multiple versions, so you just tell cargo-deny to ignore one or more of the specific versions, and the situation will eventually resolve itself.</li>
+</ul>
+<h1><a class="header" href="#the-bans-section-1" id="the-bans-section-1">The <code>[bans]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check bans</code></p>
+<h2><a class="header" href="#example-config-1" id="example-config-1">Example Config</a></h2>
+<pre><code class="language-ini">[bans]
+multiple-versions = &quot;deny&quot;
+wildcards = &quot;deny&quot;
+highlight = &quot;simplest-path&quot;
+allow = [
+    { name = &quot;all-versionsa&quot; },
+    { name = &quot;specific-versiona&quot;, version = &quot;&lt;0.1.1&quot; },
+]
+skip-tree = [
+    { name = &quot;blah&quot;, depth = 20 },
+]
+
+[[bans.deny]]
+name = &quot;all-versionsd&quot;
+wrappers = [&quot;specific-versiona&quot;]
+
+[[bans.deny]]
+name = &quot;specific-versiond&quot;
+version = &quot;=0.1.9&quot;
+
+[[bans.skip]]
+name = &quot;rand&quot;
+version = &quot;=0.6.5&quot;
+
+</code></pre>
+<h3><a class="header" href="#the-multiple-versions-field-optional" id="the-multiple-versions-field-optional">The <code>multiple-versions</code> field (optional)</a></h3>
+<p>Determines what happens when multiple versions of the same crate are encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error for each crate with duplicates and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate with duplicates, but does not fail the check.</li>
+<li><code>allow</code> - Ignores duplicate versions of the same crate.</li>
+</ul>
+<h3><a class="header" href="#the-wildcards-field-optional" id="the-wildcards-field-optional">The <code>wildcards</code> field (optional)</a></h3>
+<p>Determines what happens when a dependency is specified with the <code>*</code> (wildcard) version.</p>
+<ul>
+<li><code>deny</code> - Will emit an error for each crate specifed with a wildcard version.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.</li>
+<li><code>allow</code> - Ignores all wildcard version specifications.</li>
+</ul>
+<h3><a class="header" href="#the-highlight-field-optional" id="the-highlight-field-optional">The <code>highlight</code> field (optional)</a></h3>
+<p>When multiple versions of the same crate are encountered and <code>multiple-versions</code> is set to <code>warn</code> or <code>deny</code>, using the <code>-g &lt;dir&gt;</code> option will print out a <a href="https://www.graphviz.org/">dotgraph</a> of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.</p>
+<ul>
+<li><code>lowest-version</code> - Highlights the path to the lowest duplicate version. Highlighted in <img src="https://placehold.it/15/ff0000/000000?text=+" alt="red" /></li>
+<li><code>simplest-path</code> - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in <img src="https://placehold.it/15/0000FF/000000?text=+" alt="blue" />.</li>
+<li><code>all</code> - Highlights both the <code>lowest-version</code> and <code>simplest-path</code>. If they are the same, they are only highlighted in <img src="https://placehold.it/15/ff0000/000000?text=+" alt="red" />.</li>
+</ul>
+<p><img src="https://i.imgur.com/xtarzeU.png" alt="Imgur" /></p>
+<h3><a class="header" href="#crate-specifier" id="crate-specifier">Crate specifier</a></h3>
+<p>The <code>allow</code>, <code>deny</code>, <code>skip</code>, and <code>skip-tree</code> fields all use a crate identifier to specify what crate(s) they want to match against.</p>
+<pre><code class="language-ini">{ name = &quot;some-crate-name-here&quot;, version = &quot;&lt;= 0.7.0&quot; }
+</code></pre>
+<h4><a class="header" href="#the-name-field" id="the-name-field">The <code>name</code> field</a></h4>
+<p>The name of the crate.</p>
+<h4><a class="header" href="#the-version-field-optional" id="the-version-field-optional">The <code>version</code> field (optional)</a></h4>
+<p>An optional version constraint specifying the range of crate versions that will match. Defaults to all versions (<code>*</code>).</p>
+<h4><a class="header" href="#the-wrappers-field-optional" id="the-wrappers-field-optional">The <code>wrappers</code> field (optional)</a></h4>
+<p>For <code>deny</code> entries, this field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.</p>
+<h3><a class="header" href="#the-allow-and-deny-fields-optional" id="the-allow-and-deny-fields-optional">The <code>allow</code> and <code>deny</code> fields (optional)</a></h3>
+<p>Determines specific crates that are allowed or denied. If the <code>allow</code> list has one or more entries, then any crate not in that list will be denied, so use with care.</p>
+<h3><a class="header" href="#the-skip-field-optional" id="the-skip-field-optional">The <code>skip</code> field (optional)</a></h3>
+<p>When denying duplicate versions, it's often the case that there is a window of time where you must wait for, for example, PRs to be accepted and new version published, before 1 or more duplicates are gone. The <code>skip</code> field allows you to temporarily ignore a crate during duplicate detection so that no errors are emitted, until it is no longer need.</p>
+<p>It is recommended to use specific version constraints for crates in the <code>skip</code> list, as cargo-deny will emit warnings when any entry in the <code>skip</code> list no longer matches a crate in your graph so that you can cleanup your configuration.</p>
+<h3><a class="header" href="#the-skip-tree-field-optional" id="the-skip-tree-field-optional">The <code>skip-tree</code> field (optional)</a></h3>
+<p>When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the specturm, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly <code>skip</code> each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where <code>skip-tree</code> comes in.</p>
+<p><code>skip-tree</code> entries are similar to <code>skip</code> in that they are used to specify a crate name and version range that will be skipped, but they also have an additional <code>depth</code> field used to specify how many levels from the crate will also be skipped. A depth of <code>0</code> would be the same as specifying the crate in the <code>skip</code> field.</p>
+<p>Note that by default, the <code>depth</code> is infinite.</p>
+<p><strong>NOTE:</strong> <code>skip-tree</code> is a very big hammer at the moment, and should be used with care.</p>
+<h1><a class="header" href="#bans-diagnostics" id="bans-diagnostics">Bans diagnostics</a></h1>
+<h3><a class="header" href="#b001---crate-is-explicitly-banned" id="b001---crate-is-explicitly-banned"><code>B001</code> - crate is explicitly banned</a></h3>
+<p>A crate which is <a href="checks/bans/cfg.html#the-allow-and-deny-fields-optional">explicitly banned</a> was detected.</p>
+<h3><a class="header" href="#b002---crate-is-explicitly-allowed" id="b002---crate-is-explicitly-allowed"><code>B002</code> - crate is explicitly allowed</a></h3>
+<p>A crate which is <a href="checks/bans/cfg.html#the-allow-and-deny-fields-optional">explicitly allowed</a> was detected.</p>
+<h3><a class="header" href="#b003---crate-is-implicitly-banned" id="b003---crate-is-implicitly-banned"><code>B003</code> - crate is implicitly banned</a></h3>
+<p>When using <a href="checks/bans/cfg.html#the-allow-and-deny-fields-optional"><code>bans.allow</code></a>, a crate was detected that wasn't in that list.</p>
+<h3><a class="header" href="#b004---found-duplicate-entries-for-crate" id="b004---found-duplicate-entries-for-crate"><code>B004</code> - found duplicate entries for crate</a></h3>
+<p>One or more <a href="checks/bans/cfg.html#the-multiple-versions-field-optional">duplicate versions</a> of the same crate were detected.</p>
+<h3><a class="header" href="#b005---crate-skipped-when-checking-for-duplicates" id="b005---crate-skipped-when-checking-for-duplicates"><code>B005</code> - crate skipped when checking for duplicates</a></h3>
+<p>A crate version that matched an entry in <a href="checks/bans/cfg.html#the-skip-field-optional"><code>bans.skip</code></a> was encountered.</p>
+<h3><a class="header" href="#b006---found-wildcard-dependency-for-crate" id="b006---found-wildcard-dependency-for-crate"><code>B006</code> - found wildcard dependency for crate</a></h3>
+<p>A crate was included via a <a href="checks/bans/cfg.html#the-wildcards-field-optional">wildcard dependency</a> by one or more crates.</p>
+<h3><a class="header" href="#b007---skipped-crate-was-not-encountered" id="b007---skipped-crate-was-not-encountered"><code>B007</code> - skipped crate was not encountered</a></h3>
+<p>A crate version in <a href="checks/bans/cfg.html#the-skip-field-optional"><code>bans.skip</code></a> was not encountered.</p>
+<h3><a class="header" href="#b008---banned-crate-allowed-by-wrapper" id="b008---banned-crate-allowed-by-wrapper"><code>B008</code> - banned crate allowed by wrapper</a></h3>
+<p>A crate in <code>bans.deny</code> was allowed since it was referenced by a <a href="checks/bans/cfg.html#the-wrappers-field-optional"><code>wrappers</code></a> crate.</p>
+<h3><a class="header" href="#b009---direct-parent-of-banned-crate-was-not-marked-as-a-wrapper" id="b009---direct-parent-of-banned-crate-was-not-marked-as-a-wrapper"><code>B009</code> - direct parent of banned crate was not marked as a wrapper</a></h3>
+<p>A crate in <code>bans.deny</code> had one or more <a href="checks/bans/cfg.html#the-wrappers-field-optional"><code>wrappers</code></a> crates, but a crate not in that list had a direct dependency on the banned crate.</p>
+<h3><a class="header" href="#b010---skip-tree-root-was-not-found-in-the-dependency-graph" id="b010---skip-tree-root-was-not-found-in-the-dependency-graph"><code>B010</code> - skip tree root was not found in the dependency graph</a></h3>
+<p>A crate version in <a href="checks/bans/cfg.html#the-skip-tree-field-optional"><code>bans.skip-tree</code></a> was not encountered.</p>
+<h3><a class="header" href="#b011---skipping-crate-due-to-root-skip" id="b011---skipping-crate-due-to-root-skip"><code>B011</code> - skipping crate due to root skip</a></h3>
+<p>A crate was skipped from being checked as a duplicate due to being transitively referenced by a crate version in <a href="checks/bans/cfg.html#the-skip-tree-field-optional"><code>bans.skip-tree</code></a>.</p>
+<h1><a class="header" href="#licenses" id="licenses">licenses</a></h1>
+<p>The licenses check is used to verify that every crate you use has license terms you find acceptable. cargo-deny does this by evaluating the license requirements specified by each crate against the <a href="checks/licenses/cfg.html">configuration</a> you've specified, to determine if your project meets that crate's license requirements.</p>
+<pre><code class="language-bash">cargo deny check licenses
+</code></pre>
+<img src="https://imgur.com/XMmvx9L.png"/>
+<h3><a class="header" href="#spdx" id="spdx">SPDX</a></h3>
+<p>cargo-deny uses <a href="https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/">SPDX license expressions</a> as the source of truth for the license requirements of a crate. Note however, that cargo-deny does <strong>not</strong> (currently)exhaustively search the entirety of the source code of every crate to find every possible license that could be attributed to the crate, as there are a ton of edge cases to that approach.</p>
+<p>cargo-deny rather assumes that each crate correctly defines its license requirements, but it provides a mechanism for manually specifying the license requirements for crates in the, from our experience, rare circumstance that they cannot be gathered automatically.</p>
+<h3><a class="header" href="#expression-source-precedence" id="expression-source-precedence">Expression Source Precedence</a></h3>
+<p>The source of the SPDX expression used to evaluate the crate by is obtained in the following order.</p>
+<ol>
+<li>If the crate in question has a <a href="checks/licenses/cfg.html#the-clarify-field-optional">Clarification</a> applied to it, and the source file(s) in the crate's source still match, the expression from the clarification will be used.</li>
+<li>The <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata"><code>license</code></a> field from the crate's Cargo.toml manifest will be used if it exists.</li>
+<li>The <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata"><code>license-file</code></a> field, as well as <strong>all</strong> other <code>LICENSE(-*)?</code> files will be parsed to determine the SPDX license identifier, and then all of those identifiers will be joined with the <code>AND</code> operator, meaning that you must accept <strong>all</strong> of the licenses detected.</li>
+</ol>
+<h3><a class="header" href="#evaluation-precedence" id="evaluation-precedence">Evaluation Precedence</a></h3>
+<p>Currently, the precedence for determining whether a particular license is accepted or rejected is as follows:</p>
+<ol>
+<li>A license specified in the <code>deny</code> list is <strong>always rejected</strong>.</li>
+<li>A license specified in the <code>allow</code> list is <strong>always accepted</strong>.</li>
+<li>If the license is considered <a href="https://en.wikipedia.org/wiki/Copyleft">copyleft</a>, the
+<a href="checks/licenses/cfg.html#the-copyleft-field-optional"><code>[licenses.copyleft]</code></a> configuration determines its status</li>
+<li>If the license is <a href="https://opensource.org/licenses">OSI Approved</a> or <a href="https://www.gnu.org/licenses/license-list.en.html">FSF Free/Libre</a>, the <a href="checks/licenses/cfg.html#the-allow-osi-fsf-free-field-optional"><code>[licenses.allow-osi-fsf-free]</code></a> configuration determines its status, if it is <code>neither</code> the check continues</li>
+<li>If the license does not match any of the above criteria, the <a href="checks/licenses/cfg.html#the-default-field-optional"><code>[licenses.default]</code></a> configuration determines its status</li>
+</ol>
+<h1><a class="header" href="#the-licenses-section-1" id="the-licenses-section-1">The <code>[licenses]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check license</code>.</p>
+<h2><a class="header" href="#example" id="example">Example</a></h2>
+<pre><code class="language-ini">[licenses]
+unlicensed = &quot;warn&quot;
+allow-osi-fsf-free = &quot;both&quot;
+copyleft = &quot;deny&quot;
+default = &quot;warn&quot;
+confidence-threshold = 0.95
+deny = [
+    &quot;Nokia&quot;,
+    &quot;BSD-2-Clause&quot;,
+]
+allow = [
+    &quot;EUPL-1.2&quot;,
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+]
+
+[licenses.private]
+ignore = true
+registries = [&quot;sekrets&quot;]
+
+[[licenses.exceptions]]
+allow = [&quot;Zlib&quot;]
+name = &quot;adler32&quot;
+version = &quot;0.1.1&quot;
+
+[[licenses.clarify]]
+name = &quot;ring&quot;
+version = &quot;*&quot;
+expression = &quot;MIT AND ISC AND OpenSSL&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0xbd0eed23 }
+]
+
+</code></pre>
+<h2><a class="header" href="#spdx-identifiers" id="spdx-identifiers">SPDX Identifiers</a></h2>
+<p>All identifiers used in the license configuration section are expected to be valid SPDX v2.1 short identifiers, either from version 3.11 of the <a href="https://spdx.org/licenses/">SPDX License List</a>, or use a <a href="https://spdx.github.io/spdx-spec/appendix-V-using-SPDX-short-identifiers-in-source-files/#format-for-spdx-license-identifier">custom identifier</a> by prefixing it with <code>LicenseRef-</code>.</p>
+<pre><code class="language-ini">allow = [
+    # The Apache license identifier
+    &quot;Apache-2.0&quot;,
+    # A custom license identifier
+    &quot;LicenseRef-Embark-Custom&quot;,
+]
+
+# Custom license refs can be specified for crates which don't use a license
+# in the SPDX list
+[[licenses.clarify]]
+name = &quot;a-crate&quot;
+expression = &quot;LicenseRef-Embark-Custom&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0x001c7e6c },
+]
+</code></pre>
+<p>License identifiers can also be coupled with an optional <a href="https://spdx.org/licenses/exceptions-index.html">exception</a> by appending <code>WITH &lt;exception-id&gt;</code> to the license identifier. Licenses coupled with exceptions are considered distinct from the same license without the exception.</p>
+<pre><code class="language-ini">allow = [
+    # The Apache license identifier
+    &quot;Apache-2.0&quot;,
+    # The Apache license + LLVM-exception
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+]
+</code></pre>
+<h3><a class="header" href="#the-unlicensed-field-optional" id="the-unlicensed-field-optional">The <code>unlicensed</code> field (optional)</a></h3>
+<p>Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via <code>LICENSE*</code> files in the crate's source.</p>
+<ul>
+<li><code>deny</code> (default) - All unlicensed crates will emit an error and fail the license check</li>
+<li><code>allow</code> - All unlicensed crates will show a note, but will not fail the license check</li>
+<li><code>warn</code> - All unlicensed crates will show a warning, but will not fail the license check</li>
+</ul>
+<h3><a class="header" href="#the-allow-and-deny-fields-optional-1" id="the-allow-and-deny-fields-optional-1">The <code>allow</code> and <code>deny</code> fields (optional)</a></h3>
+<p>The licenses that should be allowed or denied, note that the same license cannot
+appear in both the <code>allow</code> and <code>deny</code> lists.</p>
+<h4><a class="header" href="#note-on-gnu-licenses" id="note-on-gnu-licenses">Note on GNU licenses</a></h4>
+<ul>
+<li>GPL</li>
+<li>AGPL</li>
+<li>LGPL</li>
+<li>GFDL</li>
+</ul>
+<p>The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either <code>allow</code> or <code>deny</code>, you <strong>must not</strong> use the suffixes <code>-only</code> or <code>-or-later</code>, as they can only be used by the license holder themselves to decide under which terms to license their code.</p>
+<p>So, for example, if you wanted to disallow <code>GPL-2.0</code> licenses, but allow <code>GPL-3.0</code> licenses, you could use the following configuration.</p>
+<pre><code class="language-ini">[licenses]
+allow = [ &quot;GPL-3.0&quot; ]
+deny = [ &quot;GPL-2.0&quot; ]
+</code></pre>
+<h3><a class="header" href="#the-exceptions-field-optional" id="the-exceptions-field-optional">The <code>exceptions</code> field (optional)</a></h3>
+<p>The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The <code>exceptions</code> field is meant to allow licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.</p>
+<h4><a class="header" href="#the-exceptionsname-field" id="the-exceptionsname-field">The <code>exceptions.name</code> field</a></h4>
+<p>The name of the crate that you are adding an exception for</p>
+<h4><a class="header" href="#the-exceptionsversion-field-optional" id="the-exceptionsversion-field-optional">The <code>exceptions.version</code> field (optional)</a></h4>
+<p>An optional version constraint specifying the range of crate versions you are excepting. Defaults to all versions (<code>*</code>).</p>
+<h4><a class="header" href="#the-allow-field" id="the-allow-field">The <code>allow</code> field</a></h4>
+<p>This is the exact same as the general <code>allow</code> field.</p>
+<pre><code class="language-ini">[licenses]
+allow = [
+    &quot;Apache-2.0&quot;,
+    &quot;MIT&quot;,
+]
+exceptions = [
+    # This is the only crate that cannot be licensed with either Apache-2.0
+    # or MIT, so we just add an exception for it, meaning we'll get a warning
+    # if we add another crate that also requires this license
+    { name = &quot;cloudabi&quot;, allow = [&quot;BSD-2-Clause&quot;] },
+]
+</code></pre>
+<h3><a class="header" href="#the-copyleft-field-optional" id="the-copyleft-field-optional">The <code>copyleft</code> field (optional)</a></h3>
+<p>Determines what happens when a license that is considered <a href="https://en.wikipedia.org/wiki/Copyleft">copyleft</a> is encountered.</p>
+<ul>
+<li><code>warn</code> (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check</li>
+<li><code>deny</code> - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true</li>
+<li><code>allow</code> - The license is accepted if it is copyleft</li>
+</ul>
+<h3><a class="header" href="#the-allow-osi-fsf-free-field-optional" id="the-allow-osi-fsf-free-field-optional">The <code>allow-osi-fsf-free</code> field (optional)</a></h3>
+<p>Determines what happens when licenses aren't explicitly allowed or denied, but <strong>are</strong> marked as <a href="https://opensource.org/licenses">OSI Approved</a> or <a href="https://www.gnu.org/licenses/license-list.en.html">FSF Free/Libre</a> in version 3.11 of the <a href="https://spdx.org/licenses/">SPDX License List</a>.</p>
+<ul>
+<li><code>both</code> - The license is accepted if it is both OSI approved and FSF Free</li>
+<li><code>either</code> - The license is accepted if it is either OSI approved or FSF Free</li>
+<li><code>osi-only</code> - The license is accepted if it is OSI approved and not FSF Free</li>
+<li><code>fsf-only</code> - The license is accepted if it is FSF Free and not OSI approved</li>
+<li><code>neither</code> (default) - No special consideration is given the license</li>
+</ul>
+<h3><a class="header" href="#the-default-field-optional" id="the-default-field-optional">The <code>default</code> field (optional)</a></h3>
+<p>Determines what happens when a license is encountered that:</p>
+<ol>
+<li>Isn't in the <code>allow</code> or <code>deny</code> lists</li>
+<li>Isn't <code>copyleft</code></li>
+<li>Isn't OSI Approved nor FSF Free/Libre, or <code>allow-osi-fsf-free = &quot;neither&quot;</code></li>
+</ol>
+<ul>
+<li><code>warn</code> - Will emit a warning that the license was detected, but will not fail the license check</li>
+<li><code>deny</code> (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true</li>
+<li><code>allow</code> - The license is accepted</li>
+</ul>
+<h3><a class="header" href="#the-confidence-threshold-field-optional" id="the-confidence-threshold-field-optional">The <code>confidence-threshold</code> field (optional)</a></h3>
+<p><code>cargo-deny</code> uses <a href="https://github.com/amzn/askalono">askalono</a> to determine the license of a LICENSE file. Due to variability in license texts because of things like authors, copyright year, and so forth, askalano assigns a confidence score to its determination, from <code>0.0</code> (no confidence) to <code>1.0</code> (perfect match). The confidence threshold value is used to reject the license determination if the score does not match or exceed the threshold.</p>
+<p><code>0.0</code> - <code>1.0</code> (default <code>0.8</code>)</p>
+<h3><a class="header" href="#the-clarify-field-optional" id="the-clarify-field-optional">The <code>clarify</code> field (optional)</a></h3>
+<p>In some exceptional cases, a crate will not have easily machine readable license information, and would by default be considered &quot;unlicensed&quot; by cargo-deny. As a (hopefully) temporary patch for using the crate, you can specify a clarification for the crate by manually assigning its SPDX expression, based on one or more files in the crate's source. cargo-deny will use that expression for as long as the source files in the crate exactly match the clarification's hashes.</p>
+<pre><code class="language-ini">[[licenses.clarify]]
+name = &quot;webpki&quot;
+expression = &quot;ISC&quot;
+license-files = [
+    { path = &quot;LICENSE&quot;, hash = 0x001c7e6c },
+]
+</code></pre>
+<h4><a class="header" href="#the-name-field-1" id="the-name-field-1">The <code>name</code> field</a></h4>
+<p>The name of the crate that you are clarifying</p>
+<h4><a class="header" href="#the-version-field-optional-1" id="the-version-field-optional-1">The <code>version</code> field (optional)</a></h4>
+<p>An optional version constraint specifying the range of crate versions you are clarifying. Defaults to all versions (<code>*</code>).</p>
+<h4><a class="header" href="#the-expression-field" id="the-expression-field">The <code>expression</code> field</a></h4>
+<p>The <a href="https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60">SPDX license expression</a> you are specifying as the license requirements for the crate.</p>
+<h4><a class="header" href="#the-license-files-field" id="the-license-files-field">The <code>license-files</code> field</a></h4>
+<p>Contains one or more files that will be checked to ensure the license expression still applies to a version of the crate.</p>
+<h5><a class="header" href="#the-path-field" id="the-path-field">The <code>path</code> field</a></h5>
+<p>The crate relative path to a file to be used as a source of truth.</p>
+<h5><a class="header" href="#the-hash-field" id="the-hash-field">The <code>hash</code> field</a></h5>
+<p>An opaque hash calculated from the file contents. This hash can be obtained from the output of the license check when cargo-deny can't determine the license of the file in question.</p>
+<h3><a class="header" href="#the-private-field-optional" id="the-private-field-optional">The <code>private</code> field (optional)</a></h3>
+<p>It's often not useful or wanted to check for licenses in your own private workspace crates. So the private field allows you to do so.</p>
+<h4><a class="header" href="#the-ignore-field" id="the-ignore-field">The <code>ignore</code> field</a></h4>
+<p>If <code>true</code>, workspace members will not have their license expression checked if they are not published.</p>
+<pre><code class="language-ini">[package]
+name = &quot;sekret&quot;
+license = &quot;¯\_(ツ)_/¯&quot;
+publish = false # &quot;private&quot;!
+</code></pre>
+<pre><code class="language-ini">[licenses]
+# The sekret package would be ignored now
+private = { ignore = true }
+</code></pre>
+<h3><a class="header" href="#the-registries-field" id="the-registries-field">The <code>registries</code> field</a></h3>
+<p>A list of private registries you may publish your workspace crates to. If a workspace member <strong>only</strong> publishes to private registries, it will also be ignored if <code>private.ignore = true</code></p>
+<pre><code class="language-ini">[package]
+name = &quot;sekret&quot;
+license = &quot;¯\_(ツ)_/¯&quot;
+publish = [&quot;sauce&quot;]
+</code></pre>
+<pre><code class="language-ini">[licenses]
+# Still ignored!
+private = { ignore = true, registries = [&quot;sauce&quot;] }
+</code></pre>
+<h1><a class="header" href="#licenses-diagnostics" id="licenses-diagnostics">Licenses Diagnostics</a></h1>
+<h3><a class="header" href="#l001---failed-to-satisfy-license-requirements" id="l001---failed-to-satisfy-license-requirements"><code>L001</code> - failed to satisfy license requirements</a></h3>
+<p>One or more licenses for a crate were rejected because they were not configured to be <a href="checks/licenses/cfg.html#the-allow-and-deny-fields-optional">allowed</a>.</p>
+<h3><a class="header" href="#l002---license-requirements-satisfied" id="l002---license-requirements-satisfied"><code>L002</code> - license requirements satisfied</a></h3>
+<p>The license expression for a crate was <a href="checks/licenses/cfg.html#the-allow-and-deny-fields-optional">allowed</a>, though there may be warnings.</p>
+<h3><a class="header" href="#l003---unlicensed-crate" id="l003---unlicensed-crate"><code>L003</code> - unlicensed crate</a></h3>
+<p>No license expression could be found for a crate and it is considered <a href="checks/licenses/cfg.html#the-unlicensed-field-optional">unlicensed</a>.</p>
+<h3><a class="header" href="#l004---skipping-private-workspace-crate" id="l004---skipping-private-workspace-crate"><code>L004</code> - skipping private workspace crate</a></h3>
+<p>A workspace member is <code>publish = false</code> and was <a href="checks/licenses/cfg.html#the-private-field-optional">skipped</a>.</p>
+<h3><a class="header" href="#l005---license-exception-was-not-encountered" id="l005---license-exception-was-not-encountered"><code>L005</code> - license exception was not encountered</a></h3>
+<p>A <a href="checks/licenses/cfg.html#the-exceptions-field-optional"><code>licenses.exception</code></a> was not used as the crate it applied to was not encountered.</p>
+<h3><a class="header" href="#l006---license-was-not-encountered" id="l006---license-was-not-encountered"><code>L006</code> - license was not encountered</a></h3>
+<p>A license in <a href="checks/licenses/cfg.html#the-allow-and-deny-fields-optional"><code>licenses.allow</code></a> was not found in any crate.</p>
+<h1><a class="header" href="#sources" id="sources">sources</a></h1>
+<p>The sources check ensures crates only come from sources you trust.</p>
+<pre><code class="language-bash">cargo deny check sources
+</code></pre>
+<img src="https://imgur.com/xdHFDWS.png"/>
+<h2><a class="header" href="#use-case---only-allowing-knowntrusted-sources" id="use-case---only-allowing-knowntrusted-sources">Use Case - Only allowing known/trusted sources</a></h2>
+<p>Cargo can retrieve crates from a variety of sources, namely registries, git repositories, or local file paths. This is great in general and very flexible for development. But, especially when re-routing dependencies to git repositories, increasing the amount of sources that a project has to trust may be something a repository wants to explicitly opt-in to.</p>
+<p>See <a href="https://snyk.io/blog/why-npm-lockfiles-can-be-a-security-blindspot-for-injecting-malicious-modules/">Why npm lockfiles can be a security blindspot for injecting malicious modules</a> for the motivating reason for why this check was added.</p>
+<h2><a class="header" href="#use-case---only-using-vendored-file-dependencies" id="use-case---only-using-vendored-file-dependencies">Use Case - Only using vendored file dependencies</a></h2>
+<p>A project may want to only support local file dependencies, such as having all dependencies vendored into the repository for full control and offline building. This can be achieved by disallowing all git and registry sources to ensure that every dependency is added into your source control rather than via an external source.</p>
+<h1><a class="header" href="#the-sources-section-1" id="the-sources-section-1">The <code>[sources]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check sources</code></p>
+<h2><a class="header" href="#example-config-2" id="example-config-2">Example Config</a></h2>
+<pre><code class="language-ini">[sources]
+unknown-registry = &quot;allow&quot;
+unknown-git = &quot;deny&quot;
+required-git-spec = &quot;tag&quot;
+allow-registry = [
+    &quot;https://sekretz.com/registry/index&quot;,
+]
+allow-git = [
+    &quot;https://notgithub.com/orgname/reponame.git&quot;,
+]
+[sources.allow-org]
+github = [
+    &quot;yourghid&quot;,
+    &quot;YourOrg&quot;,
+]
+gitlab = [
+    &quot;gitlab-org&quot;,
+]
+bitbucket = [
+    &quot;atlassian&quot;,
+]
+</code></pre>
+<h3><a class="header" href="#the-unknown-registry-field-optional" id="the-unknown-registry-field-optional">The <code>unknown-registry</code> field (optional)</a></h3>
+<p>Determines what happens when a crate from a crate registry that is not in the <code>allow-registry</code> list is encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error with the URL of the source, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note for each crate, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-unknown-git-field-optional" id="the-unknown-git-field-optional">The <code>unknown-git</code> field (optional)</a></h3>
+<p>Determines what happens when a crate from a git repository not in the <code>allow-git</code> list is encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error with the URL of the repository, and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note for each crate, but does not fail the check.</li>
+</ul>
+<h3><a class="header" href="#the-required-git-spec-optional" id="the-required-git-spec-optional">The <code>required-git-spec</code> (optional)</a></h3>
+<p>Determines which <a href="https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories">specifiers</a> are required for git sources. Git sources are a convient way to use patched code temporarily, but they have downsides for long term maintenance, as the specifier you use for the source determines what happens when you do a <code>cargo update</code>, and in the default case, this means you essentially have a wildcard dependency on the repository.</p>
+<p>This configuration value allows you to control what specifiers you want to allow for your git sources to reduce surprises. The following values are listed in order from least to most specific, and using a less specific specifier will also allow all of the more specific ones.</p>
+<ul>
+<li><code>any</code> (default) - Allows all git specs, including the default of not having
+any specifier, which tracks the latest commit on the <code>master</code> branch of the repo</li>
+<li><code>branch</code> - Allows the <code>branch = &quot;&lt;branch_name&gt;&quot;</code> specifier.</li>
+<li><code>tag</code> - Allows the <code>tag = &quot;&lt;tag_name&gt;&quot;</code> specifier.</li>
+<li><code>rev</code> - Allows the <code>rev = &quot;&lt;commit_sha&gt;&quot;</code> specifier.</li>
+</ul>
+<h3><a class="header" href="#the-allow-git-field-optional" id="the-allow-git-field-optional">The <code>allow-git</code> field (optional)</a></h3>
+<p>Configure which git urls are allowed for crate sources. If a crate's source is not in one of the listed urls, then the <code>unknown-git</code> setting will determine how it is handled.</p>
+<h3><a class="header" href="#the-allow-registry-field-optional" id="the-allow-registry-field-optional">The <code>allow-registry</code> field (optional)</a></h3>
+<p>The list of registries that are allowed. If a crate is not found in one of the listed registries, then the <code>unknown-registry</code> setting will determine how it is handled.</p>
+<p>If not specified, this list will by default contain the <a href="http://crates.io">crates.io</a> registry, equivalent to this:</p>
+<pre><code class="language-ini">[sources]
+allow-registry = [
+    &quot;https://github.com/rust-lang/crates.io-index&quot;
+]
+</code></pre>
+<p>To not allow any crates registries, set it to empty:</p>
+<pre><code class="language-ini">[sources]
+unknown-registry = &quot;deny&quot;
+allow-registry = []
+</code></pre>
+<h3><a class="header" href="#the-allow-org-field-optional" id="the-allow-org-field-optional">The <code>allow-org</code> field (optional)</a></h3>
+<p>Generally, I think most projects in the Rust space probably follow a similar procedure as we do when they want to fix a bug or add a feature to one of their dependencies, which is basically.</p>
+<ol>
+<li>Fork the crate to make your changes</li>
+<li>Hack away locally, probably just patching your project(s) to use a <code>path</code> dependency to the cloned fork</li>
+<li>Push changes to your fork, and once you're happy, change the <code>path</code> dependency to a <code>git</code> dependency and point it to your fork for others/CI to be able to use the same changes easily</li>
+<li>Eventually (hopefully!) make a PR to the original repo with your changes</li>
+<li>Hopefully get your changes merged to the original repo</li>
+<li>Wait until a release is made that incorporates your changes, possibly changing the <code>git</code> source to point to the original repo</li>
+<li>Remove the <code>git</code> source and instead point at the new version of the crate with your changes</li>
+<li>Profit!</li>
+</ol>
+<p>When working in a company or organization, it is often the case that all crates will be forked to a shared organization account rather than a personal Github account. However, if you lint your git sources, every new and deleted fork needs to keep that list updated, which is tedious, even if all the forks fall under the same organization (in Github terminology), even though presumably only people you trust have permission to create forks there, and you would like to just blanket trust any repo under that org.</p>
+<p>The <code>allow-org</code> object allows you to specify 1 or more orgs in several VCS providers to more easily configure git sources for your projects.</p>
+<h4><a class="header" href="#the-github-field-optional" id="the-github-field-optional">The <code>github</code> field (optional)</a></h4>
+<p>Allows you to specify one or more <code>github.com</code> organizations to allow as git sources.</p>
+<pre><code class="language-ini">[sources.allow-org]
+github = [&quot;YourCoolOrgGoesHere&quot;]
+</code></pre>
+<h4><a class="header" href="#the-gitlab-field-optional" id="the-gitlab-field-optional">The <code>gitlab</code> field (optional)</a></h4>
+<p>Allows you to specify one or more <code>gitlab.com</code> organizations to allow as git sources.</p>
+<pre><code class="language-ini">[sources.allow-org]
+gitlab = [&quot;YourCoolOrgGoesHere&quot;]
+</code></pre>
+<h4><a class="header" href="#the-bitbucket-field-optional" id="the-bitbucket-field-optional">The <code>bitbucket</code> field (optional)</a></h4>
+<p>Allows you to specify one or more <code>bitbucket.org</code> organizations to allow as git sources.</p>
+<pre><code class="language-ini">[sources.allow-org]
+bitbucket = [&quot;YourCoolOrgGoesHere&quot;]
+</code></pre>
+<h1><a class="header" href="#sources-diagnostics" id="sources-diagnostics">Sources diagnostics</a></h1>
+<h3><a class="header" href="#s001---git-source-is-underspecified" id="s001---git-source-is-underspecified"><code>S001</code> - 'git' source is underspecified</a></h3>
+<p>A <code>git</code> source uses a specification that doesn't meet the minimum specifier required by <a href="checks/sources/cfg.html#the-required-git-spec-optional"><code>sources.required-git-spec</code></a>.</p>
+<h3><a class="header" href="#s002---source-explicitly-allowed" id="s002---source-explicitly-allowed"><code>S002</code> - source explicitly allowed</a></h3>
+<p>A crate source is explicitly allowed by <a href="checks/sources/cfg.html#the-allow-git-field-optional"><code>sources.allow-git</code></a> or <a href="checks/sources/cfg.html#the-allow-registry-field-optional"><code>sources.allow-registry</code></a>.</p>
+<h3><a class="header" href="#s003---source-allowed-by-organization-allowance" id="s003---source-allowed-by-organization-allowance"><code>S003</code> - source allowed by organization allowance</a></h3>
+<p>A crate source was explicitly allowed by an entry in <a href="checks/sources/cfg.html#the-allow-org-field-optional"><code>sources.allow-org</code></a>.</p>
+<h3><a class="header" href="#s004---detected-source-not-explicitly-allowed" id="s004---detected-source-not-explicitly-allowed"><code>S004</code> - detected source not explicitly allowed</a></h3>
+<p>A crate source was not explicitly allowed.</p>
+<h3><a class="header" href="#s005---allowed-source-was-not-encountered" id="s005---allowed-source-was-not-encountered"><code>S005</code> - allowed source was not encountered</a></h3>
+<p>An allowed source in <a href="checks/sources/cfg.html#the-allow-git-field-optional"><code>sources.allow-git</code></a> or <a href="checks/sources/cfg.html#the-allow-registry-field-optional"><code>sources.allow-registry</code></a> was not encountered.</p>
+<h3><a class="header" href="#s006---allowed-organization--was-not-encountered" id="s006---allowed-organization--was-not-encountered"><code>S006</code> - allowed organization  was not encountered</a></h3>
+<p>An allowed source in <a href="checks/sources/cfg.html#the-allow-org-field-optional"><code>sources.allow-org</code></a> was not encountered.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
