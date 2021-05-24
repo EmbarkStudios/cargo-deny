@@ -97,6 +97,9 @@ pub struct Config {
     /// How to handle wildcard dependencies
     #[serde(default = "crate::lint_allow")]
     pub wildcards: LintLevel,
+    /// How to handle crates with default-features enabled
+    #[serde(default = "crate::lint_allow")]
+    pub default_features: LintLevel,
 }
 
 impl Default for Config {
@@ -109,6 +112,7 @@ impl Default for Config {
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
+            default_features: LintLevel::Allow,
         }
     }
 }
@@ -190,6 +194,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             allowed,
             skipped,
             wildcards: self.wildcards,
+            default_features: self.default_features,
             tree_skipped: self
                 .skip_tree
                 .into_iter()
@@ -237,6 +242,7 @@ pub struct ValidConfig {
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
+    pub default_features: LintLevel,
 }
 
 #[cfg(test)]
