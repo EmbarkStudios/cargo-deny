@@ -69,12 +69,17 @@ pub struct Config {
     /// The lists of source control organizations that crates can be sourced from.
     #[serde(default)]
     pub allow_org: Orgs,
+    /// The list of hosts with optional paths from which one or more git repos
+    /// can be sourced.
+    #[serde(default)]
+    pub private: Vec<Spanned<String>>,
     /// The minimum specification required for git sources. Defaults to allowing
     /// any.
     #[serde(default)]
     pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
+#[inline]
 fn default_allow_registry() -> Vec<Spanned<String>> {
     // This is always valid, so we don't have to worry about the span being fake
     vec![Spanned::new(
@@ -91,6 +96,7 @@ impl Default for Config {
             allow_registry: default_allow_registry(),
             allow_git: Vec::new(),
             allow_org: Orgs::default(),
+            private: Vec::new(),
             required_git_spec: None,
         }
     }
@@ -102,20 +108,26 @@ impl cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
     fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
-        let mut allowed_sources =
-            Vec::with_capacity(self.allow_registry.len() + self.allow_git.len());
+        let mut allowed_sources = Vec::with_capacity(
+            self.allow_registry.len() + self.allow_git.len() + self.private.len(),
+        );
 
-        for aurl in self
+        for (aurl, exact) in self
             .allow_registry
             .into_iter()
-            .chain(self.allow_git.into_iter())
+            .map(|u| (u, true))
+            .chain(self.allow_git.into_iter().map(|u| (u, true)))
+            .chain(self.private.into_iter().map(|u| (u, false)))
         {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
                     normalize_url(&mut url);
-                    allowed_sources.push(UrlSpan {
-                        value: url,
-                        span: aurl.span,
+                    allowed_sources.push(UrlSource {
+                        url: UrlSpan {
+                            value: url,
+                            span: aurl.span,
+                        },
+                        exact,
                     });
                 }
                 Err(pe) => {
@@ -162,13 +174,19 @@ impl cfg::UnvalidatedConfig for Config {
 
 pub type UrlSpan = Spanned<url::Url>;
 
+#[derive(PartialEq, Debug)]
+pub struct UrlSource {
+    pub url: UrlSpan,
+    pub exact: bool,
+}
+
 #[doc(hidden)]
 pub struct ValidConfig {
     pub file_id: FileId,
 
     pub unknown_registry: LintLevel,
     pub unknown_git: LintLevel,
-    pub allowed_sources: Vec<UrlSpan>,
+    pub allowed_sources: Vec<UrlSource>,
     pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
     pub required_git_spec: Option<Spanned<GitSpec>>,
 }
@@ -201,13 +219,27 @@ mod test {
         assert_eq!(
             validated.allowed_sources,
             vec![
-                url::Url::parse("https://sekretz.com/registry/index")
-                    .unwrap()
-                    .fake(),
-                url::Url::parse("https://notgithub.com/orgname/reponame")
-                    .unwrap()
-                    .fake()
-            ]
+                UrlSource {
+                    url: url::Url::parse("https://sekretz.com/registry/index")
+                        .unwrap()
+                        .fake(),
+                    exact: true,
+                },
+                UrlSource {
+                    url: url::Url::parse("https://notgithub.com/orgname/reponame")
+                        .unwrap()
+                        .fake(),
+                    exact: true,
+                },
+                UrlSource {
+                    url: url::Url::parse("https://internal-host/repos")
+                        .unwrap()
+                        .fake(),
+                    exact: false,
+                },
+            ],
+            "{:#?}",
+            validated.allowed_sources
         );
 
         // Obviously order could change here, but for now just hardcode it

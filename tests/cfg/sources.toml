@@ -8,6 +8,9 @@ allow-registry = [
 allow-git = [
     "https://notgithub.com/orgname/reponame.git",
 ]
+private = [
+    "https://internal-host/repos",
+]
 [sources.allow-org]
 github = [
     "yourghid",

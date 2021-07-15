@@ -105,12 +105,14 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
         };
 
         // check if the source URL is list of allowed sources
-        match ctx
-            .cfg
-            .allowed_sources
-            .iter()
-            .position(|src| src == &source_url)
-        {
+        match ctx.cfg.allowed_sources.iter().position(|src| {
+            if src.exact {
+                src.url == source_url
+            } else {
+                source_url.host() == src.url.value.host()
+                    && source_url.path().starts_with(src.url.value.path())
+            }
+        }) {
             Some(ind) => {
                 // Show the location of the config that allowed this source, unless
                 // it's crates.io since that will be a vast majority of crates and
@@ -121,7 +123,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
                         type_name,
                         allow_cfg: CfgCoord {
                             file: ctx.cfg.file_id,
-                            span: ctx.cfg.allowed_sources[ind].span.clone(),
+                            span: ctx.cfg.allowed_sources[ind].url.span.clone(),
                         },
                     });
                 }
@@ -179,7 +181,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
     {
         pack.push(diags::UnmatchedAllowSource {
             allow_src_cfg: CfgCoord {
-                span: src.span,
+                span: src.url.span,
                 file: ctx.cfg.file_id,
             },
         });
@@ -205,7 +207,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
 }
 
 fn normalize_url(url: &mut Url) {
-    // Normalizes the URL so that different represatations can be compared to each other.
+    // Normalizes the URL so that different representations can be compared to each other.
     // At the moment we just remove a tailing `.git` but there are more possible optimisations.
     // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
     // for what cargo does
