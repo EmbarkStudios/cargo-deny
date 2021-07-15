@@ -7,12 +7,21 @@ unknown-git = "deny"
 
 # here we can explicitly enable registries we allow,
 # crates.io is already added by default though - so this is not needed
-#allow-registry = [
-#    "https://github.com/rust-lang/crates.io-index"
-#]
+# allow-registry = [
+#     "https://github.com/rust-lang/crates.io-index"
+# ]
 
+allow-git = [
+    # uncomment this to explicitly allow the bitflags repo and not fail
+    #"https://github.com/bitflags/bitflags.git",
+]
 
-# uncomment this to explicitly allow the bitflags repo and not fail
-#allow-git = [
-#    "https://github.com/bitflags/bitflags.git"
-#]
+# Or we could allow the entire org
+# [sources.allow-org]
+# github = ["bitflags"]
+
+private = [
+    # This can be changed to just be the host, to allow the mlua_serde dependency
+    # since that is under a different org/user than the other repos
+    "https://tulpa.dev/cadey/",
+]
