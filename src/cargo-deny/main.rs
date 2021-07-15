@@ -174,6 +174,9 @@ pub(crate) struct GraphContext {
     /// Space-separated list of features to activate
     #[structopt(long)]
     pub(crate) features: Vec<String>,
+    /// Run without accessing the network
+    #[structopt(long)]
+    pub(crate) offline: bool,
 }
 
 /// Lints your project's crate graph
@@ -357,6 +360,7 @@ fn real_main() -> Result<(), Error> {
         no_default_features: args.ctx.no_default_features,
         all_features: args.ctx.all_features,
         features: args.ctx.features,
+        offline: args.ctx.offline,
     };
 
     let log_ctx = crate::common::LogContext {
