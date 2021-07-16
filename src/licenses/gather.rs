@@ -192,7 +192,7 @@ impl LicensePack {
         // Add the explicitly specified license if it wasn't
         // already found in the root directory
         if let Some(ref lf) = krate.license_file {
-            if lic_paths.iter().find(|l| l.ends_with(lf)).is_none() {
+            if !lic_paths.iter().any(|l| l.ends_with(lf)) {
                 // The `krate.license_file` is relative to the crate, while files found with
                 // `find_license_files()` are absolute. We prepend the directory of the current
                 // crate, to make sure all license file paths will be absolute.

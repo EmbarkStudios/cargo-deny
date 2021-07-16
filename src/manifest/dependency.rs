@@ -70,7 +70,7 @@ impl Dependency {
 
         let (old_path, old_registry) = match self.source {
             DependencySource::Version { path, registry, .. } => (path, registry),
-            _ => (None, None),
+            DependencySource::Git { .. } => (None, None),
         };
         self.source = DependencySource::Version {
             version: Some(version),
@@ -93,7 +93,7 @@ impl Dependency {
     pub fn set_path(mut self, path: &str) -> Dependency {
         let old_version = match self.source {
             DependencySource::Version { version, .. } => version,
-            _ => None,
+            DependencySource::Git { .. } => None,
         };
         self.source = DependencySource::Version {
             version: old_version,
@@ -143,7 +143,7 @@ impl Dependency {
     pub fn set_registry(mut self, registry: &str) -> Dependency {
         let old_version = match self.source {
             DependencySource::Version { version, .. } => version,
-            _ => None,
+            DependencySource::Git { .. } => None,
         };
         self.source = DependencySource::Version {
             version: old_version,
@@ -237,8 +237,7 @@ impl Dependency {
                     data.get_or_insert("optional", optional);
                 }
                 if let Some(features) = features {
-                    use std::iter::FromIterator;
-                    let features = toml_edit::Value::from_iter(features.iter().cloned());
+                    let features: toml_edit::Value = features.iter().cloned().collect();
                     data.get_or_insert("features", features);
                 }
                 if !self.default_features {

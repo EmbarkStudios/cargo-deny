@@ -363,7 +363,7 @@ mod test {
         assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);
-        assert_eq!(validated.private.ignore, true);
+        assert!(validated.private.ignore);
         assert_eq!(validated.private.registries, vec!["sekrets".to_owned()]);
         assert_eq!(validated.unlicensed, LintLevel::Warn);
         assert_eq!(validated.copyleft, LintLevel::Deny);
