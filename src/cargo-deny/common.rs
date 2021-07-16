@@ -57,6 +57,7 @@ pub struct KrateContext {
     pub no_default_features: bool,
     pub all_features: bool,
     pub features: Vec<String>,
+    pub offline: bool,
 }
 
 impl KrateContext {
@@ -95,12 +96,13 @@ impl KrateContext {
         log::info!("gathering crates for {}", self.manifest_path.display());
         let start = std::time::Instant::now();
 
-        let metadata = get_metadata(
-            self.no_default_features,
-            self.all_features,
-            self.features,
-            self.manifest_path,
-        )?;
+        let metadata = get_metadata(MetadataOptions {
+            no_default_features: self.no_default_features,
+            all_features: self.all_features,
+            features: self.features,
+            manifest_path: self.manifest_path,
+            offline: self.offline,
+        })?;
 
         use krates::{Builder, DepKind};
 
@@ -159,41 +161,49 @@ impl KrateContext {
     }
 }
 
-#[cfg(not(feature = "standalone"))]
-fn get_metadata(
+struct MetadataOptions {
     no_default_features: bool,
     all_features: bool,
     features: Vec<String>,
     manifest_path: PathBuf,
-) -> Result<krates::cm::Metadata, anyhow::Error> {
+    offline: bool,
+}
+
+#[cfg(not(feature = "standalone"))]
+fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
     let mut mdc = krates::Cmd::new();
 
-    if no_default_features {
+    if opts.no_default_features {
         mdc.no_default_features();
     }
 
-    if all_features {
+    if opts.all_features {
         mdc.all_features();
     }
 
-    mdc.features(features);
-    mdc.manifest_path(manifest_path);
+    mdc.features(opts.features);
+    mdc.manifest_path(opts.manifest_path);
+
+    if opts.offline {
+        mdc.other_options(std::iter::once("--offline".to_owned()));
+    }
 
     let mdc: krates::cm::MetadataCommand = mdc.into();
     Ok(mdc.exec()?)
 }
 
 #[cfg(feature = "standalone")]
-fn get_metadata(
-    no_default_features: bool,
-    all_features: bool,
-    features: Vec<String>,
-    mut manifest_path: PathBuf,
-) -> Result<krates::cm::Metadata, anyhow::Error> {
+fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
     use anyhow::Context;
     use cargo::{core, ops, util};
 
-    let config = util::Config::default()?;
+    let mut config = util::Config::default()?;
+
+    if opts.offline {
+        config.configure(0, true, None, false, false, opts.offline, &None, &[], &[])?;
+    }
+
+    let mut manifest_path = opts.manifest_path;
 
     // Cargo doesn't like non-absolute paths
     if !manifest_path.is_absolute() {
@@ -204,9 +214,9 @@ fn get_metadata(
 
     let ws = core::Workspace::new(&manifest_path, &config)?;
     let options = ops::OutputMetadataOptions {
-        features,
-        no_default_features,
-        all_features,
+        features: opts.features,
+        no_default_features: opts.no_default_features,
+        all_features: opts.all_features,
         no_deps: false,
         version: 1,
         filter_platforms: vec![],

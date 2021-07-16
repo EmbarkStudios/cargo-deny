@@ -95,44 +95,46 @@ fn detects_vulnerabilities() {
     );
 }
 
-#[test]
-#[ignore]
-fn skips_prereleases() {
-    let TestCtx { dbs, lock, krates } = load();
+// #[test]
+// #[ignore]
+// fn detects_prereleases() {
+//     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "vulnerability = 'deny'";
+//     let cfg = "vulnerability = 'deny'";
 
-    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
-        krates,
-        "skips_prereleases",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            advisories::check(
-                ctx,
-                &dbs,
-                lock,
-                Option::<advisories::NoneReporter>::None,
-                tx,
-            );
-        },
-    )
-    .unwrap();
+//     let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+//         krates,
+//         "detects_prereleases",
+//         Some(cfg),
+//         None,
+//         |ctx, _, tx| {
+//             advisories::check(
+//                 ctx,
+//                 &dbs,
+//                 lock,
+//                 Option::<advisories::NoneReporter>::None,
+//                 tx,
+//             );
+//         },
+//     )
+//     .unwrap();
 
-    let vuln_diag = find_by_code(&diags, "RUSTSEC-2018-0007").unwrap();
+//     println!("{:#?}", diags);
 
-    assert_field_eq!(vuln_diag, "/fields/severity", "warning");
-    assert_field_eq!(
-        vuln_diag,
-        "/fields/message",
-        "advisory for a crate with a pre-release was skipped as it matched a patch"
-    );
-    assert_field_eq!(vuln_diag, "/fields/labels/0/message", "pre-release crate");
+//     let vuln_diag = find_by_code(&diags, "RUSTSEC-2020-0069").unwrap();
 
-    assert!(iter_notes(vuln_diag)
-        .expect("expected notes on diag")
-        .any(|s| s == "Satisfied version requirement: >=0.5.0-alpha.3"));
-}
+//     assert_field_eq!(vuln_diag, "/fields/severity", "error");
+//     assert_field_eq!(
+//         vuln_diag,
+//         "/fields/message",
+//         "advisory for a crate with a pre-release was skipped as it matched a patch"
+//     );
+//     assert_field_eq!(vuln_diag, "/fields/labels/0/message", "pre-release crate");
+
+//     assert!(iter_notes(vuln_diag)
+//         .expect("expected notes on diag")
+//         .any(|s| s == "Satisfied version requirement: >=0.5.0-alpha.3"));
+// }
 
 #[test]
 #[ignore]

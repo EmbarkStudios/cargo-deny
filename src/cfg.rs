@@ -126,7 +126,7 @@ impl<'de, T> de::Deserialize<'de> for Spanned<T>
 where
     T: de::Deserialize<'de>,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Spanned<T>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: de::Deserializer<'de>,
     {

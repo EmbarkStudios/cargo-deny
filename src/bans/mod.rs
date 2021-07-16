@@ -339,9 +339,7 @@ pub fn check(
             // can cleanup their configs as their dependency graph changes over time
             skip_hit.as_mut_bitslice().set(index, true);
         } else if !tree_skipper.matches(krate, &mut pack) {
-            if multi_detector.name == krate.name {
-                multi_detector.dupes.push(i);
-            } else {
+            if multi_detector.name != krate.name {
                 if multi_detector.dupes.len() > 1 && multiple_versions != LintLevel::Allow {
                     let severity = match multiple_versions {
                         LintLevel::Warn => Severity::Warning,
@@ -419,8 +417,9 @@ pub fn check(
 
                 multi_detector.name = &krate.name;
                 multi_detector.dupes.clear();
-                multi_detector.dupes.push(i);
             }
+
+            multi_detector.dupes.push(i);
 
             if wildcards != LintLevel::Allow {
                 let severity = match wildcards {
