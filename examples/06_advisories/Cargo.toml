@@ -22,6 +22,6 @@ libusb = "0.3.0"
 # This version of spdx has been yanked
 spdx = "=0.3.1"
 
-# There is an advisory for < 0.5.0-alpha.3, but is fixed in >= 0.5.0, so this
-# should not fail
-trust-dns-resolver = "0.20.0-alpha.3"
+# The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
+# https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md
+lettre = "0.10.0-alpha.3"
