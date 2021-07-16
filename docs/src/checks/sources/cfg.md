@@ -38,7 +38,25 @@ any specifier, which tracks the latest commit on the `master` branch of the repo
 
 ### The `allow-git` field (optional)
 
-Configure which git urls are allowed for crate sources. If a crate's source is not in one of the listed urls, then the `unknown-git` setting will determine how it is handled.
+Configure which git urls are allowed for crate sources. If a crate's source is not in one of the listed urls, then the `unknown-git` setting will determine how it is handled. Note that the url must match exactly, though `.git` is stripped if it exists to match the logic of cargo.
+
+```ini
+[sources]
+allow-git = [
+    "https://github.com/EmbarkStudios/cargo-deny",
+]
+```
+
+### The `private` field (optional)
+
+Similarly to `allow-git`, allows you to configure urls, however, unlike `allow-git` which is meant for a single, exact, url, `private` urls actually allow _any_ git repo url which matches the host and begins with the same path. This field is primarily meant to support the use of internal/private git hosts (usually on a VPN) without needing to specify each individual repo. Of course, this can be used to also just allow every repo on Github, but this is not recommended. 😉
+
+```ini
+[sources]
+private = [
+    "https://super-duper-sekret",
+]
+```
 
 ### The `allow-registry` field (optional)
 
@@ -49,7 +67,7 @@ If not specified, this list will by default contain the [crates.io](http://crate
 ```ini
 [sources]
 allow-registry = [
-    "https://github.com/rust-lang/crates.io-index"
+    "https://github.com/rust-lang/crates.io-index",
 ]
 ```
 
