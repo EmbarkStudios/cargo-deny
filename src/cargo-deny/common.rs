@@ -185,7 +185,7 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
     mdc.manifest_path(opts.manifest_path);
 
     if opts.offline {
-        mdc.other_options(["--offline".to_owned()]);
+        mdc.other_options(std::iter::once("--offline".to_owned()));
     }
 
     let mdc: krates::cm::MetadataCommand = mdc.into();
