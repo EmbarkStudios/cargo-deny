@@ -29,27 +29,27 @@ pub struct Args {
     ///
     /// Defaults to <cwd>/deny.toml if not specified
     #[structopt(short, long, parse(from_os_str))]
-    config: Option<PathBuf>,
+    pub config: Option<PathBuf>,
     /// Path to graph_output root directory
     ///
     /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
     ///
     /// Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
     #[structopt(short, long, parse(from_os_str))]
-    graph: Option<PathBuf>,
+    pub graph: Option<PathBuf>,
     /// Hides the inclusion graph when printing out info for a crate
     #[structopt(long)]
-    hide_inclusion_graph: bool,
+    pub hide_inclusion_graph: bool,
     /// Disable fetching of the advisory database
     ///
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[structopt(short, long)]
-    disable_fetch: bool,
+    pub disable_fetch: bool,
     /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
     ///
     /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
     #[structopt(long)]
-    audit_compatible_output: bool,
+    pub audit_compatible_output: bool,
     /// Show stats for all the checks, regardless of the log-level
     #[structopt(short, long = "show-stats")]
     pub show_stats: bool,
@@ -58,7 +58,7 @@ pub struct Args {
         possible_values = &WhichCheck::variants(),
         case_insensitive = true,
     )]
-    which: Vec<WhichCheck>,
+    pub which: Vec<WhichCheck>,
 }
 
 #[derive(Deserialize)]

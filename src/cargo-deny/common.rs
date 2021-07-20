@@ -57,6 +57,8 @@ pub struct KrateContext {
     pub no_default_features: bool,
     pub all_features: bool,
     pub features: Vec<String>,
+    pub frozen: bool,
+    pub locked: bool,
     pub offline: bool,
 }
 
@@ -101,6 +103,8 @@ impl KrateContext {
             all_features: self.all_features,
             features: self.features,
             manifest_path: self.manifest_path,
+            frozen: self.frozen,
+            locked: self.locked,
             offline: self.offline,
         })?;
 
@@ -166,6 +170,8 @@ struct MetadataOptions {
     all_features: bool,
     features: Vec<String>,
     manifest_path: PathBuf,
+    frozen: bool,
+    locked: bool,
     offline: bool,
 }
 
@@ -181,12 +187,13 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
         mdc.all_features();
     }
 
-    mdc.features(opts.features);
-    mdc.manifest_path(opts.manifest_path);
-
-    if opts.offline {
-        mdc.other_options(std::iter::once("--offline".to_owned()));
-    }
+    mdc.features(opts.features)
+        .manifest_path(opts.manifest_path)
+        .lock_opts(krates::LockOptions {
+            frozen: opts.frozen,
+            locked: opts.locked,
+            offline: opts.offline,
+        });
 
     let mdc: krates::cm::MetadataCommand = mdc.into();
     Ok(mdc.exec()?)
@@ -199,9 +206,17 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
 
     let mut config = util::Config::default()?;
 
-    if opts.offline {
-        config.configure(0, true, None, false, false, opts.offline, &None, &[], &[])?;
-    }
+    config.configure(
+        0,
+        true,
+        None,
+        opts.frozen,
+        opts.locked,
+        opts.offline,
+        &None,
+        &[],
+        &[],
+    )?;
 
     let mut manifest_path = opts.manifest_path;
 

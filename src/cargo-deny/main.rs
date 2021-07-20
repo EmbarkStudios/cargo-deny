@@ -174,7 +174,13 @@ pub(crate) struct GraphContext {
     /// Space or comma separated list of features to activate
     #[structopt(long, use_delimiter = true)]
     pub(crate) features: Vec<String>,
-    /// Run without accessing the network
+    /// Require Cargo.lock and cache are up to date
+    #[structopt(long)]
+    pub(crate) frozen: bool,
+    /// Require Cargo.lock is up to date
+    #[structopt(long)]
+    pub(crate) locked: bool,
+    /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
     #[structopt(long)]
     pub(crate) offline: bool,
 }
@@ -360,6 +366,8 @@ fn real_main() -> Result<(), Error> {
         no_default_features: args.ctx.no_default_features,
         all_features: args.ctx.all_features,
         features: args.ctx.features,
+        frozen: args.ctx.frozen,
+        locked: args.ctx.locked,
         offline: args.ctx.offline,
     };
 
@@ -370,8 +378,14 @@ fn real_main() -> Result<(), Error> {
     };
 
     match args.cmd {
-        Command::Check(cargs) => {
+        Command::Check(mut cargs) => {
             let show_stats = cargs.show_stats;
+
+            if args.ctx.offline {
+                log::info!("network access disabled via --offline flag, disabling advisory database fetching");
+                cargs.disable_fetch = true;
+            }
+
             let stats = check::cmd(log_ctx, cargs, krate_ctx)?;
 
             let errors = stats.total_errors();
