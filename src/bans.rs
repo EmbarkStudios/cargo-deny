@@ -9,10 +9,10 @@ use crate::{
 };
 use anyhow::Error;
 use semver::VersionReq;
-use std::{collections::BTreeMap, fmt};
+use std::fmt;
 
-#[derive(PartialEq, Debug)]
-//#[cfg_attr(test, derive(Debug))]
+#[derive(PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
     pub(crate) name: String,
     pub(crate) version: VersionReq,
@@ -30,29 +30,25 @@ struct ReqMatch<'vr> {
 }
 
 /// Returns the version requirements that matched the version, if any
-fn matches<'hm>(
-    hm: &'hm BTreeMap<String, Vec<cfg::Skrate>>,
-    details: &Krate,
-) -> Option<Vec<ReqMatch<'hm>>> {
-    hm.get(&details.name).and_then(|reqs| {
-        let matches: Vec<_> = reqs
-            .iter()
-            .enumerate()
-            .filter_map(|(index, req)| {
-                if req.value.version.matches(&details.version) {
-                    Some(ReqMatch { id: req, index })
-                } else {
-                    None
-                }
-            })
-            .collect();
+#[inline]
+fn matches<'v>(arr: &'v [cfg::Skrate], details: &Krate) -> Option<Vec<ReqMatch<'v>>> {
+    let matches: Vec<_> = arr
+        .iter()
+        .enumerate()
+        .filter_map(|(index, req)| {
+            if req.value.name == details.name && req.value.version.matches(&details.version) {
+                Some(ReqMatch { id: req, index })
+            } else {
+                None
+            }
+        })
+        .collect();
 
-        if matches.is_empty() {
-            None
-        } else {
-            Some(matches)
-        }
-    })
+    if matches.is_empty() {
+        None
+    } else {
+        Some(matches)
+    }
 }
 
 struct SkipRoot {
@@ -196,24 +192,13 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    let mut denied_ids = BTreeMap::new();
-    let mut ban_wrappers = BTreeMap::new();
-
-    for (name, kb) in denied {
-        let (ids, wrappers): (Vec<_>, Vec<_>) =
-            kb.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
-        denied_ids.insert(name.clone(), ids);
-
-        if !wrappers.is_empty() {
-            ban_wrappers.insert(name, wrappers);
-        }
-    }
+    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
+        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let skips = skipped.iter().fold(0, |acc, (_, skips)| acc + skips.len());
-    let mut skip_hit = bitvec![0; skips];
+    let mut skip_hit = bitvec![0; skipped.len()];
 
     struct MultiDetector<'a> {
         name: &'a str,
@@ -229,7 +214,6 @@ pub fn check(
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
         if let Some(matches) = matches(&denied_ids, krate) {
-            let wrappers = ban_wrappers.get(&krate.name);
             for rm in matches {
                 let ban_cfg = CfgCoord {
                     file: file_id,
@@ -238,10 +222,9 @@ pub fn check(
 
                 // The crate is banned, but it might have be allowed if it's wrapped
                 // by one or more particular crates
+                let wrappers = ban_wrappers.get(rm.index);
                 let is_allowed = match wrappers {
                     Some(wrappers) => {
-                        let allowed_wrappers = &wrappers[rm.index];
-
                         let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                         let graph = ctx.krates.graph();
 
@@ -253,33 +236,31 @@ pub fn check(
                             .all(|nid| {
                                 let node = &graph[nid];
 
-                                let (diag, is_allowed): (Diag, _) = match allowed_wrappers
-                                    .iter()
-                                    .find(|aw| aw.value == node.krate.name)
-                                {
-                                    Some(aw) => (
-                                        diags::BannedAllowedByWrapper {
-                                            ban_cfg: ban_cfg.clone(),
-                                            ban_exception_cfg: CfgCoord {
-                                                file: file_id,
-                                                span: aw.span.clone(),
-                                            },
-                                            banned_krate: krate,
-                                            wrapper_krate: &node.krate,
-                                        }
-                                        .into(),
-                                        true,
-                                    ),
-                                    None => (
-                                        diags::BannedUnmatchedWrapper {
-                                            ban_cfg: ban_cfg.clone(),
-                                            banned_krate: krate,
-                                            parent_krate: &node.krate,
-                                        }
-                                        .into(),
-                                        false,
-                                    ),
-                                };
+                                let (diag, is_allowed): (Diag, _) =
+                                    match wrappers.iter().find(|aw| aw.value == node.krate.name) {
+                                        Some(aw) => (
+                                            diags::BannedAllowedByWrapper {
+                                                ban_cfg: ban_cfg.clone(),
+                                                ban_exception_cfg: CfgCoord {
+                                                    file: file_id,
+                                                    span: aw.span.clone(),
+                                                },
+                                                banned_krate: krate,
+                                                wrapper_krate: &node.krate,
+                                            }
+                                            .into(),
+                                            true,
+                                        ),
+                                        None => (
+                                            diags::BannedUnmatchedWrapper {
+                                                ban_cfg: ban_cfg.clone(),
+                                                banned_krate: krate,
+                                                parent_krate: &node.krate,
+                                            }
+                                            .into(),
+                                            false,
+                                        ),
+                                    };
 
                                 pack.push(diag);
                                 is_allowed
@@ -316,11 +297,6 @@ pub fn check(
         }
 
         if let Some(matches) = matches(&skipped, krate) {
-            let start = match skipped.keys().position(|key| key == &krate.name) {
-                Some(i) => i,
-                None => unreachable!(),
-            };
-
             for rm in matches {
                 pack.push(diags::Skipped {
                     krate,
@@ -333,7 +309,7 @@ pub fn check(
                 // Keep a count of the number of times each skip filter is hit
                 // so that we can report unused filters to the user so that they
                 // can cleanup their configs as their dependency graph changes over time
-                skip_hit.as_mut_bitslice().set(start + rm.index, true);
+                skip_hit.as_mut_bitslice().set(rm.index, true);
             }
         } else if !tree_skipper.matches(krate, &mut pack) {
             if multi_detector.name != krate.name {
@@ -451,7 +427,7 @@ pub fn check(
 
     for skip in skip_hit
         .into_iter()
-        .zip(skipped.into_iter().flat_map(|(_, skips)| skips))
+        .zip(skipped.into_iter())
         .filter_map(|(hit, skip)| if !hit { Some(skip) } else { None })
     {
         pack.push(diags::UnmatchedSkip {

@@ -128,45 +128,23 @@ impl crate::cfg::UnvalidatedConfig for Config {
             )
         };
 
-        let mut denied: BTreeMap<String, Vec<KrateBan>> = BTreeMap::new();
+        let denied: Vec<_> = self
+            .deny
+            .into_iter()
+            .map(|cb| KrateBan {
+                id: Skrate::new(
+                    KrateId {
+                        name: cb.name.value,
+                        version: cb.version,
+                    },
+                    cb.name.span,
+                ),
+                wrappers: cb.wrappers,
+            })
+            .collect();
 
-        for kb in self.deny.into_iter().map(|cb| KrateBan {
-            id: Skrate::new(
-                KrateId {
-                    name: cb.name.value,
-                    version: cb.version,
-                },
-                cb.name.span,
-            ),
-            wrappers: cb.wrappers,
-        }) {
-            match denied.get_mut(&kb.id.value.name) {
-                Some(list) => list.push(kb),
-                None => {
-                    denied.insert(kb.id.value.name.clone(), vec![kb]);
-                }
-            }
-        }
-
-        let mut allowed: BTreeMap<String, Vec<Skrate>> = BTreeMap::new();
-        for a in self.allow.into_iter().map(from) {
-            match allowed.get_mut(&a.value.name) {
-                Some(list) => list.push(a),
-                None => {
-                    allowed.insert(a.value.name.clone(), vec![a]);
-                }
-            }
-        }
-
-        let mut skipped: BTreeMap<String, Vec<Skrate>> = BTreeMap::new();
-        for s in self.skip.into_iter().map(from) {
-            match skipped.get_mut(&s.value.name) {
-                Some(list) => list.push(s),
-                None => {
-                    skipped.insert(s.value.name.clone(), vec![s]);
-                }
-            }
-        }
+        let allowed: Vec<_> = self.allow.into_iter().map(from).collect();
+        let skipped: Vec<_> = self.skip.into_iter().map(from).collect();
 
         let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
             diags.push(
@@ -184,22 +162,18 @@ impl crate::cfg::UnvalidatedConfig for Config {
             );
         };
 
-        for den in denied.values() {
-            for d in den {
-                if let Some(dupe) = exact_match(&allowed, &d.id.value) {
-                    add_diag((&d.id, "deny"), (dupe, "allow"));
-                }
-                if let Some(dupe) = exact_match(&skipped, &d.id.value) {
-                    add_diag((&d.id, "deny"), (dupe, "skip"));
-                }
+        for d in &denied {
+            if let Some(dupe) = exact_match(&allowed, &d.id.value) {
+                add_diag((&d.id, "deny"), (dupe, "allow"));
+            }
+            if let Some(dupe) = exact_match(&skipped, &d.id.value) {
+                add_diag((&d.id, "deny"), (dupe, "skip"));
             }
         }
 
-        for all in allowed.values() {
-            for a in all {
-                if let Some(dupe) = exact_match(&skipped, &a.value) {
-                    add_diag((a, "allow"), (dupe, "skip"));
-                }
+        for all in &allowed {
+            if let Some(dupe) = exact_match(&skipped, &all.value) {
+                add_diag((all, "allow"), (dupe, "skip"));
             }
         }
 
@@ -221,12 +195,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
 }
 
 #[inline]
-pub(crate) fn exact_match<'hm>(
-    hm: &'hm BTreeMap<String, Vec<Skrate>>,
-    id: &'_ KrateId,
-) -> Option<&'hm Skrate> {
-    hm.get(&id.name)
-        .and_then(|v| v.iter().find(|sid| &sid.value == id))
+pub(crate) fn exact_match<'v>(arr: &'v [Skrate], id: &'_ KrateId) -> Option<&'v Skrate> {
+    arr.iter().find(|sid| *sid == id)
 }
 
 pub(crate) type Skrate = Spanned<KrateId>;
@@ -237,15 +207,13 @@ pub(crate) struct KrateBan {
     pub wrappers: Vec<Spanned<String>>,
 }
 
-use std::collections::BTreeMap;
-
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
-    pub(crate) denied: BTreeMap<String, Vec<KrateBan>>,
-    pub(crate) allowed: BTreeMap<String, Vec<Skrate>>,
-    pub(crate) skipped: BTreeMap<String, Vec<Skrate>>,
+    pub(crate) denied: Vec<KrateBan>,
+    pub(crate) allowed: Vec<Skrate>,
+    pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
 }
@@ -295,32 +263,17 @@ mod test {
         assert_eq!(validated.multiple_versions, LintLevel::Deny);
         assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
 
-        for kid in [kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")] {
-            assert!(validated
-                .allowed
-                .get(&kid.name)
-                .unwrap()
-                .iter()
-                .any(|a| a.value == kid));
-        }
+        assert_eq!(
+            validated.allowed,
+            vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
+        );
 
-        for kid in [kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")] {
-            assert!(validated
-                .denied
-                .get(&kid.name)
-                .unwrap()
-                .iter()
-                .any(|d| d.id.value == kid));
-        }
+        assert_eq!(
+            validated.denied,
+            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
+        );
 
-        for kid in [kid!("rand", "=0.6.5")] {
-            assert!(validated
-                .skipped
-                .get(&kid.name)
-                .unwrap()
-                .iter()
-                .any(|s| s.value == kid));
-        }
+        assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
 
         assert_eq!(
             validated.tree_skipped,

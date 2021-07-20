@@ -34,6 +34,7 @@ skip = [
     { name = "rand_core", version = "=0.5.1" },
     # cargo uses an older version of semver
     { name = "semver", version = "=0.10.0" },
+    { name = "semver-parser", version = "=0.7.0" },
     # rustsec pulls in 0.11 via an old version of crates-index
     { name = "semver", version = "=0.11.0" },
 ]
