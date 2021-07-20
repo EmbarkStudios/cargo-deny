@@ -39,8 +39,9 @@ pub struct TreeSkip {
     pub depth: Option<usize>,
 }
 
+#[inline]
 fn any() -> VersionReq {
-    VersionReq::any()
+    VersionReq::STAR
 }
 
 const fn highlight() -> GraphHighlight {
@@ -117,8 +118,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
     fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
-        use rayon::prelude::*;
-
         let from = |s: Spanned<CrateId>| {
             Skrate::new(
                 KrateId {
@@ -129,27 +128,45 @@ impl crate::cfg::UnvalidatedConfig for Config {
             )
         };
 
-        let mut denied: Vec<_> = self
-            .deny
-            .into_iter()
-            .map(|cb| KrateBan {
-                id: Skrate::new(
-                    KrateId {
-                        name: cb.name.value,
-                        version: cb.version,
-                    },
-                    cb.name.span,
-                ),
-                wrappers: cb.wrappers,
-            })
-            .collect();
-        denied.par_sort();
+        let mut denied: BTreeMap<String, Vec<KrateBan>> = BTreeMap::new();
 
-        let mut allowed: Vec<_> = self.allow.into_iter().map(from).collect();
-        allowed.par_sort();
+        for kb in self.deny.into_iter().map(|cb| KrateBan {
+            id: Skrate::new(
+                KrateId {
+                    name: cb.name.value,
+                    version: cb.version,
+                },
+                cb.name.span,
+            ),
+            wrappers: cb.wrappers,
+        }) {
+            match denied.get_mut(&kb.id.value.name) {
+                Some(list) => list.push(kb),
+                None => {
+                    denied.insert(kb.id.value.name.clone(), vec![kb]);
+                }
+            }
+        }
 
-        let mut skipped: Vec<_> = self.skip.into_iter().map(from).collect();
-        skipped.par_sort();
+        let mut allowed: BTreeMap<String, Vec<Skrate>> = BTreeMap::new();
+        for a in self.allow.into_iter().map(from) {
+            match allowed.get_mut(&a.value.name) {
+                Some(list) => list.push(a),
+                None => {
+                    allowed.insert(a.value.name.clone(), vec![a]);
+                }
+            }
+        }
+
+        let mut skipped: BTreeMap<String, Vec<Skrate>> = BTreeMap::new();
+        for s in self.skip.into_iter().map(from) {
+            match skipped.get_mut(&s.value.name) {
+                Some(list) => list.push(s),
+                None => {
+                    skipped.insert(s.value.name.clone(), vec![s]);
+                }
+            }
+        }
 
         let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
             diags.push(
@@ -167,18 +184,22 @@ impl crate::cfg::UnvalidatedConfig for Config {
             );
         };
 
-        for d in &denied {
-            if let Ok(ai) = allowed.binary_search(&d.id) {
-                add_diag((&d.id, "deny"), (&allowed[ai], "allow"));
-            }
-            if let Ok(si) = skipped.binary_search(&d.id) {
-                add_diag((&d.id, "deny"), (&skipped[si], "skip"));
+        for den in denied.values() {
+            for d in den {
+                if let Some(dupe) = exact_match(&allowed, &d.id.value) {
+                    add_diag((&d.id, "deny"), (dupe, "allow"));
+                }
+                if let Some(dupe) = exact_match(&skipped, &d.id.value) {
+                    add_diag((&d.id, "deny"), (dupe, "skip"));
+                }
             }
         }
 
-        for a in &allowed {
-            if let Ok(si) = skipped.binary_search(a) {
-                add_diag((a, "allow"), (&skipped[si], "skip"));
+        for all in allowed.values() {
+            for a in all {
+                if let Some(dupe) = exact_match(&skipped, &a.value) {
+                    add_diag((a, "allow"), (dupe, "skip"));
+                }
             }
         }
 
@@ -199,42 +220,32 @@ impl crate::cfg::UnvalidatedConfig for Config {
     }
 }
 
+#[inline]
+pub(crate) fn exact_match<'hm>(
+    hm: &'hm BTreeMap<String, Vec<Skrate>>,
+    id: &'_ KrateId,
+) -> Option<&'hm Skrate> {
+    hm.get(&id.name)
+        .and_then(|v| v.iter().find(|sid| &sid.value == id))
+}
+
 pub(crate) type Skrate = Spanned<KrateId>;
 
-#[derive(Eq)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
 }
 
-use std::cmp::{Ord, Ordering};
-
-impl Ord for KrateBan {
-    fn cmp(&self, o: &Self) -> Ordering {
-        self.id.cmp(&o.id)
-    }
-}
-
-impl PartialOrd for KrateBan {
-    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
-impl PartialEq for KrateBan {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == Ordering::Equal
-    }
-}
+use std::collections::BTreeMap;
 
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
-    pub(crate) denied: Vec<KrateBan>,
-    pub(crate) allowed: Vec<Skrate>,
-    pub(crate) skipped: Vec<Skrate>,
+    pub(crate) denied: BTreeMap<String, Vec<KrateBan>>,
+    pub(crate) allowed: BTreeMap<String, Vec<Skrate>>,
+    pub(crate) skipped: BTreeMap<String, Vec<Skrate>>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
 }
@@ -248,14 +259,14 @@ mod test {
         ($name:expr) => {
             KrateId {
                 name: String::from($name),
-                version: semver::VersionReq::any(),
+                version: semver::VersionReq::STAR.into(),
             }
         };
 
         ($name:expr, $vs:expr) => {
             KrateId {
                 name: String::from($name),
-                version: $vs.parse().unwrap(),
+                version: $vs.parse::<semver::VersionReq>().unwrap().into(),
             }
         };
     }
@@ -283,21 +294,40 @@ mod test {
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.multiple_versions, LintLevel::Deny);
         assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
-        assert_eq!(
-            validated.allowed,
-            vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
-        );
-        assert_eq!(
-            validated.denied,
-            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
-        );
-        assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
+
+        for kid in [kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")] {
+            assert!(validated
+                .allowed
+                .get(&kid.name)
+                .unwrap()
+                .iter()
+                .any(|a| a.value == kid));
+        }
+
+        for kid in [kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")] {
+            assert!(validated
+                .denied
+                .get(&kid.name)
+                .unwrap()
+                .iter()
+                .any(|d| d.id.value == kid));
+        }
+
+        for kid in [kid!("rand", "=0.6.5")] {
+            assert!(validated
+                .skipped
+                .get(&kid.name)
+                .unwrap()
+                .iter()
+                .any(|s| s.value == kid));
+        }
+
         assert_eq!(
             validated.tree_skipped,
             vec![TreeSkip {
                 id: CrateId {
                     name: "blah".to_owned(),
-                    version: semver::VersionReq::any(),
+                    version: semver::VersionReq::STAR,
                 },
                 depth: Some(20),
             }]

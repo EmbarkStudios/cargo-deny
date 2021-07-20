@@ -1,4 +1,4 @@
-use super::cfg::{FileSource, ValidClarification, ValidConfig, ValidException};
+use super::cfg::{FileSource, ValidClarification, ValidConfig};
 use crate::{
     diag::{FileId, Files, Label},
     Krate,
@@ -7,55 +7,9 @@ use anyhow::Error;
 use krates::{Utf8Path, Utf8PathBuf};
 use rayon::prelude::*;
 use smallvec::SmallVec;
-use std::{cmp, fmt, sync::Arc};
+use std::{fmt, sync::Arc};
 
 const LICENSE_CACHE: &[u8] = include_bytes!("../../resources/spdx_cache.bin.zstd");
-
-impl Ord for ValidClarification {
-    fn cmp(&self, o: &Self) -> cmp::Ordering {
-        match self.name.cmp(&o.name) {
-            cmp::Ordering::Equal => self.version.cmp(&o.version),
-            o => o,
-        }
-    }
-}
-
-impl PartialOrd for ValidClarification {
-    fn partial_cmp(&self, o: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
-impl PartialEq for ValidClarification {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == cmp::Ordering::Equal
-    }
-}
-
-impl Eq for ValidClarification {}
-
-impl Ord for ValidException {
-    fn cmp(&self, o: &Self) -> cmp::Ordering {
-        match self.name.cmp(&o.name) {
-            cmp::Ordering::Equal => self.version.cmp(&o.version),
-            o => o,
-        }
-    }
-}
-
-impl PartialOrd for ValidException {
-    fn partial_cmp(&self, o: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
-impl PartialEq for ValidException {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == cmp::Ordering::Equal
-    }
-}
-
-impl Eq for ValidException {}
 
 #[inline]
 fn iter_clarifications<'a>(

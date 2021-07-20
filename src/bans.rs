@@ -8,11 +8,11 @@ use crate::{
     Kid, Krate, Krates, LintLevel,
 };
 use anyhow::Error;
-use semver::{Version, VersionReq};
-use std::{cmp::Ordering, fmt};
+use semver::VersionReq;
+use std::{collections::BTreeMap, fmt};
 
-#[derive(Eq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(PartialEq, Debug)]
+//#[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
     pub(crate) name: String,
     pub(crate) version: VersionReq,
@@ -24,60 +24,35 @@ impl fmt::Display for KrateId {
     }
 }
 
-impl Ord for KrateId {
-    fn cmp(&self, o: &Self) -> Ordering {
-        match self.name.cmp(&o.name) {
-            Ordering::Equal => self.version.cmp(&o.version),
-            o => o,
-        }
-    }
+struct ReqMatch<'vr> {
+    id: &'vr cfg::Skrate,
+    index: usize,
 }
 
-impl PartialOrd for KrateId {
-    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
-impl PartialEq for KrateId {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == Ordering::Equal
-    }
-}
-
-fn binary_search<'a>(
-    arr: &'a [cfg::Skrate],
+/// Returns the version requirements that matched the version, if any
+fn matches<'hm>(
+    hm: &'hm BTreeMap<String, Vec<cfg::Skrate>>,
     details: &Krate,
-) -> Result<(usize, &'a cfg::Skrate), usize> {
-    let lowest = VersionReq::exact(&Version::new(0, 0, 0));
-
-    match arr.binary_search_by(|i| match i.value.name.cmp(&details.name) {
-        Ordering::Equal => i.value.version.cmp(&lowest),
-        o => o,
-    }) {
-        Ok(i) => Ok((i, &arr[i])),
-        Err(i) => {
-            // Backtrack 1 if the crate name matches, as, for instance, wildcards will be sorted
-            // before the 0.0.0 version
-            let begin = if i > 0 && arr[i - 1].value.name == details.name {
-                i - 1
-            } else {
-                i
-            };
-
-            for (j, krate) in arr[begin..].iter().enumerate() {
-                if krate.value.name != details.name {
-                    break;
+) -> Option<Vec<ReqMatch<'hm>>> {
+    hm.get(&details.name).and_then(|reqs| {
+        let matches: Vec<_> = reqs
+            .iter()
+            .enumerate()
+            .filter_map(|(index, req)| {
+                if req.value.version.matches(&details.version) {
+                    Some(ReqMatch { id: req, index })
+                } else {
+                    None
                 }
+            })
+            .collect();
 
-                if krate.value.version.matches(&details.version) {
-                    return Ok((begin + j, krate));
-                }
-            }
-
-            Err(i)
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
         }
-    }
+    })
 }
 
 struct SkipRoot {
@@ -221,13 +196,24 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
-        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+    let mut denied_ids = BTreeMap::new();
+    let mut ban_wrappers = BTreeMap::new();
+
+    for (name, kb) in denied {
+        let (ids, wrappers): (Vec<_>, Vec<_>) =
+            kb.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+        denied_ids.insert(name.clone(), ids);
+
+        if !wrappers.is_empty() {
+            ban_wrappers.insert(name, wrappers);
+        }
+    }
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let mut skip_hit = bitvec![0; skipped.len()];
+    let skips = skipped.iter().fold(0, |acc, (_, skips)| acc + skips.len());
+    let mut skip_hit = bitvec![0; skips];
 
     struct MultiDetector<'a> {
         name: &'a str,
@@ -242,102 +228,113 @@ pub fn check(
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
-        //let krate_coord = krate_spans.get_coord(i);
+        if let Some(matches) = matches(&denied_ids, krate) {
+            let wrappers = ban_wrappers.get(&krate.name);
+            for rm in matches {
+                let ban_cfg = CfgCoord {
+                    file: file_id,
+                    span: rm.id.span.clone(),
+                };
 
-        if let Ok((bind, _ban)) = binary_search(&denied_ids, krate) {
-            let ban_cfg = CfgCoord {
-                file: file_id,
-                span: denied_ids[bind].span.clone(),
-            };
+                // The crate is banned, but it might have be allowed if it's wrapped
+                // by one or more particular crates
+                let is_allowed = match wrappers {
+                    Some(wrappers) => {
+                        let allowed_wrappers = &wrappers[rm.index];
 
-            // The crate is banned, but it might have be allowed if it's wrapped
-            // by one or more particular crates
-            let allowed_wrappers = &ban_wrappers[bind];
-            let is_allowed = if !allowed_wrappers.is_empty() {
-                let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                let graph = ctx.krates.graph();
+                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                        let graph = ctx.krates.graph();
 
-                // Ensure that every single crate that has a direct dependency
-                // on the banned crate is an allowed wrapper
-                graph
-                    .edges_directed(nid, Direction::Incoming)
-                    .map(|edge| edge.source())
-                    .all(|nid| {
-                        let node = &graph[nid];
-                        //let krate_coord = krate_spans.get_coord(nid.index());
+                        // Ensure that every single crate that has a direct dependency
+                        // on the banned crate is an allowed wrapper
+                        graph
+                            .edges_directed(nid, Direction::Incoming)
+                            .map(|edge| edge.source())
+                            .all(|nid| {
+                                let node = &graph[nid];
 
-                        let (diag, is_allowed): (Diag, _) = match allowed_wrappers
-                            .iter()
-                            .find(|aw| aw.value == node.krate.name)
-                        {
-                            Some(aw) => (
-                                diags::BannedAllowedByWrapper {
-                                    ban_cfg: ban_cfg.clone(),
-                                    ban_exception_cfg: CfgCoord {
-                                        file: file_id,
-                                        span: aw.span.clone(),
-                                    },
-                                    banned_krate: krate,
-                                    wrapper_krate: &node.krate,
-                                }
-                                .into(),
-                                true,
-                            ),
-                            None => (
-                                diags::BannedUnmatchedWrapper {
-                                    ban_cfg: ban_cfg.clone(),
-                                    banned_krate: krate,
-                                    parent_krate: &node.krate,
-                                }
-                                .into(),
-                                false,
-                            ),
-                        };
+                                let (diag, is_allowed): (Diag, _) = match allowed_wrappers
+                                    .iter()
+                                    .find(|aw| aw.value == node.krate.name)
+                                {
+                                    Some(aw) => (
+                                        diags::BannedAllowedByWrapper {
+                                            ban_cfg: ban_cfg.clone(),
+                                            ban_exception_cfg: CfgCoord {
+                                                file: file_id,
+                                                span: aw.span.clone(),
+                                            },
+                                            banned_krate: krate,
+                                            wrapper_krate: &node.krate,
+                                        }
+                                        .into(),
+                                        true,
+                                    ),
+                                    None => (
+                                        diags::BannedUnmatchedWrapper {
+                                            ban_cfg: ban_cfg.clone(),
+                                            banned_krate: krate,
+                                            parent_krate: &node.krate,
+                                        }
+                                        .into(),
+                                        false,
+                                    ),
+                                };
 
-                        pack.push(diag);
-                        is_allowed
-                    })
-            } else {
-                false
-            };
+                                pack.push(diag);
+                                is_allowed
+                            })
+                    }
+                    None => false,
+                };
 
-            if !is_allowed {
-                pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
+                if !is_allowed {
+                    pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
+                }
             }
         }
 
         if !allowed.is_empty() {
             // Since only allowing specific crates is pretty draconian,
             // also emit which allow filters actually passed each crate
-            match binary_search(&allowed, krate) {
-                Ok((_, allow)) => {
-                    pack.push(diags::ExplicitlyAllowed {
-                        krate,
-                        allow_cfg: CfgCoord {
-                            file: file_id,
-                            span: allow.span.clone(),
-                        },
-                    });
+            match matches(&allowed, krate) {
+                Some(matches) => {
+                    for rm in matches {
+                        pack.push(diags::ExplicitlyAllowed {
+                            krate,
+                            allow_cfg: CfgCoord {
+                                file: file_id,
+                                span: rm.id.span.clone(),
+                            },
+                        });
+                    }
                 }
-                Err(_) => {
+                None => {
                     pack.push(diags::ImplicitlyBanned { krate });
                 }
             }
         }
 
-        if let Ok((index, skip)) = binary_search(&skipped, krate) {
-            pack.push(diags::Skipped {
-                krate,
-                skip_cfg: CfgCoord {
-                    file: file_id,
-                    span: skip.span.clone(),
-                },
-            });
+        if let Some(matches) = matches(&skipped, krate) {
+            let start = match skipped.keys().position(|key| key == &krate.name) {
+                Some(i) => i,
+                None => unreachable!(),
+            };
 
-            // Keep a count of the number of times each skip filter is hit
-            // so that we can report unused filters to the user so that they
-            // can cleanup their configs as their dependency graph changes over time
-            skip_hit.as_mut_bitslice().set(index, true);
+            for rm in matches {
+                pack.push(diags::Skipped {
+                    krate,
+                    skip_cfg: CfgCoord {
+                        file: file_id,
+                        span: rm.id.span.clone(),
+                    },
+                });
+
+                // Keep a count of the number of times each skip filter is hit
+                // so that we can report unused filters to the user so that they
+                // can cleanup their configs as their dependency graph changes over time
+                skip_hit.as_mut_bitslice().set(start + rm.index, true);
+            }
         } else if !tree_skipper.matches(krate, &mut pack) {
             if multi_detector.name != krate.name {
                 if multi_detector.dupes.len() > 1 && multiple_versions != LintLevel::Allow {
@@ -454,7 +451,7 @@ pub fn check(
 
     for skip in skip_hit
         .into_iter()
-        .zip(skipped.into_iter())
+        .zip(skipped.into_iter().flat_map(|(_, skips)| skips))
         .filter_map(|(hit, skip)| if !hit { Some(skip) } else { None })
     {
         pack.push(diags::UnmatchedSkip {
@@ -466,181 +463,4 @@ pub fn check(
     }
 
     sink.push(pack);
-}
-
-#[cfg(test)]
-mod test {
-    use super::{cfg::CrateId, *};
-
-    #[test]
-    fn binary_search_() {
-        macro_rules! cid {
-            ($name:expr, $vers:expr) => {
-                CrateId {
-                    name: $name.to_owned(),
-                    version: VersionReq::parse_compat($vers, semver::Compat::Cargo).unwrap(),
-                }
-            };
-        }
-
-        let versions = [
-            cid!("unicase", "=1.4.2"),
-            cid!("crossbeam-deque", "=0.6.3"),
-            cid!("parking_lot", "=0.7.1"),
-            cid!("parking_lot_core", "=0.4.0"),
-            cid!("lock_api", "=0.1.5"),
-            cid!("rand", "=0.6.5"),
-            cid!("rand_chacha", "=0.1.1"),
-            cid!("rand_core", "=0.4.0"),
-            cid!("rand_core", "=0.3.1"),
-            cid!("rand_hc", "=0.1.0"),
-            cid!("rand_pcg", "=0.1.2"),
-            cid!("winapi", "<0.3"),
-            CrateId {
-                name: "serde".to_owned(),
-                version: VersionReq::any(),
-            },
-            cid!("scopeguard", "=0.3.3"),
-            cid!("num-traits", "=0.1.43"),
-            cid!("num-traits", "<0.1"),
-            cid!("num-traits", "<0.2"),
-            cid!("num-traits", "0.1.*"),
-            cid!("num-traits", "<0.1.42"),
-            cid!("num-traits", ">0.1.43"),
-        ];
-
-        let mut versions: Vec<_> = versions
-            .iter()
-            .map(|v| {
-                #[allow(clippy::reversed_empty_ranges)]
-                crate::Spanned::new(
-                    super::KrateId {
-                        name: v.name.clone(),
-                        version: v.version.clone(),
-                    },
-                    0..0,
-                )
-            })
-            .collect();
-
-        versions.sort();
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "rand_core".to_owned(),
-                    version: Version::parse("0.3.1").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse("=0.3.1").unwrap())
-        );
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "serde".to_owned(),
-                    version: Version::parse("1.0.94").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::any())
-        );
-
-        assert!(binary_search(
-            &versions,
-            &crate::Krate {
-                name: "nope".to_owned(),
-                version: Version::parse("1.0.0").unwrap(),
-                ..Default::default()
-            }
-        )
-        .is_err());
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "num-traits".to_owned(),
-                    version: Version::parse("0.1.43").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse("=0.1.43").unwrap())
-        );
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "num-traits".to_owned(),
-                    version: Version::parse("0.1.2").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse("0.1.*").unwrap())
-        );
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "num-traits".to_owned(),
-                    version: Version::parse("0.2.0").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse(">0.1.43").unwrap())
-        );
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "num-traits".to_owned(),
-                    version: Version::parse("0.0.99").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse("<0.1").unwrap())
-        );
-
-        assert_eq!(
-            binary_search(
-                &versions,
-                &crate::Krate {
-                    name: "winapi".to_owned(),
-                    version: Version::parse("0.2.8").unwrap(),
-                    ..Default::default()
-                }
-            )
-            .map(|(_, s)| &s.value.version)
-            .unwrap(),
-            &(VersionReq::parse("<0.3").unwrap())
-        );
-
-        assert!(binary_search(
-            &versions,
-            &crate::Krate {
-                name: "winapi".to_owned(),
-                version: Version::parse("0.3.8").unwrap(),
-                ..Default::default()
-            }
-        )
-        .is_err());
-    }
 }

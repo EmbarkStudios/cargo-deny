@@ -234,12 +234,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             exceptions.push(ValidException {
                 name: exc.name,
-                version: exc.version.unwrap_or_else(VersionReq::any),
+                version: exc.version.unwrap_or(VersionReq::STAR),
                 allowed,
             });
         }
-
-        exceptions.par_sort();
 
         // Ensure the config doesn't contain the same exact license as both
         // denied and allowed, that's confusing and probably not intended, so
@@ -283,14 +281,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             clarifications.push(ValidClarification {
                 name: c.name,
-                version: c.version.unwrap_or_else(VersionReq::any),
+                version: c.version.unwrap_or(VersionReq::STAR),
                 expr_offset: (c.expression.span.start + 1),
                 expression: expr,
                 license_files,
             });
         }
-
-        clarifications.par_sort();
 
         ValidConfig {
             file_id: cfg_file,
@@ -309,7 +305,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 }
 
 #[doc(hidden)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ValidClarification {
     pub name: String,
     pub version: VersionReq,
@@ -319,7 +315,7 @@ pub struct ValidClarification {
 }
 
 #[doc(hidden)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ValidException {
     pub name: crate::Spanned<String>,
     pub version: VersionReq,
@@ -402,7 +398,7 @@ mod test {
                     path: p.fake(),
                     hash: 0xbd0e_ed23,
                 }],
-                expr_offset: 415,
+                expr_offset: 432,
             }]
         );
     }
