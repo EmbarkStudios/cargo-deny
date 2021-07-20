@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#353](https://github.com/EmbarkStudios/cargo-deny/pull/353) resolved [#351](https://github.com/EmbarkStudios/cargo-deny/issues/351) by adding the `sources.private` field to blanket allow git repositories sourced from a particular url.
+- [PR#359](https://github.com/EmbarkStudios/cargo-deny/pull/359) resolved [#341](https://github.com/EmbarkStudios/cargo-deny/issues/341) and [#357](https://github.com/EmbarkStudios/cargo-deny/issues/357) by adding support for the [`--frozen`, `--locked`, and `--offline`](https://doc.rust-lang.org/cargo/commands/cargo-metadata.html#manifest-options) flags to determine whether network access is allowed, and whether the `Cargo.lock` file can be created and/or modified.
 ### Changed
 - [PR#358](https://github.com/EmbarkStudios/cargo-deny/pull/358) bumped the Minimum Stable Rust Version to **1.53.0**.
 - [PR#358](https://github.com/EmbarkStudios/cargo-deny/pull/358) bumped various dependencies, notably `semver` to `1.0.3`.
