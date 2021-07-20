@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#358](https://github.com/EmbarkStudios/cargo-deny/pull/358) bumped the Minimum Stable Rust Version to **1.53.0**.
+- [PR#358](https://github.com/EmbarkStudios/cargo-deny/pull/358) bumped various dependencies, notably `semver` to `1.0.3`.
+
 ## [0.9.1] - 2021-03-26
 ### Changed
 - Updated dependencies

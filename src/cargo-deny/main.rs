@@ -171,8 +171,8 @@ pub(crate) struct GraphContext {
     /// Do not activate the `default` feature
     #[structopt(long)]
     pub(crate) no_default_features: bool,
-    /// Space-separated list of features to activate
-    #[structopt(long)]
+    /// Space or comma separated list of features to activate
+    #[structopt(long, use_delimiter = true)]
     pub(crate) features: Vec<String>,
     /// Run without accessing the network
     #[structopt(long)]

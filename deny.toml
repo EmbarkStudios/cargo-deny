@@ -1,7 +1,9 @@
 # cargo-deny is really only ever intended to run on the "normal" tier-1 targets
 targets = [
     { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
     { triple = "x86_64-unknown-linux-musl" },
+    { triple = "aarch64-apple-darwin" },
     { triple = "x86_64-apple-darwin" },
     { triple = "x86_64-pc-windows-msvc" },
 ]
@@ -33,6 +35,8 @@ skip = [
     # cargo uses an older version of semver
     { name = "semver", version = "=0.10.0" },
     { name = "semver-parser", version = "=0.7.0" },
+    # rustsec pulls in 0.11 via an old version of crates-index
+    { name = "semver", version = "=0.11.0" },
 ]
 
 [sources]

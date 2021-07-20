@@ -39,8 +39,9 @@ pub struct TreeSkip {
     pub depth: Option<usize>,
 }
 
+#[inline]
 fn any() -> VersionReq {
-    VersionReq::any()
+    VersionReq::STAR
 }
 
 const fn highlight() -> GraphHighlight {
@@ -117,8 +118,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
     fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
-        use rayon::prelude::*;
-
         let from = |s: Spanned<CrateId>| {
             Skrate::new(
                 KrateId {
@@ -129,7 +128,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             )
         };
 
-        let mut denied: Vec<_> = self
+        let denied: Vec<_> = self
             .deny
             .into_iter()
             .map(|cb| KrateBan {
@@ -143,13 +142,9 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 wrappers: cb.wrappers,
             })
             .collect();
-        denied.par_sort();
 
-        let mut allowed: Vec<_> = self.allow.into_iter().map(from).collect();
-        allowed.par_sort();
-
-        let mut skipped: Vec<_> = self.skip.into_iter().map(from).collect();
-        skipped.par_sort();
+        let allowed: Vec<_> = self.allow.into_iter().map(from).collect();
+        let skipped: Vec<_> = self.skip.into_iter().map(from).collect();
 
         let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
             diags.push(
@@ -168,17 +163,17 @@ impl crate::cfg::UnvalidatedConfig for Config {
         };
 
         for d in &denied {
-            if let Ok(ai) = allowed.binary_search(&d.id) {
-                add_diag((&d.id, "deny"), (&allowed[ai], "allow"));
+            if let Some(dupe) = exact_match(&allowed, &d.id.value) {
+                add_diag((&d.id, "deny"), (dupe, "allow"));
             }
-            if let Ok(si) = skipped.binary_search(&d.id) {
-                add_diag((&d.id, "deny"), (&skipped[si], "skip"));
+            if let Some(dupe) = exact_match(&skipped, &d.id.value) {
+                add_diag((&d.id, "deny"), (dupe, "skip"));
             }
         }
 
-        for a in &allowed {
-            if let Ok(si) = skipped.binary_search(a) {
-                add_diag((a, "allow"), (&skipped[si], "skip"));
+        for all in &allowed {
+            if let Some(dupe) = exact_match(&skipped, &all.value) {
+                add_diag((all, "allow"), (dupe, "skip"));
             }
         }
 
@@ -199,33 +194,17 @@ impl crate::cfg::UnvalidatedConfig for Config {
     }
 }
 
+#[inline]
+pub(crate) fn exact_match<'v>(arr: &'v [Skrate], id: &'_ KrateId) -> Option<&'v Skrate> {
+    arr.iter().find(|sid| *sid == id)
+}
+
 pub(crate) type Skrate = Spanned<KrateId>;
 
-#[derive(Eq)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
-}
-
-use std::cmp::{Ord, Ordering};
-
-impl Ord for KrateBan {
-    fn cmp(&self, o: &Self) -> Ordering {
-        self.id.cmp(&o.id)
-    }
-}
-
-impl PartialOrd for KrateBan {
-    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
-impl PartialEq for KrateBan {
-    fn eq(&self, o: &Self) -> bool {
-        self.cmp(o) == Ordering::Equal
-    }
 }
 
 pub struct ValidConfig {
@@ -248,14 +227,14 @@ mod test {
         ($name:expr) => {
             KrateId {
                 name: String::from($name),
-                version: semver::VersionReq::any(),
+                version: semver::VersionReq::STAR.into(),
             }
         };
 
         ($name:expr, $vs:expr) => {
             KrateId {
                 name: String::from($name),
-                version: $vs.parse().unwrap(),
+                version: $vs.parse::<semver::VersionReq>().unwrap().into(),
             }
         };
     }
@@ -283,21 +262,25 @@ mod test {
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.multiple_versions, LintLevel::Deny);
         assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
+
         assert_eq!(
             validated.allowed,
             vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
         );
+
         assert_eq!(
             validated.denied,
             vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
         );
+
         assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
+
         assert_eq!(
             validated.tree_skipped,
             vec![TreeSkip {
                 id: CrateId {
                     name: "blah".to_owned(),
-                    version: semver::VersionReq::any(),
+                    version: semver::VersionReq::STAR,
                 },
                 depth: Some(20),
             }]

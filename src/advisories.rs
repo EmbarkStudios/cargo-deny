@@ -74,7 +74,7 @@ pub fn check<R>(
                 // it's not strictly correct so we do emit a warning to notify the user
                 // (though to be honest most people only run cargo-deny in CI and won't notice)
                 if let Some(versions) = versions {
-                    if krate.version.is_prerelease() {
+                    if !krate.version.pre.is_empty() {
                         let rematch = semver::Version::new(
                             krate.version.major,
                             krate.version.minor,
@@ -84,7 +84,7 @@ pub fn check<R>(
                         // Patches are usually (always) specified in ascending order,
                         // so we walk them in reverse to get the closest patch that
                         // may apply to the crate version in question
-                        for patched in versions.patched.iter().rev() {
+                        for patched in versions.patched().iter().rev() {
                             if patched.matches(&rematch) {
                                 let skipped_diag =
                                     ctx.diag_for_prerelease_skipped(krate, i, advisory, patched);
@@ -93,7 +93,7 @@ pub fn check<R>(
                             }
                         }
 
-                        for unaffected in versions.unaffected.iter().rev() {
+                        for unaffected in versions.unaffected().iter().rev() {
                             if unaffected.matches(&rematch) {
                                 let skipped_diag =
                                     ctx.diag_for_prerelease_skipped(krate, i, advisory, unaffected);

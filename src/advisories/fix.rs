@@ -62,7 +62,7 @@ impl super::Report {
             .iter()
             .map(|vuln| Patchable {
                 advisory: &vuln.advisory,
-                patched: &vuln.versions.patched,
+                patched: vuln.versions.patched(),
                 krate: &vuln.package,
             })
             .chain(self.iter_warnings().filter_map(|(kind, warning)| {
@@ -74,7 +74,7 @@ impl super::Report {
                 warning.versions.as_ref().and_then(|vs| {
                     warning.advisory.as_ref().map(|adv| Patchable {
                         advisory: adv,
-                        patched: &vs.patched,
+                        patched: vs.patched(),
                         krate: &warning.package,
                     })
                 })

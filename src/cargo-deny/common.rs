@@ -212,11 +212,20 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
             .join(manifest_path);
     }
 
+    let features = std::rc::Rc::new(
+        opts.features
+            .into_iter()
+            .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
+            .collect(),
+    );
+
     let ws = core::Workspace::new(&manifest_path, &config)?;
     let options = ops::OutputMetadataOptions {
-        features: opts.features,
-        no_default_features: opts.no_default_features,
-        all_features: opts.all_features,
+        cli_features: core::resolver::features::CliFeatures {
+            features,
+            all_features: opts.all_features,
+            uses_default_features: !opts.no_default_features,
+        },
         no_deps: false,
         version: 1,
         filter_platforms: vec![],
