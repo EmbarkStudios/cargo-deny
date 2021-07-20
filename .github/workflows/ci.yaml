@@ -79,7 +79,7 @@ jobs:
         # we release, but wasn't exercised until now
         run: cargo install --path . --debug --target ${{ matrix.target }} --features standalone
       - name: self check
-        run: cargo deny -L debug --all-features check
+        run: cargo deny -L debug --all-features --locked check
       - name: check external users
         run: ./scripts/check_external.sh
 
