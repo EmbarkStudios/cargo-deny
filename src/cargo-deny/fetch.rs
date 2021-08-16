@@ -152,7 +152,7 @@ pub fn cmd(
                         .map(|dburl| dburl.take())
                         .collect(),
                     advisories::Fetch::Allow,
-                ))
+                ));
             });
         }
     });

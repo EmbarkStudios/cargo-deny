@@ -237,7 +237,7 @@ pub(crate) fn cmd(
                     }
 
                     s.spawn(|_| {
-                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates))
+                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
                     });
                 });
             }

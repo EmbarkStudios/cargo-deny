@@ -100,7 +100,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
 
         if let Some(versions) = versions {
             if versions.patched().is_empty() {
-                notes.push("Solution: No safe upgrade is available!".to_owned())
+                notes.push("Solution: No safe upgrade is available!".to_owned());
             } else {
                 notes.push(format!(
                     "Solution: Upgrade to {}",
@@ -111,7 +111,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                         .collect::<Vec<_>>()
                         .as_slice()
                         .join(" OR ")
-                ))
+                ));
             }
         };
 

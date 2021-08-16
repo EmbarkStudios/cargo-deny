@@ -330,11 +330,11 @@ pub fn check(
                         let span = &ctx.krate_spans[dup];
 
                         if span.start < all_start {
-                            all_start = span.start
+                            all_start = span.start;
                         }
 
                         if span.end > all_end {
-                            all_end = span.end
+                            all_end = span.end;
                         }
 
                         let krate = &ctx.krates[dup];

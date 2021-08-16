@@ -128,7 +128,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
                     });
                 }
 
-                source_hits.as_mut_bitslice().set(ind, true)
+                source_hits.as_mut_bitslice().set(ind, true);
             }
             None => {
                 let diag: crate::diag::Diag = match get_org(&source_url) {
