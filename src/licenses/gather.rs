@@ -472,7 +472,7 @@ impl Gatherer {
         // Retrieve the license expression we'll use to evaluate the user's overall
         // constraints with.
         //
-        // NOTE: The reason that user/overalay overrides are prioritized over the
+        // NOTE: The reason that user/overlay overrides are prioritized over the
         // expression that may be present in the crate's `license` field itself is
         // because that expression is currently limited in functionality to basic
         // tokenization and thus might not be able to express the actual licensing
