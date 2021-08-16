@@ -45,7 +45,7 @@ fn merge_dependencies(old_dep: &mut toml_edit::Item, new: &dep::Dependency) {
     }
 
     if let Some(t) = old_dep.as_inline_table_mut() {
-        t.fmt()
+        t.fmt();
     }
 }
 
@@ -63,7 +63,7 @@ impl Manifest {
                 sections.push((
                     vec![String::from(*dependency_type)],
                     self.doc[dependency_type].clone(),
-                ))
+                ));
             }
 
             // ... and in `target.<target>.(build-/dev-)dependencies`.
@@ -131,7 +131,7 @@ impl Manifest {
         if !table[item_name].is_none() {
             merge_dependencies(&mut table[item_name], dep);
             if let Some(t) = table.as_inline_table_mut() {
-                t.fmt()
+                t.fmt();
             }
         }
 

@@ -199,7 +199,8 @@ impl Index {
             if self.opened[ind].is_none() {
                 match self.registries[ind].open_or_clone() {
                     Ok(bir) => {
-                        #[allow(unsafe_code)] // TODO: Can we get rid of this transmute?
+                        #[allow(unsafe_code, clippy::useless_transmute)]
+                        // TODO: Can we get rid of this transmute?
                         let bir = unsafe { std::mem::transmute::<_, BareIndexRepo<'static>>(bir) };
                         self.opened[ind] = Some(bir);
                     }

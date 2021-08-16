@@ -22,7 +22,7 @@ where
     F: FnMut(serde_json::Value),
 {
     fn report(&mut self, report: serde_json::Value) {
-        self(report)
+        self(report);
     }
 }
 
@@ -105,7 +105,7 @@ pub fn check<R>(
                 }
 
                 let diag = ctx.diag_for_advisory(krate, i, advisory, versions, |index| {
-                    ignore_hits.as_mut_bitslice().set(index, true)
+                    ignore_hits.as_mut_bitslice().set(index, true);
                 });
 
                 sink.push(diag);

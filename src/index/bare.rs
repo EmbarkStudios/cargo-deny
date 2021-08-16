@@ -72,7 +72,8 @@ impl<'a> BareIndexRepo<'a> {
             let commit = repo.find_commit(head)?;
             let tree = commit.tree()?;
 
-            #[allow(unsafe_code)] // TODO: Can we get rid of this transmute?
+            // TODO: Can we get rid of this transmute?
+            #[allow(unsafe_code, clippy::useless_transmute)]
             unsafe {
                 std::mem::transmute::<git2::Tree<'_>, git2::Tree<'static>>(tree)
             }

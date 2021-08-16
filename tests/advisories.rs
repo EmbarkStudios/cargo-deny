@@ -37,7 +37,7 @@ fn load() -> TestCtx {
         .build_with_metadata(md, krates::NoneFilter)
         .unwrap();
 
-    let lock = advisories::load_lockfile(&krates::Utf8Path::new(
+    let lock = advisories::load_lockfile(krates::Utf8Path::new(
         "tests/test_data/advisories/06_Cargo.lock",
     ))
     .unwrap();

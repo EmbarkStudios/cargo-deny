@@ -41,77 +41,12 @@ type Id = pg::graph::NodeIndex<u32>;
 #[derive(Debug)]
 pub enum Shape {
     r#box,
-    // polygon,
-    // ellipse,
-    // oval,
-    // circle,
-    // point,
-    // egg,
-    // triangle,
-    // plaintext,
-    // plain,
-    // diamond,
-    // trapezium,
-    // parallelogram,
-    // house,
-    // pentagon,
-    // hexagon,
-    // septagon,
-    // octagon,
-    // doublecircle,
-    // doubleoctagon,
-    // tripleoctagon,
-    // invtriangle,
-    // invtrapezium,
-    // invhouse,
-    // Mdiamond,
-    // Msquare,
-    // Mcircle,
-    // rect,
-    // rectangle,
-    // square,
-    // star,
-    // none,
-    // underline,
-    // cylinder,
-    // note,
-    // tab,
-    // folder,
-    // box3d,
-    // component,
-    // promoter,
-    // cds,
-    // terminator,
-    // utr,
-    // primersite,
-    // restrictionsite,
-    // fivepoverhang,
-    // threepoverhang,
-    // noverhang,
-    // assembly,
-    // signature,
-    // insulator,
-    // ribosite,
-    // rnastab,
-    // proteasesite,
-    // proteinstab,
-    // rpromoter,
-    // rarrow,
-    // larrow,
-    // lpromoter,
 }
 
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum Style {
-    // filled,
-    // invisible,
-    // diagonals,
     rounded,
-    // dashed,
-    // dotted,
-    // solid,
-    // bold,
 }
 
 struct NodeAttributes<'a> {
@@ -227,7 +162,7 @@ pub(crate) fn create_graph(
 
             for edge in graph.edges_directed(nid, pg::Direction::Incoming) {
                 if set.insert(edge.id()) {
-                    node_stack.push(edge.source())
+                    node_stack.push(edge.source());
                 }
             }
         }
