@@ -71,6 +71,24 @@ allow = [ "GPL-3.0" ]
 deny = [ "GPL-2.0" ]
 ```
 
+This gets worse with the GFDL licenses, which also have an `invariants` modifier. Before licenses are checked they are normalized to make them consistent for all licenses.
+
+Let's use [`GFDL-1.2`](https://spdx.org/licenses/GFDL-1.2-only.html) to show how license requirements are normalized.
+
+* `GFDL-1.2-invariants-only` => `GFDL-1.2-invariants`
+* `GFDL-1.2-invariants-or-later` => `GFDL-1.2-invariants+`
+* `GFDL-1.2-no-invariants-only` => `GFDL-1.2`
+* `GFDL-1.2-no-invariants-or-later` => `GFDL-1.2+`
+* `GFDL-1.2-only` => `GFDL-1.2`
+* `GFDL-1.2-or-later` => `GFDL-1.2+`
+
+So, for example, if you wanted to allow all version (1.1, 1.2, and 1.3), but only invariants for 1.3 you could use the following configuration.
+
+```ini
+[licenses]
+allow = [ "GFDL-1.1", "GFDL-1.2", "GFDL-1.3", "GFDL-1.3-variants"]
+```
+
 ### The `exceptions` field (optional)
 
 The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.
