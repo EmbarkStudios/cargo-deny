@@ -1,16 +1,26 @@
-# ❌ cargo-deny
+<div align="center">
+  <h1><code>❌ cargo-deny</code></h1>
 
-[![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
-[![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/Fg4u4VX)
+  <p>
+    <strong>Cargo plugin for linting your dependencies</strong>
+  </p>
+
+  <p>
+
+[![Embark Opensource](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
+[![Embark Discord](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/Fg4u4VX)
 [![Crates.io](https://img.shields.io/crates/v/cargo-deny.svg)](https://crates.io/crates/cargo-deny)
-[![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![API Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
+[![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.53.0-blue?color=fc8d62&logo=rust)](https://blog.rust-lang.org/2021/06/17/Rust-1.53.0.html)
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.14-blue.svg)](https://spdx.org/licenses/)
 [![dependency status](https://deps.rs/repo/github/EmbarkStudios/cargo-deny/status.svg)](https://deps.rs/repo/github/EmbarkStudios/cargo-deny)
 [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
+    
+  </p>
+</div>
 
-`cargo-deny` is a cargo plugin for linting your dependencies. See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
+See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
 
 To run on CI as a GitHub Action, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action).
 
