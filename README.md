@@ -1,11 +1,8 @@
 <div align="center">
-  <h1><code>❌ cargo-deny</code></h1>
 
-  <p>
-    <strong>Cargo plugin for linting your dependencies</strong>
-  </p>
+# `❌ cargo-deny`
 
-  <p>
+**Cargo plugin for linting your dependencies**
 
 [![Embark Opensource](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
 [![Embark Discord](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/Fg4u4VX)
@@ -16,8 +13,7 @@
 [![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.14-blue.svg)](https://spdx.org/licenses/)
 [![dependency status](https://deps.rs/repo/github/EmbarkStudios/cargo-deny/status.svg)](https://deps.rs/repo/github/EmbarkStudios/cargo-deny)
 [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
-    
-  </p>
+
 </div>
 
 See the [book 📕](https://embarkstudios.github.io/cargo-deny/) for in-depth documentation.
