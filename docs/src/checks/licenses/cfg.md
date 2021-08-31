@@ -201,6 +201,7 @@ It's often not useful or wanted to check for licenses in your own private worksp
 If `true`, workspace members will not have their license expression checked if they are not published.
 
 ```ini
+#Cargo.toml
 [package]
 name = "sekret"
 license = "¯\_(ツ)_/¯"
@@ -208,6 +209,7 @@ publish = false # "private"!
 ```
 
 ```ini
+#deny.toml
 [licenses]
 # The sekret package would be ignored now
 private = { ignore = true }
@@ -219,12 +221,14 @@ A list of private registries you may publish your workspace crates to. If a work
 
 ```ini
 [package]
+#Cargo.toml
 name = "sekret"
 license = "¯\_(ツ)_/¯"
 publish = ["sauce"]
 ```
 
 ```ini
+#deny.toml
 [licenses]
 # Still ignored!
 private = { ignore = true, registries = ["sauce"] }
