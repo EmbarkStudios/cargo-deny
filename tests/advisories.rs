@@ -205,7 +205,7 @@ fn detects_unsound() {
     assert_field_eq!(
         unsound_diag,
         "/fields/message",
-        "Type confusion if __private_get_type_id__ is overriden"
+        "Type confusion if __private_get_type_id__ is overridden"
     );
     assert_field_eq!(
         unsound_diag,
