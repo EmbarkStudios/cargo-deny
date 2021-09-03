@@ -177,6 +177,7 @@ pub fn check(
     let ValidConfig {
         file_id,
         denied,
+        denied_multiple_versions,
         allowed,
         skipped,
         multiple_versions,
@@ -313,8 +314,13 @@ pub fn check(
             }
         } else if !tree_skipper.matches(krate, &mut pack) {
             if multi_detector.name != krate.name {
-                if multi_detector.dupes.len() > 1 && multiple_versions != LintLevel::Allow {
-                    let severity = match multiple_versions {
+                let lint_level = match matches(&denied_multiple_versions, krate) {
+                    Some(_) => LintLevel::Deny,
+                    None => multiple_versions,
+                };
+
+                if multi_detector.dupes.len() > 1 && lint_level != LintLevel::Allow {
+                    let severity = match lint_level {
                         LintLevel::Warn => Severity::Warning,
                         LintLevel::Deny => Severity::Error,
                         LintLevel::Allow => unreachable!(),
