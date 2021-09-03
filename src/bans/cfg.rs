@@ -24,7 +24,10 @@ pub struct CrateBan {
     pub version: Option<VersionReq>,
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
-    pub wrappers: Option<Vec<Spanned<String>>>,
+    pub wrappers: Option<Spanned<Vec<Spanned<String>>>>,
+    /// Setting this to true will only emit an error if multiple
+    // versions of the crate are found
+    pub multiple_versions: Option<Spanned<bool>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -163,8 +166,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
             )
         };
 
-        let denied: Vec<_> = self
-            .deny
+        let (deny_multiple_versions, deny): (Vec<_>, Vec<_>) =
+            self.deny.into_iter().partition(|kb| {
+                kb.multiple_versions
+                    .as_ref()
+                    .map_or(false, |spanned| spanned.value)
+            });
+
+        let denied: Vec<_> = deny
             .into_iter()
             .map(|cb| KrateBan {
                 id: Skrate::new(
@@ -174,7 +183,39 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     },
                     cb.name.span,
                 ),
-                wrappers: cb.wrappers,
+                wrappers: cb.wrappers.map(|spanned| spanned.value),
+            })
+            .collect();
+
+        let denied_multiple_versions: Vec<_> = deny_multiple_versions
+            .into_iter()
+            .map(|cb| {
+                let wrappers = cb.wrappers.filter(|spanned| !spanned.value.is_empty());
+                if let Some(wrappers) = wrappers {
+                    // cb.multiple_versions is guaranteed to be Some(_) by the
+                    // earlier call to `partition`
+                    let multiple_versions = cb.multiple_versions.unwrap();
+                    diags.push(
+                        Diagnostic::error()
+                            .with_message(
+                                "a crate ban was specified with both `wrappers` and `multiple-versions`",
+                            )
+                            .with_labels(vec![
+                                Label::secondary(cfg_file, wrappers.span)
+                                    .with_message("has one or more `wrappers`"),
+                                Label::secondary(cfg_file, multiple_versions.span)
+                                    .with_message("has `multiple-versions` set to true"),
+                            ]),
+                    );
+                }
+
+                Skrate::new(
+                    KrateId {
+                        name: cb.name.value,
+                        version: cb.version,
+                    },
+                    cb.name.span,
+                )
             })
             .collect();
 
@@ -260,6 +301,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             multiple_versions: self.multiple_versions,
             highlight: self.highlight,
             denied,
+            denied_multiple_versions,
             allowed,
             features,
             external_default_features: self.external_default_features,
@@ -319,6 +361,7 @@ pub struct ValidConfig {
     pub multiple_versions: LintLevel,
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<KrateBan>,
+    pub(crate) denied_multiple_versions: Vec<Skrate>,
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) features: Vec<KrateFeatures>,
     pub external_default_features: Option<Spanned<LintLevel>>,

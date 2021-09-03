@@ -193,6 +193,7 @@ pub fn check(
     let ValidConfig {
         file_id,
         denied,
+        denied_multiple_versions,
         allowed,
         features,
         workspace_default_features,
@@ -236,14 +237,23 @@ pub fn check(
     };
 
     let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
-        if multi_detector.dupes.len() <= 1 || multiple_versions == LintLevel::Allow {
+        if multi_detector.dupes.len() <= 1 {
             return;
         }
 
-        let severity = match multiple_versions {
+        let lint_level = if multi_detector.dupes.iter().any(|kindex| {
+            let krate = &ctx.krates[*kindex];
+            matches(&denied_multiple_versions, krate).is_some()
+        }) {
+            LintLevel::Deny
+        } else {
+            multiple_versions
+        };
+
+        let severity = match lint_level {
             LintLevel::Warn => Severity::Warning,
             LintLevel::Deny => Severity::Error,
-            LintLevel::Allow => unreachable!(),
+            LintLevel::Allow => return,
         };
 
         let mut all_start = std::usize::MAX;
