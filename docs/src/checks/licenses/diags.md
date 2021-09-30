@@ -23,3 +23,5 @@ A [`licenses.exception`](cfg.md#the-exceptions-field-optional) was not used as t
 ### `L006` - license was not encountered
 
 A license in [`licenses.allow`](cfg.md#the-allow-and-deny-fields-optional) was not found in any crate.
+
+This diagnostic can be silenced by configuring the [`licenses.unused-allowed-license`](cfg.md#the-unused-allowed-license-field-optional) field to "allow".

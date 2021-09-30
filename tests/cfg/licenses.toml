@@ -3,6 +3,7 @@ unlicensed = "warn"
 allow-osi-fsf-free = "both"
 copyleft = "deny"
 default = "warn"
+unused-allowed-license = "warn"
 confidence-threshold = 0.95
 deny = [
     "Nokia",

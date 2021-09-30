@@ -50,12 +50,13 @@ impl Into<Diag> for UnmatchedLicenseException {
 }
 
 pub(crate) struct UnmatchedLicenseAllowance {
+    pub(crate) severity: Severity,
     pub(crate) allowed_license_cfg: CfgCoord,
 }
 
 impl Into<Diag> for UnmatchedLicenseAllowance {
     fn into(self) -> Diag {
-        Diagnostic::new(Severity::Warning)
+        Diagnostic::new(self.severity)
             .with_message("license was not encountered")
             .with_code("L006")
             .with_labels(vec![self
