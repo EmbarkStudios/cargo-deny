@@ -155,6 +155,10 @@ pub struct Config {
     /// Licenses that will be allowed in a license expression
     #[serde(default)]
     pub allow: Vec<Spanned<String>>,
+    /// Determines the response to licenses in th `allow`ed list which do not
+    /// exist in the dependency tree.
+    #[serde(default = "crate::lint_warn")]
+    pub unused_allowed_license: LintLevel,
     /// Overrides the license expression used for a particular crate as long as
     /// it exactly matches the specified license files and hashes
     #[serde(default)]
@@ -173,6 +177,7 @@ impl Default for Config {
             allow_osi_fsf_free: BlanketAgreement::default(),
             copyleft: LintLevel::Warn,
             default: LintLevel::Deny,
+            unused_allowed_license: LintLevel::Warn,
             confidence_threshold: confidence_threshold(),
             deny: Vec::new(),
             allow: Vec::new(),
@@ -294,6 +299,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             unlicensed: self.unlicensed,
             copyleft: self.copyleft,
             default: self.default,
+            unused_allowed_license: self.unused_allowed_license,
             allow_osi_fsf_free: self.allow_osi_fsf_free,
             confidence_threshold: self.confidence_threshold,
             clarifications,
@@ -330,6 +336,7 @@ pub struct ValidConfig {
     pub private: Private,
     pub unlicensed: LintLevel,
     pub copyleft: LintLevel,
+    pub unused_allowed_license: LintLevel,
     pub allow_osi_fsf_free: BlanketAgreement,
     pub default: LintLevel,
     pub confidence_threshold: f32,
@@ -363,6 +370,7 @@ mod test {
         assert_eq!(validated.private.registries, vec!["sekrets".to_owned()]);
         assert_eq!(validated.unlicensed, LintLevel::Warn);
         assert_eq!(validated.copyleft, LintLevel::Deny);
+        assert_eq!(validated.unused_allowed_license, LintLevel::Warn);
         assert_eq!(validated.default, LintLevel::Warn);
         assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
         assert_eq!(
@@ -398,7 +406,7 @@ mod test {
                     path: p.fake(),
                     hash: 0xbd0e_ed23,
                 }],
-                expr_offset: 432,
+                expr_offset: 464,
             }]
         );
     }

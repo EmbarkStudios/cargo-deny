@@ -354,7 +354,7 @@ pub fn check(
     {
         let mut pack = Pack::new(Check::Licenses);
 
-        // Print out warnings for allowed licenses that weren't encountered.
+        // Print diagnostics for allowed licenses that weren't encountered.
         // Note that we don't do the same for denied licenses
         for allowed in hits
             .allowed
@@ -363,6 +363,7 @@ pub fn check(
             .filter_map(|(hit, allowed)| if !hit { Some(allowed) } else { None })
         {
             pack.push(diags::UnmatchedLicenseAllowance {
+                severity: ctx.cfg.unused_allowed_license.into(),
                 allowed_license_cfg: CfgCoord {
                     file: ctx.cfg.file_id,
                     span: allowed.span,
