@@ -26,7 +26,7 @@ Determines what happens when a crate from a git repository not in the `allow-git
 
 ### The `required-git-spec` (optional)
 
-Determines which [specifiers](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) are required for git sources. Git sources are a convient way to use patched code temporarily, but they have downsides for long term maintenance, as the specifier you use for the source determines what happens when you do a `cargo update`, and in the default case, this means you essentially have a wildcard dependency on the repository.
+Determines which [specifiers](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) are required for git sources. Git sources are a convenient way to use patched code temporarily, but they have downsides for long term maintenance, as the specifier you use for the source determines what happens when you do a `cargo update`, and in the default case, this means you essentially have a wildcard dependency on the repository.
 
 This configuration value allows you to control what specifiers you want to allow for your git sources to reduce surprises. The following values are listed in order from least to most specific, and using a less specific specifier will also allow all of the more specific ones.
 
@@ -94,7 +94,7 @@ Generally, I think most projects in the Rust space probably follow a similar pro
 
 When working in a company or organization, it is often the case that all crates will be forked to a shared organization account rather than a personal Github account. However, if you lint your git sources, every new and deleted fork needs to keep that list updated, which is tedious, even if all the forks fall under the same organization (in Github terminology), even though presumably only people you trust have permission to create forks there, and you would like to just blanket trust any repo under that org.
 
-The `allow-org` object allows you to specify 1 or more orgs in several VCS providers to more easily configure git sources for your projects.
+The `allow-org` object allows you to specify 1 or more organizations or users in several VCS providers to more easily configure git sources for your projects.
 
 #### The `github` field (optional)
 
