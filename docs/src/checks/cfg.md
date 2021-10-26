@@ -20,7 +20,7 @@ winapi = "0.3.8"
 fuchsia-cprng = "0.1.1"
 ```
 
-But unless you are actually targetting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is never actually going to be compiled or linked into your project, so checking it is pointless for you.
+But unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is never actually going to be compiled or linked into your project, so checking it is pointless for you.
 
 The `targets` field allows you to specify one or more targets which you **actually** build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.
 
