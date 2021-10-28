@@ -1,7 +1,6 @@
 # Common options
 
-The subcommands share some common options that can be used before the
-subcommand.
+The subcommands share some common options that can be used before the subcommand.
 
 #### `--manifest-path`
 

@@ -20,7 +20,7 @@ Determines what happens when multiple versions of the same crate are encountered
 
 Determines what happens when a dependency is specified with the `*` (wildcard) version.
 
-* `deny` - Will emit an error for each crate specifed with a wildcard version.
+* `deny` - Will emit an error for each crate specified with a wildcard version.
 * `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
 * `allow` - Ignores all wildcard version specifications.
 
@@ -66,7 +66,7 @@ It is recommended to use specific version constraints for crates in the `skip` l
 
 ### The `skip-tree` field (optional)
 
-When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the specturm, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.
+When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the spectrum, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.
 
 `skip-tree` entries are similar to `skip` in that they are used to specify a crate name and version range that will be skipped, but they also have an additional `depth` field used to specify how many levels from the crate will also be skipped. A depth of `0` would be the same as specifying the crate in the `skip` field.
 
