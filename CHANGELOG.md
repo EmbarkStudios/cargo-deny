@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.10.0] - 2021-10-29
 ### Added
 - [PR#353](https://github.com/EmbarkStudios/cargo-deny/pull/353) resolved [#351](https://github.com/EmbarkStudios/cargo-deny/issues/351) by adding the `sources.private` field to blanket allow git repositories sourced from a particular url.
 - [PR#359](https://github.com/EmbarkStudios/cargo-deny/pull/359) resolved [#341](https://github.com/EmbarkStudios/cargo-deny/issues/341) and [#357](https://github.com/EmbarkStudios/cargo-deny/issues/357) by adding support for the [`--frozen`, `--locked`, and `--offline`](https://doc.rust-lang.org/cargo/commands/cargo-metadata.html#manifest-options) flags to determine whether network access is allowed, and whether the `Cargo.lock` file can be created and/or modified.
@@ -283,7 +284,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...0.9.0
 [0.8.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.8...0.8.9
