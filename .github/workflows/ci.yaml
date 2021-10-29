@@ -54,7 +54,7 @@ jobs:
     name: Build aarch64-apple-darwin
     runs-on: macos-11
     # Only run this PRs
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    if: github.event_name == 'synchronize' && github.ref != 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
