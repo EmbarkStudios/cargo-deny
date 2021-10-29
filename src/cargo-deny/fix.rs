@@ -305,7 +305,7 @@ pub fn cmd(
 
         match manifest.upgrade(patches) {
             Ok(_) => {
-                let updated_contents = manifest.doc.to_string_in_original_order();
+                let updated_contents = manifest.doc.to_string();
 
                 // If we're doing a dry run, just print what the diff would be
                 // if we actually serialized to disk
