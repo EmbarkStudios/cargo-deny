@@ -1,7 +1,7 @@
 const REPOS: &[&str] = &[
     //"git://github.com/EmbarkStudios/ash-molten.git",
     "git://github.com/EmbarkStudios/cargo-about.git",
-    "git://github.com/EmbarkStudios/cargo-fetcher.git",
+    //"git://github.com/EmbarkStudios/cargo-fetcher.git",
     "git://github.com/bitshifter/glam-rs.git",
     "git://github.com/EmbarkStudios/physx-rs.git",
     //"git://github.com/EmbarkStudios/tame-gcs.git",
