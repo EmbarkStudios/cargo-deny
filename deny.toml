@@ -17,12 +17,14 @@ ignore = [
     # askalono uses failure, which is now unmaintained
     "RUSTSEC-2019-0036",
     "RUSTSEC-2020-0036",
+    # time/chrono problems, have not been a problem in practice
+    "RUSTSEC-2020-0159",
+    "RUSTSEC-2020-0071",
 ]
 
 [bans]
 multiple-versions = "deny"
-deny = [
-]
+deny = []
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
@@ -45,14 +47,14 @@ allow-osi-fsf-free = "neither"
 copyleft = "deny"
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
-allow = [
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "MIT",
-    "MPL-2.0",
-]
+allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0"]
 
 exceptions = [
-    { allow = ["Zlib"], name = "tinyvec" },
-    { allow = ["Apache-2.0", "BSD-2-Clause"], name = "crossbeam-queue" },
+    { allow = [
+        "Zlib",
+    ], name = "tinyvec" },
+    { allow = [
+        "Apache-2.0",
+        "BSD-2-Clause",
+    ], name = "crossbeam-queue" },
 ]

@@ -32,7 +32,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-latest, macOS-latest]
+        os: [ubuntu-20.04, windows-2022, macos-11]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -47,6 +47,23 @@ jobs:
       # Run the tests we usually don't want to run when
       # testing locally
       - run: cargo test -- --ignored
+
+  # Verifies we can build aarch64-apple-darwin binaries until GHA actually has
+  # runners for them that we can actually run tests on
+  build-aarch64-apple-darwin:
+    name: Build aarch64-apple-darwin
+    runs-on: macos-11
+    # Only run this PRs
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - run: rustup target add aarch64-apple-darwin
+      - run: cargo fetch --target aarch64-apple-darwin
+      - run: cargo build --release --target aarch64-apple-darwin
 
   self:
     name: Check Users
@@ -136,15 +153,15 @@ jobs:
             rust: stable
             target: x86_64-unknown-linux-musl
             bin: cargo-deny
-          - os: windows-latest
+          - os: windows-2022
             rust: stable
             target: x86_64-pc-windows-msvc
             bin: cargo-deny.exe
-          - os: macOS-latest
+          - os: macos-11
             rust: stable
             target: x86_64-apple-darwin
             bin: cargo-deny
-          - os: macOS-latest
+          - os: macos-11
             rust: stable
             target: aarch64-apple-darwin
             bin: cargo-deny
@@ -160,12 +177,6 @@ jobs:
         if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install -y musl-tools
-      - name: Workaround xcode shenanigans
-        if: matrix.target == 'aarch64-apple-darwin'
-        # https://github.com/actions/virtual-environments/issues/2557#issuecomment-769611326
-        run: |
-          sudo xcode-select -s "/Applications/Xcode_12.3.app"
-          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
       - name: Checkout
         uses: actions/checkout@v2
       - name: cargo fetch

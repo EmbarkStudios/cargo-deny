@@ -79,7 +79,7 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for krate in krates.search_matches(&ts.value.id.name, &ts.value.id.version) {
+            for krate in krates.search_matches(&ts.value.id.name, ts.value.id.version.clone()) {
                 roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 
