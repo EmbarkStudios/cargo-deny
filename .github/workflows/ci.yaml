@@ -144,7 +144,7 @@ jobs:
 
   release:
     name: Release
-    needs: [test, self, doc-book]
+    #needs: [test, self, doc-book]
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
@@ -204,7 +204,7 @@ jobs:
 
           # Windows environments in github actions don't have the gnu coreutils installed,
           # which includes the shasum exe, so we just use powershell instead
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          if [ "${{ matrix.target }}" == "x86_64-pc-windows-msvc" ]; then
             echo "(Get-FileHash \"${release_tar}\" -Algorithm SHA256).Hash | Out-File -Encoding ASCII -NoNewline \"${release_tar}.sha256\"" | pwsh -c -
           else
             echo -n "$(shasum -ba 256 "${release_tar}" | cut -d " " -f 1)" > "${release_tar}.sha256"

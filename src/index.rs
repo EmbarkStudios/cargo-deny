@@ -237,29 +237,18 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     fn to_hex(num: u64) -> String {
         const CHARS: &[u8] = b"0123456789abcdef";
 
-        let bytes = &[
-            num as u8,
-            (num >> 8) as u8,
-            (num >> 16) as u8,
-            (num >> 24) as u8,
-            (num >> 32) as u8,
-            (num >> 40) as u8,
-            (num >> 48) as u8,
-            (num >> 56) as u8,
-        ];
+        // Note that cargo does this as well so that the hex strings are
+        // the same on big endian as well
+        let bytes = num.to_le_bytes();
 
-        let mut output = vec![0u8; 16];
+        let mut output = String::with_capacity(16);
 
-        let mut ind = 0;
-
-        for &byte in bytes {
-            output[ind] = CHARS[(byte >> 4) as usize];
-            output[ind + 1] = CHARS[(byte & 0xf) as usize];
-
-            ind += 2;
+        for byte in bytes {
+            output.push(CHARS[(byte >> 4) as usize] as char);
+            output.push(CHARS[(byte & 0xf) as usize] as char);
         }
 
-        String::from_utf8(output).expect("valid utf-8 hex string")
+        output
     }
 
     #[allow(deprecated)]
@@ -267,8 +256,9 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         use std::hash::{Hash, Hasher, SipHasher};
 
         let mut hasher = SipHasher::new_with_keys(0, 0);
-        // Registry
-        2usize.hash(&mut hasher);
+        // Registry. Note the explicit use of u64 here so that we get the same
+        // hash on 32 and 64-bit arches
+        2u64.hash(&mut hasher);
         // Url
         url.hash(&mut hasher);
         hasher.finish()
