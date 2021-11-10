@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.10.1] - 2021-11-10
 ### Fixed
 - [PR#347](https://github.com/EmbarkStudios/cargo-deny/pull/374) resolved [#372](https://github.com/EmbarkStudios/cargo-deny/issues/372) by correcting a slight mistake that resulted in an incorrect hash making cargo-deny unable to lookup index or crate information from the local file system.
 
@@ -287,7 +288,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...HEAD
+[0.10.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.8.9...0.9.0
