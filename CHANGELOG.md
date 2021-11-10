@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#347](https://github.com/EmbarkStudios/cargo-deny/pull/374) resolved [#372](https://github.com/EmbarkStudios/cargo-deny/issues/372) by correcting a slight mistake that resulted in an incorrect hash making cargo-deny unable to lookup index or crate information from the local file system.
+
 ## [0.10.0] - 2021-10-29
 ### Added
 - [PR#353](https://github.com/EmbarkStudios/cargo-deny/pull/353) resolved [#351](https://github.com/EmbarkStudios/cargo-deny/issues/351) by adding the `sources.private` field to blanket allow git repositories sourced from a particular url.
