@@ -293,16 +293,21 @@ fn setup_logger(
                 .level(level)
                 .format(move |out, message, record| {
                     out.finish(format_args!(
-                        r#"{{"type":"log","fields":{{"timestamp":"{date}","level":"{level}","message":"{message}"}}}}"#,
-                        date = chrono::Utc::now().to_rfc3339(),
-                        level = match record.level() {
-                            Error => "ERROR",
-                            Warn => "WARN",
-                            Info => "INFO",
-                            Debug => "DEBUG",
-                            Trace => "TRACE",
-                        },
-                        message = message,
+                        "{}",
+                        serde_json::json! {{
+                            "type": "log",
+                            "fields": {
+                                "timestamp": chrono::Utc::now().to_rfc3339(),
+                                "level": match record.level() {
+                                    Error => "ERROR",
+                                    Warn => "WARN",
+                                    Info => "INFO",
+                                    Debug => "DEBUG",
+                                    Trace => "TRACE",
+                                },
+                                "message": message,
+                            }
+                        }}
                     ));
                 })
                 .chain(std::io::stderr())
