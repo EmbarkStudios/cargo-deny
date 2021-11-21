@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [PR#376](https://github.com/EmbarkStudios/cargo-deny/pull/376) fixed the JSON formatting when using `--format json` output option. Thanks [@dnaka91](https://github.com/dnaka91)!
 
 ### Changed
-- Updated dependencies
+- [PR#377](https://github.com/EmbarkStudios/cargo-deny/pull/377) updated dependencies.
 
 ## [0.10.1] - 2021-11-10
 ### Fixed
