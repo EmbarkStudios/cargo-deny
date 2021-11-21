@@ -28,10 +28,6 @@ deny = []
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
-    # cargo uses crypto-hash, which uses an old version
-    { name = "hex", version = "=0.3.2" },
-    # im-rc, used by cargo, uses an old version of rand_core
-    { name = "rand_core", version = "=0.5.1" },
     # askalono pulls in an ancient version of zstd that uses an outdated itertools
     { name = "itertools", version = "=0.9.0" },
 ]

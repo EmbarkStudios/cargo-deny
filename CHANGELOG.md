@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#376](https://github.com/EmbarkStudios/cargo-deny/pull/376) fixed the JSON formatting when using `--format json` output option. Thanks [@dnaka91](https://github.com/dnaka91)!
+
+### Changed
+- [PR#377](https://github.com/EmbarkStudios/cargo-deny/pull/377) updated dependencies.
+
 ## [0.10.1] - 2021-11-10
 ### Fixed
 - [PR#347](https://github.com/EmbarkStudios/cargo-deny/pull/374) resolved [#372](https://github.com/EmbarkStudios/cargo-deny/issues/372) by correcting a slight mistake that resulted in an incorrect hash making cargo-deny unable to lookup index or crate information from the local file system.
