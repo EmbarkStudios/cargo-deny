@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.10.2] - 2021-11-21
 ### Fixed
 - [PR#376](https://github.com/EmbarkStudios/cargo-deny/pull/376) fixed the JSON formatting when using `--format json` output option. Thanks [@dnaka91](https://github.com/dnaka91)!
 
@@ -294,7 +295,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...HEAD
+[0.10.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.0...0.9.1
