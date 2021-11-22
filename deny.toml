@@ -14,9 +14,6 @@ unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
 ignore = [
-    # askalono uses failure, which is now unmaintained
-    "RUSTSEC-2019-0036",
-    "RUSTSEC-2020-0036",
     # time/chrono problems, have not been a problem in practice
     "RUSTSEC-2020-0159",
     "RUSTSEC-2020-0071",
@@ -28,8 +25,10 @@ deny = []
 skip = [
     # clap uses an older version of ansi_term
     { name = "ansi_term", version = "=0.11.0" },
-    # askalono pulls in an ancient version of zstd that uses an outdated itertools
-    { name = "itertools", version = "=0.9.0" },
+    # cargo-util depends on 2 version one of which is outdated via crypto-hash
+    { name = "hex", version = "=0.3.2" },
+    # cargo depends on im-rc which uses an older version
+    { name = "rand_core", version = "=0.5.1" },
 ]
 
 [sources]
