@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.10.3] - 2021-11-22
 ### Changed
 - [PR#379](https://github.com/EmbarkStudios/cargo-deny/pull/379) updated `askalono` which got rid of the `failure` dependency, which was pulling in a lot of additional crates that are now gone.
 
@@ -301,7 +302,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.3...HEAD
+[0.10.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.9.1...0.10.0
