@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#379](https://github.com/EmbarkStudios/cargo-deny/pull/379) fixed [#378](https://github.com/EmbarkStudios/cargo-deny/issues/378) which was an edge case where the `sources` check was executed against a crate that didn't use any crates from crates.io, and the config file was shorter than the crates.io URL.
+
 ## [0.10.2] - 2021-11-21
 ### Fixed
 - [PR#376](https://github.com/EmbarkStudios/cargo-deny/pull/376) fixed the JSON formatting when using `--format json` output option. Thanks [@dnaka91](https://github.com/dnaka91)!
