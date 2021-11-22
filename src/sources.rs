@@ -8,6 +8,8 @@ use crate::{
 };
 use url::Url;
 
+const CRATES_IO_URL: &str = "https://github.com/rust-lang/crates.io-index";
+
 pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
     use bitvec::prelude::*;
 
@@ -117,7 +119,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
                 // Show the location of the config that allowed this source, unless
                 // it's crates.io since that will be a vast majority of crates and
                 // is the default, so we might not have a real source location anyways
-                if source_url.as_str() != "https://github.com/rust-lang/crates.io-index" {
+                if source_url.as_str() != CRATES_IO_URL {
                     pack.push(diags::ExplicitlyAllowedSource {
                         src_label: &source_label,
                         type_name,
@@ -179,6 +181,12 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
         .zip(ctx.cfg.allowed_sources.into_iter())
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
+        // If someone in is in a situation that they want to disallow crates
+        // from crates.io, they should set the allowed registries manually
+        if src.url.as_ref().as_str() == CRATES_IO_URL {
+            continue;
+        }
+
         pack.push(diags::UnmatchedAllowSource {
             allow_src_cfg: CfgCoord {
                 span: src.url.span,

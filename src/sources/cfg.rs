@@ -81,10 +81,15 @@ pub struct Config {
 
 #[inline]
 fn default_allow_registry() -> Vec<Spanned<String>> {
-    // This is always valid, so we don't have to worry about the span being fake
+    // This is always valid, so we don't have to worry about the span being fake,
+    // this is actually a lie though because if we try to print this span it will
+    // fail if it falls outside of the range of the config file, and even if it
+    // doesn't will just point to whatever text happens to be there, so we instead
+    // lie and just ignore it instead since a vast majority of usage should
+    // use this source
     vec![Spanned::new(
-        "https://github.com/rust-lang/crates.io-index".to_owned(),
-        0..44,
+        super::CRATES_IO_URL.to_owned(),
+        0..super::CRATES_IO_URL.len(),
     )]
 }
 
