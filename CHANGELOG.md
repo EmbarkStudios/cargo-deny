@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.11.0] - 2021-12-06
 ### Changed
 - [PR#382](https://github.com/EmbarkStudios/cargo-deny/pull/382) updated dependencies and bumped the Minimum Stable Rust Version to **1.56.1**.
 
@@ -305,7 +306,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.0...0.10.1
