@@ -49,24 +49,13 @@ pub enum Style {
     rounded,
 }
 
+#[derive(Default)]
 struct NodeAttributes<'a> {
     label: Option<&'a str>,
     shape: Option<Shape>,
     style: Option<Style>,
     color: Option<&'static str>,
     fill_color: Option<&'static str>,
-}
-
-impl<'a> Default for NodeAttributes<'a> {
-    fn default() -> Self {
-        Self {
-            label: None,
-            shape: None,
-            style: None,
-            color: None,
-            fill_color: None,
-        }
-    }
 }
 
 impl<'a> NodeAttributes<'a> {

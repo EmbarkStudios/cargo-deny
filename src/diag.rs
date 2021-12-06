@@ -21,12 +21,12 @@ pub type RawCargoSpans = HashMap<Kid, (krates::Utf8PathBuf, String, HashMap<Stri
 // Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
 pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
 
-impl Into<Severity> for crate::LintLevel {
-    fn into(self) -> Severity {
-        match self {
-            Self::Warn => Severity::Warning,
-            Self::Deny => Severity::Error,
-            Self::Allow => Severity::Note,
+impl From<crate::LintLevel> for Severity {
+    fn from(ll: crate::LintLevel) -> Self {
+        match ll {
+            crate::LintLevel::Warn => Severity::Warning,
+            crate::LintLevel::Deny => Severity::Error,
+            crate::LintLevel::Allow => Severity::Note,
         }
     }
 }
@@ -224,9 +224,9 @@ impl Coord {
     }
 }
 
-impl Into<Label> for Coord {
-    fn into(self) -> Label {
-        Label::primary(self.file, self.span)
+impl From<Coord> for Label {
+    fn from(c: Coord) -> Self {
+        Label::primary(c.file, c.span)
     }
 }
 

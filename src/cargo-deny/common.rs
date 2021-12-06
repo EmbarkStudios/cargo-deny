@@ -308,6 +308,7 @@ pub struct Json<'a> {
     grapher: Option<diag::ObjectGrapher<'a>>,
 }
 
+#[allow(clippy::large_enum_variant)]
 enum OutputFormat<'a> {
     Human(Human<'a>),
     Json(Json<'a>),

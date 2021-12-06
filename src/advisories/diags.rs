@@ -2,7 +2,7 @@ use crate::{
     diag::{Check, Diag, Diagnostic, KrateCoord, Label, Pack, Severity},
     Krate, LintLevel,
 };
-use rustsec::advisory::{informational::Informational, metadata::Metadata, versions::Versions, Id};
+use rustsec::advisory::{Id, Informational, Metadata, Versions};
 
 fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
     let mut n = vec![format!("ID: {}", advisory.id)];
@@ -248,13 +248,13 @@ pub(crate) struct NoAvailablePatches<'a> {
     pub(crate) advisory: &'a Metadata,
 }
 
-impl<'a> Into<Diag> for NoAvailablePatches<'a> {
-    fn into(self) -> Diag {
-        let notes = get_notes_from_advisory(self.advisory);
+impl<'a> From<NoAvailablePatches<'a>> for Diag {
+    fn from(nap: NoAvailablePatches<'a>) -> Self {
+        let notes = get_notes_from_advisory(nap.advisory);
         Diagnostic::new(Severity::Error)
             .with_message("advisory has no available patches")
             .with_code("AF001")
-            .with_labels(vec![self
+            .with_labels(vec![nap
                 .affected_krate_coord
                 .into_label()
                 .with_message("affected crate")])
@@ -268,13 +268,13 @@ pub(crate) struct NoAvailablePatchedVersions<'a> {
     pub(crate) advisory: &'a Metadata,
 }
 
-impl<'a> Into<Diag> for NoAvailablePatchedVersions<'a> {
-    fn into(self) -> Diag {
-        let notes = get_notes_from_advisory(self.advisory);
+impl<'a> From<NoAvailablePatchedVersions<'a>> for Diag {
+    fn from(napv: NoAvailablePatchedVersions<'a>) -> Self {
+        let notes = get_notes_from_advisory(napv.advisory);
         Diagnostic::new(Severity::Error)
             .with_message("affected crate has no available patched versions")
             .with_code("AF002")
-            .with_labels(vec![self
+            .with_labels(vec![napv
                 .affected_krate_coord
                 .into_label()
                 .with_message("affected crate")])
@@ -289,17 +289,17 @@ pub(crate) struct UnableToFindMatchingVersion<'a> {
     pub(crate) reason: super::fix::NoVersionReason,
 }
 
-impl<'a> Into<Diag> for UnableToFindMatchingVersion<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<UnableToFindMatchingVersion<'a>> for Diag {
+    fn from(ufmv: UnableToFindMatchingVersion<'a>) -> Self {
         let mut diag: Diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
                 "unable to patch {} => {}: {}",
-                self.parent_krate, self.dep.name, self.reason
+                ufmv.parent_krate, ufmv.dep.name, ufmv.reason
             ))
             .with_code("AF003")
             .into();
 
-        diag.kids.push(self.dep.id.clone());
+        diag.kids.push(ufmv.dep.id.clone());
         diag
     }
 }
@@ -308,17 +308,17 @@ pub(crate) struct UnpatchableSource<'a> {
     pub(crate) parent_krate: &'a Krate,
 }
 
-impl<'a> Into<Diag> for UnpatchableSource<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<UnpatchableSource<'a>> for Diag {
+    fn from(us: UnpatchableSource<'a>) -> Self {
         let mut diag: Diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
                 "unable to patch '{}', not a 'registry' or 'local'",
-                self.parent_krate
+                us.parent_krate
             ))
             .with_code("AF004")
             .into();
 
-        diag.kids.push(self.parent_krate.id.clone());
+        diag.kids.push(us.parent_krate.id.clone());
         diag
     }
 }
@@ -342,20 +342,20 @@ pub(crate) struct IncompatibleLocalKrate<'a> {
     pub(crate) required_versions: &'a [semver::Version],
 }
 
-impl<'a> Into<Diag> for IncompatibleLocalKrate<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<IncompatibleLocalKrate<'a>> for Diag {
+    fn from(ilk: IncompatibleLocalKrate<'a>) -> Self {
         let mut diag: Diag = Diagnostic::new(Severity::Warning)
             .with_message(format!(
                 "local crate {} has a requirement of '{}' on '{}', which does not match any required version",
-                self.local_krate,
-                self.dep_req,
-                self.dep.name,
+                ilk.local_krate,
+                ilk.dep_req,
+                ilk.dep.name,
             ))
-            .with_notes(vec![format!("Required versions: [{}]", to_string(self.required_versions))])
+            .with_notes(vec![format!("Required versions: [{}]", to_string(ilk.required_versions))])
             .with_code("AF005")
             .into();
 
-        diag.kids.push(self.dep.id.clone());
+        diag.kids.push(ilk.dep.id.clone());
         diag
     }
 }
@@ -365,12 +365,12 @@ pub(crate) struct NoNewerVersionAvailable<'a> {
     pub(crate) dep: &'a Krate,
 }
 
-impl<'a> Into<Diag> for NoNewerVersionAvailable<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<NoNewerVersionAvailable<'a>> for Diag {
+    fn from(nnva: NoNewerVersionAvailable<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
             .with_message(format!(
                 "unable to patch '{}' => '{}', no newer versions of '{}' are available",
-                self.local_krate, self.dep, self.dep.name,
+                nnva.local_krate, nnva.dep, nnva.dep.name,
             ))
             .with_code("AF006")
             .into()
