@@ -7,7 +7,7 @@ authors = [
   "Embark <opensource@embark-studios.com>",
   "Jake Shadle <jake.shadle@embark-studios.com>",
 ]
-edition = "2018"
+edition = "2021"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 documentation = "https://docs.rs/cargo-deny"
@@ -45,7 +45,7 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "0.22", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.57", optional = true }
+cargo = { version = "0.58", optional = true }
 # Timey wimey stuff
 chrono = "0.4"
 # Used for diagnostic reporting
@@ -71,7 +71,7 @@ memchr = "2.3"
 # Moar brrrr
 rayon = "1.4"
 # Used for interacting with advisory databases
-rustsec = "0.24"
+rustsec = "0.25"
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -80,7 +80,7 @@ serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
 smallvec = "1.6"
 # Used for parsing and checking SPDX license expressions
-spdx = "0.6"
+spdx = "0.7"
 # Handles all of the argument parsing
 structopt = "0.3"
 # Deserialization of configuration files and crate manifests

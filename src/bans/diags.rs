@@ -8,12 +8,12 @@ pub(crate) struct ExplicitlyBanned<'a> {
     pub(crate) ban_cfg: CfgCoord,
 }
 
-impl<'a> Into<Diag> for ExplicitlyBanned<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<ExplicitlyBanned<'a>> for Diag {
+    fn from(eb: ExplicitlyBanned<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!("crate '{}' is explicitly banned", self.krate))
+            .with_message(format!("crate '{}' is explicitly banned", eb.krate))
             .with_code("B001")
-            .with_labels(vec![self.ban_cfg.into_label().with_message("banned here")])
+            .with_labels(vec![eb.ban_cfg.into_label().with_message("banned here")])
             .into()
     }
 }
@@ -23,15 +23,12 @@ pub(crate) struct ExplicitlyAllowed<'a> {
     pub(crate) allow_cfg: CfgCoord,
 }
 
-impl<'a> Into<Diag> for ExplicitlyAllowed<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<ExplicitlyAllowed<'a>> for Diag {
+    fn from(ea: ExplicitlyAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!("crate '{}' is explicitly allowed", self.krate))
+            .with_message(format!("crate '{}' is explicitly allowed", ea.krate))
             .with_code("B002")
-            .with_labels(vec![self
-                .allow_cfg
-                .into_label()
-                .with_message("allowed here")])
+            .with_labels(vec![ea.allow_cfg.into_label().with_message("allowed here")])
             .into()
     }
 }
@@ -40,10 +37,10 @@ pub(crate) struct ImplicitlyBanned<'a> {
     pub(crate) krate: &'a Krate,
 }
 
-impl<'a> Into<Diag> for ImplicitlyBanned<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<ImplicitlyBanned<'a>> for Diag {
+    fn from(ib: ImplicitlyBanned<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!("crate '{}' is implicitly banned", self.krate))
+            .with_message(format!("crate '{}' is implicitly banned", ib.krate))
             .with_code("B003")
             .into()
     }
@@ -56,15 +53,15 @@ pub(crate) struct Duplicates<'a> {
     pub(crate) severity: Severity,
 }
 
-impl<'a> Into<Diag> for Duplicates<'a> {
-    fn into(self) -> Diag {
-        Diagnostic::new(self.severity)
+impl<'a> From<Duplicates<'a>> for Diag {
+    fn from(dup: Duplicates<'a>) -> Self {
+        Diagnostic::new(dup.severity)
             .with_message(format!(
                 "found {} duplicate entries for crate '{}'",
-                self.num_dupes, self.krate_name,
+                dup.num_dupes, dup.krate_name,
             ))
             .with_code("B004")
-            .with_labels(vec![self
+            .with_labels(vec![dup
                 .krates_coord
                 .into_label()
                 .with_message("lock entries")])
@@ -77,18 +74,15 @@ pub(crate) struct Skipped<'a> {
     pub(crate) skip_cfg: CfgCoord,
 }
 
-impl<'a> Into<Diag> for Skipped<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<Skipped<'a>> for Diag {
+    fn from(sk: Skipped<'a>) -> Self {
         Diagnostic::new(Severity::Help)
             .with_message(format!(
                 "crate '{}' skipped when checking for duplicates",
-                self.krate
+                sk.krate
             ))
             .with_code("B005")
-            .with_labels(vec![self
-                .skip_cfg
-                .into_label()
-                .with_message("skipped here")])
+            .with_labels(vec![sk.skip_cfg.into_label().with_message("skipped here")])
             .into()
     }
 }
@@ -100,11 +94,11 @@ pub(crate) struct Wildcards<'a> {
     pub(crate) cargo_spans: &'a crate::diag::CargoSpans,
 }
 
-impl<'a> Into<Pack> for Wildcards<'a> {
-    fn into(self) -> Pack {
-        let (file_id, map) = &self.cargo_spans[&self.krate.id];
+impl<'a> From<Wildcards<'a>> for Pack {
+    fn from(wc: Wildcards<'a>) -> Self {
+        let (file_id, map) = &wc.cargo_spans[&wc.krate.id];
 
-        let labels: Vec<_> = self
+        let labels: Vec<_> = wc
             .wildcards
             .into_iter()
             .map(|dep| {
@@ -114,18 +108,18 @@ impl<'a> Into<Pack> for Wildcards<'a> {
             .collect();
 
         let diag = Diag::new(
-            Diagnostic::new(self.severity)
+            Diagnostic::new(wc.severity)
                 .with_message(format!(
                     "found {} wildcard dependenc{} for crate '{}'",
                     labels.len(),
                     if labels.len() == 1 { "y" } else { "ies" },
-                    self.krate.name
+                    wc.krate.name
                 ))
                 .with_code("B006")
                 .with_labels(labels),
         );
 
-        let mut pack = Pack::with_kid(Check::Bans, self.krate.id.clone());
+        let mut pack = Pack::with_kid(Check::Bans, wc.krate.id.clone());
         pack.push(diag);
 
         pack
@@ -136,12 +130,12 @@ pub(crate) struct UnmatchedSkip {
     pub(crate) skip_cfg: CfgCoord,
 }
 
-impl Into<Diag> for UnmatchedSkip {
-    fn into(self) -> Diag {
+impl From<UnmatchedSkip> for Diag {
+    fn from(us: UnmatchedSkip) -> Self {
         Diagnostic::new(Severity::Warning)
             .with_message("skipped crate was not encountered")
             .with_code("B007")
-            .with_labels(vec![self
+            .with_labels(vec![us
                 .skip_cfg
                 .into_label()
                 .with_message("unmatched skip configuration")])
@@ -156,17 +150,17 @@ pub(crate) struct BannedAllowedByWrapper<'a> {
     pub(crate) wrapper_krate: &'a Krate,
 }
 
-impl<'a> Into<Diag> for BannedAllowedByWrapper<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<BannedAllowedByWrapper<'a>> for Diag {
+    fn from(baw: BannedAllowedByWrapper<'a>) -> Self {
         Diagnostic::new(Severity::Help)
             .with_message(format!(
                 "banned crate '{}' allowed by wrapper '{}'",
-                self.banned_krate, self.wrapper_krate
+                baw.banned_krate, baw.wrapper_krate
             ))
             .with_code("B008")
             .with_labels(vec![
-                self.ban_cfg.into_label().with_message("banned here"),
-                self.ban_exception_cfg
+                baw.ban_cfg.into_label().with_message("banned here"),
+                baw.ban_exception_cfg
                     .into_label()
                     .with_message("allowed wrapper"),
             ])
@@ -180,15 +174,15 @@ pub(crate) struct BannedUnmatchedWrapper<'a> {
     pub(crate) parent_krate: &'a Krate,
 }
 
-impl<'a> Into<Diag> for BannedUnmatchedWrapper<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<BannedUnmatchedWrapper<'a>> for Diag {
+    fn from(buw: BannedUnmatchedWrapper<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
             .with_message(format!(
                 "direct parent '{}' of banned crate '{}' was not marked as a wrapper",
-                self.parent_krate, self.banned_krate
+                buw.parent_krate, buw.banned_krate
             ))
             .with_code("B009")
-            .with_labels(vec![self.ban_cfg.into_label().with_message("banned here")])
+            .with_labels(vec![buw.ban_cfg.into_label().with_message("banned here")])
             .into()
     }
 }
@@ -197,12 +191,12 @@ pub(crate) struct UnmatchedSkipRoot {
     pub(crate) skip_root_cfg: CfgCoord,
 }
 
-impl Into<Diag> for UnmatchedSkipRoot {
-    fn into(self) -> Diag {
+impl From<UnmatchedSkipRoot> for Diag {
+    fn from(usr: UnmatchedSkipRoot) -> Self {
         Diagnostic::new(Severity::Warning)
             .with_message("skip tree root was not found in the dependency graph")
             .with_code("B010")
-            .with_labels(vec![self
+            .with_labels(vec![usr
                 .skip_root_cfg
                 .into_label()
                 .with_message("no crate matched these criteria")])
@@ -215,12 +209,12 @@ pub(crate) struct SkippedByRoot<'a> {
     pub(crate) krate: &'a Krate,
 }
 
-impl<'a> Into<Diag> for SkippedByRoot<'a> {
-    fn into(self) -> Diag {
+impl<'a> From<SkippedByRoot<'a>> for Diag {
+    fn from(sbr: SkippedByRoot<'a>) -> Self {
         Diagnostic::new(Severity::Help)
-            .with_message(format!("skipping crate '{}' due to root skip", self.krate))
+            .with_message(format!("skipping crate '{}' due to root skip", sbr.krate))
             .with_code("B011")
-            .with_labels(vec![self
+            .with_labels(vec![sbr
                 .skip_root_cfg
                 .into_label()
                 .with_message("matched skip root")])

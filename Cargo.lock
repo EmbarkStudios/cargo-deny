@@ -150,9 +150,9 @@ dependencies = [
 
 [[package]]
 name = "cargo"
-version = "0.57.0"
+version = "0.58.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "519db9ad1bc3bf61f2e753cc204ac37903cf0f33f551a03c260208271c1f875b"
+checksum = "cab77eea837b09297f6ad70921e465d77b60eb10380505abc02bd6e66b653704"
 dependencies = [
  "anyhow",
  "atty",
@@ -186,6 +186,7 @@ dependencies = [
  "memchr",
  "num_cpus",
  "opener",
+ "os_info",
  "percent-encoding",
  "rustc-workspace-hack",
  "rustfix",
@@ -1113,6 +1114,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "os_info"
+version = "3.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5501659840950e918d046ad97ebe9702cbb4ec0097e47dbd27abf7692223181"
+dependencies = [
+ "log",
+ "serde",
+ "winapi",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1136,9 +1148,9 @@ checksum = "12295df4f294471248581bc09bef3c38a5e46f1e36d6a37353621a0c6c357e1f"
 
 [[package]]
 name = "platforms"
-version = "1.1.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "989d43012e2ca1c4a02507c67282691a0a3207f9dc67cec596b43fe925b3d325"
+checksum = "e8d0eef3571242013a0d5dc84861c3ae4a652e56e12adf8bdc26ff5f8cb34c94"
 dependencies = [
  "serde",
 ]
@@ -1359,9 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "rustsec"
-version = "0.24.3"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcf7c16b24c1facb34fc8392fdcf4986c369335973441ccc2ff11ba7341b7ee2"
+checksum = "d6136976fbabcd3ca37a12ae8ecc3408e8d7a94916d1cabdabd86aa4464e0887"
 dependencies = [
  "cargo-lock",
  "crates-index",
@@ -1374,7 +1386,6 @@ dependencies = [
  "platforms",
  "semver",
  "serde",
- "smol_str",
  "thiserror",
  "toml",
  "url",
@@ -1499,12 +1510,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "smol_str"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ca0f7ce3a29234210f0f4f0b56f8be2e722488b95cb522077943212da3b32eb"
-
-[[package]]
 name = "socket2"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1516,9 +1521,9 @@ dependencies = [
 
 [[package]]
 name = "spdx"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e1bff9c842210e48eb85ce4c24983b34a481af4ba4b6140b41737e432f4030b"
+checksum = "b74441328ed14f0433fb2e175cec69e4cd2e5728b1acf4d990f30458d3e187b1"
 dependencies = [
  "smallvec",
 ]

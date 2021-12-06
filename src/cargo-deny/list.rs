@@ -45,11 +45,6 @@ pub struct Args {
         case_insensitive = true,
     )]
     format: OutputFormat,
-    /// Determines if log messages are emitted
-    ///
-    /// The log level specified at the top level still applies
-    #[structopt(short, long)]
-    verbose: bool,
     /// The layout for the output, does not apply to TSV
     #[structopt(
         short,

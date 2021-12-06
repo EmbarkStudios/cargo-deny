@@ -37,7 +37,7 @@ pub fn check<R>(
 ) where
     R: AuditReporter,
 {
-    use rustsec::{advisory::metadata::Metadata, advisory::versions::Versions, package::Package};
+    use rustsec::{advisory::Metadata, advisory::Versions, package::Package};
 
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 

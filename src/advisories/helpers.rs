@@ -178,7 +178,7 @@ impl Report {
         lockfile: &PrunedLockfile,
         serialize_reports: bool,
     ) -> Self {
-        use rustsec::advisory::informational::Informational;
+        use rustsec::advisory::Informational;
 
         let settings = rustsec::report::Settings {
             // We already prune packages we don't care about, so don't filter
