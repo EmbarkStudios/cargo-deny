@@ -6,7 +6,7 @@ const REPOS: &[&str] = &[
     "git://github.com/EmbarkStudios/physx-rs.git",
     //"git://github.com/EmbarkStudios/tame-gcs.git",
     //"git://github.com/EmbarkStudios/tame-oauth.git",
-    "git://github.com/EmbarkStudios/texture-synthesis.git",
+    //"git://github.com/EmbarkStudios/texture-synthesis.git",
 ];
 
 fn main() {
