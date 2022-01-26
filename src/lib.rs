@@ -332,6 +332,17 @@ impl Krate {
             }
         })
     }
+
+    /// Returns the normalized source URL
+    pub(crate) fn normalized_source_url(&self) -> Option<url::Url> {
+        self.source.as_ref().map(|source| {
+            let mut url = source.url().clone();
+            url.set_query(None);
+            url.set_fragment(None);
+            crate::sources::normalize_url(&mut url);
+            url
+        })
+    }
 }
 
 impl fmt::Display for Krate {
