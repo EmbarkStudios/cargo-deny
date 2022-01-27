@@ -214,7 +214,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
     }
 }
 
-fn normalize_url(url: &mut Url) {
+pub(crate) fn normalize_url(url: &mut Url) {
     // Normalizes the URL so that different representations can be compared to each other.
     // At the moment we just remove a tailing `.git` but there are more possible optimisations.
     // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57

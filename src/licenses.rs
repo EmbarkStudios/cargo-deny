@@ -282,13 +282,18 @@ pub fn check(
         let mut pack = Pack::with_kid(Check::Licenses, krate_lic_nfo.krate.id.clone());
 
         // If the user has set this, check if it's a private workspace
-        // crate and just print out a help message that we skipped it
+        // crate or a crate from a private registry and just print out
+        // a help message that we skipped it
         if ctx.cfg.private.ignore
-            && ctx
-                .krates
-                .workspace_members()
-                .any(|wm| wm.id == krate_lic_nfo.krate.id)
-            && krate_lic_nfo.krate.is_private(&private_registries)
+            && (krate_lic_nfo
+                .krate
+                .normalized_source_url()
+                .map_or(false, |source| ctx.cfg.ignore_sources.contains(&source))
+                || (ctx
+                    .krates
+                    .workspace_members()
+                    .any(|wm| wm.id == krate_lic_nfo.krate.id)
+                    && krate_lic_nfo.krate.is_private(&private_registries)))
         {
             pack.push(diags::SkippedPrivateWorkspaceCrate {
                 krate: krate_lic_nfo.krate,

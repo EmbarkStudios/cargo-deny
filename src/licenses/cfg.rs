@@ -65,6 +65,10 @@ pub struct Private {
     /// only published to private registries
     #[serde(default)]
     pub ignore: bool,
+    /// One or more URLs to private registries, if a crate comes from one
+    /// of these registries, the crate will not have its license checked
+    #[serde(default)]
+    pub ignore_sources: Vec<Spanned<String>>,
     /// One or more private registries that you might publish crates to, if
     /// a crate is only published to private registries, and ignore is true
     /// the crate will not have its license checked
@@ -198,6 +202,24 @@ impl crate::cfg::UnvalidatedConfig for Config {
     fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
         use rayon::prelude::*;
 
+        let mut ignore_sources = Vec::with_capacity(self.private.ignore_sources.len());
+        for aurl in &self.private.ignore_sources {
+            match url::Url::parse(aurl.as_ref()) {
+                Ok(mut url) => {
+                    crate::sources::normalize_url(&mut url);
+                    ignore_sources.push(url);
+                }
+                Err(pe) => {
+                    diags.push(
+                        Diagnostic::error()
+                            .with_message("failed to parse url")
+                            .with_labels(vec![Label::primary(cfg_file, aurl.span.clone())
+                                .with_message(pe.to_string())]),
+                    );
+                }
+            }
+        }
+
         let mut parse_license = |ls: &Spanned<String>, v: &mut Vec<Licensee>| {
             match spdx::Licensee::parse(ls.as_ref()) {
                 Ok(licensee) => {
@@ -306,6 +328,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             exceptions,
             denied,
             allowed,
+            ignore_sources,
         }
     }
 }
@@ -344,6 +367,7 @@ pub struct ValidConfig {
     pub allowed: Vec<Licensee>,
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
+    pub ignore_sources: Vec<url::Url>,
 }
 
 #[cfg(test)]
