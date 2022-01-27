@@ -1,0 +1,2 @@
+[licenses]
+deny = ["MIT", "Apache-2.0"]

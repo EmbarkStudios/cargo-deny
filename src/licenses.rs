@@ -285,15 +285,11 @@ pub fn check(
         // crate or a crate from a private registry and just print out
         // a help message that we skipped it
         if ctx.cfg.private.ignore
-            && (krate_lic_nfo
-                .krate
-                .normalized_source_url()
-                .map_or(false, |source| ctx.cfg.ignore_sources.contains(&source))
-                || (ctx
-                    .krates
-                    .workspace_members()
-                    .any(|wm| wm.id == krate_lic_nfo.krate.id)
-                    && krate_lic_nfo.krate.is_private(&private_registries)))
+            && (krate_lic_nfo.krate.is_private(&private_registries)
+                || krate_lic_nfo
+                    .krate
+                    .normalized_source_url()
+                    .map_or(false, |source| ctx.cfg.ignore_sources.contains(&source)))
         {
             pack.push(diags::SkippedPrivateWorkspaceCrate {
                 krate: krate_lic_nfo.krate,
