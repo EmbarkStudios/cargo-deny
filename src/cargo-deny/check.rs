@@ -461,7 +461,7 @@ pub(crate) fn cmd(
 
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
-                        println!("{}", val.to_string());
+                        println!("{}", val);
                     })
                 } else {
                     None
