@@ -1,0 +1,9 @@
+[package]
+name = "shared"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+path = "lib.rs"

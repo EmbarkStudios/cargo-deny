@@ -1,2 +1,3 @@
 [licenses]
-allow = [ "MIT" ]
+allow = ["MIT"]
+private = { ignore = true }
