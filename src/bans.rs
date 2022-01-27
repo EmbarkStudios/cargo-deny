@@ -125,7 +125,7 @@ impl TreeSkipper {
             }
         }
 
-        let skip_hits = bitvec![0; skip_crates.len()];
+        let skip_hits = BitVec::repeat(false, skip_crates.len());
 
         SkipRoot {
             span,
@@ -198,7 +198,7 @@ pub fn check(
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
     // so that people can clean up their config files
-    let mut skip_hit = bitvec![0; skipped.len()];
+    let mut skip_hit: BitVec = BitVec::repeat(false, skipped.len());
 
     struct MultiDetector<'a> {
         name: &'a str,

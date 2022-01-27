@@ -63,7 +63,7 @@ pub fn check<R>(
     let yanked: Result<_, rustsec::Error> = yanked;
 
     use bitvec::prelude::*;
-    let mut ignore_hits = bitvec![0; ctx.cfg.ignore.len()];
+    let mut ignore_hits: BitVec = BitVec::repeat(false, ctx.cfg.ignore.len());
 
     let mut send_diag =
         |pkg: &Package, advisory: &Metadata, versions: Option<&Versions>| match krate_for_pkg(

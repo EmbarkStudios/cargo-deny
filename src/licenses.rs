@@ -31,8 +31,8 @@ pub use cfg::{Config, ValidConfig};
 use bitvec::prelude::*;
 
 struct Hits {
-    allowed: BitVec<LocalBits, usize>,
-    exceptions: BitVec<LocalBits, usize>,
+    allowed: BitVec<usize, LocalBits>,
+    exceptions: BitVec<usize, LocalBits>,
 }
 
 fn evaluate_expression(
@@ -266,8 +266,8 @@ pub fn check(
     mut sink: crate::diag::ErrorSink,
 ) {
     let mut hits = Hits {
-        allowed: bitvec![0; ctx.cfg.allowed.len()],
-        exceptions: bitvec![0; ctx.cfg.exceptions.len()],
+        allowed: BitVec::repeat(false, ctx.cfg.allowed.len()),
+        exceptions: BitVec::repeat(false, ctx.cfg.exceptions.len()),
     };
 
     let private_registries: Vec<_> = ctx
