@@ -315,3 +315,10 @@ pub struct CheckCtx<'ctx, T> {
     /// serialized to the diagnostic
     pub serialize_extra: bool,
 }
+
+/// Checks if a version satisfies the specifies the specified version requirement.
+/// If the requirement is `None` then it is also satisfied.
+#[inline]
+pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
+    req.map_or(true, |req| req.matches(version))
+}

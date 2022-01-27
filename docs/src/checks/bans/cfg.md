@@ -48,7 +48,7 @@ The name of the crate.
 
 #### The `version` field (optional)
 
-An optional version constraint specifying the range of crate versions that will match. Defaults to all versions (`*`).
+An optional version constraint specifying the range of crate versions that will match. Defaults to any version.
 
 #### The `wrappers` field (optional)
 

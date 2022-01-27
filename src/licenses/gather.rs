@@ -18,7 +18,7 @@ fn iter_clarifications<'a>(
 ) -> impl Iterator<Item = &'a ValidClarification> {
     all.iter().filter(move |vc| {
         if vc.name == krate.name {
-            return vc.version.matches(&krate.version);
+            return crate::match_req(&krate.version, vc.version.as_ref());
         }
 
         false
