@@ -25,7 +25,6 @@ version = "0.1.1"
 
 [[licenses.clarify]]
 name = "ring"
-version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 }

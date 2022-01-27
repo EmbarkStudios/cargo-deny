@@ -101,7 +101,7 @@ pub struct FileSource {
 pub struct Clarification {
     /// The name of the crate that this clarification applies to
     pub name: String,
-    /// The optional version constraint for the crate. Defaults to every version
+    /// The optional version constraint for the crate. Defaults to any version.
     pub version: Option<VersionReq>,
     /// The [SPDX expression](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/)
     /// to apply to the crate.
@@ -117,7 +117,7 @@ pub struct Clarification {
 pub struct Exception {
     /// The name of the crate to apply the exception to.
     pub name: Spanned<String>,
-    /// The optional version constraint for the crate. Defaults to every version
+    /// The optional version constraint for the crate. Defaults to any version.
     pub version: Option<VersionReq>,
     /// One or more [SPDX identifiers](https://spdx.org/licenses/) that are
     /// allowed only for this crate.
@@ -239,7 +239,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             exceptions.push(ValidException {
                 name: exc.name,
-                version: exc.version.unwrap_or(VersionReq::STAR),
+                version: exc.version,
                 allowed,
             });
         }
@@ -286,7 +286,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             clarifications.push(ValidClarification {
                 name: c.name,
-                version: c.version.unwrap_or(VersionReq::STAR),
+                version: c.version,
                 expr_offset: (c.expression.span.start + 1),
                 expression: expr,
                 license_files,
@@ -314,7 +314,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ValidClarification {
     pub name: String,
-    pub version: VersionReq,
+    pub version: Option<VersionReq>,
     pub expr_offset: usize,
     pub expression: spdx::Expression,
     pub license_files: Vec<FileSource>,
@@ -324,7 +324,7 @@ pub struct ValidClarification {
 #[derive(Debug, PartialEq)]
 pub struct ValidException {
     pub name: crate::Spanned<String>,
-    pub version: VersionReq,
+    pub version: Option<VersionReq>,
     pub allowed: Vec<Licensee>,
 }
 
@@ -392,7 +392,7 @@ mod test {
             vec![ValidException {
                 name: "adler32".to_owned().fake(),
                 allowed: vec![spdx::Licensee::parse("Zlib").unwrap().fake()],
-                version: semver::VersionReq::parse("0.1.1").unwrap(),
+                version: Some(semver::VersionReq::parse("0.1.1").unwrap()),
             }]
         );
         let p: PathBuf = "LICENSE".into();
@@ -400,13 +400,13 @@ mod test {
             validated.clarifications,
             vec![ValidClarification {
                 name: "ring".to_owned(),
-                version: semver::VersionReq::parse("*").unwrap(),
+                version: None,
                 expression: spdx::Expression::parse("MIT AND ISC AND OpenSSL").unwrap(),
                 license_files: vec![FileSource {
                     path: p.fake(),
                     hash: 0xbd0e_ed23,
                 }],
-                expr_offset: 464,
+                expr_offset: 450,
             }]
         );
     }

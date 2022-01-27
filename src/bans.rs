@@ -15,12 +15,12 @@ use std::fmt;
 #[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
     pub(crate) name: String,
-    pub(crate) version: VersionReq,
+    pub(crate) version: Option<VersionReq>,
 }
 
 impl fmt::Display for KrateId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} = {}", self.name, self.version)
+        write!(f, "{} = {:?}", self.name, self.version)
     }
 }
 
@@ -36,7 +36,9 @@ fn matches<'v>(arr: &'v [cfg::Skrate], details: &Krate) -> Option<Vec<ReqMatch<'
         .iter()
         .enumerate()
         .filter_map(|(index, req)| {
-            if req.value.name == details.name && req.value.version.matches(&details.version) {
+            if req.value.name == details.name
+                && crate::match_req(&details.version, req.value.version.as_ref())
+            {
                 Some(ReqMatch { id: req, index })
             } else {
                 None
@@ -79,7 +81,12 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for krate in krates.search_matches(&ts.value.id.name, ts.value.id.version.clone()) {
+            for krate in krates
+                .krates_by_name(&ts.value.id.name)
+                .filter(|(_index, node)| {
+                    crate::match_req(&node.krate.version, ts.value.id.version.as_ref())
+                })
+            {
                 roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
             }
 

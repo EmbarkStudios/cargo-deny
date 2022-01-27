@@ -79,7 +79,7 @@ fn evaluate_expression(
     // allow list separate from the general allow list
     let eval_res = match cfg.exceptions.iter().position(|exc| {
         exc.name.as_ref() == &krate_lic_nfo.krate.name
-            && exc.version.matches(&krate_lic_nfo.krate.version)
+            && crate::match_req(&krate_lic_nfo.krate.version, exc.version.as_ref())
     }) {
         Some(ind) => {
             let exception = &cfg.exceptions[ind];

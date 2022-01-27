@@ -99,7 +99,7 @@ The name of the crate that you are adding an exception for
 
 #### The `exceptions.version` field (optional)
 
-An optional version constraint specifying the range of crate versions you are excepting. Defaults to all versions (`*`).
+An optional version constraint specifying the range of crate versions you are excepting. Defaults to any version.
 
 #### The `allow` field
 
@@ -174,7 +174,7 @@ The name of the crate that you are clarifying
 
 #### The `version` field (optional)
 
-An optional version constraint specifying the range of crate versions you are clarifying. Defaults to all versions (`*`).
+An optional version constraint specifying the range of crate versions you are clarifying. Defaults to any version.
 
 #### The `expression` field
 

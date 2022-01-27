@@ -13,8 +13,7 @@ pub struct CrateId {
     // The name of the crate
     pub name: String,
     /// The version constraints of the crate
-    #[serde(default = "any")]
-    pub version: VersionReq,
+    pub version: Option<VersionReq>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -22,8 +21,7 @@ pub struct CrateId {
 #[serde(deny_unknown_fields)]
 pub struct CrateBan {
     pub name: Spanned<String>,
-    #[serde(default = "any")]
-    pub version: VersionReq,
+    pub version: Option<VersionReq>,
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
     #[serde(default)]
@@ -37,11 +35,6 @@ pub struct TreeSkip {
     #[serde(flatten)]
     pub id: CrateId,
     pub depth: Option<usize>,
-}
-
-#[inline]
-fn any() -> VersionReq {
-    VersionReq::STAR
 }
 
 const fn highlight() -> GraphHighlight {
@@ -227,14 +220,14 @@ mod test {
         ($name:expr) => {
             KrateId {
                 name: String::from($name),
-                version: semver::VersionReq::STAR.into(),
+                version: None,
             }
         };
 
         ($name:expr, $vs:expr) => {
             KrateId {
                 name: String::from($name),
-                version: $vs.parse::<semver::VersionReq>().unwrap().into(),
+                version: Some($vs.parse::<semver::VersionReq>().unwrap().into()),
             }
         };
     }
@@ -280,7 +273,7 @@ mod test {
             vec![TreeSkip {
                 id: CrateId {
                     name: "blah".to_owned(),
-                    version: semver::VersionReq::STAR,
+                    version: None,
                 },
                 depth: Some(20),
             }]
