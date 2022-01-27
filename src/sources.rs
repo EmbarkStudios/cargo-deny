@@ -22,8 +22,8 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
 
     // keep track of which sources are actually encountered, so we can emit a
     // warning if the user has listed a source that no crates are actually using
-    let mut source_hits = bitvec![0; ctx.cfg.allowed_sources.len()];
-    let mut org_hits = bitvec![0; ctx.cfg.allowed_orgs.len()];
+    let mut source_hits: BitVec = BitVec::repeat(false, ctx.cfg.allowed_sources.len());
+    let mut org_hits: BitVec = BitVec::repeat(false, ctx.cfg.allowed_orgs.len());
 
     let min_git_spec = ctx.cfg.required_git_spec.as_ref().map(|rgs| {
         (
