@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.11.1] - 2022-01-28
 ### Added
 - [PR#391](https://github.com/EmbarkStudios/cargo-deny/pull/391) resolved [#344](https://github.com/EmbarkStudios/cargo-deny/issues/344) by adding `[licenses.ignore-sources]` to ignore license checking for crates sourced from 1 or more specified registries. Thanks [@ShellWowza](https://github.com/ShellWowza)!
 - [PR#396](https://github.com/EmbarkStudios/cargo-deny/pull/396) resolved [#366](https://github.com/EmbarkStudios/cargo-deny/issues/366) by also looking for `.deny.toml` in addition to `deny.toml` if a config file is not specified.
@@ -318,7 +319,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.1...HEAD
+[0.11.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.1...0.10.2
