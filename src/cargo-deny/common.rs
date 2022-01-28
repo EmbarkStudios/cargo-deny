@@ -76,7 +76,14 @@ impl KrateContext {
                 let mut p = self.manifest_path.parent();
 
                 while let Some(parent) = p {
-                    let config_path = parent.join("deny.toml");
+                    let mut config_path = parent.join("deny.toml");
+
+                    if config_path.exists() {
+                        return Some(config_path);
+                    }
+
+                    config_path.pop();
+                    config_path.push(".deny.toml");
 
                     if config_path.exists() {
                         return Some(config_path);
