@@ -234,6 +234,17 @@ publish = ["sauce"]
 private = { ignore = true, registries = ["sauce"] }
 ```
 
+### The `ignore-sources` field
+
+A list of registries that crates can be sourced from that will not have their licenses checked.
+
+```ini
+# deny.toml
+[licenses.private]
+ignore = true
+ignore-sources = ["https://sekretz.com/super/secret-index"]
+```
+
 [SPDX-expr]: https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60
 
 ### The `unused-allowed-license` field (optional)

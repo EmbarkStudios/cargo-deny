@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#391](https://github.com/EmbarkStudios/cargo-deny/pull/391) resolved [#344](https://github.com/EmbarkStudios/cargo-deny/issues/344) by adding `[licenses.ignore-sources]` to ignore license checking for crates sourced from 1 or more specified registries. Thanks [@ShellWowza](https://github.com/ShellWowza)!
+- [PR#396](https://github.com/EmbarkStudios/cargo-deny/pull/396) resolved [#366](https://github.com/EmbarkStudios/cargo-deny/issues/366) by also looking for `.deny.toml` in addition to `deny.toml` if a config file is not specified.
+
+### Changed
+- [PR#392](https://github.com/EmbarkStudios/cargo-deny/pull/392) updated all dependencies.
+
+### Fixed
+- [PR#393](https://github.com/EmbarkStudios/cargo-deny/pull/393) resolved [#371](https://github.com/EmbarkStudios/cargo-deny/issues/371) by changing the default for version requirements specified in config files to accept all versions, rather than using the almost-but-not-quite default of `*`.
+- [PR#394](https://github.com/EmbarkStudios/cargo-deny/pull/394) resolved [#147](https://github.com/EmbarkStudios/cargo-deny/issues/147) by ignore _all_ private crates, not only the ones in the workspace.
+- [PR#395](https://github.com/EmbarkStudios/cargo-deny/pull/395) resolved [#375](https://github.com/EmbarkStudios/cargo-deny/issues/375) by fixing a potential infinite loop when using `[bans.skip-tree]`.
+
 ## [0.11.0] - 2021-12-06
 ### Changed
 - [PR#382](https://github.com/EmbarkStudios/cargo-deny/pull/382) updated dependencies and bumped the Minimum Stable Rust Version to **1.56.1**.
