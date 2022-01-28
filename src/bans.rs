@@ -120,15 +120,15 @@ impl TreeSkipper {
 
         let mut pending = vec![(krate_id, 1)];
         while let Some((node_id, depth)) = pending.pop() {
-            if depth < max_depth {
-                for dep in graph.edges_directed(node_id, Direction::Outgoing) {
-                    pending.push((dep.target(), depth + 1));
-                }
-            }
-
             let pkg_id = &krates[node_id].id;
             if let Err(i) = skip_crates.binary_search(pkg_id) {
                 skip_crates.insert(i, pkg_id.clone());
+
+                if depth < max_depth {
+                    for dep in graph.edges_directed(node_id, Direction::Outgoing) {
+                        pending.push((dep.target(), depth + 1));
+                    }
+                }
             }
         }
 
