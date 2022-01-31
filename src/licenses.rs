@@ -53,7 +53,6 @@ fn evaluate_expression(
         ExplicitAllowance,
         ExplicitException,
         IsCopyleft,
-        NotExplicitlyAllowed,
         Default,
     }
 
@@ -75,119 +74,116 @@ fn evaluate_expression(
 
     let mut warnings = 0;
 
-    // Check to see if the crate matches an exception, which has its own
-    // allow list separate from the general allow list
-    let eval_res = match cfg.exceptions.iter().position(|exc| {
+    // Check to see if the crate matches an exception, which is additional to
+    // the general allow list
+    let exception_ind = cfg.exceptions.iter().position(|exc| {
         exc.name.as_ref() == &krate_lic_nfo.krate.name
             && crate::match_req(&krate_lic_nfo.krate.version, exc.version.as_ref())
-    }) {
-        Some(ind) => {
-            let exception = &cfg.exceptions[ind];
+    });
 
-            // Note that hit the exception
-            hits.exceptions.as_mut_bitslice().set(ind, true);
-
-            expr.evaluate_with_failures(|req| {
-                for allow in &exception.allowed {
-                    if allow.value.satisfies(req) {
-                        allow!(ExplicitException);
-                    }
-                }
-
-                deny!(NotExplicitlyAllowed);
-            })
+    let eval_res = expr.evaluate_with_failures(|req| {
+        // 1. Licenses explicitly denied are of course hard failures,
+        // but failing one license in an expression is not necessarily
+        // going to actually ban the crate, for example, the canonical
+        // "Apache-2.0 OR MIT" used in by a lot crates means that
+        // banning Apache-2.0, but allowing MIT, will allow the crate
+        // to be used as you are upholding at least one license requirement
+        for deny in &cfg.denied {
+            if deny.value.satisfies(req) {
+                deny!(Denied);
+            }
         }
-        None => expr.evaluate_with_failures(|req| {
-            // 1. Licenses explicitly denied are of course hard failures,
-            // but failing one license in an expression is not necessarily
-            // going to actually ban the crate, for example, the canonical
-            // "Apache-2.0 OR MIT" used in by a lot crates means that
-            // banning Apache-2.0, but allowing MIT, will allow the crate
-            // to be used as you are upholding at least one license requirement
-            for deny in &cfg.denied {
-                if deny.value.satisfies(req) {
-                    deny!(Denied);
-                }
-            }
 
-            // 2. A license that is specifically allowed will of course mean
-            // that the requirement is met.
-            for (i, allow) in cfg.allowed.iter().enumerate() {
+        // 2. A license that is specifically allowed will of course mean
+        // that the requirement is met.
+        for (i, allow) in cfg.allowed.iter().enumerate() {
+            if allow.value.satisfies(req) {
+                hits.allowed.as_mut_bitslice().set(i, true);
+                allow!(ExplicitAllowance);
+            }
+        }
+
+        // 3. Exceptions are additional per-crate licenses that aren't blanket
+        // allowed by all crates
+        if let Some(ind) = exception_ind {
+            let exception = &cfg.exceptions[ind];
+            for allow in &exception.allowed {
                 if allow.value.satisfies(req) {
-                    hits.allowed.as_mut_bitslice().set(i, true);
-                    allow!(ExplicitAllowance);
+                    // Note that hit the exception
+                    hits.exceptions.as_mut_bitslice().set(ind, true);
+                    allow!(ExplicitException);
+                }
+            }
+        }
+
+        // 4. If the license isn't explicitly allowed, it still may
+        // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
+        // allowances
+        if let spdx::LicenseItem::Spdx { id, .. } = req.license {
+            if id.is_copyleft() {
+                match cfg.copyleft {
+                    LintLevel::Allow => {
+                        allow!(IsCopyleft);
+                    }
+                    LintLevel::Warn => {
+                        warnings += 1;
+                        allow!(IsCopyleft);
+                    }
+                    LintLevel::Deny => {
+                        deny!(IsCopyleft);
+                    }
                 }
             }
 
-            // 3. If the license isn't explicitly allowed, it still may
-            // be allowed by the blanket "OSI Approved" or "FSF Free/Libre"
-            // allowances
-            if let spdx::LicenseItem::Spdx { id, .. } = req.license {
-                if id.is_copyleft() {
-                    match cfg.copyleft {
-                        LintLevel::Allow => {
-                            allow!(IsCopyleft);
-                        }
-                        LintLevel::Warn => {
-                            warnings += 1;
-                            allow!(IsCopyleft);
-                        }
-                        LintLevel::Deny => {
-                            deny!(IsCopyleft);
+            match cfg.allow_osi_fsf_free {
+                BlanketAgreement::Neither => {}
+                BlanketAgreement::Either => {
+                    if id.is_osi_approved() {
+                        allow!(IsOsiApproved);
+                    } else if id.is_fsf_free_libre() {
+                        allow!(IsFsfFree);
+                    }
+                }
+                BlanketAgreement::Both => {
+                    if id.is_fsf_free_libre() && id.is_osi_approved() {
+                        allow!(IsBothFreeAndOsi);
+                    }
+                }
+                BlanketAgreement::OsiOnly => {
+                    if id.is_osi_approved() {
+                        if id.is_fsf_free_libre() {
+                            deny!(IsFsfFree);
+                        } else {
+                            allow!(IsOsiApproved);
                         }
                     }
                 }
-
-                match cfg.allow_osi_fsf_free {
-                    BlanketAgreement::Neither => {}
-                    BlanketAgreement::Either => {
+                BlanketAgreement::FsfOnly => {
+                    if id.is_fsf_free_libre() {
                         if id.is_osi_approved() {
-                            allow!(IsOsiApproved);
-                        } else if id.is_fsf_free_libre() {
+                            deny!(IsOsiApproved);
+                        } else {
                             allow!(IsFsfFree);
                         }
                     }
-                    BlanketAgreement::Both => {
-                        if id.is_fsf_free_libre() && id.is_osi_approved() {
-                            allow!(IsBothFreeAndOsi);
-                        }
-                    }
-                    BlanketAgreement::OsiOnly => {
-                        if id.is_osi_approved() {
-                            if id.is_fsf_free_libre() {
-                                deny!(IsFsfFree);
-                            } else {
-                                allow!(IsOsiApproved);
-                            }
-                        }
-                    }
-                    BlanketAgreement::FsfOnly => {
-                        if id.is_fsf_free_libre() {
-                            if id.is_osi_approved() {
-                                deny!(IsOsiApproved);
-                            } else {
-                                allow!(IsFsfFree);
-                            }
-                        }
-                    }
                 }
             }
+        }
 
-            // 4. Whelp, this license just won't do!
-            match cfg.default {
-                LintLevel::Deny => {
-                    deny!(Default);
-                }
-                LintLevel::Warn => {
-                    warnings += 1;
-                    allow!(Default);
-                }
-                LintLevel::Allow => {
-                    allow!(Default);
-                }
+        // 5. Whelp, this license just won't do!
+        match cfg.default {
+            LintLevel::Deny => {
+                deny!(Default);
             }
-        }),
-    };
+            LintLevel::Warn => {
+                warnings += 1;
+                allow!(Default);
+            }
+            LintLevel::Allow => {
+                allow!(Default);
+            }
+        }
+    });
 
     let (message, severity) = match eval_res {
         Err(_) => ("failed to satisfy license requirements", Severity::Error),
@@ -229,7 +225,6 @@ fn evaluate_expression(
                 if reason.1 { "accepted" } else { "rejected" },
                 match reason.0 {
                     Reason::Denied => "explicitly denied",
-                    Reason::NotExplicitlyAllowed => "not explicitly allowed",
                     Reason::IsFsfFree =>
                         "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
                     Reason::IsOsiApproved =>

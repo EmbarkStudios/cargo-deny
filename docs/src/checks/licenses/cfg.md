@@ -91,7 +91,7 @@ allow = [ "GFDL-1.1", "GFDL-1.2", "GFDL-1.3", "GFDL-1.3-variants"]
 
 ### The `exceptions` field (optional)
 
-The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.
+The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow additional licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.
 
 #### The `exceptions.name` field
 
