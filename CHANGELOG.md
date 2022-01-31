@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#397](https://github.com/EmbarkStudios/cargo-deny/pull/397) resolved [#135](https://github.com/EmbarkStudios/cargo-deny/issues/135) by making [`licenses.exceptions`] additive to the global allow list. Thanks [@senden9](https://github.com/senden9)!
+
 ## [0.11.1] - 2022-01-28
 ### Added
 - [PR#391](https://github.com/EmbarkStudios/cargo-deny/pull/391) resolved [#344](https://github.com/EmbarkStudios/cargo-deny/issues/344) by adding `[licenses.ignore-sources]` to ignore license checking for crates sourced from 1 or more specified registries. Thanks [@ShellWowza](https://github.com/ShellWowza)!
@@ -161,7 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated crates.
-- Updated `cfg-expr`, which should allow for filtering of crates for *most* custom targets that aren't built-in to rustc.
+- Updated `cfg-expr`, which should allow for filtering of crates for _most_ custom targets that aren't built-in to rustc.
 
 ## [0.6.7] - 2020-05-01
 ### Fixed
