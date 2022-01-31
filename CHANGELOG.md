@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Fixed
-- [PR#397](https://github.com/EmbarkStudios/cargo-deny/pull/397) resolved [#135](https://github.com/EmbarkStudios/cargo-deny/issues/135) by making [`licenses.exceptions`] additive to the global allow list. Thanks [@senden9](https://github.com/senden9)!
+- [PR#398](https://github.com/EmbarkStudios/cargo-deny/pull/398) resolved [#135](https://github.com/EmbarkStudios/cargo-deny/issues/135) by making [`licenses.exceptions`] additive to the global allow list. Thanks [@senden9](https://github.com/senden9)!
 
 ## [0.11.1] - 2022-01-28
 ### Added
