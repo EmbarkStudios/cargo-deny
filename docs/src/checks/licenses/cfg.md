@@ -121,7 +121,7 @@ exceptions = [
 
 ### The `copyleft` field (optional)
 
-Determines what happens when a license that is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft) is encountered.
+Determines what happens when a license that is considered [copyleft](https://www.gnu.org/licenses/license-list.html) is encountered.
 
 * `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
 * `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true
