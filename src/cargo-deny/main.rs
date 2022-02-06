@@ -242,7 +242,7 @@ Possible values:
     /// Specify the format of cargo-deny's output
     #[structopt(short, long, default_value = "human", possible_values = Format::variants())]
     format: Format,
-    #[structopt(short, long, default_value = "auto", possible_values = Color::variants())]
+    #[structopt(short, long, default_value = "auto", possible_values = Color::variants(), env = "CARGO_TERM_COLOR")]
     color: Color,
     #[structopt(flatten)]
     ctx: GraphContext,
