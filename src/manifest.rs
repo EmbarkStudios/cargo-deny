@@ -116,7 +116,7 @@ impl Manifest {
             }
         }
 
-        descend(&mut self.doc.root, table_path)
+        descend(self.doc.as_item_mut(), table_path)
     }
 
     pub fn update_table_named_entry(
