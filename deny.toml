@@ -13,11 +13,7 @@ vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
-ignore = [
-    # time/chrono problems, have not been a problem in practice
-    "RUSTSEC-2020-0159",
-    "RUSTSEC-2020-0071",
-]
+ignore = []
 
 [bans]
 multiple-versions = "deny"

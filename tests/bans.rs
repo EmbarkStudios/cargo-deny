@@ -48,9 +48,9 @@ wrappers = ["safe-wrapper"]
         "banned crate 'dangerous-dep = 0.1.0' allowed by wrapper 'safe-wrapper = 0.1.0'"
     );
     assert_field_eq!(diag, "/fields/labels/0/message", "banned here");
-    assert_field_eq!(diag, "/fields/labels/0/span", "\"dangerous-dep\"");
+    assert_field_eq!(diag, "/fields/labels/0/span", "dangerous-dep");
     assert_field_eq!(diag, "/fields/labels/1/message", "allowed wrapper");
-    assert_field_eq!(diag, "/fields/labels/1/span", "\"safe-wrapper\"");
+    assert_field_eq!(diag, "/fields/labels/1/span", "safe-wrapper");
 }
 
 #[test]
@@ -82,7 +82,7 @@ name = "dangerous-dep"
         "crate 'dangerous-dep = 0.1.0' is explicitly banned"
     );
     assert_field_eq!(diag, "/fields/labels/0/message", "banned here");
-    assert_field_eq!(diag, "/fields/labels/0/span", "\"dangerous-dep\"");
+    assert_field_eq!(diag, "/fields/labels/0/span", "dangerous-dep");
 }
 
 #[test]
