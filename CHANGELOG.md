@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.11.2] - 2022-02-07
 ### Changed
 - [PR#403](https://github.com/EmbarkStudios/cargo-deny/pull/403) added support for the [`CARGO_TERM_COLOR`](https://doc.rust-lang.org/cargo/reference/config.html#termcolor) environment variable. Thanks [@svenstaro](https://github.com/svenstaro)!
 - [PR#404](https://github.com/EmbarkStudios/cargo-deny/pull/404) updated dependencies.
@@ -328,7 +329,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.2...HEAD
+[0.11.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.1...0.11.2
 [0.11.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.10.2...0.10.3
