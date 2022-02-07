@@ -302,9 +302,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edae0b9625d1fce32f7d64b71784d9b1bf8469ec1a9c417e44aaf16a9cbd7571"
+checksum = "295b6eb918a60a25fec0b23a5e633e74fddbaf7bb04411e65a10c366aca4b5cd"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -485,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.6"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97242a70df9b89a65d0b6df3c4bf5b9ce03c5b7309019777fbde37e7537f8762"
+checksum = "c00d6d2ea26e8b151d99093005cb442fb9a37aeaca582a03ec70946f49ab5ed9"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -498,9 +498,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-queue"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b979d76c9fcb84dffc80a73f7290da0f83e4c95773494674cb44b76d13a7a110"
+checksum = "4dd435b205a4842da59efd07628f921c096bc1cc0a156835b4fa0bcb9a19bcce"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -508,9 +508,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.6"
+version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfcae03edb34f947e64acdb1c33ec169824e20657e9ecb61cef6c8c74dcb8120"
+checksum = "b5e5bed1f1c269533fa816a0a5492b3545209a205ca1a54842be180eb63a16a6"
 dependencies = [
  "cfg-if",
  "lazy_static",
@@ -887,9 +887,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8549dc44b3c544e5326df8e032191977519cbec37a2de2650d14024bcf2ee70a"
+checksum = "44e5f5e84e0e156e16781f28d5af802adbc78a45cfba8cce54f1e21d273c2af9"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",
@@ -920,9 +920,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.115"
+version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a8d982fa7a96a000f6ec4cfe966de9703eccde29750df2bb8949da91b0e818d"
+checksum = "e74d72e0f9b65b5b4ca49a346af3976df0f9c61d550727f349ecd559f251a26c"
 
 [[package]]
 name = "libgit2-sys"
@@ -1113,9 +1113,9 @@ dependencies = [
 
 [[package]]
 name = "os_info"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "198e392be7e882f0c2836f425e430f81d9a0e99651e4646311347417cddbfd43"
+checksum = "023df84d545ef479cf67fd2f4459a613585c9db4852c2fad12ab70587859d340"
 dependencies = [
  "log",
  "serde",
@@ -1376,9 +1376,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "semver"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
+checksum = "0486718e92ec9a68fbed73bb5ef687d71103b142595b406835649bebd33f72c7"
 dependencies = [
  "serde",
 ]
@@ -1473,9 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "spdx"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31283ed7fe3bca10f3e5ec2fe2787f16764a4275949606fd48d4fc919a760e3"
+checksum = "78bce5b26be49ead8eac0bbdec432b2c52ccfbfeff1ab814fc78bf53e003422e"
 dependencies = [
  "smallvec",
 ]
@@ -1554,9 +1554,9 @@ dependencies = [
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9bffcddbc2458fa3e6058414599e3c838a022abae82e5c67b4f7f80298d5bff"
+checksum = "d7fa7e55043acb85fca6b3c01485a2eeb6b69c5d21002e273c79e465f43b7ac1"
 
 [[package]]
 name = "tempfile"
@@ -1656,9 +1656,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.6.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b46c9238346fec3169f99251eda26e918ab71cdf382a660e46076ff1b1b16729"
+checksum = "744e9ed5b352340aa47ce033716991b5589e23781acb97cad37d4ea70560f55b"
 dependencies = [
  "combine",
  "indexmap",
@@ -1699,9 +1699,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8895849a949e7845e06bd6dc1aa51731a103c42707010a5b591c0038fb73385b"
+checksum = "7e8820f5d777f6224dc4be3632222971ac30164d4a258d595640799554ebfd99"
 
 [[package]]
 name = "unicode-width"

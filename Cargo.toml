@@ -63,7 +63,7 @@ git2 = "0.13"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.9", features = ["targets"] }
+krates = { version = "0.10", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Used when parsing binary files in registry index caches
@@ -86,7 +86,7 @@ structopt = "0.3"
 # Deserialization of configuration files and crate manifests
 toml = "0.5"
 # Used by fix to modify crate manifests
-toml_edit = "0.6"
+toml_edit = "0.13"
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
