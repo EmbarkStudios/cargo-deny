@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#403](https://github.com/EmbarkStudios/cargo-deny/pull/403) added support for the [`CARGO_TERM_COLOR`](https://doc.rust-lang.org/cargo/reference/config.html#termcolor) environment variable. Thanks [@svenstaro](https://github.com/svenstaro)!
+- [PR#404](https://github.com/EmbarkStudios/cargo-deny/pull/404) updated dependencies.
+
 ### Fixed
 - [PR#398](https://github.com/EmbarkStudios/cargo-deny/pull/398) resolved [#135](https://github.com/EmbarkStudios/cargo-deny/issues/135) by making [`licenses.exceptions`] additive to the global allow list. Thanks [@senden9](https://github.com/senden9)!
+- [PR#404](https://github.com/EmbarkStudios/cargo-deny/pull/404) resolved [#401](https://github.com/EmbarkStudios/cargo-deny/issues/401) by trimming quotes from spans before serializing them as JSON.
+- [PR#404](https://github.com/EmbarkStudios/cargo-deny/pull/404) resolved [#402](https://github.com/EmbarkStudios/cargo-deny/issues/402) by updating crossbeam-utils to a non-yanked version.
 
 ## [0.11.1] - 2022-01-28
 ### Added
