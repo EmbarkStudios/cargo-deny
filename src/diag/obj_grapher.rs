@@ -147,7 +147,7 @@ pub fn cs_diag_to_json(diag: CsDiag, files: &Files) -> serde_json::Value {
                     .unwrap();
                 labels.push(serde_json::json!({
                     "message": label.message,
-                    "span": &files.source(label.file_id)[label.range],
+                    "span": files.source(label.file_id)[label.range].trim_matches('"'),
                     "line": location.line.to_usize() + 1,
                     "column": location.column.to_usize() + 1,
                 }));
