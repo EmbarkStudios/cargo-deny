@@ -258,15 +258,20 @@ fn setup_logger(
     use ansi_term::Color::{Blue, Green, Purple, Red, Yellow};
     use log::Level::{Debug, Error, Info, Trace, Warn};
 
+    let now = time::OffsetDateTime::now_utc();
+
     match format {
         Format::Human => {
+            const HUMAN: &[time::format_description::FormatItem<'static>] =
+                time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+
             if color {
                 fern::Dispatch::new()
                     .level(level)
                     .format(move |out, message, record| {
                         out.finish(format_args!(
                             "{date} [{level}] {message}\x1B[0m",
-                            date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                            date = now.format(&HUMAN).unwrap(),
                             level = match record.level() {
                                 Error => Red.paint("ERROR"),
                                 Warn => Yellow.paint("WARN"),
@@ -285,7 +290,7 @@ fn setup_logger(
                     .format(move |out, message, record| {
                         out.finish(format_args!(
                             "{date} [{level}] {message}",
-                            date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                            date = now.format(&HUMAN).unwrap(),
                             level = match record.level() {
                                 Error => "ERROR",
                                 Warn => "WARN",
@@ -309,7 +314,7 @@ fn setup_logger(
                         serde_json::json! {{
                             "type": "log",
                             "fields": {
-                                "timestamp": chrono::Utc::now().to_rfc3339(),
+                                "timestamp": now.format(&time::format_description::well_known::Rfc3339).unwrap(),
                                 "level": match record.level() {
                                     Error => "ERROR",
                                     Warn => "WARN",

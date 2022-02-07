@@ -46,8 +46,6 @@ atty = "0.2"
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 cargo = { version = "0.59", optional = true }
-# Timey wimey stuff
-chrono = "0.4"
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
@@ -83,6 +81,11 @@ smallvec = "1.6"
 spdx = "0.8"
 # Handles all of the argument parsing
 structopt = "0.3"
+# Timestamp emission
+time = { version = "0.3", default-features = false, features = [
+  "formatting",
+  "macros",
+] }
 # Deserialization of configuration files and crate manifests
 toml = "0.5"
 # Used by fix to modify crate manifests
