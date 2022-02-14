@@ -82,7 +82,21 @@ fn evaluate_expression(
     });
 
     let eval_res = expr.evaluate_with_failures(|req| {
-        // 1. Licenses explicitly denied are of course hard failures,
+        // 1. Exceptions are additional per-crate licenses that aren't blanket
+        // allowed by all crates, note that we check these before denials so you
+        // can allow an exception
+        if let Some(ind) = exception_ind {
+            let exception = &cfg.exceptions[ind];
+            for allow in &exception.allowed {
+                if allow.value.satisfies(req) {
+                    // Note that hit the exception
+                    hits.exceptions.as_mut_bitslice().set(ind, true);
+                    allow!(ExplicitException);
+                }
+            }
+        }
+
+        // 2. Licenses explicitly denied are of course hard failures,
         // but failing one license in an expression is not necessarily
         // going to actually ban the crate, for example, the canonical
         // "Apache-2.0 OR MIT" used in by a lot crates means that
@@ -94,25 +108,12 @@ fn evaluate_expression(
             }
         }
 
-        // 2. A license that is specifically allowed will of course mean
+        // 3. A license that is specifically allowed will of course mean
         // that the requirement is met.
         for (i, allow) in cfg.allowed.iter().enumerate() {
             if allow.value.satisfies(req) {
                 hits.allowed.as_mut_bitslice().set(i, true);
                 allow!(ExplicitAllowance);
-            }
-        }
-
-        // 3. Exceptions are additional per-crate licenses that aren't blanket
-        // allowed by all crates
-        if let Some(ind) = exception_ind {
-            let exception = &cfg.exceptions[ind];
-            for allow in &exception.allowed {
-                if allow.value.satisfies(req) {
-                    // Note that hit the exception
-                    hits.exceptions.as_mut_bitslice().set(ind, true);
-                    allow!(ExplicitException);
-                }
             }
         }
 
