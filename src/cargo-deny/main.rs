@@ -9,8 +9,6 @@
     clippy::checked_conversions,
     clippy::dbg_macro,
     clippy::debug_assert_with_mut_call,
-    clippy::disallowed_method,
-    clippy::disallowed_type,
     clippy::doc_markdown,
     clippy::empty_enum,
     clippy::enum_glob_use,
