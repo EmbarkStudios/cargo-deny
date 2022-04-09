@@ -154,7 +154,12 @@ impl KrateSpans {
         let mut spans = Vec::with_capacity(krates.len());
         let mut cargo_spans = RawCargoSpans::new();
 
-        for krate in krates.krates().map(|kn| &kn.krate) {
+        let mut krates: Vec<_> = krates.krates().map(|kn| &kn.krate).collect();
+        // [Krates::krates] guarantees the krates to be ordered by name but we
+        // want the outputs of diagnostics to also be stable in regards to
+        // their version, so we do an additional sort for that here.
+        krates.sort_unstable_by_key(|a| (&a.name, &a.version));
+        for krate in krates {
             let span_start = sl.len();
             match &krate.source {
                 Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src)
