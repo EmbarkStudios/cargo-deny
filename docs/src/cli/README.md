@@ -6,12 +6,12 @@ cargo-deny can be used either as a command line tool or as a [Rust crate](https:
 
 Precompiled binaries are provided for major platforms on a best-effort basis. Visit [the releases page](https://github.com/EmbarkStudios/cargo-deny/releases) to download the appropriate version for your platform.
 
-## Install from AUR
+## Installation on Arch Linux
 
-A community maintained Arch package is available on [AUR](https://aur.archlinux.org/packages/cargo-deny/), you can install it via
+cargo-deny is available in the Arch Linux [community repository](https://archlinux.org/packages/community/x86_64/cargo-deny/), you can install it via [pacman](https://wiki.archlinux.org/title/Pacman) as shown below:
 
 ```bash
-yay -S cargo-deny
+pacman -S cargo-deny
 ```
 
 ## Install From Source
