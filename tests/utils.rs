@@ -62,7 +62,7 @@ pub fn gather_diagnostics<
         .iter()
         .any(|d| d.severity >= cargo_deny::diag::Severity::Error)
     {
-        anyhow::anyhow!("encountered errors validating config: {:#?}", cfg_diags);
+        anyhow::bail!("encountered errors validating config: {:#?}", cfg_diags);
     }
 
     let (tx, rx) = crossbeam::channel::unbounded();

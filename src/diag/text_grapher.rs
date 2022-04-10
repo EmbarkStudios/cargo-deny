@@ -41,6 +41,7 @@ impl<'a> TextGrapher<'a> {
         Ok(out)
     }
 
+    #[allow(clippy::ptr_arg)]
     fn write_parent(
         &self,
         np: NodePrint<'a>,
