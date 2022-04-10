@@ -1,12 +1,7 @@
 const REPOS: &[&str] = &[
-    //"git://github.com/EmbarkStudios/ash-molten.git",
-    "git://github.com/EmbarkStudios/cargo-about.git",
-    //"git://github.com/EmbarkStudios/cargo-fetcher.git",
-    "git://github.com/bitshifter/glam-rs.git",
-    "git://github.com/EmbarkStudios/physx-rs.git",
-    //"git://github.com/EmbarkStudios/tame-gcs.git",
-    //"git://github.com/EmbarkStudios/tame-oauth.git",
-    //"git://github.com/EmbarkStudios/texture-synthesis.git",
+    "https://github.com/EmbarkStudios/cargo-about",
+    "https://github.com/bitshifter/glam-rs",
+    "https://github.com/EmbarkStudios/physx-rs",
 ];
 
 fn main() {
