@@ -19,10 +19,8 @@ ignore = []
 multiple-versions = "deny"
 deny = []
 skip = [
-    # cargo-util depends on 2 version one of which is outdated via crypto-hash
+    # cargo dependes on two versions
     { name = "hex", version = "=0.3.2" },
-    # cargo depends on im-rc which uses an older version
-    { name = "rand_core", version = "=0.5.1" },
 ]
 
 [sources]
