@@ -40,7 +40,7 @@ This can be useful in Docker Images.
 cargo install --locked cargo-deny
 
 # Or, if you're an Arch user
-yay -S cargo-deny
+pacman -S cargo-deny
 ```
 
 ### [Initialize](https://embarkstudios.github.io/cargo-deny/cli/init.html) your project
