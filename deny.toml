@@ -18,12 +18,7 @@ ignore = []
 [bans]
 multiple-versions = "deny"
 deny = []
-skip = [
-    # cargo-util depends on 2 version one of which is outdated via crypto-hash
-    { name = "hex", version = "=0.3.2" },
-    # cargo depends on im-rc which uses an older version
-    { name = "rand_core", version = "=0.5.1" },
-]
+skip = []
 
 [sources]
 unknown-registry = "deny"
