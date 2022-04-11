@@ -217,6 +217,81 @@ pub fn check(
         dupes: smallvec::SmallVec::new(),
     };
 
+    let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
+        if multi_detector.dupes.len() <= 1 || multiple_versions == LintLevel::Allow {
+            return;
+        }
+
+        let severity = match multiple_versions {
+            LintLevel::Warn => Severity::Warning,
+            LintLevel::Deny => Severity::Error,
+            LintLevel::Allow => unreachable!(),
+        };
+
+        let mut all_start = std::usize::MAX;
+        let mut all_end = 0;
+
+        let mut kids = smallvec::SmallVec::<[Kid; 2]>::new();
+
+        #[allow(clippy::needless_range_loop)]
+        for dup in multi_detector.dupes.iter().cloned() {
+            let span = &ctx.krate_spans[dup];
+
+            if span.start < all_start {
+                all_start = span.start;
+            }
+
+            if span.end > all_end {
+                all_end = span.end;
+            }
+
+            let krate = &ctx.krates[dup];
+
+            kids.push(krate.id.clone());
+        }
+
+        {
+            let mut diag: Diag = diags::Duplicates {
+                krate_name: multi_detector.name,
+                num_dupes: kids.len(),
+                krates_coord: KrateCoord {
+                    file: krate_spans.file_id,
+                    span: all_start..all_end,
+                },
+                severity,
+            }
+            .into();
+
+            diag.kids = kids;
+
+            let mut pack = Pack::new(Check::Bans);
+            pack.push(diag);
+
+            sink.push(pack);
+        }
+
+        if let Some(ref og) = output_graph {
+            match graph::create_graph(
+                multi_detector.name,
+                highlight,
+                ctx.krates,
+                &multi_detector.dupes,
+            ) {
+                Ok(graph) => {
+                    if let Err(e) = og(DupGraph {
+                        duplicate: multi_detector.name.to_owned(),
+                        graph,
+                    }) {
+                        log::error!("{}", e);
+                    }
+                }
+                Err(e) => {
+                    log::error!("unable to create graph for {}: {}", multi_detector.name, e);
+                }
+            };
+        }
+    };
+
     for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
@@ -320,80 +395,7 @@ pub fn check(
             }
         } else if !tree_skipper.matches(krate, &mut pack) {
             if multi_detector.name != krate.name {
-                if multi_detector.dupes.len() > 1 && multiple_versions != LintLevel::Allow {
-                    let severity = match multiple_versions {
-                        LintLevel::Warn => Severity::Warning,
-                        LintLevel::Deny => Severity::Error,
-                        LintLevel::Allow => unreachable!(),
-                    };
-
-                    let mut all_start = std::usize::MAX;
-                    let mut all_end = 0;
-
-                    let mut kids = smallvec::SmallVec::<[Kid; 2]>::new();
-
-                    #[allow(clippy::needless_range_loop)]
-                    for dup in multi_detector.dupes.iter().cloned() {
-                        let span = &ctx.krate_spans[dup];
-
-                        if span.start < all_start {
-                            all_start = span.start;
-                        }
-
-                        if span.end > all_end {
-                            all_end = span.end;
-                        }
-
-                        let krate = &ctx.krates[dup];
-
-                        kids.push(krate.id.clone());
-                    }
-
-                    {
-                        let mut diag: Diag = diags::Duplicates {
-                            krate_name: multi_detector.name,
-                            num_dupes: kids.len(),
-                            krates_coord: KrateCoord {
-                                file: krate_spans.file_id,
-                                span: all_start..all_end,
-                            },
-                            severity,
-                        }
-                        .into();
-
-                        diag.kids = kids;
-
-                        let mut pack = Pack::new(Check::Bans);
-                        pack.push(diag);
-
-                        sink.push(pack);
-                    }
-
-                    if let Some(ref og) = output_graph {
-                        match graph::create_graph(
-                            multi_detector.name,
-                            highlight,
-                            ctx.krates,
-                            &multi_detector.dupes,
-                        ) {
-                            Ok(graph) => {
-                                if let Err(e) = og(DupGraph {
-                                    duplicate: multi_detector.name.to_owned(),
-                                    graph,
-                                }) {
-                                    log::error!("{}", e);
-                                }
-                            }
-                            Err(e) => {
-                                log::error!(
-                                    "unable to create graph for {}: {}",
-                                    multi_detector.name,
-                                    e
-                                );
-                            }
-                        };
-                    }
-                }
+                report_duplicates(&multi_detector, &mut sink);
 
                 multi_detector.name = &krate.name;
                 multi_detector.dupes.clear();
@@ -429,6 +431,8 @@ pub fn check(
             sink.push(pack);
         }
     }
+
+    report_duplicates(&multi_detector, &mut sink);
 
     let mut pack = Pack::new(Check::Bans);
 
