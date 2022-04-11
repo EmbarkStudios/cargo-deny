@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#414](https://github.com/EmbarkStudios/cargo-deny/pull/414) resolved [#484](https://github.com/EmbarkStudios/cargo-deny/issues/484) by always sorting crates with the same name by their version so they are always deterministically sorted. Thanks [@Veykril](https://github.com/Veykril)!
+- [PR#418](https://github.com/EmbarkStudios/cargo-deny/pull/418) fixed an issue where duplicate crate versions would not be detected if the crate was sorted last in the crate graph.
+
+### Changed
+- [PR#415](https://github.com/EmbarkStudios/cargo-deny/pull/415) updated dependencies, notably `regex` to fix [RUSTSEC-2022-0013](https://rustsec.org/advisories/RUSTSEC-2022-0013.html).
+
 ## [0.11.3] - 2022-02-14
 ### Fixed
 - [PR#407](https://github.com/EmbarkStudios/cargo-deny/pull/407) resolved [#406](https://github.com/EmbarkStudios/cargo-deny/issues/406) by always checking license exceptions first.
