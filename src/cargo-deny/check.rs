@@ -257,7 +257,7 @@ pub(crate) fn cmd(
                     if args.disable_fetch {
                         advisories::Fetch::Disallow
                     } else {
-                        advisories::Fetch::Allow
+                        advisories::Fetch::Allow(advisories.git_fetch_with_cli)
                     },
                 ));
             });

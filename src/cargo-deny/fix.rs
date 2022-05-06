@@ -170,7 +170,7 @@ pub fn cmd(
                 if args.disable_fetch {
                     advisories::Fetch::Disallow
                 } else {
-                    advisories::Fetch::Allow
+                    advisories::Fetch::Allow(false)
                 },
             ));
         });
