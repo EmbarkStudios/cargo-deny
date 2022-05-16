@@ -1,5 +1,5 @@
 use crate::{Krate, Krates};
-use anyhow::{Context, Error, anyhow};
+use anyhow::{Context, Error};
 use log::{debug, info};
 pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
 use std::path::{Path, PathBuf};
@@ -8,9 +8,8 @@ use url::Url;
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
 pub enum Fetch {
-    /// If this is true, then cargo deny will use the git executable to fetch advisory database.
-    /// If this is false, then it uses a built-in git library.
-    Allow(bool),
+    Allow,
+    AllowWithGitCli,
     Disallow,
 }
 
@@ -96,18 +95,19 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database
     let db_path = url_to_path(root_db_path, db_url)?;
 
     let db_repo = match fetch {
-        Fetch::Allow(git_fetch_with_cli) => {
+        Fetch::Allow => {
             debug!("Fetching advisory database from '{}'", db_url);
 
-            if git_fetch_with_cli {
-                fetch_with_cli(db_url.as_str(), &db_path)
-                    .context("failed to fetch advisory database with cli")?;
+            Repository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
+                .context("failed to fetch advisory database")?
+        }
+        Fetch::AllowWithGitCli => {
+            debug!("Fetching advisory database with git cli from '{}'", db_url);
 
-                Repository::open(&db_path).context("failed to open advisory database")?
-            } else {
-                Repository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
-                    .context("failed to fetch advisory database")?
-            }
+            fetch_with_cli(db_url.as_str(), &db_path)
+                .context("failed to fetch advisory database with cli")?;
+
+            Repository::open(&db_path).context("failed to open advisory database")?
         }
         Fetch::Disallow => {
             debug!("Opening advisory database at '{}'", db_path.display());
@@ -128,32 +128,31 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database
     res
 }
 
-fn fetch_with_cli(
-    url: &str,
-    db_path: &Path
-) -> Result<(), Error> {
+fn fetch_with_cli(url: &str, db_path: &Path) -> Result<(), Error> {
     use std::{fs, process::Command};
 
     if let Some(parent) = db_path.parent() {
         if !parent.is_dir() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!(
+                    "failed to create advisory database directory {}",
+                    parent.display()
+                )
+            })?;
         }
     } else {
-        return Err(anyhow!("invalid directory: {}", db_path.display()));
+        anyhow::bail!("invalid directory: {}", db_path.display());
     }
 
     if db_path.exists() {
         // make sure db_path is clean
         let mut cmd = Command::new("git");
-        cmd.arg("reset")
-            .arg("--hard")
-            .current_dir(db_path);
+        cmd.arg("reset").arg("--hard").current_dir(db_path);
         cmd.spawn()?.wait_with_output()?;
 
         // pull latest changes
         let mut cmd = Command::new("git");
-        cmd.arg("pull")
-            .current_dir(db_path);
+        cmd.arg("pull").current_dir(db_path);
         cmd.spawn()?.wait_with_output()?;
     } else {
         // clone repository

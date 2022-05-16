@@ -151,7 +151,11 @@ pub fn cmd(
                         .into_iter()
                         .map(|dburl| dburl.take())
                         .collect(),
-                    advisories::Fetch::Allow(cfg.advisories.git_fetch_with_cli),
+                    if cfg.advisories.git_fetch_with_cli {
+                        advisories::Fetch::AllowWithGitCli
+                    } else {
+                        advisories::Fetch::Allow
+                    },
                 ));
             });
         }

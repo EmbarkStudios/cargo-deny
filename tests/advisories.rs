@@ -44,7 +44,7 @@ fn load() -> TestCtx {
 
     let db = {
         let tmp = tempfile::tempdir().unwrap();
-        advisories::DbSet::load(Some(tmp), vec![], advisories::Fetch::Allow(false)).unwrap()
+        advisories::DbSet::load(Some(tmp), vec![], advisories::Fetch::Allow).unwrap()
     };
 
     let lockfile = advisories::PrunedLockfile::prune(lock, &krates);
