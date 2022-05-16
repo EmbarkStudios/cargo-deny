@@ -45,6 +45,8 @@ pub struct Config {
     /// Vulnerabilities with explicit CVSS info which have a severity below
     /// this threshold will be ignored.
     pub severity_threshold: Option<advisory::Severity>,
+    /// use the git executable to fetch advisory database
+    pub git_fetch_with_cli: Option<bool>,
 }
 
 impl Default for Config {
@@ -60,6 +62,7 @@ impl Default for Config {
             yanked: yanked(),
             notice: LintLevel::Warn,
             severity_threshold: None,
+            git_fetch_with_cli: None,
         }
     }
 }
@@ -148,6 +151,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             yanked: self.yanked,
             notice: self.notice,
             severity_threshold: self.severity_threshold,
+            git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
         }
     }
 }
@@ -165,6 +169,7 @@ pub struct ValidConfig {
     pub yanked: Spanned<LintLevel>,
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
+    pub git_fetch_with_cli: bool,
 }
 
 #[cfg(test)]

@@ -169,6 +169,8 @@ pub fn cmd(
                 advisories.db_urls.into_iter().map(|u| u.take()).collect(),
                 if args.disable_fetch {
                     advisories::Fetch::Disallow
+                } else if advisories.git_fetch_with_cli {
+                    advisories::Fetch::AllowWithGitCli
                 } else {
                     advisories::Fetch::Allow
                 },
