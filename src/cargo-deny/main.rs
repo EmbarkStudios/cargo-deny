@@ -212,7 +212,7 @@ pub(crate) struct GraphContext {
 
 /// Lints your project's crate graph
 #[derive(Parser)]
-#[structopt(rename_all = "kebab-case", max_term_width = 80)]
+#[clap(author, version, about, long_about = None, rename_all = "kebab-case", max_term_width = 80)]
 struct Opts {
     /// The log level for messages
     #[clap(
