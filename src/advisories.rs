@@ -1,6 +1,5 @@
 pub mod cfg;
 mod diags;
-pub mod fix;
 mod helpers;
 
 use crate::{diag, LintLevel};
