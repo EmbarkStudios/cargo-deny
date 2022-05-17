@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.12.0] - 2022-05-17
 ### Removed
 - [PR#423](https://github.com/EmbarkStudios/cargo-deny/pull/423) removed the `fix` subcommand. This functionality was far too complicated for far too little benefit.
 
@@ -349,7 +350,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.4...0.12.0
 [0.11.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.3...0.11.4
 [0.11.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.2...0.11.3
 [0.11.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.1...0.11.2
