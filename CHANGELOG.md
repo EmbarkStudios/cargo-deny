@@ -8,9 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Removed
+- [PR#423](https://github.com/EmbarkStudios/cargo-deny/pull/423) removed the `fix` subcommand. This functionality was far too complicated for far too little benefit.
+
+### Fixed
+- [PR#420](https://github.com/EmbarkStudios/cargo-deny/pull/420) resolved [#388](https://github.com/EmbarkStudios/cargo-deny/issues/388) by adding the ability to fetch advisory databases via the `git` CLI. Thanks [@danielhaap83](https://github.com/danielhaap83)!
+- [PR#422](https://github.com/EmbarkStudios/cargo-deny/pull/422) fixed [#380](https://github.com/EmbarkStudios/cargo-deny/issues/380) and [#410](https://github.com/EmbarkStudios/cargo-deny/issues/410) by updating a few transitive dependencies that use `git2`, as well as removing the usage of `rustsec`'s `git` feature so that we now use `git2 v0.14`, resolving a crash issue in new `libgit2` versions available in eg. rolling release distros such as Arch. This should also make it easier to update and improve git related functionality since more of it is inside cargo-deny itself now.
+- [PR#424](https://github.com/EmbarkStudios/cargo-deny/pull/424) _really_ fixed (there's even a test now!) [#384](https://github.com/EmbarkStudios/cargo-deny/issues/384) by adding each version's reverse dependency graph in the ascending order.
+
 ## [0.11.4] - 2022-04-11
 ### Fixed
-- [PR#414](https://github.com/EmbarkStudios/cargo-deny/pull/414) resolved [#484](https://github.com/EmbarkStudios/cargo-deny/issues/484) by always sorting crates with the same name by their version so they are always deterministically sorted. Thanks [@Veykril](https://github.com/Veykril)!
+- [PR#414](https://github.com/EmbarkStudios/cargo-deny/pull/414) resolved [#384](https://github.com/EmbarkStudios/cargo-deny/issues/384) by always sorting crates with the same name by their version so they are always deterministically sorted. Thanks [@Veykril](https://github.com/Veykril)!
 - [PR#418](https://github.com/EmbarkStudios/cargo-deny/pull/418) fixed an issue where duplicate crate versions would not be detected if the crate was sorted last in the crate graph.
 
 ### Changed
