@@ -27,7 +27,7 @@ path = "src/cargo-deny/main.rs"
 default = ["vendored-openssl"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
-vendored-openssl = ["git2/vendored-openssl", "crates-index/vendored-openssl"]
+vendored-openssl = ["cargo?/vendored-openssl", "crates-index/vendored-openssl", "git2/vendored-openssl"]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
 # to still function
@@ -67,8 +67,6 @@ home = "0.5"
 krates = { version = "0.10", features = ["targets"] }
 # Log macros
 log = "0.4"
-# Used when parsing binary files in registry index caches
-memchr = "2.3"
 # Moar brrrr
 rayon = "1.4"
 # Used for interacting with advisory databases
@@ -95,7 +93,5 @@ twox-hash = { version = "1.5", default-features = false }
 url = "2.1"
 
 [dev-dependencies]
-# Avoid loading license check many times
-lazy_static = "1.4.0"
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
