@@ -82,9 +82,96 @@ impl DbSet {
     }
 }
 
+/// Converts a full url, eg <https://github.com/rust-lang/crates.io-index>, into
+/// the root directory name where cargo itself will fetch it on disk
+pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
+    fn to_hex(num: u64) -> String {
+        const CHARS: &[u8] = b"0123456789abcdef";
+
+        // Note that cargo does this as well so that the hex strings are
+        // the same on big endian as well
+        let bytes = num.to_le_bytes();
+
+        let mut output = String::with_capacity(16);
+
+        for byte in bytes {
+            output.push(CHARS[(byte >> 4) as usize] as char);
+            output.push(CHARS[(byte & 0xf) as usize] as char);
+        }
+
+        output
+    }
+
+    #[allow(deprecated)]
+    fn hash_u64(url: &str) -> u64 {
+        use std::hash::{Hash, Hasher, SipHasher};
+
+        let mut hasher = SipHasher::new_with_keys(0, 0);
+        // Registry. Note the explicit use of u64 here so that we get the same
+        // hash on 32 and 64-bit arches
+        2u64.hash(&mut hasher);
+        // Url
+        url.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    // Ensure we have a registry or bare url
+    let (url, scheme_ind) = {
+        let scheme_ind = url
+            .find("://")
+            .with_context(|| format!("'{}' is not a valid url", url))?;
+
+        let scheme_str = &url[..scheme_ind];
+        if let Some(ind) = scheme_str.find('+') {
+            if &scheme_str[..ind] != "registry" {
+                anyhow::bail!("'{}' is not a valid registry url", url);
+            }
+
+            (&url[ind + 1..], scheme_ind - ind - 1)
+        } else {
+            (url, scheme_ind)
+        }
+    };
+
+    // Could use the Url crate for this, but it's simple enough and we don't
+    // need to deal with every possible url (I hope...)
+    let host = match url[scheme_ind + 3..].find('/') {
+        Some(end) => &url[scheme_ind + 3..scheme_ind + 3 + end],
+        None => &url[scheme_ind + 3..],
+    };
+
+    // cargo special cases github.com for reasons, so do the same
+    let mut canonical = if host == "github.com" {
+        url.to_lowercase()
+    } else {
+        url.to_owned()
+    };
+
+    // Chop off any query params/fragments
+    if let Some(hash) = canonical.rfind('#') {
+        canonical.truncate(hash);
+    }
+
+    if let Some(query) = canonical.rfind('?') {
+        canonical.truncate(query);
+    }
+
+    let ident = to_hex(hash_u64(&canonical));
+
+    if canonical.ends_with('/') {
+        canonical.pop();
+    }
+
+    if canonical.ends_with(".git") {
+        canonical.truncate(canonical.len() - 4);
+    }
+
+    Ok((format!("{}-{}", host, ident), canonical))
+}
+
 /// Convert an advisory url to a directory underneath a specified root
 fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
-    let (ident, _) = crate::index::url_to_local_dir(url.as_str())?;
+    let (ident, _) = url_to_local_dir(url.as_str())?;
     db_path.push(ident);
 
     Ok(db_path)
