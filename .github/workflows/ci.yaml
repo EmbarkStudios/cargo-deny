@@ -133,6 +133,19 @@ jobs:
       - name: cargo publish
         run: cargo publish --dry-run
 
+  msrv-check:
+    name: Minimum Stable Rust Version Check
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: "1.60.0"
+          override: true
+      - run: cargo fetch
+      - name: cargo check
+        run: cargo check --all-targets
+
   release:
     name: Release
     #needs: [test, self, doc-book]
