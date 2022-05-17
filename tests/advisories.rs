@@ -261,7 +261,10 @@ fn downgrades_lint_levels() {
 #[ignore]
 fn detects_yanked() {
     // Force fetch the index just in case
-    rustsec::registry::Index::fetch().unwrap();
+    {
+        let mut index = crates_index::Index::new_cargo_default().unwrap();
+        index.update().unwrap();
+    }
 
     let TestCtx { dbs, lock, krates } = load();
 

@@ -43,12 +43,18 @@ pub fn check<R>(
     let (report, yanked) = rayon::join(
         || Report::generate(advisory_dbs, &lockfile, emit_audit_compatible_reports),
         || {
-            let index = rustsec::registry::Index::open()?;
+            // TODO: Once rustsec fully supports non-crates.io sources we'll want
+            // to also fetch those as well
+            let index = crates_index::Index::new_cargo_default()?;
             let mut yanked = Vec::new();
 
             for package in &lockfile.0.packages {
-                if let Ok(index_entry) = index.find(&package.name, &package.version) {
-                    if index_entry.is_yanked {
+                if let Some(krate) = index.crate_(package.name.as_str()) {
+                    if krate
+                        .versions()
+                        .iter()
+                        .any(|kv| kv.version() == package.version.to_string() && kv.is_yanked())
+                    {
                         yanked.push(package);
                     }
                 }
@@ -59,7 +65,7 @@ pub fn check<R>(
     );
 
     // rust is having trouble doing type inference
-    let yanked: Result<_, rustsec::Error> = yanked;
+    let yanked: Result<_, anyhow::Error> = yanked;
 
     use bitvec::prelude::*;
     let mut ignore_hits: BitVec = BitVec::repeat(false, ctx.cfg.ignore.len());

@@ -3,56 +3,39 @@ use anyhow::{Context, Error};
 use cargo_deny::{diag::Files, licenses, Kid};
 use serde::Serialize;
 use std::path::PathBuf;
-use structopt::{clap::arg_enum, StructOpt};
 
-arg_enum! {
-    #[derive(Copy, Clone, Debug)]
-    pub enum Layout {
-        Crate,
-        License,
-    }
+#[derive(clap::ArgEnum, Copy, Clone, Debug)]
+pub enum Layout {
+    Crate,
+    License,
 }
 
-arg_enum! {
-    #[derive(Copy, Clone, Debug)]
-    pub enum OutputFormat {
-        Human,
-        Json,
-        Tsv,
-    }
+#[derive(clap::ArgEnum, Copy, Clone, Debug)]
+pub enum OutputFormat {
+    Human,
+    Json,
+    Tsv,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(clap::Parser, Debug)]
 pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
-    #[structopt(short, long, parse(from_os_str))]
+    #[clap(short, long, parse(from_os_str))]
     config: Option<PathBuf>,
     /// Minimum confidence threshold for license text
     ///
     /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
     ///
     /// [possible values: 0.0 - 1.0]
-    #[structopt(short, long, default_value = "0.8")]
+    #[clap(short, long, default_value = "0.8")]
     threshold: f32,
     /// The format of the output
-    #[structopt(
-        short,
-        long,
-        default_value = "human",
-        possible_values = &OutputFormat::variants(),
-        case_insensitive = true,
-    )]
+    #[clap(short, long, default_value = "human", arg_enum)]
     format: OutputFormat,
     /// The layout for the output, does not apply to TSV
-    #[structopt(
-        short,
-        long,
-        default_value = "license",
-        possible_values = &Layout::variants(),
-        case_insensitive = true,
-    )]
+    #[clap(short, long, default_value = "license", arg_enum)]
     layout: Layout,
 }
 

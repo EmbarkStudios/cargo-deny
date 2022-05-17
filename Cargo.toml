@@ -15,6 +15,7 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["examples/", ".github/"]
+rust-version = "1.60.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -27,7 +28,7 @@ path = "src/cargo-deny/main.rs"
 default = ["vendored-openssl"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
-vendored-openssl = ["rustsec/vendored-openssl", "git2/vendored-openssl"]
+vendored-openssl = ["cargo?/vendored-openssl", "crates-index/vendored-openssl", "git2/vendored-openssl"]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
 # to still function
@@ -45,28 +46,32 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.60", optional = true }
+cargo = { version = "0.61", optional = true }
+# Argument parsing
+clap = { version = "3.1", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
+# Fetching and reading of crates.io (or other indices)
+crates-index = { version = "0.18", default-features = false, features = [
+  "parallel",
+] }
 # Brrrrr
 crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
 # We directly interact with git when doing index operations eg during fix
-git2 = "0.13" # must be kept in sync with cargo and rustsec
+git2 = "0.14"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
 krates = { version = "0.10", features = ["targets"] }
 # Log macros
 log = "0.4"
-# Used when parsing binary files in registry index caches
-memchr = "2.3"
 # Moar brrrr
 rayon = "1.4"
 # Used for interacting with advisory databases
-rustsec = "0.25"
+rustsec = { version = "0.25", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -76,8 +81,6 @@ serde_json = "1.0"
 smallvec = "1.6"
 # Used for parsing and checking SPDX license expressions
 spdx = "0.8"
-# Handles all of the argument parsing
-structopt = "0.3"
 # Timestamp emission
 time = { version = "0.3", default-features = false, features = [
   "formatting",
@@ -91,7 +94,5 @@ twox-hash = { version = "1.5", default-features = false }
 url = "2.1"
 
 [dev-dependencies]
-# Avoid loading license check many times
-lazy_static = "1.4.0"
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"

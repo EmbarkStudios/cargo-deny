@@ -5,6 +5,9 @@ pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
 use std::path::{Path, PathBuf};
 use url::Url;
 
+// The default, official, rustsec advisory database
+const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
+
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
 pub enum Fetch {
@@ -16,7 +19,7 @@ pub enum Fetch {
 /// A collection of [`Database`]s that is used to query advisories
 /// in many different databases.
 ///
-/// [`Database`]: https://docs.rs/rustsec/0.21.0/rustsec/database/struct.Database.html
+/// [`Database`]: https://docs.rs/rustsec/0.25.0/rustsec/database/struct.Database.html
 pub struct DbSet {
     dbs: Vec<(Url, Database)>,
 }
@@ -57,9 +60,9 @@ impl DbSet {
         if urls.is_empty() {
             info!(
                 "No advisory database configured, falling back to default '{}'",
-                rustsec::repository::git::DEFAULT_URL
+                DEFAULT_URL
             );
-            urls.push(Url::parse(rustsec::repository::git::DEFAULT_URL).unwrap());
+            urls.push(Url::parse(DEFAULT_URL).unwrap());
         }
 
         use rayon::prelude::*;
@@ -178,34 +181,30 @@ fn url_to_path(mut db_path: PathBuf, url: &Url) -> Result<PathBuf, Error> {
 }
 
 fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database, Error> {
-    use rustsec::repository::git::Repository;
     let db_path = url_to_path(root_db_path, db_url)?;
 
-    let db_repo = match fetch {
+    match fetch {
         Fetch::Allow => {
             debug!("Fetching advisory database from '{}'", db_url);
-
-            Repository::fetch(db_url.as_str(), &db_path, true /* ensure_fresh */)
-                .context("failed to fetch advisory database")?
+            fetch_via_git(db_url, &db_path)?;
         }
         Fetch::AllowWithGitCli => {
             debug!("Fetching advisory database with git cli from '{}'", db_url);
 
-            fetch_with_cli(db_url.as_str(), &db_path)
+            fetch_via_cli(db_url.as_str(), &db_path)
                 .context("failed to fetch advisory database with cli")?;
-
-            Repository::open(&db_path).context("failed to open advisory database")?
         }
         Fetch::Disallow => {
             debug!("Opening advisory database at '{}'", db_path.display());
-
-            Repository::open(&db_path).context("failed to open advisory database")?
         }
-    };
+    }
+
+    // Verify that the repository is actually valid
+    git2::Repository::open(&db_path).context("failed to open advisory database")?;
 
     debug!("loading advisory database from {}", db_path.display());
 
-    let res = Database::load_from_repo(&db_repo).context("failed to load advisory database");
+    let res = Database::open(&db_path).context("failed to load advisory database");
 
     debug!(
         "finished loading advisory database from {}",
@@ -215,7 +214,143 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database
     res
 }
 
-fn fetch_with_cli(url: &str, db_path: &Path) -> Result<(), Error> {
+fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
+    anyhow::ensure!(
+        url.scheme() == "https" || url.scheme() == "ssh",
+        "expected '{}' to be an `https` or `ssh` url",
+        url
+    );
+
+    // Ensure the parent directory chain is created, git2 won't do it for us
+    {
+        let parent = db_path
+            .parent()
+            .with_context(|| format!("invalid directory: {}", db_path.display()))?;
+
+        if !parent.is_dir() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+
+    // Avoid libgit2 errors in the case the directory exists but is
+    // otherwise empty.
+    //
+    // See: https://github.com/RustSec/cargo-audit/issues/32
+    if db_path.is_dir() && std::fs::read_dir(&db_path)?.next().is_none() {
+        std::fs::remove_dir(&db_path)?;
+    }
+
+    /// Ref for the `main` branch in the local repository
+    const LOCAL_REF: &str = "refs/heads/main";
+
+    /// Ref for the `main` branch in the remote repository
+    const REMOTE_REF: &str = "refs/remotes/origin/main";
+
+    let git_config = git2::Config::new()?;
+
+    with_authentication(url.as_str(), &git_config, |f| {
+        let mut callbacks = git2::RemoteCallbacks::new();
+        callbacks.credentials(f);
+
+        let mut proxy_opts = git2::ProxyOptions::new();
+        proxy_opts.auto();
+
+        let mut fetch_opts = git2::FetchOptions::new();
+        fetch_opts.remote_callbacks(callbacks);
+        fetch_opts.proxy_options(proxy_opts);
+
+        if db_path.exists() {
+            let repo = git2::Repository::open(&db_path)?;
+            let refspec = format!("{LOCAL_REF}:{REMOTE_REF}");
+
+            // Fetch remote packfiles and update tips
+            let mut remote = repo.remote_anonymous(url.as_str())?;
+            remote.fetch(&[refspec.as_str()], Some(&mut fetch_opts), None)?;
+
+            // Get the current remote tip (as an updated local reference)
+            let remote_main_ref = repo.find_reference(REMOTE_REF)?;
+            let remote_target = remote_main_ref.target().unwrap();
+
+            // Set the local main ref to match the remote
+            match repo.find_reference(LOCAL_REF) {
+                Ok(mut local_main_ref) => {
+                    local_main_ref.set_target(
+                        remote_target,
+                        &format!("moving `main` to {}: {}", REMOTE_REF, &remote_target),
+                    )?;
+                }
+                Err(e) if e.code() == git2::ErrorCode::NotFound => {
+                    anyhow::bail!("unable to find reference '{}'", LOCAL_REF);
+                }
+                Err(e) => {
+                    return Err(e.into());
+                }
+            };
+        } else {
+            git2::build::RepoBuilder::new()
+                .fetch_options(fetch_opts)
+                .clone(url.as_str(), db_path)?;
+        }
+
+        Ok(())
+    })?;
+
+    let repo = git2::Repository::open(&db_path).context("failed to open repository")?;
+
+    // Retrieve the HEAD commit
+    let head = repo.head()?;
+
+    let oid = head
+        .target()
+        .with_context(|| format!("no ref target for '{}'", db_path.display()))?;
+
+    let commit_id = oid.to_string();
+    let commit_object = repo.find_object(oid, Some(git2::ObjectType::Commit))?;
+    let commit = commit_object
+        .as_commit()
+        .context("HEAD OID was not a reference to a commit")?;
+
+    // Reset the state of the repository to the latest commit
+    repo.reset(&commit_object, git2::ResetType::Hard, None)?;
+
+    let author = commit.author().to_string();
+
+    let summary = commit
+        .summary()
+        .with_context(|| format!("no commit summary for {}", commit_id))?;
+
+    // Commits to the official rustsec database should always be signed, but we
+    // may have to relax this requirement for non-official/private databases
+    // TODO: verify signatures against GitHub's public key
+    repo.extract_signature(&oid, None).with_context(|| {
+        format!(
+            "no signature on commit {}: {} ({})",
+            commit_id, summary, author,
+        )
+    })?;
+
+    let timestamp = time::OffsetDateTime::from_unix_timestamp(commit.time().seconds())
+        .context("commit timestamp is invalid")?;
+
+    // 90 days
+    const MINIMUM_FRESHNESS: time::Duration = time::Duration::seconds(90 * 24 * 60 * 60);
+
+    // Ensure that the upstream repository hasn't gone stale, ie, they've
+    // configured cargo-deny to not fetch the remote database(s), but they've
+    // failed to update the databases manuallly
+    anyhow::ensure!(
+        timestamp
+            > time::OffsetDateTime::now_utc()
+                .checked_sub(MINIMUM_FRESHNESS)
+                .expect("this should never happen"),
+        "repository is stale (last commit: {})",
+        timestamp
+    );
+
+    Ok(())
+}
+
+fn fetch_via_cli(url: &str, db_path: &Path) -> Result<(), Error> {
     use std::{fs, process::Command};
 
     if let Some(parent) = db_path.parent() {
@@ -251,6 +386,221 @@ fn fetch_with_cli(url: &str, db_path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
+/// Prepare the authentication callbacks for cloning a git repository.
+///
+/// The main purpose of this function is to construct the "authentication
+/// callback" which is used to clone a repository. This callback will attempt to
+/// find the right authentication on the system (without user input) and will
+/// guide libgit2 in doing so.
+///
+/// The callback is provided `allowed` types of credentials, and we try to do as
+/// much as possible based on that:
+///
+/// * Prioritize SSH keys from the local ssh agent as they're likely the most
+///   reliable. The username here is prioritized from the credential
+///   callback, then from whatever is configured in git itself, and finally
+///   we fall back to the generic user of `git`.
+///
+/// * If a username/password is allowed, then we fallback to git2-rs's
+///   implementation of the credential helper. This is what is configured
+///   with `credential.helper` in git, and is the interface for the macOS
+///   keychain, for example.
+///
+/// * After the above two have failed, we just kinda grapple attempting to
+///   return *something*.
+///
+/// If any form of authentication fails, libgit2 will repeatedly ask us for
+/// credentials until we give it a reason to not do so. To ensure we don't
+/// just sit here looping forever we keep track of authentications we've
+/// attempted and we don't try the same ones again.
+pub fn with_authentication<T, F>(url: &str, cfg: &git2::Config, mut f: F) -> Result<T, Error>
+where
+    F: FnMut(&mut git2::Credentials<'_>) -> Result<T, Error>,
+{
+    let mut cred_helper = git2::CredentialHelper::new(url);
+    cred_helper.config(cfg);
+
+    let mut ssh_username_requested = false;
+    let mut cred_helper_bad = None;
+    let mut ssh_agent_attempts = Vec::new();
+    let mut any_attempts = false;
+    let mut tried_sshkey = false;
+
+    let mut res = f(&mut |url, username, allowed| {
+        any_attempts = true;
+        // libgit2's "USERNAME" authentication actually means that it's just
+        // asking us for a username to keep going. This is currently only really
+        // used for SSH authentication and isn't really an authentication type.
+        // The logic currently looks like:
+        //
+        //      let user = ...;
+        //      if (user.is_null())
+        //          user = callback(USERNAME, null, ...);
+        //
+        //      callback(SSH_KEY, user, ...)
+        //
+        // So if we're being called here then we know that (a) we're using ssh
+        // authentication and (b) no username was specified in the URL that
+        // we're trying to clone. We need to guess an appropriate username here,
+        // but that may involve a few attempts. Unfortunately we can't switch
+        // usernames during one authentication session with libgit2, so to
+        // handle this we bail out of this authentication session after setting
+        // the flag `ssh_username_requested`, and then we handle this below.
+        if allowed.contains(git2::CredentialType::USERNAME) {
+            debug_assert!(username.is_none());
+            ssh_username_requested = true;
+            return Err(git2::Error::from_str("gonna try usernames later"));
+        }
+
+        // An "SSH_KEY" authentication indicates that we need some sort of SSH
+        // authentication. This can currently either come from the ssh-agent
+        // process or from a raw in-memory SSH key. Cargo only supports using
+        // ssh-agent currently.
+        //
+        // If we get called with this then the only way that should be possible
+        // is if a username is specified in the URL itself (e.g., `username` is
+        // Some), hence the unwrap() here. We try custom usernames down below.
+        if allowed.contains(git2::CredentialType::SSH_KEY) && !tried_sshkey {
+            // If ssh-agent authentication fails, libgit2 will keep
+            // calling this callback asking for other authentication
+            // methods to try. Make sure we only try ssh-agent once,
+            // to avoid looping forever.
+            tried_sshkey = true;
+            let username = username.unwrap();
+            debug_assert!(!ssh_username_requested);
+            ssh_agent_attempts.push(username.to_string());
+            return git2::Cred::ssh_key_from_agent(username);
+        }
+
+        // Sometimes libgit2 will ask for a username/password in plaintext. This
+        // is where Cargo would have an interactive prompt if we supported it,
+        // but we currently don't! Right now the only way we support fetching a
+        // plaintext password is through the `credential.helper` support, so
+        // fetch that here.
+        //
+        // If ssh-agent authentication fails, libgit2 will keep calling this
+        // callback asking for other authentication methods to try. Check
+        // cred_helper_bad to make sure we only try the git credential helper
+        // once, to avoid looping forever.
+        if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) && cred_helper_bad.is_none()
+        {
+            let r = git2::Cred::credential_helper(cfg, url, username);
+            cred_helper_bad = Some(r.is_err());
+            return r;
+        }
+
+        // I'm... not sure what the DEFAULT kind of authentication is, but seems
+        // easy to support?
+        if allowed.contains(git2::CredentialType::DEFAULT) {
+            return git2::Cred::default();
+        }
+
+        // Whelp, we tried our best
+        Err(git2::Error::from_str("no authentication available"))
+    });
+
+    // Ok, so if it looks like we're going to be doing ssh authentication, we
+    // want to try a few different usernames as one wasn't specified in the URL
+    // for us to use. In order, we'll try:
+    //
+    // * A credential helper's username for this URL, if available.
+    // * This account's username.
+    // * "git"
+    //
+    // We have to restart the authentication session each time (due to
+    // constraints in libssh2 I guess? maybe this is inherent to ssh?), so we
+    // call our callback, `f`, in a loop here.
+    if ssh_username_requested {
+        debug_assert!(res.is_err());
+        let mut attempts = vec!["git".to_owned()];
+        if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
+            attempts.push(s);
+        }
+        if let Some(ref s) = cred_helper.username {
+            attempts.push(s.clone());
+        }
+
+        while let Some(s) = attempts.pop() {
+            // We should get `USERNAME` first, where we just return our attempt,
+            // and then after that we should get `SSH_KEY`. If the first attempt
+            // fails we'll get called again, but we don't have another option so
+            // we bail out.
+            let mut attempts = 0;
+            res = f(&mut |_url, username, allowed| {
+                if allowed.contains(git2::CredentialType::USERNAME) {
+                    return git2::Cred::username(&s);
+                }
+                if allowed.contains(git2::CredentialType::SSH_KEY) {
+                    debug_assert_eq!(Some(&s[..]), username);
+                    attempts += 1;
+                    if attempts == 1 {
+                        ssh_agent_attempts.push(s.clone());
+                        return git2::Cred::ssh_key_from_agent(&s);
+                    }
+                }
+                Err(git2::Error::from_str("no authentication available"))
+            });
+
+            // If we made two attempts then that means:
+            //
+            // 1. A username was requested, we returned `s`.
+            // 2. An ssh key was requested, we returned to look up `s` in the
+            //    ssh agent.
+            // 3. For whatever reason that lookup failed, so we were asked again
+            //    for another mode of authentication.
+            //
+            // Essentially, if `attempts == 2` then in theory the only error was
+            // that this username failed to authenticate (e.g., no other network
+            // errors happened). Otherwise something else is funny so we bail
+            // out.
+            if attempts != 2 {
+                break;
+            }
+        }
+    }
+
+    if res.is_ok() || !any_attempts {
+        return res.map_err(From::from);
+    }
+
+    // In the case of an authentication failure (where we tried something) then
+    // we try to give a more helpful error message about precisely what we
+    // tried.
+    let res = res.map_err(|_e| {
+        let mut msg = "failed to authenticate when downloading repository".to_owned();
+        if !ssh_agent_attempts.is_empty() {
+            let names = ssh_agent_attempts
+                .iter()
+                .map(|s| format!("`{}`", s))
+                .collect::<Vec<_>>()
+                .join(", ");
+            msg.push_str(&format!(
+                "\nattempted ssh-agent authentication, but \
+                 none of the usernames {} succeeded",
+                names
+            ));
+        }
+        if let Some(failed_cred_helper) = cred_helper_bad {
+            if failed_cred_helper {
+                msg.push_str(
+                    "\nattempted to find username/password via \
+                     git's `credential.helper` support, but failed",
+                );
+            } else {
+                msg.push_str(
+                    "\nattempted to find username/password via \
+                     `credential.helper`, but maybe the found \
+                     credentials were incorrect",
+                );
+            }
+        }
+
+        anyhow::anyhow!(msg)
+    })?;
+
+    Ok(res)
+}
+
 pub fn load_lockfile(path: &krates::Utf8Path) -> Result<Lockfile, Error> {
     let mut lockfile = Lockfile::load(path)?;
 
@@ -260,6 +610,10 @@ pub fn load_lockfile(path: &krates::Utf8Path) -> Result<Lockfile, Error> {
     Ok(lockfile)
 }
 
+/// A wrapper around a rustsec `Lockfile`, this is used to filter out all of
+/// the crates that are not part of the crate graph for some reason, eg. a target
+/// specific dependency for a target the user doesn't actually target, so that
+/// any advisories that affect crates not in the graph are triggered
 pub struct PrunedLockfile(pub(crate) Lockfile);
 
 impl PrunedLockfile {
