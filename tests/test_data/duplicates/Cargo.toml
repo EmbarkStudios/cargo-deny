@@ -1,0 +1,8 @@
+[package]
+name = "duplicates"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sqlx = "0.5"
+async-graphql = "3.0"

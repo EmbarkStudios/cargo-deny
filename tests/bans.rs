@@ -115,3 +115,49 @@ fn deny_wildcards() {
         );
     }
 }
+
+#[test]
+fn deterministic_duplicate_ordering() {
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        utils::get_test_data_krates("duplicates").unwrap(),
+        "deterministic_duplicate_ordering",
+        Some("multiple-versions = 'deny'"),
+        Some(std::time::Duration::from_millis(10000)),
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
+        },
+    )
+    .unwrap();
+
+    let duplicates = [
+        ("block-buffer", &["0.7.3", "0.10.2"]),
+        ("digest", &["0.8.1", "0.10.3"]),
+        ("generic-array", &["0.12.4", "0.14.5"]),
+    ];
+
+    for dup in &duplicates {
+        assert!(
+            diags.iter().any(|v| {
+                if !field_eq!(v, "/fields/severity", "error")
+                    || !field_eq!(
+                        v,
+                        "/fields/message",
+                        format!("found 2 duplicate entries for crate '{}'", dup.0)
+                    )
+                {
+                    return false;
+                }
+
+                for (i, version) in dup.1.iter().enumerate() {
+                    if !field_eq!(v, &format!("/fields/graphs/{}/version", i), version) {
+                        return false;
+                    }
+                }
+
+                true
+            }),
+            "unable to find error diagnostic for duplicate '{}'",
+            dup.0
+        );
+    }
+}

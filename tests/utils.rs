@@ -67,6 +67,8 @@ pub fn gather_diagnostics<
 
     let (tx, rx) = crossbeam::channel::unbounded();
 
+    let grapher = cargo_deny::diag::ObjectGrapher::new(&krates);
+
     let (_, gathered) = rayon::join(
         || {
             let ctx = cargo_deny::CheckCtx {
@@ -87,7 +89,7 @@ pub fn gather_diagnostics<
                         crossbeam::select! {
                             recv(rx) -> msg => {
                                 if let Ok(pack) = msg {
-                                    diagnostics.extend(pack.into_iter().map(|d| cargo_deny::diag::diag_to_json(d, &files, None)));
+                                    diagnostics.extend(pack.into_iter().map(|d| cargo_deny::diag::diag_to_json(d, &files, Some(&grapher))));
                                 } else {
                                     // Yay, the sender was dopped (i.e. check was finished)
                                     break;
@@ -101,10 +103,10 @@ pub fn gather_diagnostics<
                 }
                 None => {
                     while let Ok(pack) = rx.recv() {
-                        diagnostics.extend(
-                            pack.into_iter()
-                                .map(|d| cargo_deny::diag::diag_to_json(d, &files, None)),
-                        );
+                        diagnostics
+                            .extend(pack.into_iter().map(|d| {
+                                cargo_deny::diag::diag_to_json(d, &files, Some(&grapher))
+                            }));
                     }
                 }
             }
