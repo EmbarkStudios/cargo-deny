@@ -80,8 +80,8 @@
 #![allow(clippy::exit, clippy::single_match_else)]
 
 use anyhow::{bail, Context, Error};
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
 mod check;
 mod common;
@@ -90,23 +90,23 @@ mod init;
 mod list;
 mod stats;
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum Command {
     /// Checks a project's crate graph
-    #[structopt(name = "check")]
+    #[clap(name = "check")]
     Check(check::Args),
     /// Fetches remote data
-    #[structopt(name = "fetch")]
+    #[clap(name = "fetch")]
     Fetch(fetch::Args),
     /// Creates a cargo-deny config from a template
-    #[structopt(name = "init")]
+    #[clap(name = "init")]
     Init(init::Args),
     /// Outputs a listing of all licenses and the crates that use them
-    #[structopt(name = "list")]
+    #[clap(name = "list")]
     List(list::Args),
 }
 
-#[derive(StructOpt, Copy, Clone, Debug, PartialEq)]
+#[derive(Parser, Copy, Clone, Debug, PartialEq)]
 pub enum Format {
     Human,
     Json,
@@ -132,7 +132,7 @@ impl std::str::FromStr for Format {
     }
 }
 
-#[derive(StructOpt, Copy, Clone, Debug)]
+#[derive(Parser, Copy, Clone, Debug)]
 pub enum Color {
     Auto,
     Always,
@@ -165,58 +165,58 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
         .with_context(|| format!("failed to parse level '{}'", s))
 }
 
-#[derive(StructOpt)]
-#[structopt(rename_all = "kebab-case", max_term_width = 80)]
+#[derive(Parser)]
+#[clap(rename_all = "kebab-case")]
 pub(crate) struct GraphContext {
     /// The path of a Cargo.toml to use as the context for the operation.
     ///
     /// By default, the Cargo.toml in the current working directory is used.
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     pub(crate) manifest_path: Option<PathBuf>,
     /// If passed, all workspace packages are used as roots for the crate graph.
     ///
     /// Automatically assumed if the manifest path points to a virtual manifest.
     ///
     /// Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) workspace: bool,
     /// One or more crates to exclude from the crate graph that is used.
     ///
     /// NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) exclude: Vec<String>,
     /// One or more platforms to filter crates by
     ///
     /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub(crate) target: Vec<String>,
     /// Activate all available features
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) all_features: bool,
     /// Do not activate the `default` feature
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) no_default_features: bool,
     /// Space or comma separated list of features to activate
-    #[structopt(long, use_delimiter = true)]
+    #[clap(long, use_value_delimiter = true)]
     pub(crate) features: Vec<String>,
     /// Require Cargo.lock and cache are up to date
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) frozen: bool,
     /// Require Cargo.lock is up to date
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) locked: bool,
     /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
-    #[structopt(long)]
+    #[clap(long)]
     pub(crate) offline: bool,
 }
 
 /// Lints your project's crate graph
-#[derive(StructOpt)]
+#[derive(Parser)]
 #[structopt(rename_all = "kebab-case", max_term_width = 80)]
 struct Opts {
     /// The log level for messages
-    #[structopt(
-        short = "L",
+    #[clap(
+        short = 'L',
         long = "log-level",
         default_value = "warn",
         parse(try_from_str = parse_level),
@@ -234,13 +234,13 @@ Possible values:
 ")]
     log_level: log::LevelFilter,
     /// Specify the format of cargo-deny's output
-    #[structopt(short, long, default_value = "human", possible_values = Format::variants())]
+    #[clap(short, long, default_value = "human", possible_values = Format::variants())]
     format: Format,
-    #[structopt(short, long, default_value = "auto", possible_values = Color::variants(), env = "CARGO_TERM_COLOR")]
+    #[clap(short, long, default_value = "auto", possible_values = Color::variants(), env = "CARGO_TERM_COLOR")]
     color: Color,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     ctx: GraphContext,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
@@ -331,7 +331,7 @@ fn setup_logger(
 
 fn real_main() -> Result<(), Error> {
     let args =
-        Opts::from_iter({
+        Opts::parse_from({
             std::env::args().enumerate().filter_map(|(i, a)| {
                 if i == 1 && a == "deny" {
                     None

@@ -1,13 +1,12 @@
 use anyhow::{ensure, Context, Error};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 pub struct Args {
     /// The path to create
     ///
     /// Defaults to <cwd>/deny.toml
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     config: Option<PathBuf>,
 }
 

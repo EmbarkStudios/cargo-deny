@@ -4,29 +4,23 @@ use cargo_deny::{
     diag::{Diagnostic, Files},
 };
 use std::path::PathBuf;
-use structopt::{clap::arg_enum, StructOpt};
 
-arg_enum! {
-    #[derive(Debug, PartialEq, Copy, Clone)]
-    pub enum FetchSource {
-        Db,
-        Index,
-        All,
-    }
+#[derive(clap::ArgEnum, Debug, PartialEq, Copy, Clone)]
+pub enum FetchSource {
+    Db,
+    Index,
+    All,
 }
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to <cwd>/deny.toml if not specified
-    #[structopt(short, long, parse(from_os_str))]
+    #[clap(short, long, parse(from_os_str))]
     config: Option<PathBuf>,
     /// The sources to fetch
-    #[structopt(
-        possible_values = &FetchSource::variants(),
-        case_insensitive = true,
-    )]
+    #[clap(arg_enum)]
     sources: Vec<FetchSource>,
 }
 
@@ -130,7 +124,16 @@ pub fn cmd(
         if fetch_index {
             s.spawn(|_| {
                 log::info!("fetching crates.io index...");
-                index = Some(rustsec::registry::Index::fetch());
+                index = Some(match crates_index::Index::new_cargo_default() {
+                    Ok(mut index) => match index.update() {
+                        Ok(_) => Ok(index),
+                        Err(err) => Err(anyhow::anyhow!(
+                            "opened crates.io index but failed to fetch updates: {}",
+                            err
+                        )),
+                    },
+                    Err(err) => Err(anyhow::anyhow!("failed to open crates.io index: {}", err)),
+                });
                 log::info!("fetched crates.io index");
             });
         }
