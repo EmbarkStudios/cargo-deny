@@ -231,9 +231,15 @@ pub fn check(
         let mut all_start = std::usize::MAX;
         let mut all_end = 0;
 
-        let mut kids = smallvec::SmallVec::<[Kid; 2]>::new();
+        struct Dupe {
+            /// Unique id, used for printing the actual diagnostic graphs
+            id: Kid,
+            /// Version, for deterministically ordering the duplicates
+            version: semver::Version,
+        }
 
-        #[allow(clippy::needless_range_loop)]
+        let mut kids = smallvec::SmallVec::<[Dupe; 2]>::new();
+
         for dup in multi_detector.dupes.iter().cloned() {
             let span = &ctx.krate_spans[dup];
 
@@ -247,7 +253,18 @@ pub fn check(
 
             let krate = &ctx.krates[dup];
 
-            kids.push(krate.id.clone());
+            if let Err(i) = kids.binary_search_by(|other| match other.version.cmp(&krate.version) {
+                std::cmp::Ordering::Equal => other.id.cmp(&krate.id),
+                ord => ord,
+            }) {
+                kids.insert(
+                    i,
+                    Dupe {
+                        id: krate.id.clone(),
+                        version: krate.version.clone(),
+                    },
+                );
+            }
         }
 
         {
@@ -262,7 +279,7 @@ pub fn check(
             }
             .into();
 
-            diag.kids = kids;
+            diag.kids = kids.into_iter().map(|dupe| dupe.id).collect();
 
             let mut pack = Pack::new(Check::Bans);
             pack.push(diag);
