@@ -51,9 +51,6 @@ codespan = "0.11"
 codespan-reporting = "0.11"
 # Brrrrr
 crossbeam = "0.8"
-# We use this for displaying diffs for dry runs of the `fix` subcommand, as
-# as in tests for printing easy to read errors
-similar = "2.1"
 # Logging utilities
 fern = "0.6"
 # We directly interact with git when doing index operations eg during fix
@@ -88,8 +85,6 @@ time = { version = "0.3", default-features = false, features = [
 ] }
 # Deserialization of configuration files and crate manifests
 toml = "0.5"
-# Used by fix to modify crate manifests
-toml_edit = "0.13"
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
