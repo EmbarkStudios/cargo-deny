@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.12.1] - 2022-05-19
 ### Fixed
 - [PR#426](https://github.com/EmbarkStudios/cargo-deny/pull/426) fixed an oversight in [PR#422](https://github.com/EmbarkStudios/cargo-deny/pull/422), fully resolving [#412](https://github.com/EmbarkStudios/cargo-deny/issues/412) by allowing both `https` and `ssh` URLs for advisory databases. Thanks [@jbg](https://github.com/jbg)!
 
@@ -356,7 +357,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.4...0.12.0
 [0.11.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.3...0.11.4
 [0.11.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.2...0.11.3
