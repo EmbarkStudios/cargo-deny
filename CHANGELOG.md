@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#426](https://github.com/EmbarkStudios/cargo-deny/pull/426) fixed an oversight in [PR#422](https://github.com/EmbarkStudios/cargo-deny/pull/422), fully resolving [#412](https://github.com/EmbarkStudios/cargo-deny/issues/412) by allowing both `https` and `ssh` URLs for advisory databases. Thanks [@jbg](https://github.com/jbg)!
+
 ## [0.12.0] - 2022-05-17
 ### Removed
 - [PR#423](https://github.com/EmbarkStudios/cargo-deny/pull/423) removed the `fix` subcommand. This functionality was far too complicated for far too little benefit.
