@@ -130,14 +130,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         .with_labels(vec![Label::secondary(cfg_file, url.span.clone())]),
                 );
             }
-
-            if url.value.scheme() != "https" {
-                diags.push(
-                    Diagnostic::error()
-                        .with_message("advisory database url is not https")
-                        .with_labels(vec![Label::secondary(cfg_file, url.span.clone())]),
-                );
-            }
         }
 
         ValidConfig {
