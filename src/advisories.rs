@@ -49,6 +49,10 @@ pub fn check<R>(
             let mut yanked = Vec::new();
 
             for package in &lockfile.0.packages {
+                if package.source.as_ref().map(|s| !s.is_default_registry()).unwrap_or(true) {
+                    continue;
+                }
+
                 if let Some(krate) = index.crate_(package.name.as_str()) {
                     if krate
                         .versions()
