@@ -51,12 +51,7 @@ pub fn check<R>(
             for package in &lockfile.0.packages {
                 // Ignore non-registry crates when checking, as a crate sourced
                 // locally or via git can have the same name as a registry package
-                if package
-                    .source
-                    .as_ref()
-                    .map(|s| !s.is_registry())
-                    .unwrap_or(true)
-                {
+                if package.source.as_ref().map_or(true, |s| !s.is_registry()) {
                     continue;
                 }
 
