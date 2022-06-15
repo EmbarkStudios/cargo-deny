@@ -49,6 +49,12 @@ pub fn check<R>(
             let mut yanked = Vec::new();
 
             for package in &lockfile.0.packages {
+                // Ignore non-registry crates when checking, as a crate sourced
+                // locally or via git can have the same name as a registry package
+                if package.source.as_ref().map_or(true, |s| !s.is_registry()) {
+                    continue;
+                }
+
                 if let Some(krate) = index.crate_(package.name.as_str()) {
                     if krate
                         .versions()
