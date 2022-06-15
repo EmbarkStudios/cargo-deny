@@ -49,7 +49,14 @@ pub fn check<R>(
             let mut yanked = Vec::new();
 
             for package in &lockfile.0.packages {
-                if package.source.as_ref().map(|s| !s.is_default_registry()).unwrap_or(true) {
+                // Ignore non-registry crates when checking, as a crate sourced
+                // locally or via git can have the same name as a registry package
+                if package
+                    .source
+                    .as_ref()
+                    .map(|s| !s.is_registry())
+                    .unwrap_or(true)
+                {
                     continue;
                 }
 
