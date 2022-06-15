@@ -48,7 +48,7 @@ bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 cargo = { version = "0.61", optional = true }
 # Argument parsing
-clap = { version = "3.1", features = ["derive", "env"] }
+clap = { version = "3.2.1", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"

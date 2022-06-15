@@ -4,13 +4,13 @@ use cargo_deny::{diag::Files, licenses, Kid};
 use serde::Serialize;
 use std::path::PathBuf;
 
-#[derive(clap::ArgEnum, Copy, Clone, Debug)]
+#[derive(clap::ValueEnum, Copy, Clone, Debug)]
 pub enum Layout {
     Crate,
     License,
 }
 
-#[derive(clap::ArgEnum, Copy, Clone, Debug)]
+#[derive(clap::ValueEnum, Copy, Clone, Debug)]
 pub enum OutputFormat {
     Human,
     Json,
@@ -22,20 +22,20 @@ pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
-    #[clap(short, long, parse(from_os_str))]
+    #[clap(short, long, action)]
     config: Option<PathBuf>,
     /// Minimum confidence threshold for license text
     ///
     /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
     ///
     /// [possible values: 0.0 - 1.0]
-    #[clap(short, long, default_value = "0.8")]
+    #[clap(short, long, default_value = "0.8", action)]
     threshold: f32,
     /// The format of the output
-    #[clap(short, long, default_value = "human", arg_enum)]
+    #[clap(short, long, default_value = "human", value_enum, action)]
     format: OutputFormat,
     /// The layout for the output, does not apply to TSV
-    #[clap(short, long, default_value = "license", arg_enum)]
+    #[clap(short, long, default_value = "license", value_enum, action)]
     layout: Layout,
 }
 

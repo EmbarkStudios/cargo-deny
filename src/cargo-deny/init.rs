@@ -6,7 +6,7 @@ pub struct Args {
     /// The path to create
     ///
     /// Defaults to <cwd>/deny.toml
-    #[clap(parse(from_os_str))]
+    #[clap(action)]
     config: Option<PathBuf>,
 }
 

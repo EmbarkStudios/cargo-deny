@@ -5,7 +5,7 @@ use cargo_deny::{
 };
 use std::path::PathBuf;
 
-#[derive(clap::ArgEnum, Debug, PartialEq, Copy, Clone)]
+#[derive(clap::ValueEnum, Debug, PartialEq, Copy, Clone)]
 pub enum FetchSource {
     Db,
     Index,
@@ -17,10 +17,10 @@ pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to <cwd>/deny.toml if not specified
-    #[clap(short, long, parse(from_os_str))]
+    #[clap(short, long, action)]
     config: Option<PathBuf>,
     /// The sources to fetch
-    #[clap(arg_enum)]
+    #[clap(value_enum, action)]
     sources: Vec<FetchSource>,
 }
 

@@ -80,7 +80,7 @@
 #![allow(clippy::exit, clippy::single_match_else)]
 
 use anyhow::{bail, Context, Error};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 mod check;
@@ -106,58 +106,17 @@ enum Command {
     List(list::Args),
 }
 
-#[derive(Parser, Copy, Clone, Debug, PartialEq)]
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq)]
 pub enum Format {
     Human,
     Json,
 }
 
-impl Format {
-    fn variants() -> &'static [&'static str] {
-        &["human", "json"]
-    }
-}
-
-impl std::str::FromStr for Format {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lower = s.to_ascii_lowercase();
-
-        Ok(match lower.as_str() {
-            "human" => Self::Human,
-            "json" => Self::Json,
-            _ => bail!("unknown output format '{}' specified", s),
-        })
-    }
-}
-
-#[derive(Parser, Copy, Clone, Debug)]
+#[derive(ValueEnum, Copy, Clone, Debug)]
 pub enum Color {
     Auto,
     Always,
     Never,
-}
-
-impl Color {
-    fn variants() -> &'static [&'static str] {
-        &["auto", "always", "never"]
-    }
-}
-
-impl std::str::FromStr for Color {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lower = s.to_ascii_lowercase();
-
-        Ok(match lower.as_str() {
-            "auto" => Self::Auto,
-            "always" => Self::Always,
-            "never" => Self::Never,
-            _ => bail!("unknown color option '{}' specified", s),
-        })
-    }
 }
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
@@ -171,42 +130,42 @@ pub(crate) struct GraphContext {
     /// The path of a Cargo.toml to use as the context for the operation.
     ///
     /// By default, the Cargo.toml in the current working directory is used.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, action)]
     pub(crate) manifest_path: Option<PathBuf>,
     /// If passed, all workspace packages are used as roots for the crate graph.
     ///
     /// Automatically assumed if the manifest path points to a virtual manifest.
     ///
     /// Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) workspace: bool,
     /// One or more crates to exclude from the crate graph that is used.
     ///
     /// NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) exclude: Vec<String>,
     /// One or more platforms to filter crates by
     ///
     /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
-    #[clap(short, long)]
+    #[clap(short, long, action)]
     pub(crate) target: Vec<String>,
     /// Activate all available features
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) all_features: bool,
     /// Do not activate the `default` feature
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) no_default_features: bool,
     /// Space or comma separated list of features to activate
-    #[clap(long, use_value_delimiter = true)]
+    #[clap(long, use_value_delimiter = true, action)]
     pub(crate) features: Vec<String>,
     /// Require Cargo.lock and cache are up to date
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) frozen: bool,
     /// Require Cargo.lock is up to date
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) locked: bool,
     /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
-    #[clap(long)]
+    #[clap(long, action)]
     pub(crate) offline: bool,
 }
 
@@ -219,7 +178,7 @@ struct Opts {
         short = 'L',
         long = "log-level",
         default_value = "warn",
-        parse(try_from_str = parse_level),
+        value_parser = parse_level,
         long_help = "The log level for messages
 
 Only log messages at or above the level will be emitted.
@@ -234,9 +193,16 @@ Possible values:
 ")]
     log_level: log::LevelFilter,
     /// Specify the format of cargo-deny's output
-    #[clap(short, long, default_value = "human", possible_values = Format::variants())]
+    #[clap(short, long, default_value = "human", value_enum, action)]
     format: Format,
-    #[clap(short, long, default_value = "auto", possible_values = Color::variants(), env = "CARGO_TERM_COLOR")]
+    #[clap(
+        short,
+        long,
+        default_value = "auto",
+        value_enum,
+        env = "CARGO_TERM_COLOR",
+        action
+    )]
     color: Color,
     #[clap(flatten)]
     ctx: GraphContext,
