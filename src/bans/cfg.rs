@@ -91,6 +91,8 @@ pub struct Config {
     /// How to handle wildcard dependencies
     #[serde(default = "crate::lint_allow")]
     pub wildcards: LintLevel,
+    /// List of crates that are allowed to have a build step.
+    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
 }
 
 impl Default for Config {
@@ -103,6 +105,7 @@ impl Default for Config {
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
+            allow_build_scripts: None,
         }
     }
 }
@@ -183,6 +186,18 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 .into_iter()
                 .map(crate::Spanned::from)
                 .collect(),
+            allow_build_scripts: self.allow_build_scripts.map(|v| {
+                Spanned::new(
+                    v.value
+                        .into_iter()
+                        .map(|id| KrateId {
+                            name: id.name,
+                            version: id.version,
+                        })
+                        .collect(),
+                    v.span,
+                )
+            }),
         }
     }
 }
@@ -209,6 +224,7 @@ pub struct ValidConfig {
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
+    pub allow_build_scripts: Option<Spanned<Vec<KrateId>>>,
 }
 
 #[cfg(test)]
