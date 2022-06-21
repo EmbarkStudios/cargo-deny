@@ -1,5 +1,5 @@
 [bans]
 allow-build-scripts = [
-    # { name = "openssl-sys" },
-    # { name = "libc" },
+    { name = "openssl-sys" },
+    { name = "libc" },
 ]
