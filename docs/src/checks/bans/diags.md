@@ -43,3 +43,7 @@ A crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional) was n
 ### `B011` - skipping crate due to root skip
 
 A crate was skipped from being checked as a duplicate due to being transitively referenced by a crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional).
+
+### `B012` - crate has build script but is not allowed to have one
+
+A crate which has been denied because it has a build script but is not part of the [`bans.allow-build-script`](cfg.md#the-allow-build-scripts-field-optional) list.

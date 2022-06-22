@@ -73,3 +73,7 @@ When dealing with duplicate versions, it's often the case that a particular crat
 Note that by default, the `depth` is infinite.
 
 **NOTE:** `skip-tree` is a very big hammer at the moment, and should be used with care.
+
+### The `allow-build-scripts` field (optional)
+
+Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.
