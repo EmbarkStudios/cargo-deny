@@ -224,7 +224,6 @@ impl<'a> From<SkippedByRoot<'a>> for Diag {
 
 pub(crate) struct BuildScriptNotAllowed<'a> {
     pub(crate) krate: &'a Krate,
-    pub(crate) build_script_cfg: CfgCoord,
 }
 
 impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
@@ -234,11 +233,11 @@ impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
                 "crate '{}' has a build script but is not allowed to have one",
                 bs.krate
             ))
-            .with_labels(vec![bs
-                .build_script_cfg
-                .into_label()
-                .with_message("does not match any crate of this list")])
             .with_code("B012")
+            .with_notes(vec![
+                "the `bans.allow-build-scripts` field did not contain a match for the crate"
+                    .to_owned(),
+            ])
             .into()
     }
 }

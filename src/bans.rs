@@ -457,13 +457,7 @@ pub fn check(
                 });
 
                 if !allowed_build_script {
-                    pack.push(diags::BuildScriptNotAllowed {
-                        krate,
-                        build_script_cfg: CfgCoord {
-                            file: file_id,
-                            span: allow_build_scripts.span.clone(),
-                        },
-                    });
+                    pack.push(diags::BuildScriptNotAllowed { krate });
                 }
             }
         }
