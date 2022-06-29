@@ -1,0 +1,7 @@
+[package]
+name = "allow-build-script"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+openssl-sys = "0.9.74"

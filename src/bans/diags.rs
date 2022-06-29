@@ -221,3 +221,23 @@ impl<'a> From<SkippedByRoot<'a>> for Diag {
             .into()
     }
 }
+
+pub(crate) struct BuildScriptNotAllowed<'a> {
+    pub(crate) krate: &'a Krate,
+}
+
+impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
+    fn from(bs: BuildScriptNotAllowed<'a>) -> Self {
+        Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "crate '{}' has a build script but is not allowed to have one",
+                bs.krate
+            ))
+            .with_code("B012")
+            .with_notes(vec![
+                "the `bans.allow-build-scripts` field did not contain a match for the crate"
+                    .to_owned(),
+            ])
+            .into()
+    }
+}

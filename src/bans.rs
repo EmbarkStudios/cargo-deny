@@ -190,6 +190,7 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
+        allow_build_scripts,
     } = ctx.cfg;
 
     let krate_spans = &ctx.krate_spans;
@@ -440,6 +441,23 @@ pub fn check(
                         wildcards,
                         cargo_spans: &cargo_spans,
                     });
+                }
+            }
+        }
+
+        if let Some(allow_build_scripts) = &allow_build_scripts {
+            let has_build_script = krate
+                .targets
+                .iter()
+                .any(|t| t.kind.iter().any(|k| *k == "custom-build"));
+
+            if has_build_script {
+                let allowed_build_script = allow_build_scripts.value.iter().any(|id| {
+                    krate.name == id.name && crate::match_req(&krate.version, id.version.as_ref())
+                });
+
+                if !allowed_build_script {
+                    pack.push(diags::BuildScriptNotAllowed { krate });
                 }
             }
         }
