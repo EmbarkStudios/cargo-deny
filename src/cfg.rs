@@ -16,6 +16,7 @@ pub(crate) const START: &str = "$__toml_private_start";
 pub(crate) const END: &str = "$__toml_private_end";
 pub(crate) const VALUE: &str = "$__toml_private_value";
 
+#[derive(Default)]
 pub struct Spanned<T> {
     pub(crate) value: T,
     pub(crate) span: std::ops::Range<usize>,

@@ -335,6 +335,13 @@ pub(crate) fn cmd(
     let audit_compatible_output =
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;
 
+    let colorize = log_ctx.format == crate::Format::Human
+        && match log_ctx.color {
+            crate::Color::Auto => atty::is(atty::Stream::Stderr),
+            crate::Color::Always => true,
+            crate::Color::Never => false,
+        };
+
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
@@ -359,6 +366,7 @@ pub(crate) fn cmd(
                 krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
+                colorize,
             };
 
             s.spawn(move |_| {
@@ -409,6 +417,7 @@ pub(crate) fn cmd(
                 krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
+                colorize,
             };
 
             s.spawn(|_| {
@@ -429,6 +438,7 @@ pub(crate) fn cmd(
                 krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
+                colorize,
             };
 
             s.spawn(|_| {
@@ -447,6 +457,7 @@ pub(crate) fn cmd(
                 krates,
                 krate_spans: &krate_spans,
                 serialize_extra,
+                colorize,
             };
 
             s.spawn(move |_| {
