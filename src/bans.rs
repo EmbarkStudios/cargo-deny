@@ -174,7 +174,7 @@ fn get_enabled_features<'a>(
 
     // We don't care about dev dependencies for non-workspace crates
     if kind == krates::DepKind::Dev && !krates.workspace_members().any(|n| n.id == parent.id) {
-        todo!();
+        return None;
     }
 
     // This should never happen, but better than panicing!
@@ -209,7 +209,7 @@ fn get_enabled_features<'a>(
 
             feat_stack.extend(
                 feats
-                    .into_iter()
+                    .iter()
                     .filter_map(|s| (!s.starts_with("dep:")).then(|| s.as_str())),
             );
         }
