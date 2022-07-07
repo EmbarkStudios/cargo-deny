@@ -77,3 +77,21 @@ Note that by default, the `depth` is infinite.
 ### The `allow-build-scripts` field (optional)
 
 Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.
+
+### The `deny-features` field (optional)
+
+If any of the denied features for a specific crate is used in the dependency graph, cargo-deny will deny it.
+
+**Note:** If this field is provided, cargo-deny will not ban the crate, unless it uses denied features.
+
+### The `allow-features` field (optional)
+
+A specific crate can only use the features provided in this config entry. If this is an empty set, it will have no effect.
+
+**Note:** If this field is provided, cargo-deny will not ban the crate, unless it uses non-allowed features.
+
+### The `exact-features` field (optional)
+
+Makes `allow-features` strict. If this is true, the feature set of the crate must be exactly the same as the `allow-features` set.
+
+**Note:** If this field is provided, cargo-deny will not ban the crate, unless the feature set doesn't match exactly.
