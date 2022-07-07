@@ -529,7 +529,7 @@ pub fn check(
                                             span: af.span.clone(),
                                         })
                                         .collect(),
-                                    colorize: true,
+                                    colorize: ctx.colorize,
                                 });
 
                                 feature_set_allowed = false;
@@ -549,7 +549,7 @@ pub fn check(
                                     enabled_features: &enabled_features,
                                     parent: &parent.krate,
                                     dep_name: &dep.name,
-                                    colorize: true,
+                                    colorize: ctx.colorize,
                                 });
 
                                 feature_set_allowed = false;

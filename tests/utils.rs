@@ -76,6 +76,7 @@ pub fn gather_diagnostics<
                 krate_spans: &spans,
                 cfg,
                 serialize_extra: true,
+                colorize: false,
             };
             runner(ctx, newmap, ErrorSink::Channel(tx));
         },

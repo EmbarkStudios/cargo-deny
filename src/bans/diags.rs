@@ -308,12 +308,13 @@ impl From<FeaturesNotExplicitlyAllowed<'_>> for Diag {
         note.push('[');
         if fna.colorize {
             for enabled in fna.enabled_features {
+                use std::fmt::Write;
+
                 if fna.not_allowed.iter().any(|na| na == enabled) {
-                    note.push_str(&ansi_term::Color::Red.paint(*enabled));
+                    write!(&mut note, "{}, ", ansi_term::Color::Red.paint(*enabled)).unwrap();
                 } else {
-                    note.push_str(&ansi_term::Color::Green.paint(*enabled));
+                    write!(&mut note, "{}, ", ansi_term::Color::Green.paint(*enabled)).unwrap();
                 }
-                note.push_str(", ");
             }
         } else {
             for f in fna.enabled_features {
@@ -359,7 +360,8 @@ impl From<FeaturesExplicitlyDenied<'_>> for Diag {
         if fed.colorize {
             for enabled in fed.enabled_features {
                 if fed.found_denied.iter().any(|fd| fd.value == *enabled) {
-                    note.push_str(&ansi_term::Color::Red.paint(*enabled));
+                    use std::fmt::Write;
+                    write!(&mut note, "{}", ansi_term::Color::Red.paint(*enabled)).unwrap();
                 } else {
                     note.push_str(enabled);
                 }
