@@ -44,4 +44,7 @@ exceptions = [
         "Apache-2.0",
         "BSD-2-Clause",
     ], name = "crossbeam-queue" },
+    { allow = [
+        "Unicode-DFS-2016",
+    ], name = "unicode-ident" },
 ]
