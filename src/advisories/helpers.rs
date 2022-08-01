@@ -381,11 +381,8 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> Result<(), Error> {
             String::from_utf8(output.stdout)
                 .or_else(|_err| Ok("git command succeeded but gave non-utf8 output".to_owned()))
         } else {
-            String::from_utf8(output.stderr).or_else(|_err| {
-                Err(anyhow::anyhow!(
-                    "git command failed and gave non-utf8 output"
-                ))
-            })
+            String::from_utf8(output.stderr)
+                .map_err(|_err| anyhow::anyhow!("git command failed and gave non-utf8 output"))
         }
     }
 
@@ -604,14 +601,15 @@ where
         if !ssh_agent_attempts.is_empty() {
             let names = ssh_agent_attempts
                 .iter()
-                .map(|s| format!("`{}`", s))
+                .map(|s| format!("`{s}`"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            msg.push_str(&format!(
-                "\nattempted ssh-agent authentication, but \
-                 none of the usernames {} succeeded",
-                names
-            ));
+
+            use std::fmt::Write;
+            let _ = write!(
+                &mut msg,
+                "\nattempted ssh-agent authentication, but none of the usernames {names} succeeded",
+            );
         }
         if let Some(failed_cred_helper) = cred_helper_bad {
             if failed_cred_helper {
