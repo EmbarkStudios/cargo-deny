@@ -185,14 +185,15 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> Result<Database
 
     match fetch {
         Fetch::Allow => {
-            debug!("Fetching advisory database from '{}'", db_url);
-            fetch_via_git(db_url, &db_path)?;
+            debug!("Fetching advisory database from '{db_url}'");
+            fetch_via_git(db_url, &db_path)
+                .with_context(|| format!("failed to fetch advisory database {db_url}"))?;
         }
         Fetch::AllowWithGitCli => {
-            debug!("Fetching advisory database with git cli from '{}'", db_url);
+            debug!("Fetching advisory database with git cli from '{db_url}'");
 
             fetch_via_cli(db_url.as_str(), &db_path)
-                .context("failed to fetch advisory database with cli")?;
+                .with_context(|| format!("failed to fetch advisory database {db_url} with cli"))?;
         }
         Fetch::Disallow => {
             debug!("Opening advisory database at '{}'", db_path.display());
@@ -366,21 +367,53 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> Result<(), Error> {
         anyhow::bail!("invalid directory: {}", db_path.display());
     }
 
+    fn capture(mut cmd: Command) -> Result<String, Error> {
+        cmd.stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+
+        let output = cmd
+            .spawn()
+            .context("failed to spawn git")?
+            .wait_with_output()
+            .context("failed to wait on git output")?;
+
+        if output.status.success() {
+            String::from_utf8(output.stdout)
+                .or_else(|_err| Ok("git command succeeded but gave non-utf8 output".to_owned()))
+        } else {
+            String::from_utf8(output.stderr).or_else(|_err| {
+                Err(anyhow::anyhow!(
+                    "git command failed and gave non-utf8 output"
+                ))
+            })
+        }
+    }
+
     if db_path.exists() {
         // make sure db_path is clean
         let mut cmd = Command::new("git");
         cmd.arg("reset").arg("--hard").current_dir(db_path);
-        cmd.spawn()?.wait_with_output()?;
+
+        // We don't fail if we can't reset since it _may_ still be possible to
+        // clone
+        match capture(cmd) {
+            Ok(_reset) => log::debug!("reset {url}"),
+            Err(err) => log::error!("failed to reset {url}: {err}"),
+        }
 
         // pull latest changes
         let mut cmd = Command::new("git");
-        cmd.arg("pull").current_dir(db_path);
-        cmd.spawn()?.wait_with_output()?;
+        cmd.arg("pull").current_dir("/blah/nope");
+
+        capture(cmd).context("failed to pull latest changes")?;
+        log::debug!("pulled {url}");
     } else {
         // clone repository
         let mut cmd = Command::new("git");
         cmd.arg("clone").arg(url).arg(db_path);
-        cmd.spawn()?.wait_with_output()?;
+
+        capture(cmd).context("failed to clone")?;
+        log::debug!("cloned {url}");
     }
 
     Ok(())
