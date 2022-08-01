@@ -1,6 +1,5 @@
 const REPOS: &[&str] = &[
     "https://github.com/EmbarkStudios/cargo-about",
-    "https://github.com/bitshifter/glam-rs",
     "https://github.com/EmbarkStudios/physx-rs",
 ];
 
