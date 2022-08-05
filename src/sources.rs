@@ -71,7 +71,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
         } else if source.is_git() {
             // Ensure the git source has at least the minimum specification
             if let Some((min, cfg_coord)) = &min_git_spec {
-                pub use rustsec::package::source::GitReference;
+                pub use rustsec::package::GitReference;
 
                 let spec = source
                     .git_reference()

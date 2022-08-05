@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#431](https://github.com/EmbarkStudios/cargo-deny/pull/432) resolved [#19](https://github.com/EmbarkStudios/cargo-deny/issues/19) by adding support for an allow list for build scripts, allowing a project to opt in (or deny completely) build scripts on a case by case basis rather than blanket allowing all build scripts. See the [`bans.allow-build-scripts`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-allow-build-scripts-field-optional) config option for more details. Thanks [@Stupremee](https://github.com/Stupremee)!
+
+### Fixed
+- [PR#430](https://github.com/EmbarkStudios/cargo-deny/pull/430) fixed an issue where local/git crates could be flagged as "yanked" if they shared a name and version with a crates.io crate that was yanked from the registry, resolving [#441](https://github.com/EmbarkStudios/cargo-deny/issues/441) before it was even opened. Thanks [@khuey](https://github.com/khuey)!
+- [PR#440](https://github.com/EmbarkStudios/cargo-deny/pull/440) fixed [#438](https://github.com/EmbarkStudios/cargo-deny/issues/438) by ensuring git cli output was piped properly rather than polluting the output of cargo-deny itself.
+- [PR#443](https://github.com/EmbarkStudios/cargo-deny/pull/443) fixed [#442](https://github.com/EmbarkStudios/cargo-deny/issues/442) by removing the signature check on the HEAD commit an advisory databases. This check didn't add meaningful security and could cause spurious failures if an unsigned commit was pushed to an advisory database.
+
+### Changed
+- [PR#431](https://github.com/EmbarkStudios/cargo-deny/pull/431) updated clap to 3.2. Thanks [@epage](https://github.com/epage)!
+
 ## [0.12.1] - 2022-05-19
 ### Fixed
 - [PR#426](https://github.com/EmbarkStudios/cargo-deny/pull/426) fixed an oversight in [PR#422](https://github.com/EmbarkStudios/cargo-deny/pull/422), fully resolving [#412](https://github.com/EmbarkStudios/cargo-deny/issues/412) by allowing both `https` and `ssh` URLs for advisory databases. Thanks [@jbg](https://github.com/jbg)!
