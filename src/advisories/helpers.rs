@@ -305,7 +305,6 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
         .target()
         .with_context(|| format!("no ref target for '{}'", db_path.display()))?;
 
-    let commit_id = oid.to_string();
     let commit_object = repo.find_object(oid, Some(git2::ObjectType::Commit))?;
     let commit = commit_object
         .as_commit()
@@ -313,22 +312,6 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
 
     // Reset the state of the repository to the latest commit
     repo.reset(&commit_object, git2::ResetType::Hard, None)?;
-
-    let author = commit.author().to_string();
-
-    let summary = commit
-        .summary()
-        .with_context(|| format!("no commit summary for {}", commit_id))?;
-
-    // Commits to the official rustsec database should always be signed, but we
-    // may have to relax this requirement for non-official/private databases
-    // TODO: verify signatures against GitHub's public key
-    repo.extract_signature(&oid, None).with_context(|| {
-        format!(
-            "no signature on commit {}: {} ({})",
-            commit_id, summary, author,
-        )
-    })?;
 
     let timestamp = time::OffsetDateTime::from_unix_timestamp(commit.time().seconds())
         .context("commit timestamp is invalid")?;
