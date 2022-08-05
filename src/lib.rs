@@ -94,7 +94,7 @@ pub mod sources;
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid, Utf8PathBuf};
-pub use rustsec::package::source::SourceId;
+pub use rustsec::package::SourceId;
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)

@@ -28,7 +28,11 @@ path = "src/cargo-deny/main.rs"
 default = ["vendored-openssl"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
-vendored-openssl = ["cargo?/vendored-openssl", "crates-index/vendored-openssl", "git2/vendored-openssl"]
+vendored-openssl = [
+  "cargo?/vendored-openssl",
+  "crates-index/vendored-openssl",
+  "git2/vendored-openssl",
+]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
 # to still function
@@ -46,7 +50,7 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.61", optional = true }
+cargo = { version = "0.63", optional = true }
 # Argument parsing
 clap = { version = "3.2.1", features = ["derive", "env"] }
 # Used for diagnostic reporting
@@ -65,20 +69,20 @@ git2 = "0.14"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.10", features = ["targets"] }
+krates = { version = "0.11", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Moar brrrr
 rayon = "1.4"
 # Used for interacting with advisory databases
-rustsec = { version = "0.25", default-features = false }
+rustsec = { version = "0.26", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
-smallvec = "1.6"
+smallvec = "1.9"
 # Used for parsing and checking SPDX license expressions
 spdx = "0.8"
 # Timestamp emission

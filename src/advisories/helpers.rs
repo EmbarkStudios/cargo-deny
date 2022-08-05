@@ -1,7 +1,7 @@
 use crate::{Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
-pub use rustsec::{advisory::Id, lockfile::Lockfile, Database, Vulnerability};
+pub use rustsec::{advisory::Id, Database, Lockfile, Vulnerability};
 use std::path::{Path, PathBuf};
 use url::Url;
 
@@ -659,7 +659,7 @@ pub(crate) fn krate_for_pkg<'a>(
         .map(|(ind, krate)| (ind, &krate.krate))
 }
 
-pub use rustsec::warning::{Kind, Warning};
+pub use rustsec::{Warning, WarningKind};
 
 pub struct Report {
     pub vulnerabilities: Vec<Vulnerability>,
@@ -685,7 +685,6 @@ impl Report {
             // any here
             target_arch: None,
             target_os: None,
-            package_scope: None,
             // We handle the severity ourselves
             severity: None,
             // We handle the ignoring of particular advisory ids ourselves
@@ -728,9 +727,9 @@ impl Report {
                 }
 
                 match kind {
-                    Kind::Notice => notices.append(&mut wi),
-                    Kind::Unmaintained => unmaintained.append(&mut wi),
-                    Kind::Unsound => unsound.append(&mut wi),
+                    WarningKind::Notice => notices.append(&mut wi),
+                    WarningKind::Unmaintained => unmaintained.append(&mut wi),
+                    WarningKind::Unsound => unsound.append(&mut wi),
                     _ => unreachable!(),
                 }
             }
@@ -745,12 +744,16 @@ impl Report {
         }
     }
 
-    pub fn iter_warnings(&self) -> impl Iterator<Item = (Kind, &Warning)> {
+    pub fn iter_warnings(&self) -> impl Iterator<Item = (WarningKind, &Warning)> {
         self.notices
             .iter()
-            .map(|wi| (Kind::Notice, wi))
-            .chain(self.unmaintained.iter().map(|wi| (Kind::Unmaintained, wi)))
-            .chain(self.unsound.iter().map(|wi| (Kind::Unsound, wi)))
+            .map(|wi| (WarningKind::Notice, wi))
+            .chain(
+                self.unmaintained
+                    .iter()
+                    .map(|wi| (WarningKind::Unmaintained, wi)),
+            )
+            .chain(self.unsound.iter().map(|wi| (WarningKind::Unsound, wi)))
     }
 }
 
