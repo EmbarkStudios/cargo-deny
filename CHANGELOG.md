@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.12.2] - 2022-08-05
 ### Added
 - [PR#431](https://github.com/EmbarkStudios/cargo-deny/pull/432) resolved [#19](https://github.com/EmbarkStudios/cargo-deny/issues/19) by adding support for an allow list for build scripts, allowing a project to opt in (or deny completely) build scripts on a case by case basis rather than blanket allowing all build scripts. See the [`bans.allow-build-scripts`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-allow-build-scripts-field-optional) config option for more details. Thanks [@Stupremee](https://github.com/Stupremee)!
 
@@ -368,7 +369,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.2...HEAD
+[0.12.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.4...0.12.0
 [0.11.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.3...0.11.4
