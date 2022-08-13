@@ -481,6 +481,7 @@ pub fn check(
                 file: file_id,
                 span: skip.span,
             },
+            skipped_krate: &skip.value,
         });
     }
 
