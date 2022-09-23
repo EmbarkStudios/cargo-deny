@@ -102,12 +102,18 @@ pub(crate) fn create_graph(
         let tid = krates.nid_for_kid(pid).context("unable to find crate")?;
         for incoming in krates.graph().edges_directed(tid, pg::Direction::Incoming) {
             let parent = &krates[incoming.source()];
+            let kind = if let krates::Edge::Dep { kind, .. } = incoming.weight() {
+                *kind
+            } else {
+                continue;
+            };
+
             if let Some(pindex) = node_map.get(&parent.id) {
-                graph.update_edge(*pindex, target, incoming.weight().kind);
+                graph.update_edge(*pindex, target, kind);
             } else {
                 let pindex = graph.add_node(&parent.id);
 
-                graph.update_edge(pindex, target, incoming.weight().kind);
+                graph.update_edge(pindex, target, kind);
 
                 node_map.insert(&parent.id, pindex);
                 node_stack.push(&parent.id);
@@ -235,9 +241,9 @@ pub(crate) fn create_graph(
             use std::fmt::Write;
 
             for (i, (name, ids)) in dupe_nodes.iter().enumerate() {
-                writeln!(output, "{}subgraph cluster_{} {{", INDENT, i)?;
+                writeln!(output, "{INDENT}subgraph cluster_{i} {{")?;
 
-                write!(output, "{}{}{{rank=same ", INDENT, INDENT)?;
+                write!(output, "{0}{0}{{rank=same ", INDENT)?;
 
                 for nid in ids {
                     write!(output, "{} ", nid.index())?;
@@ -245,14 +251,10 @@ pub(crate) fn create_graph(
 
                 writeln!(
                     output,
-                    "}}\n{}{}style=\"rounded{}\";\n{}{}label=\"{}\"\n{}}}",
-                    INDENT,
+                    "}}\n{0}{0}style=\"rounded{1}\";\n{0}{0}label=\"{2}\"\n{0}}}",
                     INDENT,
                     if name == &dup_name { ",filled" } else { "" },
-                    INDENT,
-                    INDENT,
                     name,
-                    INDENT
                 )?;
             }
 
@@ -279,7 +281,7 @@ where
 
     // output all nodes
     for node in graph.node_references() {
-        write!(output, "{}{}", INDENT, graph.to_index(node.id()))?;
+        write!(output, "{INDENT}{}", graph.to_index(node.id()))?;
 
         let attrs = node_print(node);
 
@@ -292,41 +294,30 @@ where
         write!(output, " [")?;
 
         if let Some(label) = attrs.label {
-            write!(output, "label=\"{}\"", label)?;
+            write!(output, "label=\"{label}\"")?;
             append = true;
         }
 
         if let Some(shape) = attrs.shape {
-            write!(
-                output,
-                "{}shape={:?}",
-                if append { ", " } else { "" },
-                shape
-            )?;
+            write!(output, "{}shape={shape:?}", if append { ", " } else { "" },)?;
             append = true;
         }
 
         if let Some(style) = attrs.style {
-            write!(
-                output,
-                "{}style={:?}",
-                if append { ", " } else { "" },
-                style
-            )?;
+            write!(output, "{}style={style:?}", if append { ", " } else { "" },)?;
             append = true;
         }
 
         if let Some(color) = attrs.color {
-            write!(output, "{}color={}", if append { ", " } else { "" }, color)?;
+            write!(output, "{}color={color}", if append { ", " } else { "" })?;
             append = true;
         }
 
         if let Some(color) = attrs.fill_color {
             write!(
                 output,
-                "{}fillcolor={}",
+                "{}fillcolor={color}",
                 if append { ", " } else { "" },
-                color
             )?;
         }
 
@@ -337,8 +328,7 @@ where
     for edge in graph.edge_references() {
         write!(
             output,
-            "{}{} -> {}",
-            INDENT,
+            "{INDENT}{} -> {}",
             graph.to_index(edge.source()),
             graph.to_index(edge.target()),
         )?;
@@ -350,12 +340,12 @@ where
         let mut append = false;
 
         if let Some(label) = attrs.label {
-            write!(output, "label=\"{}\"", label)?;
+            write!(output, "label=\"{label}\"")?;
             append = true;
         }
 
         if let Some(color) = attrs.color {
-            write!(output, "{}color={}", if append { ", " } else { "" }, color)?;
+            write!(output, "{}color={color}", if append { ", " } else { "" })?;
             //append = true;
         }
 

@@ -100,3 +100,6 @@ url = "2.1"
 [dev-dependencies]
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
+
+[patch.crates-io]
+krates = { path = "../krates" }

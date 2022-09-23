@@ -390,8 +390,8 @@ impl<'a, 'b> OutputLock<'a, 'b> {
                 }
 
                 if let Some(grapher) = &cfg.grapher {
-                    for kid in diag.kids {
-                        if let Ok(graph) = grapher.write_graph(&kid) {
+                    for gn in diag.graph_nodes {
+                        if let Ok(graph) = grapher.write_graph(&gn, diag.with_features) {
                             diag.diag.notes.push(graph);
                         }
                     }

@@ -485,9 +485,7 @@ impl Gatherer {
         summary.nfos = krates
             .krates()
             .par_bridge()
-            .map(|kn| {
-                let krate = &kn.krate;
-
+            .map(|krate| {
                 // Attempt an SPDX expression that we can validate the user's acceptable
                 // license terms with
                 let mut synth_id = None;

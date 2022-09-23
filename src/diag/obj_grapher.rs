@@ -6,14 +6,25 @@ use std::collections::HashSet;
 
 #[derive(serde::Serialize)]
 pub struct GraphNode {
-    name: String,
-    version: semver::Version,
-    #[serde(skip_serializing_if = "is_normal")]
-    kind: &'static str,
+    #[serde(flatten)]
+    inner: NodeInner,
     #[serde(skip_serializing_if = "is_false")]
     repeat: bool,
     #[serde(skip_serializing_if = "is_empty")]
     parents: Vec<GraphNode>,
+}
+
+#[derive(serde::Serialize)]
+pub enum NodeInner {
+    Krate {
+        name: String,
+        version: semver::Version,
+        #[serde(skip_serializing_if = "is_normal")]
+        kind: &'static str,
+    },
+    Feature {
+        name: String,
+    },
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -30,7 +41,7 @@ fn is_empty(v: &Vec<GraphNode>) -> bool {
     v.is_empty()
 }
 
-/// As with the textgrapher, only crates inclusion graphs, but in the form of
+/// As with the textgrapher, only emits inclusion graphs, but in the form of
 /// a serializable object rather than a text string
 pub struct ObjectGrapher<'a> {
     krates: &'a Krates,
@@ -41,73 +52,108 @@ impl<'a> ObjectGrapher<'a> {
         Self { krates }
     }
 
-    pub fn write_graph(&self, id: &Kid) -> Result<GraphNode, Error> {
+    pub fn write_graph(
+        &self,
+        id: &super::GraphNode,
+        add_features: bool,
+    ) -> Result<GraphNode, Error> {
         let mut visited = HashSet::new();
 
-        let node_id = self.krates.nid_for_kid(id).context("unable to find node")?;
-        let krate = &self.krates[node_id];
+        let (node_id, _node) = self
+            .krates
+            .get_node(&id.kid, id.feature.as_deref())
+            .context("unable to find node")?;
 
         let np = NodePrint {
-            krate,
-            id: node_id,
-            kind: "",
+            node: node_id,
+            edge: None,
         };
 
-        self.write_parent(np, &mut visited)
+        self.write_parent(np, add_features, &mut visited)
+    }
+
+    fn make_node(&self, np: NodePrint) -> NodeInner {
+        match &self.krates.graph()[np.node] {
+            krates::Node::Krate { krate, .. } => {
+                let kind = np
+                    .edge
+                    .map(|eid| match self.krates.graph()[eid] {
+                        krates::Edge::Dep { kind, .. } => match kind {
+                            DepKind::Normal => "",
+                            DepKind::Dev => "dev",
+                            DepKind::Build => "build",
+                        },
+                        krates::Edge::Feature => "feature",
+                    })
+                    .unwrap_or("");
+
+                NodeInner::Krate {
+                    name: krate.name.clone(),
+                    version: krate.version.clone(),
+                    kind,
+                }
+            }
+            krates::Node::Feature { name, .. } => NodeInner::Feature { name: name.clone() },
+        }
     }
 
     fn write_parent(
         &self,
-        np: NodePrint<'a>,
+        np: NodePrint,
+        add_features: bool,
         visited: &mut HashSet<krates::NodeId>,
     ) -> Result<GraphNode, Error> {
         use pg::visit::EdgeRef;
 
-        let repeat = !visited.insert(np.id);
-
-        let mut node = GraphNode {
-            name: np.krate.name.clone(),
-            version: np.krate.version.clone(),
-            kind: np.kind,
-            repeat,
-            parents: Vec::new(),
-        };
-
-        if repeat {
-            return Ok(node);
-        }
-
-        let mut parents = smallvec::SmallVec::<[NodePrint<'a>; 10]>::new();
-        let graph = self.krates.graph();
-        for edge in graph.edges_directed(np.id, pg::Direction::Incoming) {
-            let parent_id = edge.source();
-            let parent = &graph[parent_id];
-
-            let kind = match edge.weight().kind {
-                DepKind::Normal => "",
-                DepKind::Dev => "dev",
-                DepKind::Build => "build",
-            };
-
-            parents.push(NodePrint {
-                krate: &parent.krate,
-                id: parent_id,
-                kind,
+        if !visited.insert(np.node) {
+            return Ok(GraphNode {
+                inner: self.make_node(np),
+                repeat: true,
+                parents: Vec::new(),
             });
         }
 
-        if !parents.is_empty() {
-            // Resolve uses Hash data types internally but we want consistent output ordering
-            parents.sort_by_key(|n| &n.krate.id);
-            node.parents.reserve(parents.len());
+        let mut node_parents = smallvec::SmallVec::<[NodePrint; 10]>::new();
+        let graph = self.krates.graph();
+        for edge in graph.edges_directed(np.node, pg::Direction::Incoming) {
+            let parent_id = edge.source();
 
-            for parent in parents {
-                let pnode = self.write_parent(parent, visited)?;
-                node.parents.push(pnode);
+            if let krates::Edge::Feature = edge.weight() {
+                if !add_features {
+                    continue;
+                }
             }
+
+            node_parents.push(NodePrint {
+                node: parent_id,
+                edge: Some(edge.id()),
+            });
         }
 
-        Ok(node)
+        let parents = if !node_parents.is_empty() {
+            // Resolve uses Hash data types internally but we want consistent output ordering
+            // node_parents.sort_by(|a, b| {
+
+            //     &n.krate.id
+            // });
+
+            let mut parents = Vec::with_capacity(node_parents.len());
+
+            for parent in node_parents {
+                let pnode = self.write_parent(parent, add_features, visited)?;
+                parents.push(pnode);
+            }
+
+            parents
+        } else {
+            Vec::new()
+        };
+
+        Ok(GraphNode {
+            inner: self.make_node(np),
+            repeat: false,
+            parents,
+        })
     }
 }
 
@@ -184,8 +230,8 @@ pub fn diag_to_json(
 
     if let Some(grapher) = &grapher {
         let mut graphs = Vec::new();
-        for kid in diag.kids {
-            if let Ok(graph) = grapher.write_graph(&kid) {
+        for gn in diag.graph_nodes {
+            if let Ok(graph) = grapher.write_graph(&gn, diag.with_features) {
                 if let Ok(sgraph) = serde_json::value::to_value(graph) {
                     graphs.push(sgraph);
                 }

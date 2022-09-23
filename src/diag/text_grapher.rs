@@ -3,6 +3,7 @@ use crate::{DepKind, Kid, Krates};
 use anyhow::{Context, Error};
 use krates::petgraph as pg;
 use std::collections::HashSet;
+use std::fmt::Write;
 
 /// Simplified copy of what cargo tree does to display dependency graphs.
 /// In our case, we only care about the inverted form, ie, not what the
@@ -22,103 +23,113 @@ impl<'a> TextGrapher<'a> {
         Self { krates }
     }
 
-    pub fn write_graph(&self, id: &Kid) -> Result<String, Error> {
+    pub fn write_graph(&self, id: &super::GraphNode, add_features: bool) -> Result<String, Error> {
         let mut out = String::with_capacity(1024);
         let mut levels = Vec::new();
         let mut visited = HashSet::new();
 
-        let node_id = self.krates.nid_for_kid(id).context("unable to find node")?;
-        let krate = &self.krates[node_id];
+        let (node_id, _node) = self
+            .krates
+            .get_node(&id.kid, id.feature.as_deref())
+            .context("unable to find node")?;
 
         let np = NodePrint {
-            krate,
-            id: node_id,
-            kind: "",
+            node: node_id,
+            edge: None,
         };
 
-        self.write_parent(np, &mut out, &mut visited, &mut levels)?;
+        self.write_parent(&np, add_features, &mut out, &mut visited, &mut levels)?;
 
         Ok(out)
     }
 
-    #[allow(clippy::ptr_arg)]
-    fn write_parent(
-        &self,
-        np: NodePrint<'a>,
-        out: &mut String,
-        visited: &mut HashSet<krates::NodeId>,
-        levels_continue: &mut Vec<bool>,
-    ) -> Result<(), Error> {
-        use pg::visit::EdgeRef;
-        use std::fmt::Write;
+    #[inline]
+    fn write_node(&self, np: &NodePrint, star: &str, out: &mut String) -> Result<(), Error> {
+        match &self.krates.graph()[np.node] {
+            krates::Node::Krate { krate, .. } => {
+                let kind = np
+                    .edge
+                    .map(|eid| match self.krates.graph()[eid] {
+                        krates::Edge::Dep { kind, .. } => match kind {
+                            DepKind::Normal => "",
+                            DepKind::Dev => "dev",
+                            DepKind::Build => "build",
+                        },
+                        krates::Edge::Feature => "",
+                    })
+                    .unwrap_or("");
 
-        let new = visited.insert(np.id);
-        let star = if new { "" } else { " (*)" };
-
-        if let Some((&last_continues, rest)) = levels_continue.split_last() {
-            for &continues in rest {
-                let c = if continues { DWN } else { ' ' };
-                write!(out, "{}   ", c)?;
+                match kind {
+                    "" => writeln!(out, "{} v{}{star}", krate.name, krate.version),
+                    kind => writeln!(out, "({kind}) {} v{}{star}", krate.name, krate.version),
+                }?;
             }
-
-            let c = if last_continues { TEE } else { ELL };
-            write!(out, "{0}{1}{1} ", c, RGT)?;
-        }
-
-        match np.kind {
-            "" => writeln!(out, "{} v{}{}", np.krate.name, np.krate.version, star),
-            kind => writeln!(
-                out,
-                "({}) {} v{}{}",
-                kind, np.krate.name, np.krate.version, star
-            ),
-        }?;
-
-        if !new {
-            return Ok(());
-        }
-
-        let mut parents = smallvec::SmallVec::<[NodePrint<'a>; 10]>::new();
-        let graph = self.krates.graph();
-        for edge in graph.edges_directed(np.id, pg::Direction::Incoming) {
-            let parent_id = edge.source();
-            let parent = &graph[parent_id];
-
-            let kind = match edge.weight().kind {
-                DepKind::Normal => "",
-                DepKind::Dev => "dev",
-                DepKind::Build => "build",
-            };
-
-            parents.push(NodePrint {
-                krate: &parent.krate,
-                id: parent_id,
-                kind,
-            });
-        }
-
-        if !parents.is_empty() {
-            // Resolve uses Hash data types internally but we want consistent output ordering
-            parents.sort_by_key(|n| &n.krate.id);
-            self.write_parents(parents, out, visited, levels_continue)?;
+            krates::Node::Feature { name, .. } => {
+                writeln!(out, "feature {name} {star}")?;
+            }
         }
 
         Ok(())
     }
 
-    fn write_parents(
+    #[allow(clippy::ptr_arg)]
+    fn write_parent(
         &self,
-        parents: smallvec::SmallVec<[NodePrint<'a>; 10]>,
+        np: &NodePrint,
+        add_features: bool,
         out: &mut String,
         visited: &mut HashSet<krates::NodeId>,
         levels_continue: &mut Vec<bool>,
     ) -> Result<(), Error> {
-        let cont = parents.len() - 1;
+        use pg::visit::EdgeRef;
 
-        for (i, parent) in parents.into_iter().enumerate() {
-            levels_continue.push(i < cont);
-            self.write_parent(parent, out, visited, levels_continue)?;
-            levels_continue.pop();
+        let new = visited.insert(np.node);
+        let star = if new { "" } else { " (*)" };
+
+        if let Some((&last_continues, rest)) = levels_continue.split_last() {
+            for &continues in rest {
+                let c = if continues { DWN } else { ' ' };
+                write!(out, "{c}   ")?;
+            }
+
+            let c = if last_continues { TEE } else { ELL };
+            write!(out, "{c}{0}{0} ", RGT)?;
+        }
+
+        self.write_node(np, star, out)?;
+
+        if !new {
+            return Ok(());
+        }
+
+        let mut parents = smallvec::SmallVec::<[NodePrint; 10]>::new();
+        let graph = self.krates.graph();
+        for edge in graph.edges_directed(np.node, pg::Direction::Incoming) {
+            let parent_id = edge.source();
+
+            if let krates::Edge::Feature = edge.weight() {
+                if !add_features {
+                    continue;
+                }
+            }
+
+            parents.push(NodePrint {
+                node: parent_id,
+                edge: Some(edge.id()),
+            });
+        }
+
+        if !parents.is_empty() {
+            // Resolve uses Hash data types internally but we want consistent output ordering
+            //parents.sort_by_key(|n| &n.krate.id);
+
+            let cont = parents.len() - 1;
+
+            for (i, parent) in parents.into_iter().enumerate() {
+                levels_continue.push(i < cont);
+                self.write_parent(&parent, add_features, out, visited, levels_continue)?;
+                levels_continue.pop();
+            }
         }
 
         Ok(())

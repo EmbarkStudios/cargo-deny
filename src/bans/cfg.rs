@@ -18,6 +18,21 @@ pub struct CrateId {
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[serde(deny_unknown_fields)]
+pub struct FeatureBans {
+    /// All features that are allowed to be used.
+    #[serde(default)]
+    pub allow: Spanned<Vec<Spanned<String>>>,
+    /// All features that are denied.
+    #[serde(default)]
+    pub deny: Vec<Spanned<String>>,
+    /// The actual feature set has to exactly match the `allow` set.
+    #[serde(default)]
+    pub exact: Spanned<bool>,
+}
+
+#[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateBan {
     pub name: Spanned<String>,
@@ -26,15 +41,8 @@ pub struct CrateBan {
     /// direct dependency
     #[serde(default)]
     pub wrappers: Vec<Spanned<String>>,
-    /// All features that are allowed to be used.
     #[serde(default)]
-    pub allow_features: Spanned<Vec<Spanned<String>>>,
-    /// All features that are denied.
-    #[serde(default)]
-    pub deny_features: Spanned<Vec<Spanned<String>>>,
-    /// The actual feature set has to match the `allow_features` sets.
-    #[serde(default)]
-    pub exact_features: Spanned<bool>,
+    pub features: Option<FeatureBans>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -145,44 +153,63 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     cb.name.span,
                 ),
                 wrappers: cb.wrappers,
-                allow_features: cb.allow_features,
-                deny_features: cb.deny_features,
-                exact_features: cb.exact_features,
+                features: cb.features,
             })
             .collect();
 
         let allowed: Vec<_> = self.allow.into_iter().map(from).collect();
         let skipped: Vec<_> = self.skip.into_iter().map(from).collect();
 
-        let mut add_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| {
-            diags.push(
-                Diagnostic::error()
-                    .with_message(format!(
-                        "a crate was specified in both `{}` and `{}`",
-                        second.1, first.1
-                    ))
-                    .with_labels(vec![
-                        Label::secondary(cfg_file, first.0.span.clone())
-                            .with_message(format!("marked as `{}`", first.1)),
-                        Label::secondary(cfg_file, second.0.span.clone())
-                            .with_message(format!("marked as `{}`", second.1)),
-                    ]),
-            );
+        let dupe_crate_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| -> Diagnostic {
+            Diagnostic::error()
+                .with_message(format!(
+                    "a crate was specified in both `{}` and `{}`",
+                    second.1, first.1
+                ))
+                .with_labels(vec![
+                    Label::secondary(cfg_file, first.0.span.clone())
+                        .with_message(format!("marked as `{}`", first.1)),
+                    Label::secondary(cfg_file, second.0.span.clone())
+                        .with_message(format!("marked as `{}`", second.1)),
+                ])
+        };
+
+        let dupe_feature_diag = |krate: &Skrate,
+                                 allow: &Spanned<String>,
+                                 deny: &Spanned<String>|
+         -> Diagnostic {
+            Diagnostic::error()
+                .with_message("a crate feature was specified as both allowed and denied")
+                .with_labels(vec![
+                    Label::primary(cfg_file, krate.span.clone()).with_message("crate ban entry"),
+                    Label::secondary(cfg_file, allow.span.clone())
+                        .with_message("marked as `allow`"),
+                    Label::secondary(cfg_file, deny.span.clone()).with_message("marked as `deny`"),
+                ])
         };
 
         for d in &denied {
             if let Some(dupe) = exact_match(&allowed, &d.id.value) {
-                add_diag((&d.id, "deny"), (dupe, "allow"));
+                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "allow")));
             }
 
             if let Some(dupe) = exact_match(&skipped, &d.id.value) {
-                add_diag((&d.id, "deny"), (dupe, "skip"));
+                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "skip")));
+            }
+
+            // Ensure that a feature isn't both allowed and denied
+            if let Some(fb) = &d.features {
+                for allowed in &fb.allow.value {
+                    if let Some(denied) = fb.deny.iter().find(|df| df.value == allowed.value) {
+                        diags.push(dupe_feature_diag(&d.id, allowed, denied));
+                    }
+                }
             }
         }
 
         for all in &allowed {
             if let Some(dupe) = exact_match(&skipped, &all.value) {
-                add_diag((all, "allow"), (dupe, "skip"));
+                diags.push(dupe_crate_diag((all, "allow"), (dupe, "skip")));
             }
         }
 
@@ -226,9 +253,7 @@ pub(crate) type Skrate = Spanned<KrateId>;
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
-    pub allow_features: Spanned<Vec<Spanned<String>>>,
-    pub deny_features: Spanned<Vec<Spanned<String>>>,
-    pub exact_features: Spanned<bool>,
+    pub features: Option<FeatureBans>,
 }
 
 pub struct ValidConfig {

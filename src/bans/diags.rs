@@ -1,6 +1,8 @@
 use crate::{
-    diag::{CfgCoord, Check, Diag, Diagnostic, FileId, KrateCoord, Label, Pack, Severity},
-    Krate,
+    diag::{
+        CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
+    },
+    Krate, Spanned,
 };
 
 pub(crate) struct ExplicitlyBanned<'a> {
@@ -255,29 +257,27 @@ impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
 pub(crate) struct ExactFeaturesMismatch<'a> {
     pub(crate) missing_allowed: Vec<CfgCoord>,
     pub(crate) not_allowed: &'a [&'a str],
-    pub(crate) parent: &'a Krate,
-    pub(crate) dep_name: &'a str,
     pub(crate) exact_coord: CfgCoord,
+    pub(crate) krate: &'a Krate,
 }
 
 impl From<ExactFeaturesMismatch<'_>> for Diag {
     fn from(efm: ExactFeaturesMismatch<'_>) -> Self {
-        let mut labels: Vec<_> = efm
-            .missing_allowed
-            .into_iter()
-            .map(|ma| ma.into_label().with_message("allowed feature not present"))
-            .collect();
+        let mut labels = vec![efm
+            .exact_coord
+            .into_label()
+            .with_message("exact enabled here")];
 
-        labels.push(
-            efm.exact_coord
-                .into_label()
-                .with_message("exact-features declared here"),
+        labels.extend(
+            efm.missing_allowed
+                .into_iter()
+                .map(|ma| ma.into_label().with_message("allowed feature not present")),
         );
 
-        Diagnostic::new(Severity::Error)
+        let diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
-                "feature set declared by '{}' for '{}' did not match exactly",
-                efm.parent, efm.dep_name
+                "feature set for crate '{}' did not match exactly",
+                efm.krate
             ))
             .with_code("B013")
             .with_labels(labels)
@@ -287,128 +287,124 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
                     .map(|na| format!("'{}' feature was enabled but not explicitly allowed", na))
                     .collect(),
             )
-            .into()
+            .into();
+
+        let graph_nodes = if efm.not_allowed.is_empty() {
+            vec![GraphNode {
+                kid: efm.krate.id.clone(),
+                feature: None,
+            }]
+        } else {
+            efm.not_allowed
+                .iter()
+                .map(|feat| GraphNode {
+                    kid: efm.krate.id.clone(),
+                    feature: Some(feat.to_string()),
+                })
+                .collect()
+        };
+
+        Diag {
+            diag,
+            graph_nodes: graph_nodes.into(),
+            extra: None,
+            with_features: true,
+        }
     }
 }
 
-pub(crate) struct FeaturesNotExplicitlyAllowed<'a> {
-    pub(crate) not_allowed: &'a [&'a str],
-    pub(crate) allowed: Vec<CfgCoord>,
-    pub(crate) enabled_features: &'a [&'a str],
-    pub(crate) parent: &'a Krate,
-    pub(crate) dep_name: &'a str,
-    pub(crate) colorize: bool,
+pub(crate) struct FeatureNotExplicitlyAllowed<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a str,
+    pub(crate) allowed: CfgCoord,
 }
 
-impl From<FeaturesNotExplicitlyAllowed<'_>> for Diag {
-    fn from(fna: FeaturesNotExplicitlyAllowed<'_>) -> Diag {
-        let mut note = String::with_capacity(100);
-        note.push_str("Enabled features: ");
-
-        note.push('[');
-        if fna.colorize {
-            for enabled in fna.enabled_features {
-                use std::fmt::Write;
-
-                if fna.not_allowed.iter().any(|na| na == enabled) {
-                    write!(&mut note, "{}, ", ansi_term::Color::Red.paint(*enabled)).unwrap();
-                } else {
-                    write!(&mut note, "{}, ", ansi_term::Color::Green.paint(*enabled)).unwrap();
-                }
-            }
-        } else {
-            for f in fna.enabled_features {
-                note.push_str(f);
-                note.push_str(", ");
-            }
-        }
-        note.truncate(note.len() - 2);
-        note.push(']');
-
-        Diagnostic::new(Severity::Error)
+impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
+    fn from(fna: FeatureNotExplicitlyAllowed<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
-                "features declared by '{}' for '{}' were not explicitly allowed",
-                fna.parent, fna.dep_name
+                "feature '{}' for crate '{}' was not explicitly allowed",
+                fna.feature, fna.krate,
             ))
             .with_code("B014")
-            .with_labels(
-                fna.allowed
-                    .into_iter()
-                    .map(|cc| cc.into_label().with_message("feature allowed here"))
-                    .collect(),
-            )
-            .with_notes(vec![note])
-            .into()
+            .with_labels(vec![fna
+                .allowed
+                .into_label()
+                .with_message("allowed features")])
+            .into();
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: fna.krate.id.clone(),
+                feature: Some(fna.feature.to_owned()),
+            })
+            .collect(),
+            extra: None,
+            with_features: true,
+        }
     }
 }
 
-pub(crate) struct FeaturesExplicitlyDenied<'a> {
-    pub(crate) cfg_file_id: FileId,
-    pub(crate) found_denied: Vec<&'a crate::cfg::Spanned<String>>,
-    pub(crate) enabled_features: &'a [&'a str],
-    pub(crate) parent: &'a Krate,
-    pub(crate) dep_name: &'a str,
-    pub(crate) colorize: bool,
+pub(crate) struct FeatureExplicitlyDenied<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
 }
 
-impl From<FeaturesExplicitlyDenied<'_>> for Diag {
-    fn from(fed: FeaturesExplicitlyDenied<'_>) -> Diag {
-        let mut note = String::with_capacity(100);
-        note.push_str("Enabled features: ");
-
-        note.push('[');
-        if fed.colorize {
-            for enabled in fed.enabled_features {
-                if fed.found_denied.iter().any(|fd| fd.value == *enabled) {
-                    use std::fmt::Write;
-                    write!(&mut note, "{}", ansi_term::Color::Red.paint(*enabled)).unwrap();
-                } else {
-                    note.push_str(enabled);
-                }
-                note.push_str(", ");
-            }
-        } else {
-            for f in fed.enabled_features {
-                note.push_str(f);
-                note.push_str(", ");
-            }
-        }
-        note.truncate(note.len() - 2);
-        note.push(']');
-
-        Diagnostic::new(Severity::Error)
+impl From<FeatureExplicitlyDenied<'_>> for Diag {
+    fn from(fed: FeatureExplicitlyDenied<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
-                "features declared by '{}' for '{}' were explicitly denied",
-                fed.parent, fed.dep_name
+                "feature '{}' for crate '{}' is explicitly denied",
+                fed.feature.value, fed.krate,
             ))
             .with_code("B015")
-            .with_labels(
-                fed.found_denied
-                    .into_iter()
-                    .map(|fd| {
-                        Label::primary(fed.cfg_file_id, fd.span.clone())
-                            .with_message("feature denied here")
-                    })
-                    .collect(),
-            )
-            .with_notes(vec![note])
-            .into()
+            .with_labels(vec![Label::primary(fed.file_id, fed.feature.span.clone())
+                .with_message("feature denied here")])
+            .into();
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: fed.krate.id.clone(),
+                feature: Some(fed.feature.value.clone()),
+            })
+            .collect(),
+            extra: None,
+            with_features: true,
+        }
     }
 }
 
-pub(crate) struct UnableToGetDefaultFeatures<'a> {
-    pub(crate) parent_krate: &'a Krate,
-    pub(crate) dep: &'a krates::cm::Dependency,
+pub(crate) struct UnknownFeature<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
 }
 
-impl From<UnableToGetDefaultFeatures<'_>> for Diag {
-    fn from(udf: UnableToGetDefaultFeatures<'_>) -> Diag {
-        Diagnostic::new(Severity::Warning)
+impl From<UnknownFeature<'_>> for Diag {
+    fn from(uf: UnknownFeature<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Warning)
             .with_message(format!(
-                "unable to get default features for '{}' used by '{}'",
-                udf.dep.name, udf.parent_krate,
+                "found unknown feature '{}' for crate '{}'",
+                uf.feature.value, uf.krate,
             ))
             .with_code("B016")
-            .into()
+            .with_labels(vec![
+                Label::primary(uf.file_id, uf.feature.span.clone()).with_message("unknown feature")
+            ])
+            .into();
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: uf.krate.id.clone(),
+                feature: None,
+            })
+            .collect(),
+            extra: None,
+            with_features: false,
+        }
     }
 }
