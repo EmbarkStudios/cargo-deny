@@ -1,0 +1,31 @@
+[package]
+name = "features"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+    "brotli",
+    "rustls-tls",
+] }
+rgb = { version = "0.8.25", optional = true }
+serde = { version = "1.0.133", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+git = { package = "git2", version = "0.15", default-features = false }
+
+[build-dependencies]
+reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+    "cookies",
+] }
+
+[features]
+default = ["simple"]
+blocking = ["simple", "reqest?/blocking"]
+json = ["reqest?/json"]
+multipart = ["reqest?/multipart"]
+simple = ["json"]
+serde = ["dep:serde", "rgb?/serde"]
+stream = ["reqest?/stream"]
+zlib = ["git/zlib-ng-compat", "reqest?/deflate"]
+ssh = ["git/ssh", "git/ssh_key_from_memory"]
