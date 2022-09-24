@@ -23,8 +23,8 @@ use crate::{
     LintLevel,
 };
 use cfg::BlanketAgreement;
-pub use gather::{Gatherer, LicenseInfo, LicenseStore};
-use gather::{KrateLicense, LicenseExprInfo, LicenseExprSource, Summary};
+pub use gather::{Gatherer, LicenseExprSource, LicenseInfo, LicenseStore};
+use gather::{KrateLicense, LicenseExprInfo, Summary};
 
 pub use cfg::{Config, ValidConfig};
 

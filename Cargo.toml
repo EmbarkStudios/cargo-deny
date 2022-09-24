@@ -74,6 +74,8 @@ krates = { version = "0.11", features = ["targets"] }
 log = "0.4"
 # Moar brrrr
 rayon = "1.4"
+# Download license text for sdpx expressions in `cargo deny dist`
+reqwest = "0.11.12"
 # Used for interacting with advisory databases
 rustsec = { version = "0.26", default-features = false }
 # Parsing and checking of versions/version requirements
@@ -90,6 +92,8 @@ time = { version = "0.3", default-features = false, features = [
   "formatting",
   "macros",
 ] }
+# Execute futures, such as the ones given by reqwest
+tokio = { version = "1.21.1", features = ["rt"] }
 # Deserialization of configuration files and crate manifests
 toml = "0.5"
 # Small fast hash crate

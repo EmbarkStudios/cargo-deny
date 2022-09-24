@@ -85,6 +85,7 @@ use std::path::PathBuf;
 
 mod check;
 mod common;
+mod dist;
 mod fetch;
 mod init;
 mod list;
@@ -104,6 +105,9 @@ enum Command {
     /// Outputs a listing of all licenses and the crates that use them
     #[clap(name = "list")]
     List(list::Args),
+    /// Prepares license files from your cargo dependencies for redistribution
+    #[clap(name = "dist")]
+    Dist(dist::Args),
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq)]
@@ -402,6 +406,7 @@ fn real_main() -> Result<(), Error> {
         Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
         Command::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
+        Command::Dist(cargs) => dist::cmd(log_ctx, cargs, krate_ctx),
     }
 }
 
