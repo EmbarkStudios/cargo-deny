@@ -12,6 +12,9 @@ ammonia = "=0.7.0"
 # Transitively depends on an ammonia 1.2.0
 artifact_serde = "0.3.1"
 
+# Dirs had an advisory added for it that was then withdrawn
+dirs = "4.0"
+
 # Failure has an unsound advisory (and is unmaintained)
 failure = "=0.1.8"
 
