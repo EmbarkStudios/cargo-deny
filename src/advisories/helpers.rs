@@ -714,7 +714,7 @@ impl Report {
                 match serde_json::to_value(&rep) {
                     Ok(val) => serialized_reports.push(val),
                     Err(err) => {
-                        log::error!("Failed to serialize report for database '{}': {}", url, err);
+                        log::error!("Failed to serialize report for database '{url}': {err}");
                     }
                 }
             }

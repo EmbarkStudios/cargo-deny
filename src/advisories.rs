@@ -115,8 +115,14 @@ pub fn check<R>(
                     }
                 }
 
+                let is_withdrawn = advisory.withdrawn.is_some();
+
                 let diag = ctx.diag_for_advisory(krate, i, advisory, versions, |index| {
                     ignore_hits.as_mut_bitslice().set(index, true);
+
+                    if is_withdrawn {
+                        sink.push(ctx.diag_for_withdrawn_and_ignored_advisory(index));
+                    }
                 });
 
                 sink.push(diag);
@@ -124,8 +130,7 @@ pub fn check<R>(
             None => {
                 unreachable!(
                     "the advisory database report contained an advisory
-                    that somehow matched a crate we don't know about:\n{:#?}",
-                    advisory
+                    that somehow matched a crate we don't know about:\n{advisory:#?}"
                 );
             }
         };
@@ -151,8 +156,7 @@ pub fn check<R>(
                         sink.push(ctx.diag_for_yanked(krate, ind));
                     }
                     None => unreachable!(
-                        "the advisory database warned about yanked crate that we don't have: {:#?}",
-                        pkg
+                        "the advisory database warned about yanked crate that we don't have: {pkg:#?}"
                     ),
                 };
             }
