@@ -11,7 +11,7 @@ use anyhow::Error;
 use semver::VersionReq;
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
 pub struct KrateId {
     pub(crate) name: String,

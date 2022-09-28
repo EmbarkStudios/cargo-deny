@@ -129,8 +129,6 @@ pub fn check<R>(
             }
         };
 
-    dbg!(&report.unmaintained);
-
     // Emit diagnostics for any vulnerabilities that were found
     for vuln in &report.vulnerabilities {
         send_diag(&vuln.package, &vuln.advisory, Some(&vuln.versions));

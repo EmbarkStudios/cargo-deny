@@ -64,36 +64,33 @@ pub struct KrateContext {
 
 impl KrateContext {
     pub fn get_config_path(&self, config_path: Option<PathBuf>) -> Option<PathBuf> {
-        match config_path {
-            Some(cp) => {
-                if cp.is_absolute() {
-                    Some(cp)
-                } else {
-                    Some(self.manifest_path.parent().unwrap().join(cp))
-                }
+        if let Some(cp) = config_path {
+            if cp.is_absolute() {
+                Some(cp)
+            } else {
+                Some(self.manifest_path.parent().unwrap().join(cp))
             }
-            None => {
-                let mut p = self.manifest_path.parent();
+        } else {
+            let mut p = self.manifest_path.parent();
 
-                while let Some(parent) = p {
-                    let mut config_path = parent.join("deny.toml");
+            while let Some(parent) = p {
+                let mut config_path = parent.join("deny.toml");
 
-                    if config_path.exists() {
-                        return Some(config_path);
-                    }
-
-                    config_path.pop();
-                    config_path.push(".deny.toml");
-
-                    if config_path.exists() {
-                        return Some(config_path);
-                    }
-
-                    p = parent.parent();
+                if config_path.exists() {
+                    return Some(config_path);
                 }
 
-                None
+                config_path.pop();
+                config_path.push(".deny.toml");
+
+                if config_path.exists() {
+                    return Some(config_path);
+                }
+
+                p = parent.parent();
             }
+
+            None
         }
     }
 
@@ -137,27 +134,24 @@ impl KrateContext {
                     .chain(cfg_excludes)
                     .filter_map(|spec| match spec.parse() {
                         Ok(spec) => Some(spec),
-                        Err(e) => {
-                            log::warn!("invalid pkg spec '{}': {}", spec, e);
+                        Err(err) => {
+                            log::warn!("invalid pkg spec '{spec}': {err}");
                             None
                         }
                     }),
             );
         }
 
-        let graph =
-            gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
-                match filtered.source {
-                    Some(src) => {
-                        if src.is_crates_io() {
-                            log::debug!("filtered {} {}", filtered.name, filtered.version);
-                        } else {
-                            log::debug!("filtered {} {} {}", filtered.name, filtered.version, src);
-                        }
-                    }
-                    None => log::debug!("filtered {} {}", filtered.name, filtered.version),
-                }
-            });
+        let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
+            let name = filtered.name;
+            let vers = filtered.version;
+
+            if let Some(src) = filtered.source.filter(|src| !src.is_crates_io()) {
+                log::debug!("filtered {name} {vers} {src}");
+            } else {
+                log::debug!("filtered {name} {vers}");
+            }
+        });
 
         if let Ok(ref krates) = graph {
             let end = std::time::Instant::now();

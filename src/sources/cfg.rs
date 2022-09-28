@@ -17,7 +17,7 @@ pub struct Orgs {
 
 /// The types of specifiers that can be used on git sources by cargo, in order
 /// of their specificity from least to greatest
-#[derive(Deserialize, PartialEq, Debug, PartialOrd, Clone, Copy)]
+#[derive(Deserialize, PartialEq, Eq, Debug, PartialOrd, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GitSpec {
     /// Specifies the HEAD of the `master` branch, though eventually this might
@@ -179,7 +179,7 @@ impl cfg::UnvalidatedConfig for Config {
 
 pub type UrlSpan = Spanned<url::Url>;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct UrlSource {
     pub url: UrlSpan,
     pub exact: bool,

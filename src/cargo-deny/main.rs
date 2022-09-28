@@ -1,83 +1,4 @@
-// BEGIN - Embark standard lints v5 for Rust 1.55+
-// do not change or add/remove here, but one can add exceptions after this section
-// for more info see: <https://github.com/EmbarkStudios/rust-ecosystem/issues/59>
-#![deny(unsafe_code)]
-#![warn(
-    clippy::all,
-    clippy::await_holding_lock,
-    clippy::char_lit_as_u8,
-    clippy::checked_conversions,
-    clippy::dbg_macro,
-    clippy::debug_assert_with_mut_call,
-    clippy::doc_markdown,
-    clippy::empty_enum,
-    clippy::enum_glob_use,
-    clippy::exit,
-    clippy::expl_impl_clone_on_copy,
-    clippy::explicit_deref_methods,
-    clippy::explicit_into_iter_loop,
-    clippy::fallible_impl_from,
-    clippy::filter_map_next,
-    clippy::flat_map_option,
-    clippy::float_cmp_const,
-    clippy::fn_params_excessive_bools,
-    clippy::from_iter_instead_of_collect,
-    clippy::if_let_mutex,
-    clippy::implicit_clone,
-    clippy::imprecise_flops,
-    clippy::inefficient_to_string,
-    clippy::invalid_upcast_comparisons,
-    clippy::large_digit_groups,
-    clippy::large_stack_arrays,
-    clippy::large_types_passed_by_value,
-    clippy::let_unit_value,
-    clippy::linkedlist,
-    clippy::lossy_float_literal,
-    clippy::macro_use_imports,
-    clippy::manual_ok_or,
-    clippy::map_err_ignore,
-    clippy::map_flatten,
-    clippy::map_unwrap_or,
-    clippy::match_on_vec_items,
-    clippy::match_same_arms,
-    clippy::match_wild_err_arm,
-    clippy::match_wildcard_for_single_variants,
-    clippy::mem_forget,
-    clippy::mismatched_target_os,
-    clippy::missing_enforced_import_renames,
-    clippy::mut_mut,
-    clippy::mutex_integer,
-    clippy::needless_borrow,
-    clippy::needless_continue,
-    clippy::needless_for_each,
-    clippy::option_option,
-    clippy::path_buf_push_overwrite,
-    clippy::ptr_as_ptr,
-    clippy::rc_mutex,
-    clippy::ref_option_ref,
-    clippy::rest_pat_in_fully_bound_structs,
-    clippy::same_functions_in_if_condition,
-    clippy::semicolon_if_nothing_returned,
-    clippy::single_match_else,
-    clippy::string_add_assign,
-    clippy::string_add,
-    clippy::string_lit_as_bytes,
-    clippy::string_to_string,
-    clippy::todo,
-    clippy::trait_duplication_in_bounds,
-    clippy::unimplemented,
-    clippy::unnested_or_patterns,
-    clippy::unused_self,
-    clippy::useless_transmute,
-    clippy::verbose_file_reads,
-    clippy::zero_sized_map_values,
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms
-)]
-// END - Embark standard lints v0.5 for Rust 1.55+
-// crate-specific exceptions:
-#![allow(clippy::exit, clippy::single_match_else)]
+#![allow(clippy::exit)]
 
 use anyhow::{bail, Context, Error};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -106,7 +27,7 @@ enum Command {
     List(list::Args),
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq)]
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Format {
     Human,
     Json,
@@ -317,36 +238,35 @@ fn real_main() -> Result<(), Error> {
 
     setup_logger(log_level, args.format, color)?;
 
-    let manifest_path = match args.ctx.manifest_path {
-        Some(mpath) => mpath,
-        None => {
-            // For now, use the context path provided by the user, but
-            // we've deprected it and it will go away at some point
-            let cwd =
-                std::env::current_dir().context("unable to determine current working directory")?;
+    let manifest_path = if let Some(mpath) = args.ctx.manifest_path {
+        mpath
+    } else {
+        // For now, use the context path provided by the user, but
+        // we've deprected it and it will go away at some point
+        let cwd =
+            std::env::current_dir().context("unable to determine current working directory")?;
 
-            if !cwd.exists() {
-                bail!("current working directory {} was not found", cwd.display());
-            }
-
-            if !cwd.is_dir() {
-                bail!(
-                    "current working directory {} is not a directory",
-                    cwd.display()
-                );
-            }
-
-            let man_path = cwd.join("Cargo.toml");
-
-            if !man_path.exists() {
-                bail!(
-                    "the directory {} doesn't contain a Cargo.toml file",
-                    cwd.display()
-                );
-            }
-
-            man_path
+        if !cwd.exists() {
+            bail!("current working directory {} was not found", cwd.display());
         }
+
+        if !cwd.is_dir() {
+            bail!(
+                "current working directory {} is not a directory",
+                cwd.display()
+            );
+        }
+
+        let man_path = cwd.join("Cargo.toml");
+
+        if !man_path.exists() {
+            bail!(
+                "the directory {} doesn't contain a Cargo.toml file",
+                cwd.display()
+            );
+        }
+
+        man_path
     };
 
     if manifest_path.file_name() != Some(std::ffi::OsStr::new("Cargo.toml"))

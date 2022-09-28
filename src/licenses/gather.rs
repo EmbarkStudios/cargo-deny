@@ -200,8 +200,8 @@ impl LicensePack {
         let mut lic_count = 0;
 
         let mut synth_toml = String::new();
-        if let Some(ref err) = self.err {
-            write!(synth_toml, "license-files = \"{}\"", err).unwrap();
+        if let Some(err) = &self.err {
+            write!(synth_toml, "license-files = \"{err}\"").unwrap();
             let len = synth_toml.len();
             return Err((
                 synth_toml,
@@ -230,72 +230,57 @@ impl LicensePack {
                     let text = askalono::TextData::new(&data.content);
                     match strat.scan(&text) {
                         Ok(lic_match) => {
-                            match lic_match.license {
-                                Some(identified) => {
-                                    // askalano doesn't report any matches below the confidence threshold
-                                    // but we want to see what it thinks the license is if the confidence
-                                    // is somewhat ok at least
-                                    if lic_match.score >= confidence {
-                                        match spdx::license_id(identified.name) {
-                                            Some(id) => {
-                                                if lic_count > 0 {
-                                                    expr.push_str(" AND ");
-                                                }
-
-                                                expr.push_str(id.name);
-                                                lic_count += 1;
-                                            }
-                                            None => {
-                                                write!(
-                                                    synth_toml,
-                                                    "score = {:.2}",
-                                                    lic_match.score
-                                                )
-                                                .unwrap();
-                                                let start = synth_toml.len();
-                                                write!(
-                                                    synth_toml,
-                                                    ", license = \"{}\"",
-                                                    identified.name
-                                                )
-                                                .unwrap();
-                                                let end = synth_toml.len();
-
-                                                fails.push(
-                                                    Label::secondary(file, start + 13..end - 1)
-                                                        .with_message("unknown SPDX identifier"),
-                                                );
-                                            }
+                            if let Some(identified) = lic_match.license {
+                                // askalano doesn't report any matches below the confidence threshold
+                                // but we want to see what it thinks the license is if the confidence
+                                // is somewhat ok at least
+                                if lic_match.score >= confidence {
+                                    if let Some(id) = spdx::license_id(identified.name) {
+                                        if lic_count > 0 {
+                                            expr.push_str(" AND ");
                                         }
+
+                                        expr.push_str(id.name);
+                                        lic_count += 1;
                                     } else {
-                                        let start = synth_toml.len();
                                         write!(synth_toml, "score = {:.2}", lic_match.score)
                                             .unwrap();
-                                        let end = synth_toml.len();
+                                        let start = synth_toml.len();
                                         write!(synth_toml, ", license = \"{}\"", identified.name)
                                             .unwrap();
+                                        let end = synth_toml.len();
 
                                         fails.push(
-                                            Label::secondary(file, start + 8..end)
-                                                .with_message("low confidence in the license text"),
+                                            Label::secondary(file, start + 13..end - 1)
+                                                .with_message("unknown SPDX identifier"),
                                         );
                                     }
-                                }
-                                None => {
-                                    // If the license can't be matched with high enough confidence
+                                } else {
                                     let start = synth_toml.len();
                                     write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
                                     let end = synth_toml.len();
+                                    write!(synth_toml, ", license = \"{}\"", identified.name)
+                                        .unwrap();
 
                                     fails.push(
                                         Label::secondary(file, start + 8..end)
                                             .with_message("low confidence in the license text"),
                                     );
                                 }
+                            } else {
+                                // If the license can't be matched with high enough confidence
+                                let start = synth_toml.len();
+                                write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
+                                let end = synth_toml.len();
+
+                                fails.push(
+                                    Label::secondary(file, start + 8..end)
+                                        .with_message("low confidence in the license text"),
+                                );
                             }
                         }
-                        Err(e) => {
-                            panic!("askalono's elimination strategy failed (this used to be impossible): {}", e);
+                        Err(err) => {
+                            panic!("askalono's elimination strategy failed (this used to be impossible): {err}");
                         }
                     }
                 }
@@ -510,29 +495,26 @@ impl Gatherer {
                 let mut labels = smallvec::SmallVec::<[Label; 1]>::new();
 
                 let mut get_span = |key: &'static str| -> (FileId, std::ops::Range<usize>) {
-                    match synth_id {
-                        Some(id) => {
-                            let l = files_lock.read().unwrap();
-                            (synth_id.unwrap(), get_toml_span(key, l.source(id)))
-                        }
-                        None => {
-                            // Synthesize a minimal Cargo.toml for reporting diagnostics
-                            // for where we retrieved license stuff
-                            let synth_manifest = format!(
-                                "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
-                                krate.name,
-                                krate.version,
-                                krate.license.as_deref().unwrap_or_default(),
-                            );
+                    if let Some(id) = synth_id {
+                        let l = files_lock.read().unwrap();
+                        (synth_id.unwrap(), get_toml_span(key, l.source(id)))
+                    } else {
+                        // Synthesize a minimal Cargo.toml for reporting diagnostics
+                        // for where we retrieved license stuff
+                        let synth_manifest = format!(
+                            "[package]\nname = \"{}\"\nversion = \"{}\"\nlicense = \"{}\"\n",
+                            krate.name,
+                            krate.version,
+                            krate.license.as_deref().unwrap_or_default(),
+                        );
 
-                            {
-                                let mut fl = files_lock.write().unwrap();
-                                synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
-                                (
-                                    synth_id.unwrap(),
-                                    get_toml_span(key, fl.source(synth_id.unwrap())),
-                                )
-                            }
+                        {
+                            let mut fl = files_lock.write().unwrap();
+                            synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
+                            (
+                                synth_id.unwrap(),
+                                get_toml_span(key, fl.source(synth_id.unwrap())),
+                            )
                         }
                     }
                 };
@@ -542,12 +524,11 @@ impl Gatherer {
                 // 1
                 if let Some(cfg) = cfg {
                     for clarification in iter_clarifications(&cfg.clarifications, krate) {
-                        let lp = match license_pack {
-                            Some(ref lp) => lp,
-                            None => {
-                                license_pack = Some(LicensePack::read(krate));
-                                license_pack.as_ref().unwrap()
-                            }
+                        let lp = if let Some(lp) = &license_pack {
+                            lp
+                        } else {
+                            license_pack = Some(LicensePack::read(krate));
+                            license_pack.as_ref().unwrap()
                         };
 
                         // Check to see if the clarification provided exactly matches
@@ -655,12 +636,7 @@ impl Gatherer {
                                 let (new_source, offset) = {
                                     let source = fl.source(id);
                                     (
-                                        format!(
-                                            "{}files-expr = \"{}\"\n{}\n",
-                                            source,
-                                            expr.as_ref(),
-                                            new_toml
-                                        ),
+                                        format!("{source}files-expr = \"{expr}\"\n{new_toml}\n"),
                                         (source.len() + 14),
                                     )
                                 };

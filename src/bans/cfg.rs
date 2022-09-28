@@ -7,7 +7,7 @@ use semver::VersionReq;
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CrateId {
     // The name of the crate
@@ -17,7 +17,7 @@ pub struct CrateId {
 }
 
 #[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CrateBan {
     pub name: Spanned<String>,
@@ -29,7 +29,7 @@ pub struct CrateBan {
 }
 
 #[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct TreeSkip {
     #[serde(flatten)]
