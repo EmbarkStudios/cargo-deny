@@ -98,15 +98,6 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
 
         let mut notes = get_notes_from_advisory(advisory);
 
-        // Advisories can be withdrawn, ie soft deleted, in which case we always
-        // set the severity to Help ie Allow, as if the user had specifically ignored it
-        let severity = if let Some(date) = &advisory.withdrawn {
-            notes.push(format!("Advisory withdrawn on {date}"));
-            Severity::Help
-        } else {
-            severity
-        };
-
         if let Some(versions) = versions {
             if versions.patched().is_empty() {
                 notes.push("Solution: No safe upgrade is available!".to_owned());
@@ -249,20 +240,5 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         );
 
         pack
-    }
-
-    pub(crate) fn diag_for_withdrawn_and_ignored_advisory(&self, ignore_index: usize) -> Pack {
-        (
-            Check::Advisories,
-            Diagnostic::new(Severity::Warning)
-                .with_message("ignored advisory has been withdrawn")
-                .with_code("A010")
-                .with_labels(vec![Label::primary(
-                    self.cfg.file_id,
-                    self.cfg.ignore[ignore_index].span.clone(),
-                )
-                .with_message("withdrawn advisory ignored here")]),
-        )
-            .into()
     }
 }
