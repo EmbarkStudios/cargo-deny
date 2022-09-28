@@ -1,4 +1,5 @@
 use crate::{
+    bans::KrateId,
     diag::{CfgCoord, Check, Diag, Diagnostic, KrateCoord, Label, Pack, Severity},
     Krate,
 };
@@ -126,14 +127,24 @@ impl<'a> From<Wildcards<'a>> for Pack {
     }
 }
 
-pub(crate) struct UnmatchedSkip {
+pub(crate) struct UnmatchedSkip<'a> {
     pub(crate) skip_cfg: CfgCoord,
+    pub(crate) skipped_krate: &'a KrateId,
 }
 
-impl From<UnmatchedSkip> for Diag {
-    fn from(us: UnmatchedSkip) -> Self {
+impl<'a> From<UnmatchedSkip<'a>> for Diag {
+    fn from(us: UnmatchedSkip<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message("skipped crate was not encountered")
+            .with_message(match &us.skipped_krate.version {
+                Some(version) => format!(
+                    "skipped crate '{} = {}' was not encountered",
+                    us.skipped_krate.name, version
+                ),
+                None => format!(
+                    "skipped crate '{}' was not encountered",
+                    us.skipped_krate.name
+                ),
+            })
             .with_code("B007")
             .with_labels(vec![us
                 .skip_cfg
