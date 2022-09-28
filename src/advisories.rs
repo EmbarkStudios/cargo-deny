@@ -124,8 +124,7 @@ pub fn check<R>(
             None => {
                 unreachable!(
                     "the advisory database report contained an advisory
-                    that somehow matched a crate we don't know about:\n{:#?}",
-                    advisory
+                    that somehow matched a crate we don't know about:\n{advisory:#?}"
                 );
             }
         };
@@ -151,8 +150,7 @@ pub fn check<R>(
                         sink.push(ctx.diag_for_yanked(krate, ind));
                     }
                     None => unreachable!(
-                        "the advisory database warned about yanked crate that we don't have: {:#?}",
-                        pkg
+                        "the advisory database warned about yanked crate that we don't have: {pkg:#?}"
                     ),
                 };
             }

@@ -34,19 +34,18 @@ impl DbSet {
             Some(root) => {
                 let user_root = root.as_ref();
                 if user_root.starts_with("~") {
-                    match home::home_dir() {
-                        Some(home) => home.join(user_root.strip_prefix("~").unwrap()),
-                        None => {
-                            log::warn!(
-                                "unable to resolve path '{}', falling back to the default advisory path",
-                                user_root.display()
-                            );
+                    if let Some(home) = home::home_dir() {
+                        home.join(user_root.strip_prefix("~").unwrap())
+                    } else {
+                        log::warn!(
+                            "unable to resolve path '{}', falling back to the default advisory path",
+                            user_root.display()
+                        );
 
-                            // This would only succeed of CARGO_HOME was explicitly set
-                            home::cargo_home()
-                                .context("failed to resolve CARGO_HOME")?
-                                .join("advisory-dbs")
-                        }
+                        // This would only succeed of CARGO_HOME was explicitly set
+                        home::cargo_home()
+                            .context("failed to resolve CARGO_HOME")?
+                            .join("advisory-dbs")
                     }
                 } else {
                     user_root.to_owned()
@@ -714,7 +713,7 @@ impl Report {
                 match serde_json::to_value(&rep) {
                     Ok(val) => serialized_reports.push(val),
                     Err(err) => {
-                        log::error!("Failed to serialize report for database '{}': {}", url, err);
+                        log::error!("Failed to serialize report for database '{url}': {err}");
                     }
                 }
             }

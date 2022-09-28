@@ -9,7 +9,7 @@ use log::error;
 use serde::Deserialize;
 use std::{path::PathBuf, time::Instant};
 
-#[derive(clap::ValueEnum, Debug, PartialEq, Copy, Clone)]
+#[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum WhichCheck {
     Advisories,
     Ban,

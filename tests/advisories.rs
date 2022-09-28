@@ -299,8 +299,50 @@ fn detects_yanked() {
                     && field_eq!(v, "/fields/message", "detected yanked crate")
                     && field_eq!(v, "/fields/labels/0/span", yanked)
             }),
-            "failed to find yanked diagnostic for '{}'",
-            yanked
+            "failed to find yanked diagnostic for '{yanked}'"
         );
     }
+}
+
+#[test]
+fn warns_on_ignored_and_withdrawn() {
+    let TestCtx { dbs, lock, krates } = load();
+
+    let cfg = "yanked = 'deny'
+    unmaintained = 'deny'
+    vulnerability = 'deny'
+
+    ignore = ['RUSTSEC-2020-0053']
+    ";
+
+    let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
+        krates,
+        "warns_on_ignored_and_withdrawn",
+        Some(cfg),
+        None,
+        |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                lock,
+                Option::<advisories::NoneReporter>::None,
+                tx,
+            );
+        },
+    )
+    .unwrap();
+
+    assert!(
+        diags.iter().any(|v| {
+            field_eq!(v, "/fields/severity", "warning")
+                && field_eq!(v, "/fields/message", "advisory was not encountered")
+                && field_eq!(
+                    v,
+                    "/fields/labels/0/message",
+                    "no crate matched advisory criteria"
+                )
+                && field_eq!(v, "/fields/labels/0/span", "'RUSTSEC-2020-0053'")
+        }),
+        "failed to find ignored and withdrawn diagnostic for 'dirs'"
+    );
 }

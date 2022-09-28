@@ -107,7 +107,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
         };
 
         // check if the source URL is list of allowed sources
-        match ctx.cfg.allowed_sources.iter().position(|src| {
+        if let Some(ind) = ctx.cfg.allowed_sources.iter().position(|src| {
             if src.exact {
                 src.url == source_url
             } else {
@@ -115,58 +115,55 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
                     && source_url.path().starts_with(src.url.value.path())
             }
         }) {
-            Some(ind) => {
-                // Show the location of the config that allowed this source, unless
-                // it's crates.io since that will be a vast majority of crates and
-                // is the default, so we might not have a real source location anyways
-                if source_url.as_str() != CRATES_IO_URL {
-                    pack.push(diags::ExplicitlyAllowedSource {
-                        src_label: &source_label,
-                        type_name,
-                        allow_cfg: CfgCoord {
-                            file: ctx.cfg.file_id,
-                            span: ctx.cfg.allowed_sources[ind].url.span.clone(),
-                        },
-                    });
-                }
-
-                source_hits.as_mut_bitslice().set(ind, true);
+            // Show the location of the config that allowed this source, unless
+            // it's crates.io since that will be a vast majority of crates and
+            // is the default, so we might not have a real source location anyways
+            if source_url.as_str() != CRATES_IO_URL {
+                pack.push(diags::ExplicitlyAllowedSource {
+                    src_label: &source_label,
+                    type_name,
+                    allow_cfg: CfgCoord {
+                        file: ctx.cfg.file_id,
+                        span: ctx.cfg.allowed_sources[ind].url.span.clone(),
+                    },
+                });
             }
-            None => {
-                let diag: crate::diag::Diag = match get_org(&source_url) {
-                    Some((orgt, orgname)) => {
-                        match ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
-                            orgt == *sorgt && sorgn.value.as_str() == orgname
-                        }) {
-                            Some(ind) => {
-                                org_hits.as_mut_bitslice().set(ind, true);
-                                diags::SourceAllowedByOrg {
-                                    src_label: &source_label,
-                                    org_cfg: CfgCoord {
-                                        file: ctx.cfg.file_id,
-                                        span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
-                                    },
-                                }
-                                .into()
-                            }
-                            None => diags::SourceNotExplicitlyAllowed {
+
+            source_hits.as_mut_bitslice().set(ind, true);
+        } else {
+            let diag: crate::diag::Diag = match get_org(&source_url) {
+                Some((orgt, orgname)) => {
+                    match ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
+                        orgt == *sorgt && sorgn.value.as_str() == orgname
+                    }) {
+                        Some(ind) => {
+                            org_hits.as_mut_bitslice().set(ind, true);
+                            diags::SourceAllowedByOrg {
                                 src_label: &source_label,
-                                lint_level,
-                                type_name,
+                                org_cfg: CfgCoord {
+                                    file: ctx.cfg.file_id,
+                                    span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
+                                },
                             }
-                            .into(),
+                            .into()
                         }
+                        None => diags::SourceNotExplicitlyAllowed {
+                            src_label: &source_label,
+                            lint_level,
+                            type_name,
+                        }
+                        .into(),
                     }
-                    None => diags::SourceNotExplicitlyAllowed {
-                        src_label: &source_label,
-                        lint_level,
-                        type_name,
-                    }
-                    .into(),
-                };
+                }
+                None => diags::SourceNotExplicitlyAllowed {
+                    src_label: &source_label,
+                    lint_level,
+                    type_name,
+                }
+                .into(),
+            };
 
-                pack.push(diag);
-            }
+            pack.push(diag);
         }
 
         if !pack.is_empty() {
@@ -231,7 +228,7 @@ pub(crate) fn normalize_url(url: &mut Url) {
     }
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum OrgType {
     Github,
     Gitlab,

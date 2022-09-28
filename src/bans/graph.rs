@@ -102,18 +102,15 @@ pub(crate) fn create_graph(
         let tid = krates.nid_for_kid(pid).context("unable to find crate")?;
         for incoming in krates.graph().edges_directed(tid, pg::Direction::Incoming) {
             let parent = &krates[incoming.source()];
-            match node_map.get(&parent.id) {
-                Some(pindex) => {
-                    graph.update_edge(*pindex, target, incoming.weight().kind);
-                }
-                None => {
-                    let pindex = graph.add_node(&parent.id);
+            if let Some(pindex) = node_map.get(&parent.id) {
+                graph.update_edge(*pindex, target, incoming.weight().kind);
+            } else {
+                let pindex = graph.add_node(&parent.id);
 
-                    graph.update_edge(pindex, target, incoming.weight().kind);
+                graph.update_edge(pindex, target, incoming.weight().kind);
 
-                    node_map.insert(&parent.id, pindex);
-                    node_stack.push(&parent.id);
-                }
+                node_map.insert(&parent.id, pindex);
+                node_stack.push(&parent.id);
             }
         }
     }

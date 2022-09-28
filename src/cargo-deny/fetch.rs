@@ -5,7 +5,7 @@ use cargo_deny::{
 };
 use std::path::PathBuf;
 
-#[derive(clap::ValueEnum, Debug, PartialEq, Copy, Clone)]
+#[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum FetchSource {
     Db,
     Index,

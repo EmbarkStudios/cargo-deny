@@ -36,7 +36,7 @@ const fn confidence_threshold() -> f32 {
 /// Allows agreement of licensing terms based on whether the license is
 /// [OSI Approved](https://opensource.org/licenses) or [considered free](
 /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BlanketAgreement {
     /// The license must be both OSI Approved and FSF/Free Libre
@@ -344,7 +344,7 @@ pub struct ValidClarification {
 }
 
 #[doc(hidden)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ValidException {
     pub name: crate::Spanned<String>,
     pub version: Option<VersionReq>,
