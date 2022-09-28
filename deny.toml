@@ -13,7 +13,11 @@ vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
-ignore = []
+ignore = [
+    # ansi_term is unmaintained, but it does exactly what it needs to and no more
+    # so no reason to change just for the sake of it
+    "RUSTSEC-2021-0139",
+]
 
 [bans]
 multiple-versions = "deny"
