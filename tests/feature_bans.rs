@@ -7,7 +7,7 @@ use cargo_deny::{
 /// in via the default features
 #[test]
 fn bans_workspace_features() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("features-galore"),
         "bans_workspace_features",
         Some("deny = [{ name = 'features-galore', features.deny = ['simple'] }]"),
@@ -24,7 +24,7 @@ fn bans_workspace_features() {
 /// Ensures non-workspace features are banned
 #[test]
 fn bans_external_features() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather {
             name: "features-galore",
             features: &["zlib", "ssh"],
@@ -46,7 +46,7 @@ fn bans_external_features() {
 /// Ensures features banned in a crate with multiple versions are all found
 #[test]
 fn bans_features_from_multiple_versions() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("features-galore"),
         "bans_features_from_multiple_versions",
         Some("multiple-versions = 'allow'\ndeny = [{ name = 'windows-sys', features.deny = ['Win32_System_LibraryLoader'] }]"),
@@ -64,7 +64,7 @@ fn bans_features_from_multiple_versions() {
 /// See <https://github.com/EmbarkStudios/krates/issues/41> for more
 #[test]
 fn weak_dependencies_pruned() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather {
             name: "features-galore",
             features: &["zlib"],

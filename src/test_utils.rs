@@ -56,8 +56,8 @@ impl<'k> From<KrateGather<'k>> for KratesSrc {
     }
 }
 
-pub fn gather_diagnostics<C, VC, R>(
-    cmd: impl Into<KratesSrc>,
+pub fn gather_diagnostics<C, VC, R, KS>(
+    ks: KS,
     test_name: &str,
     cfg: Option<&str>,
     targets: Option<&[&str]>,
@@ -67,10 +67,9 @@ where
     C: serde::de::DeserializeOwned + Default + crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
     R: FnOnce(CheckCtx<'_, VC>, CargoSpans, ErrorSink) + Send,
+    KS: Into<KratesSrc>,
 {
-    let cmd = cmd.into();
-
-    let krates = match cmd {
+    let krates = match ks.into() {
         KratesSrc::Provided(krates) => krates,
         KratesSrc::Cmd(cmd) => {
             let mut kb = krates::Builder::new();

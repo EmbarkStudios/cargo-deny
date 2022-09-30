@@ -8,7 +8,7 @@ use cargo_deny::{
 /// Covers issue <https://github.com/EmbarkStudios/cargo-deny/issues/184>
 #[test]
 fn cyclic_dependencies_do_not_cause_infinite_loop() {
-    tu::gather_diagnostics::<cfg::Config, _, _>(
+    tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("cyclic_dependencies"),
         "cyclic_dependencies_do_not_cause_infinite_loop",
         None,
@@ -22,7 +22,7 @@ fn cyclic_dependencies_do_not_cause_infinite_loop() {
 
 #[test]
 fn allow_wrappers() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("allow_wrappers/maincrate"),
         "allow_wrappers",
         Some(
@@ -57,7 +57,7 @@ wrappers = ["safe-wrapper"]
 
 #[test]
 fn disallows_denied() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("allow_wrappers/maincrate"),
         "disallows_denied",
         Some(
@@ -89,7 +89,7 @@ name = "dangerous-dep"
 
 #[test]
 fn deny_wildcards() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("wildcards/maincrate"),
         "deny_wildcards",
         Some("wildcards = 'deny'"),
@@ -122,7 +122,7 @@ fn deny_wildcards() {
 /// See <https://github.com/EmbarkStudios/cargo-deny/issues/384>
 #[test]
 fn deterministic_duplicate_ordering() {
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("duplicates"),
         "deterministic_duplicate_ordering",
         Some("multiple-versions = 'deny'"),

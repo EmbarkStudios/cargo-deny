@@ -63,7 +63,7 @@ fn detects_vulnerabilities() {
 
     let cfg = "vulnerability = 'deny'";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "detects_vulnerabilities",
         Some(cfg),
@@ -143,7 +143,7 @@ fn detects_unmaintained() {
 
     let cfg = "unmaintained = 'warn'";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "detects_unmaintained",
         Some(cfg),
@@ -182,7 +182,7 @@ fn detects_unsound() {
 
     let cfg = "unsound = 'warn'";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "detects_unsound",
         Some(cfg),
@@ -227,7 +227,7 @@ fn downgrades_lint_levels() {
     let cfg = "unmaintained = 'warn'
     ignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "downgrades_lint_levels",
         Some(cfg),
@@ -273,7 +273,7 @@ fn detects_yanked() {
     vulnerability = 'allow'
     ";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "detects_yanked",
         Some(cfg),
@@ -315,7 +315,7 @@ fn warns_on_ignored_and_withdrawn() {
     ignore = ['RUSTSEC-2020-0053']
     ";
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         krates,
         "warns_on_ignored_and_withdrawn",
         Some(cfg),

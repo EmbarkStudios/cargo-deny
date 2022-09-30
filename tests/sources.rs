@@ -7,7 +7,7 @@ use cargo_deny::{
 fn fails_unknown_git() {
     let cfg = "unknown-git = 'deny'";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _>(
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
         KrateGather::new("sources"),
         "fails_unknown_git",
         Some(cfg),
@@ -56,7 +56,7 @@ fn allows_git() {
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _>(
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
         KrateGather::new("sources"),
         "fails_unknown_git",
         Some(cfg),
@@ -100,7 +100,7 @@ fn allows_github_org() {
     github = ['EmbarkStudios']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _>(
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
         KrateGather::new("sources"),
         "allows_github_org",
         Some(cfg),
@@ -148,7 +148,7 @@ fn allows_gitlab_org() {
     gitlab = ['amethyst-engine']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _>(
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
         KrateGather::new("sources"),
         "allows_gitlab_org",
         Some(cfg),
@@ -193,7 +193,7 @@ fn allows_bitbucket_org() {
     bitbucket = ['marshallpierce']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _>(
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
         KrateGather::new("sources"),
         "allows_bitbucket_org",
         Some(cfg),
@@ -256,7 +256,7 @@ fn validates_git_source_specs() {
             spec
         );
 
-        let mut diags = tu::gather_diagnostics::<sources::Config, _, _>(
+        let mut diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
             KrateGather::new("sources"),
             "validates_git_source_specs",
             Some(&cfg),
