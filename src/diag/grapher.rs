@@ -104,17 +104,12 @@ impl<'a> InclusionGrapher<'a> {
         match &self.krates.graph()[np.node] {
             Node::Krate { krate, .. } => {
                 let kind = np.edge.and_then(|eid| match self.krates.graph()[eid] {
-                    Edge::Dep { kind, .. } => match kind {
-                        DepKind::Normal => None,
-                        DepKind::Dev => Some("dev"),
-                        DepKind::Build => Some("build"),
-                    },
-                    Edge::Feature => None,
-                    Edge::DepFeature { kind, .. } => match kind {
+                    Edge::Dep { kind, .. } | Edge::DepFeature { kind, .. } => match kind {
                         DepKind::Normal => None, //Some("feature (normal)"),
                         DepKind::Dev => Some("dev"),
                         DepKind::Build => Some("build"),
                     },
+                    Edge::Feature => None,
                 });
 
                 NodeInner::Krate {
@@ -178,13 +173,11 @@ impl<'a> InclusionGrapher<'a> {
                         if visited_nodes.insert(edge.source()) {
                             node_stack.push(edge.source());
                         }
-                    } else {
-                        if !node_parents.iter().any(|np| np.node == edge.source()) {
-                            node_parents.push(NodePrint {
-                                node: edge.source(),
-                                edge: Some(edge.id()),
-                            });
-                        }
+                    } else if !node_parents.iter().any(|np| np.node == edge.source()) {
+                        node_parents.push(NodePrint {
+                            node: edge.source(),
+                            edge: Some(edge.id()),
+                        });
                     }
                 }
             }

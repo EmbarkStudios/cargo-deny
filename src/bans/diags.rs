@@ -299,7 +299,7 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
                 .iter()
                 .map(|feat| GraphNode {
                     kid: efm.krate.id.clone(),
-                    feature: Some(feat.to_string()),
+                    feature: Some((*feat).to_owned()),
                 })
                 .collect()
         };

@@ -32,7 +32,7 @@ pub struct FeatureBans {
 }
 
 #[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CrateBan {
     pub name: Spanned<String>,
