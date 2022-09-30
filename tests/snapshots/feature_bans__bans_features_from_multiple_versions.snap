@@ -1,0 +1,170 @@
+---
+source: tests/feature_bans.rs
+expression: "tu::to_snapshot(diags)"
+---
+[
+  {
+    "fields": {
+      "code": "B015",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System_LibraryLoader"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 50,
+          "line": 2,
+          "message": "feature denied here",
+          "span": "'Win32_System_LibraryLoader'"
+        }
+      ],
+      "message": "feature 'Win32_System_LibraryLoader' for crate 'windows-sys = 0.36.1' is explicitly denied",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B015",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System_LibraryLoader"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "default"
+                      }
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "json"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "default"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "simple"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 50,
+          "line": 2,
+          "message": "feature denied here",
+          "span": "'Win32_System_LibraryLoader'"
+        }
+      ],
+      "message": "feature 'Win32_System_LibraryLoader' for crate 'windows-sys = 0.42.0' is explicitly denied",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

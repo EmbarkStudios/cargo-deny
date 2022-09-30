@@ -1,5 +1,5 @@
 use super::NodePrint;
-use crate::{DepKind, Kid, Krates};
+use crate::{DepKind, Krates};
 use anyhow::Context;
 use krates::{petgraph as pg, Edge, Node};
 use std::collections::HashSet;

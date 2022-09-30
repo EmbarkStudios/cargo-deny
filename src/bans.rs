@@ -178,7 +178,7 @@ pub struct DupGraph {
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
 use crate::diag::{Check, Diag, Pack, Severity};
-use krates::petgraph::{self, visit::EdgeRef, Direction};
+use krates::petgraph::{visit::EdgeRef, Direction};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
@@ -398,16 +398,7 @@ pub fn check(
                 // Ensure that the feature set of this krate, wherever it's used
                 // as a dependency, matches the ban entry.
                 let feature_set_allowed = if let Some(feature_bans) = feature_bans {
-                    let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                    let graph = ctx.krates.graph();
-
                     let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
-
-                    // let is_feature_enabled = |feature: &str| {
-                    //     enabled_features
-                    //         .binary_search_by(|f| f.as_str().cmp(feature))
-                    //         .is_ok()
-                    // };
 
                     // Gather features that were present, but not explicitly allowed
                     let not_explicitly_allowed: Vec<_> = enabled_features

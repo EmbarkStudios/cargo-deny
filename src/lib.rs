@@ -11,6 +11,9 @@ pub mod diag;
 pub mod licenses;
 pub mod sources;
 
+#[doc(hidden)]
+pub mod test_utils;
+
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid, Utf8PathBuf};
