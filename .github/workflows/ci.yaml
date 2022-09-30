@@ -113,7 +113,8 @@ jobs:
 
   publish-check:
     name: Publish Check
-    runs-on: ubuntu-20.04
+    if: false
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
