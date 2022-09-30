@@ -1,7 +1,7 @@
 use super::NodePrint;
 use crate::{DepKind, Kid, Krates};
 use anyhow::{Context, Error};
-use krates::petgraph as pg;
+use krates::{petgraph as pg, Edge, Node};
 use std::collections::HashSet;
 use std::fmt::Write;
 
@@ -30,7 +30,7 @@ impl<'a> TextGrapher<'a> {
 
         let (node_id, _node) = self
             .krates
-            .get_node(&id.kid, id.feature.as_deref())
+            .get_node(&id.kid, None)
             .context("unable to find node")?;
 
         let np = NodePrint {
@@ -46,25 +46,28 @@ impl<'a> TextGrapher<'a> {
     #[inline]
     fn write_node(&self, np: &NodePrint, star: &str, out: &mut String) -> Result<(), Error> {
         match &self.krates.graph()[np.node] {
-            krates::Node::Krate { krate, .. } => {
-                let kind = np
-                    .edge
-                    .map(|eid| match self.krates.graph()[eid] {
-                        krates::Edge::Dep { kind, .. } => match kind {
-                            DepKind::Normal => "",
-                            DepKind::Dev => "dev",
-                            DepKind::Build => "build",
-                        },
-                        krates::Edge::Feature => "",
-                    })
-                    .unwrap_or("");
+            Node::Krate { krate, .. } => {
+                let kind = np.edge.and_then(|eid| match self.krates.graph()[eid] {
+                    Edge::Dep { kind, .. } => match kind {
+                        DepKind::Normal => None,
+                        DepKind::Dev => Some("dev"),
+                        DepKind::Build => Some("build"),
+                    },
+                    Edge::Feature => None,
+                    Edge::DepFeature { kind, .. } => match kind {
+                        DepKind::Normal => Some("feature ()"),
+                        DepKind::Dev => Some("feature (dev)"),
+                        DepKind::Build => Some("feature (build)"),
+                    },
+                });
 
-                match kind {
-                    "" => writeln!(out, "{} v{}{star}", krate.name, krate.version),
-                    kind => writeln!(out, "({kind}) {} v{}{star}", krate.name, krate.version),
+                if let Some(kind) = kind {
+                    writeln!(out, "({kind}) {} v{}{star}", krate.name, krate.version)
+                } else {
+                    writeln!(out, "{} v{}{star}", krate.name, krate.version)
                 }?;
             }
-            krates::Node::Feature { name, .. } => {
+            Node::Feature { name, .. } => {
                 writeln!(out, "feature {name} {star}")?;
             }
         }
@@ -84,19 +87,22 @@ impl<'a> TextGrapher<'a> {
         use pg::visit::EdgeRef;
 
         let new = visited.insert(np.node);
-        let star = if new { "" } else { " (*)" };
 
-        if let Some((&last_continues, rest)) = levels_continue.split_last() {
-            for &continues in rest {
-                let c = if continues { DWN } else { ' ' };
-                write!(out, "{c}   ")?;
+        if add_features || matches!(self.krates.graph()[np.node], krates::Node::Krate { .. }) {
+            let star = if new { "" } else { " (*)" };
+
+            if let Some((&last_continues, rest)) = levels_continue.split_last() {
+                for &continues in rest {
+                    let c = if continues { DWN } else { ' ' };
+                    write!(out, "{c}   ")?;
+                }
+
+                let c = if last_continues { TEE } else { ELL };
+                write!(out, "{c}{0}{0} ", RGT)?;
             }
 
-            let c = if last_continues { TEE } else { ELL };
-            write!(out, "{c}{0}{0} ", RGT)?;
+            self.write_node(np, star, out)?;
         }
-
-        self.write_node(np, star, out)?;
 
         if !new {
             return Ok(());
@@ -107,12 +113,6 @@ impl<'a> TextGrapher<'a> {
         for edge in graph.edges_directed(np.node, pg::Direction::Incoming) {
             let parent_id = edge.source();
 
-            if let krates::Edge::Feature = edge.weight() {
-                if !add_features {
-                    continue;
-                }
-            }
-
             parents.push(NodePrint {
                 node: parent_id,
                 edge: Some(edge.id()),
@@ -121,7 +121,16 @@ impl<'a> TextGrapher<'a> {
 
         if !parents.is_empty() {
             // Resolve uses Hash data types internally but we want consistent output ordering
-            //parents.sort_by_key(|n| &n.krate.id);
+            parents.sort_by(|a, b| {
+                let graph = self.krates.graph();
+
+                match (&graph[a.node], &graph[b.node]) {
+                    (Node::Krate { krate: a, .. }, Node::Krate { krate: b, .. }) => a.id.cmp(&b.id),
+                    (Node::Krate { .. }, Node::Feature { .. }) => std::cmp::Ordering::Less,
+                    (Node::Feature { .. }, Node::Krate { .. }) => std::cmp::Ordering::Greater,
+                    (Node::Feature { name: a, .. }, Node::Feature { name: b, .. }) => a.cmp(b),
+                }
+            });
 
             let cont = parents.len() - 1;
 

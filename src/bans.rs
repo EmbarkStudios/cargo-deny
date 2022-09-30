@@ -338,7 +338,12 @@ pub fn check(
                 // The crate is banned, but it might have be allowed if it's wrapped
                 // by one or more particular crates
                 let wrappers = ban_wrappers.get(rm.index);
-                let is_allowed = match wrappers {
+
+                // We can also ban specific features only, so a wrapper crate would
+                // not be required
+                let feature_bans = &denied[rm.index].features;
+
+                let is_allowed_by_wrapper = match wrappers {
                     Some(wrappers) if !wrappers.is_empty() => {
                         let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                         let graph = ctx.krates.graph();
@@ -387,22 +392,22 @@ pub fn check(
                                 is_allowed
                             })
                     }
-                    _ => denied[rm.index].features.is_some(),
+                    _ => feature_bans.is_some(),
                 };
 
                 // Ensure that the feature set of this krate, wherever it's used
                 // as a dependency, matches the ban entry.
-                let feature_set_allowed = if let Some(feature_bans) = &denied[rm.index].features {
+                let feature_set_allowed = if let Some(feature_bans) = feature_bans {
                     let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
                     let graph = ctx.krates.graph();
 
                     let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
 
-                    let is_feature_enabled = |feature: &str| {
-                        enabled_features
-                            .binary_search_by(|f| f.as_str().cmp(feature))
-                            .is_ok()
-                    };
+                    // let is_feature_enabled = |feature: &str| {
+                    //     enabled_features
+                    //         .binary_search_by(|f| f.as_str().cmp(feature))
+                    //         .is_ok()
+                    // };
 
                     // Gather features that were present, but not explicitly allowed
                     let not_explicitly_allowed: Vec<_> = enabled_features
@@ -423,7 +428,7 @@ pub fn check(
                             .value
                             .iter()
                             .filter_map(|af| {
-                                if !is_feature_enabled(&af.value) {
+                                if !enabled_features.contains(&af.value) {
                                     Some(CfgCoord {
                                         file: file_id,
                                         span: af.span.clone(),
@@ -470,7 +475,7 @@ pub fn check(
                         for feature in feature_bans
                             .deny
                             .iter()
-                            .filter(|feat| is_feature_enabled(&feat.value))
+                            .filter(|feat| enabled_features.contains(&feat.value))
                         {
                             pack.push(diags::FeatureExplicitlyDenied {
                                 krate,
@@ -482,10 +487,10 @@ pub fn check(
                         diag_count <= pack.len()
                     }
                 } else {
-                    false
+                    true
                 };
 
-                if !is_allowed || !feature_set_allowed {
+                if !is_allowed_by_wrapper || !feature_set_allowed {
                     pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
                 } else if let Some(feature_bans) = &denied[rm.index].features {
                     // If the crate isn't actually banned, but does reference

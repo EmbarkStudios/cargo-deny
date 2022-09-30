@@ -31,7 +31,7 @@ pub fn gather_diagnostics<
     let (spans, content, hashmap) = KrateSpans::synthesize(&krates);
     let mut files = Files::new();
 
-    let spans_id = files.add(format!("{}/Cargo.lock", test_name), content);
+    let spans_id = files.add(format!("{test_name}/Cargo.lock"), content);
 
     let spans = KrateSpans::with_spans(spans, spans_id);
 
@@ -39,13 +39,13 @@ pub fn gather_diagnostics<
         Some(cfg) => {
             let config: C = toml::from_str(cfg).context("failed to deserialize test config")?;
 
-            let cfg_id = files.add(format!("{}.toml", test_name), cfg.to_owned());
+            let cfg_id = files.add(format!("{test_name}.toml"), cfg.to_owned());
 
             (config, cfg_id)
         }
         None => (
             C::default(),
-            files.add(format!("{}.toml", test_name), "".to_owned()),
+            files.add(format!("{test_name}.toml"), "".to_owned()),
         ),
     };
 
@@ -62,12 +62,12 @@ pub fn gather_diagnostics<
         .iter()
         .any(|d| d.severity >= cargo_deny::diag::Severity::Error)
     {
-        anyhow::bail!("encountered errors validating config: {:#?}", cfg_diags);
+        anyhow::bail!("encountered errors validating config: {cfg_diags:#?}");
     }
 
     let (tx, rx) = crossbeam::channel::unbounded();
 
-    let grapher = cargo_deny::diag::ObjectGrapher::new(&krates);
+    let grapher = cargo_deny::diag::InclusionGrapher::new(&krates);
 
     let (_, gathered) = rayon::join(
         || {
@@ -97,7 +97,7 @@ pub fn gather_diagnostics<
                                 }
                             }
                             recv(trx) -> _ => {
-                                anyhow::bail!("Timed out after {:?}", timeout);
+                                anyhow::bail!("Timed out after {timeout:?}");
                             }
                         }
                     }

@@ -1,4 +1,5 @@
 use crate::{
+    bans::KrateId,
     diag::{
         CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
     },
@@ -284,10 +285,9 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
             .with_notes(
                 efm.not_allowed
                     .iter()
-                    .map(|na| format!("'{}' feature was enabled but not explicitly allowed", na))
+                    .map(|na| format!("'{na}' feature was enabled but not explicitly allowed"))
                     .collect(),
-            )
-            .into();
+            );
 
         let graph_nodes = if efm.not_allowed.is_empty() {
             vec![GraphNode {
@@ -330,8 +330,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
             .with_labels(vec![fna
                 .allowed
                 .into_label()
-                .with_message("allowed features")])
-            .into();
+                .with_message("allowed features")]);
 
         Diag {
             diag,
@@ -361,8 +360,7 @@ impl From<FeatureExplicitlyDenied<'_>> for Diag {
             ))
             .with_code("B015")
             .with_labels(vec![Label::primary(fed.file_id, fed.feature.span.clone())
-                .with_message("feature denied here")])
-            .into();
+                .with_message("feature denied here")]);
 
         Diag {
             diag,
@@ -393,8 +391,7 @@ impl From<UnknownFeature<'_>> for Diag {
             .with_code("B016")
             .with_labels(vec![
                 Label::primary(uf.file_id, uf.feature.span.clone()).with_message("unknown feature")
-            ])
-            .into();
+            ]);
 
         Diag {
             diag,

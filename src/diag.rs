@@ -1,10 +1,10 @@
-mod obj_grapher;
+mod grapher;
 mod sink;
-mod text_grapher;
+//mod text_grapher;
 
-pub use obj_grapher::{cs_diag_to_json, diag_to_json, ObjectGrapher};
+pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
 pub use sink::ErrorSink;
-pub use text_grapher::TextGrapher;
+//pub use text_grapher::TextGrapher;
 
 use std::{collections::HashMap, ops::Range};
 
