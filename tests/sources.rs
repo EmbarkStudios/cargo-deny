@@ -1,15 +1,14 @@
-use cargo_deny::sources;
-
-#[macro_use]
-mod utils;
+use cargo_deny::{
+    field_eq, sources,
+    test_utils::{self as tu, KrateGather},
+};
 
 #[test]
 fn fails_unknown_git() {
     let cfg = "unknown-git = 'deny'";
 
-    let krates = utils::get_test_data_krates("sources").unwrap();
-    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+        KrateGather::new("sources"),
         "fails_unknown_git",
         Some(cfg),
         None,
@@ -57,9 +56,8 @@ fn allows_git() {
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
 
-    let krates = utils::get_test_data_krates("sources").unwrap();
-    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+        KrateGather::new("sources"),
         "fails_unknown_git",
         Some(cfg),
         None,
@@ -102,9 +100,8 @@ fn allows_github_org() {
     github = ['EmbarkStudios']
     ";
 
-    let krates = utils::get_test_data_krates("sources").unwrap();
-    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+        KrateGather::new("sources"),
         "allows_github_org",
         Some(cfg),
         None,
@@ -151,9 +148,8 @@ fn allows_gitlab_org() {
     gitlab = ['amethyst-engine']
     ";
 
-    let krates = utils::get_test_data_krates("sources").unwrap();
-    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+        KrateGather::new("sources"),
         "allows_gitlab_org",
         Some(cfg),
         None,
@@ -197,9 +193,8 @@ fn allows_bitbucket_org() {
     bitbucket = ['marshallpierce']
     ";
 
-    let krates = utils::get_test_data_krates("sources").unwrap();
-    let diags = utils::gather_diagnostics::<sources::Config, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+        KrateGather::new("sources"),
         "allows_bitbucket_org",
         Some(cfg),
         None,
@@ -261,9 +256,8 @@ fn validates_git_source_specs() {
             spec
         );
 
-        let krates = utils::get_test_data_krates("sources").unwrap();
-        let mut diags = utils::gather_diagnostics::<sources::Config, _, _>(
-            krates,
+        let mut diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+            KrateGather::new("sources"),
             "validates_git_source_specs",
             Some(&cfg),
             None,

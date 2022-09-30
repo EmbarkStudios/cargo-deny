@@ -1,0 +1,41 @@
+[package]
+name = "features-galore"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+parking_lot_core = "=0.9.3"
+reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+    "brotli",
+] }
+rgb = { version = "0.8.25", optional = true }
+serde = { version = "1.0.133", optional = true }
+rustls = { version = "0.20", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.42", features = ["Win32_System_LibraryLoader"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+git = { package = "git2", version = "0.14", default-features = false }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+audio = { package = "coreaudio-rs", version = "=0.11.1", default-features = false, optional = true }
+
+[build-dependencies]
+reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+    "cookies",
+] }
+
+[features]
+default = ["simple"]
+blocking = ["simple", "reqest?/blocking"]
+json = ["reqest?/json"]
+midi = ["audio?/core_midi"]
+multipart = ["reqest?/multipart"]
+serde = ["dep:serde", "rgb?/serde"]
+simple = ["json"]
+ssh = ["git/ssh", "git/ssh_key_from_memory"]
+stream = ["reqest?/stream"]
+tls = ["tls-no-reqwest", "reqest?/rustls-tls"]
+tls-no-reqwest = ["rustls"]
+zlib = ["git/zlib-ng-compat", "reqest?/deflate"]

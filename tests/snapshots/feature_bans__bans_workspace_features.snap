@@ -1,0 +1,46 @@
+---
+source: tests/feature_bans.rs
+expression: "tu::to_snapshot(diags)"
+---
+[
+  {
+    "fields": {
+      "code": "B015",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "simple"
+              },
+              "parents": [
+                {
+                  "Feature": {
+                    "crate_name": "features-galore",
+                    "name": "default"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 54,
+          "line": 1,
+          "message": "feature denied here",
+          "span": "'simple'"
+        }
+      ],
+      "message": "feature 'simple' for crate 'features-galore = 0.1.0' is explicitly denied",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

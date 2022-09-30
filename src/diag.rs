@@ -1,10 +1,8 @@
-mod obj_grapher;
+mod grapher;
 mod sink;
-mod text_grapher;
 
-pub use obj_grapher::{cs_diag_to_json, diag_to_json, ObjectGrapher};
+pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
 pub use sink::ErrorSink;
-pub use text_grapher::TextGrapher;
 
 use std::{collections::HashMap, ops::Range};
 
@@ -31,18 +29,25 @@ impl From<crate::LintLevel> for Severity {
     }
 }
 
+pub struct GraphNode {
+    pub kid: Kid,
+    pub feature: Option<String>,
+}
+
 pub struct Diag {
     pub diag: Diagnostic,
-    pub kids: smallvec::SmallVec<[Kid; 2]>,
+    pub graph_nodes: smallvec::SmallVec<[GraphNode; 2]>,
     pub extra: Option<(&'static str, serde_json::Value)>,
+    pub with_features: bool,
 }
 
 impl Diag {
     pub(crate) fn new(diag: Diagnostic) -> Self {
         Self {
             diag,
-            kids: smallvec::SmallVec::new(),
+            graph_nodes: smallvec::SmallVec::new(),
             extra: None,
+            with_features: false,
         }
     }
 }
@@ -67,6 +72,7 @@ pub struct Pack {
 }
 
 impl Pack {
+    #[inline]
     pub(crate) fn new(check: Check) -> Self {
         Self {
             check,
@@ -75,6 +81,7 @@ impl Pack {
         }
     }
 
+    #[inline]
     pub(crate) fn with_kid(check: Check, kid: Kid) -> Self {
         Self {
             check,
@@ -83,11 +90,12 @@ impl Pack {
         }
     }
 
+    #[inline]
     pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Diag {
         let mut diag = diag.into();
-        if diag.kids.is_empty() {
+        if diag.graph_nodes.is_empty() {
             if let Some(kid) = self.kid.take() {
-                diag.kids.push(kid);
+                diag.graph_nodes.push(GraphNode { kid, feature: None });
             }
         }
 
@@ -95,6 +103,12 @@ impl Pack {
         self.diags.last_mut().unwrap()
     }
 
+    #[inline]
+    pub(crate) fn len(&self) -> usize {
+        self.diags.len()
+    }
+
+    #[inline]
     pub(crate) fn is_empty(&self) -> bool {
         self.diags.is_empty()
     }
@@ -154,7 +168,7 @@ impl KrateSpans {
         let mut spans = Vec::with_capacity(krates.len());
         let mut cargo_spans = RawCargoSpans::new();
 
-        let mut krates: Vec<_> = krates.krates().map(|kn| &kn.krate).collect();
+        let mut krates: Vec<_> = krates.krates().collect();
         // [Krates::krates] guarantees the krates to be ordered by name but we
         // want the outputs of diagnostics to also be stable in regards to
         // their version, so we do an additional sort for that here.
@@ -235,8 +249,7 @@ impl From<Coord> for Label {
     }
 }
 
-struct NodePrint<'a> {
-    krate: &'a crate::Krate,
-    id: krates::NodeId,
-    kind: &'static str,
+struct NodePrint {
+    node: krates::NodeId,
+    edge: Option<krates::EdgeId>,
 }

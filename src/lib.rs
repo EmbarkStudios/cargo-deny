@@ -11,6 +11,9 @@ pub mod diag;
 pub mod licenses;
 pub mod sources;
 
+#[doc(hidden)]
+pub mod test_utils;
+
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid, Utf8PathBuf};
@@ -241,6 +244,8 @@ pub struct CheckCtx<'ctx, T> {
     /// Requests for additional information the check can provide to be
     /// serialized to the diagnostic
     pub serialize_extra: bool,
+    /// Allows for ANSI colorization of diagnostic content
+    pub colorize: bool,
 }
 
 /// Checks if a version satisfies the specifies the specified version requirement.

@@ -1,0 +1,753 @@
+---
+source: tests/bans.rs
+expression: "tu::to_snapshot(diags)"
+---
+[
+  {
+    "fields": {
+      "code": "B004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "block-buffer",
+            "version": "0.7.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "sha-1",
+                "version": "0.8.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "pest_meta",
+                    "version": "2.1.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "pest_generator",
+                        "version": "2.1.3"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "pest_derive",
+                            "version": "2.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "async-graphql-parser",
+                                "version": "3.0.38"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "async-graphql",
+                                    "version": "3.0.38"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "duplicates",
+                                        "version": "0.1.0"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Krate": {
+                                    "name": "async-graphql-derive",
+                                    "version": "3.0.38"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "async-graphql",
+                                        "version": "3.0.38"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "block-buffer",
+            "version": "0.10.2"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "digest",
+                "version": "0.10.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "duplicates",
+                    "version": "0.1.0"
+                  }
+                },
+                {
+                  "Krate": {
+                    "name": "sha2",
+                    "version": "0.10.2"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "duplicates",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx",
+                        "version": "0.5.13"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "duplicates",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-core",
+                        "version": "0.5.13"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "duplicates",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx",
+                            "version": "0.5.13"
+                          },
+                          "repeat": true
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx-macros",
+                            "version": "0.5.13"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "duplicates",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Krate": {
+                                "name": "sqlx",
+                                "version": "0.5.13"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-macros",
+                        "version": "0.5.13"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-core",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-macros",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "sha2",
+                "version": "0.10.2"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 15,
+          "message": "lock entries",
+          "span": "block-buffer 0.7.3 registry+https://github.com/rust-lang/crates.io-index\nblock-buffer 0.10.2 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "found 2 duplicate entries for crate 'block-buffer'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "digest",
+            "version": "0.8.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "sha-1",
+                "version": "0.8.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "pest_meta",
+                    "version": "2.1.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "pest_generator",
+                        "version": "2.1.3"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "pest_derive",
+                            "version": "2.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "async-graphql-parser",
+                                "version": "3.0.38"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "async-graphql",
+                                    "version": "3.0.38"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "duplicates",
+                                        "version": "0.1.0"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Krate": {
+                                    "name": "async-graphql-derive",
+                                    "version": "3.0.38"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "async-graphql",
+                                        "version": "3.0.38"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "digest",
+            "version": "0.10.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "duplicates",
+                "version": "0.1.0"
+              }
+            },
+            {
+              "Krate": {
+                "name": "sha2",
+                "version": "0.10.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "duplicates",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx",
+                    "version": "0.5.13"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "duplicates",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-core",
+                    "version": "0.5.13"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "duplicates",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx",
+                        "version": "0.5.13"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-macros",
+                        "version": "0.5.13"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "duplicates",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx",
+                            "version": "0.5.13"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-macros",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "sqlx",
+                "version": "0.5.13"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "sqlx-core",
+                "version": "0.5.13"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "sqlx-macros",
+                "version": "0.5.13"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 31,
+          "message": "lock entries",
+          "span": "digest 0.8.1 registry+https://github.com/rust-lang/crates.io-index\ndigest 0.10.3 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "found 2 duplicate entries for crate 'digest'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "generic-array",
+            "version": "0.12.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "block-buffer",
+                "version": "0.7.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "sha-1",
+                    "version": "0.8.2"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "kind": "build",
+                        "name": "pest_meta",
+                        "version": "2.1.3"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "pest_generator",
+                            "version": "2.1.3"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "pest_derive",
+                                "version": "2.1.0"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "async-graphql-parser",
+                                    "version": "3.0.38"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "async-graphql",
+                                        "version": "3.0.38"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "duplicates",
+                                            "version": "0.1.0"
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Krate": {
+                                        "name": "async-graphql-derive",
+                                        "version": "3.0.38"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "async-graphql",
+                                            "version": "3.0.38"
+                                          },
+                                          "repeat": true
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "digest",
+                "version": "0.8.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "sha-1",
+                    "version": "0.8.2"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "generic-array",
+            "version": "0.14.5"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "block-buffer",
+                "version": "0.10.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "digest",
+                    "version": "0.10.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "duplicates",
+                        "version": "0.1.0"
+                      }
+                    },
+                    {
+                      "Krate": {
+                        "name": "sha2",
+                        "version": "0.10.2"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "duplicates",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx",
+                            "version": "0.5.13"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "duplicates",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx-core",
+                            "version": "0.5.13"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "duplicates",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Krate": {
+                                "name": "sqlx",
+                                "version": "0.5.13"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Krate": {
+                                "name": "sqlx-macros",
+                                "version": "0.5.13"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "duplicates",
+                                    "version": "0.1.0"
+                                  },
+                                  "repeat": true
+                                },
+                                {
+                                  "Krate": {
+                                    "name": "sqlx",
+                                    "version": "0.5.13"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx-macros",
+                            "version": "0.5.13"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx",
+                        "version": "0.5.13"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-core",
+                        "version": "0.5.13"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-macros",
+                        "version": "0.5.13"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "sha2",
+                    "version": "0.10.2"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "crypto-common",
+                "version": "0.1.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "digest",
+                    "version": "0.10.3"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "duplicates",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sha2",
+                    "version": "0.10.2"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-core",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "sqlx-macros",
+                    "version": "0.5.13"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 50,
+          "message": "lock entries",
+          "span": "generic-array 0.12.4 registry+https://github.com/rust-lang/crates.io-index\ngeneric-array 0.14.5 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "found 2 duplicate entries for crate 'generic-array'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

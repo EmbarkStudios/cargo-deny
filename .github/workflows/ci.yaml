@@ -14,16 +14,14 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: "clippy, rustfmt"
 
       # make sure all code has been formatted with rustfmt and linted with clippy
-      - run: rustup component add rustfmt clippy
       - name: rustfmt
         run: cargo fmt -- --check --color always
 
@@ -36,14 +34,11 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2022, macos-11]
+        os: [ubuntu-22.04, windows-2022, macos-11]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo fetch
       - name: cargo test build
         run: cargo build --tests
@@ -51,6 +46,8 @@ jobs:
       # Run the tests we usually don't want to run when
       # testing locally
       - run: cargo test -- --ignored
+        # Don't run on macos, too slow and flaky
+        if: matrix.os != 'macos-11'
 
   # Verifies we can build aarch64-apple-darwin binaries until GHA actually has
   # runners for them that we can actually run tests on
@@ -60,12 +57,10 @@ jobs:
     # Only run this PRs
     if: github.ref != 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-      - run: rustup target add aarch64-apple-darwin
+          targets: aarch64-apple-darwin
       - run: cargo fetch --target aarch64-apple-darwin
       - run: cargo build --release --target aarch64-apple-darwin
 
@@ -74,20 +69,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-musl
     runs-on: ${{ matrix.os }}
     env:
       TARGET: x86_64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           target: ${{ matrix.target }}
       - name: Install musl tools
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get install -y musl-tools
       - name: cargo fetch
@@ -109,7 +102,7 @@ jobs:
     name: Build the book
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: |
           set -e
           curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
@@ -122,26 +115,23 @@ jobs:
 
   publish-check:
     name: Publish Check
-    runs-on: ubuntu-20.04
+    if: false
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo fetch
       - name: cargo publish
         run: cargo publish --dry-run
 
   msrv-check:
     name: Minimum Stable Rust Version Check
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.60.0"
-          override: true
       - run: cargo fetch
       - name: cargo check
         run: cargo check --all-targets
@@ -153,7 +143,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             rust: stable
             target: x86_64-unknown-linux-musl
             bin: cargo-deny
@@ -171,18 +161,16 @@ jobs:
             bin: cargo-deny
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v3
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
           target: ${{ matrix.target }}
       - name: Install musl tools
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get install -y musl-tools
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: cargo fetch
         run: cargo fetch --target ${{ matrix.target }}
       - name: Release build
@@ -224,7 +212,7 @@ jobs:
   publish:
     name: Publish Docs
     needs: [doc-book]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Download book

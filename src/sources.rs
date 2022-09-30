@@ -35,7 +35,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
         )
     });
 
-    for (i, krate) in ctx.krates.krates().map(|kn| &kn.krate).enumerate() {
+    for (i, krate) in ctx.krates.krates().enumerate() {
         let source = match &krate.source {
             Some(source) => source,
             None => continue,

@@ -286,7 +286,7 @@ type CsDiag = codespan_reporting::diagnostic::Diagnostic<FileId>;
 
 pub struct Human<'a> {
     stream: term::termcolor::StandardStream,
-    grapher: Option<diag::TextGrapher<'a>>,
+    grapher: Option<diag::InclusionGrapher<'a>>,
     config: term::Config,
 }
 
@@ -306,7 +306,7 @@ impl StdioStream {
 
 pub struct Json<'a> {
     stream: StdioStream,
-    grapher: Option<diag::ObjectGrapher<'a>>,
+    grapher: Option<diag::InclusionGrapher<'a>>,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -390,9 +390,12 @@ impl<'a, 'b> OutputLock<'a, 'b> {
                 }
 
                 if let Some(grapher) = &cfg.grapher {
-                    for kid in diag.kids {
-                        if let Ok(graph) = grapher.write_graph(&kid) {
-                            diag.diag.notes.push(graph);
+                    for gn in diag.graph_nodes {
+                        if let Ok(graph) =
+                            grapher.build_graph(&gn, if diag.with_features { 1 } else { 0 })
+                        {
+                            let graph_text = diag::write_graph_as_text(&graph);
+                            diag.diag.notes.push(graph_text);
                         }
                     }
                 }
@@ -444,7 +447,7 @@ impl<'a> DiagPrinter<'a> {
                 Self {
                     which: OutputFormat::Human(Human {
                         stream,
-                        grapher: krates.map(diag::TextGrapher::new),
+                        grapher: krates.map(diag::InclusionGrapher::new),
                         config: term::Config::default(),
                     }),
                     max_severity,
@@ -453,7 +456,7 @@ impl<'a> DiagPrinter<'a> {
             crate::Format::Json => Self {
                 which: OutputFormat::Json(Json {
                     stream: StdioStream::Err(std::io::stderr()),
-                    grapher: krates.map(diag::ObjectGrapher::new),
+                    grapher: krates.map(diag::InclusionGrapher::new),
                 }),
                 max_severity,
             },

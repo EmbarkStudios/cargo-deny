@@ -1,7 +1,9 @@
 use crate::{
     bans::KrateId,
-    diag::{CfgCoord, Check, Diag, Diagnostic, KrateCoord, Label, Pack, Severity},
-    Krate,
+    diag::{
+        CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
+    },
+    Krate, Spanned,
 };
 
 pub(crate) struct ExplicitlyBanned<'a> {
@@ -250,5 +252,156 @@ impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
                     .to_owned(),
             ])
             .into()
+    }
+}
+
+pub(crate) struct ExactFeaturesMismatch<'a> {
+    pub(crate) missing_allowed: Vec<CfgCoord>,
+    pub(crate) not_allowed: &'a [&'a str],
+    pub(crate) exact_coord: CfgCoord,
+    pub(crate) krate: &'a Krate,
+}
+
+impl From<ExactFeaturesMismatch<'_>> for Diag {
+    fn from(efm: ExactFeaturesMismatch<'_>) -> Self {
+        let mut labels = vec![efm
+            .exact_coord
+            .into_label()
+            .with_message("exact enabled here")];
+
+        labels.extend(
+            efm.missing_allowed
+                .into_iter()
+                .map(|ma| ma.into_label().with_message("allowed feature not present")),
+        );
+
+        let diag = Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "feature set for crate '{}' did not match exactly",
+                efm.krate
+            ))
+            .with_code("B013")
+            .with_labels(labels)
+            .with_notes(
+                efm.not_allowed
+                    .iter()
+                    .map(|na| format!("'{na}' feature was enabled but not explicitly allowed"))
+                    .collect(),
+            );
+
+        let graph_nodes = if efm.not_allowed.is_empty() {
+            vec![GraphNode {
+                kid: efm.krate.id.clone(),
+                feature: None,
+            }]
+        } else {
+            efm.not_allowed
+                .iter()
+                .map(|feat| GraphNode {
+                    kid: efm.krate.id.clone(),
+                    feature: Some((*feat).to_owned()),
+                })
+                .collect()
+        };
+
+        Diag {
+            diag,
+            graph_nodes: graph_nodes.into(),
+            extra: None,
+            with_features: true,
+        }
+    }
+}
+
+pub(crate) struct FeatureNotExplicitlyAllowed<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a str,
+    pub(crate) allowed: CfgCoord,
+}
+
+impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
+    fn from(fna: FeatureNotExplicitlyAllowed<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "feature '{}' for crate '{}' was not explicitly allowed",
+                fna.feature, fna.krate,
+            ))
+            .with_code("B014")
+            .with_labels(vec![fna
+                .allowed
+                .into_label()
+                .with_message("allowed features")]);
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: fna.krate.id.clone(),
+                feature: Some(fna.feature.to_owned()),
+            })
+            .collect(),
+            extra: None,
+            with_features: true,
+        }
+    }
+}
+
+pub(crate) struct FeatureExplicitlyDenied<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<FeatureExplicitlyDenied<'_>> for Diag {
+    fn from(fed: FeatureExplicitlyDenied<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Error)
+            .with_message(format!(
+                "feature '{}' for crate '{}' is explicitly denied",
+                fed.feature.value, fed.krate,
+            ))
+            .with_code("B015")
+            .with_labels(vec![Label::primary(fed.file_id, fed.feature.span.clone())
+                .with_message("feature denied here")]);
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: fed.krate.id.clone(),
+                feature: Some(fed.feature.value.clone()),
+            })
+            .collect(),
+            extra: None,
+            with_features: true,
+        }
+    }
+}
+
+pub(crate) struct UnknownFeature<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) feature: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<UnknownFeature<'_>> for Diag {
+    fn from(uf: UnknownFeature<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Warning)
+            .with_message(format!(
+                "found unknown feature '{}' for crate '{}'",
+                uf.feature.value, uf.krate,
+            ))
+            .with_code("B016")
+            .with_labels(vec![
+                Label::primary(uf.file_id, uf.feature.span.clone()).with_message("unknown feature")
+            ]);
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: uf.krate.id.clone(),
+                feature: None,
+            })
+            .collect(),
+            extra: None,
+            with_features: false,
+        }
     }
 }
