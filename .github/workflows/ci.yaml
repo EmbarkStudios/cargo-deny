@@ -46,6 +46,8 @@ jobs:
       # Run the tests we usually don't want to run when
       # testing locally
       - run: cargo test -- --ignored
+        # Don't run on macos, too slow and flaky
+        if: matrix.os != 'macos-11'
 
   # Verifies we can build aarch64-apple-darwin binaries until GHA actually has
   # runners for them that we can actually run tests on
