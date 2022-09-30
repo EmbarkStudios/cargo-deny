@@ -1,10 +1,8 @@
 mod grapher;
 mod sink;
-//mod text_grapher;
 
 pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
 pub use sink::ErrorSink;
-//pub use text_grapher::TextGrapher;
 
 use std::{collections::HashMap, ops::Range};
 
