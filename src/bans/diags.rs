@@ -336,7 +336,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
             diag,
             graph_nodes: std::iter::once(GraphNode {
                 kid: fna.krate.id.clone(),
-                feature: Some(fna.feature.to_owned()),
+                feature: None,
             })
             .collect(),
             extra: None,
