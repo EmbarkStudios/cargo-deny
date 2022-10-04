@@ -60,6 +60,23 @@ fn bans_features_from_multiple_versions() {
     insta::assert_snapshot!(tu::to_snapshot(diags));
 }
 
+/// Ensures exact works
+#[test]
+fn exact_features() {
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        KrateGather::new("features-galore"),
+        "bans_features_from_multiple_versions",
+        Some("multiple-versions = 'allow'\nfeatures = [{ name = 'windows-sys', exact = true, allow = ['Win32_System_LibraryLoader'] }]"),
+        Some(&["x86_64-pc-windows-msvc"]),
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
+        },
+    )
+    .unwrap();
+
+    insta::assert_snapshot!(tu::to_snapshot(diags));
+}
+
 /// Ensures weak dependencies are properly pruned from the graph
 /// See <https://github.com/EmbarkStudios/krates/issues/41> for more
 #[test]

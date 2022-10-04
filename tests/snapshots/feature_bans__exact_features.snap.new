@@ -1,0 +1,768 @@
+---
+source: tests/feature_bans.rs
+assertion_line: 77
+expression: "tu::to_snapshot(diags)"
+---
+[
+  {
+    "fields": {
+      "code": "B013",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32"
+              },
+              "parents": [
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_Foundation"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "parking_lot_core",
+                        "version": "0.9.3"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "default"
+                              }
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "json"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "simple"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "windows-sys",
+                        "name": "Win32_System_LibraryLoader"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "parking_lot_core",
+                            "version": "0.9.3"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "windows-sys",
+                        "name": "Win32_System_SystemServices"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "parking_lot_core",
+                            "version": "0.9.3"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "windows-sys",
+                        "name": "Win32_System_WindowsProgramming"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "parking_lot_core",
+                            "version": "0.9.3"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_Foundation"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System"
+              },
+              "parents": [
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System_LibraryLoader"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "parking_lot_core",
+                        "version": "0.9.3"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "default"
+                              }
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "json"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "simple"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System_SystemServices"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "parking_lot_core",
+                        "version": "0.9.3"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System_WindowsProgramming"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "parking_lot_core",
+                        "version": "0.9.3"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System_SystemServices"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System_WindowsProgramming"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 45,
+          "line": 2,
+          "message": "exact enabled here",
+          "span": "true"
+        }
+      ],
+      "message": "feature set for crate 'windows-sys = 0.36.1' did not match exactly",
+      "notes": [
+        "'Win32' feature was enabled but not explicitly allowed",
+        "'Win32_Foundation' feature was enabled but not explicitly allowed",
+        "'Win32_System' feature was enabled but not explicitly allowed",
+        "'Win32_System_SystemServices' feature was enabled but not explicitly allowed",
+        "'Win32_System_WindowsProgramming' feature was enabled but not explicitly allowed",
+        "'default' feature was enabled but not explicitly allowed"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B013",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32"
+              },
+              "parents": [
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "windows-sys",
+                        "name": "Win32_System_LibraryLoader"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "default"
+                              }
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "json"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "simple"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "Win32_System"
+              },
+              "parents": [
+                {
+                  "Feature": {
+                    "crate_name": "windows-sys",
+                    "name": "Win32_System_LibraryLoader"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "windows-sys",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "default"
+                      }
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "json"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "default"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "features-galore",
+                        "name": "simple"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 45,
+          "line": 2,
+          "message": "exact enabled here",
+          "span": "true"
+        }
+      ],
+      "message": "feature set for crate 'windows-sys = 0.42.0' did not match exactly",
+      "notes": [
+        "'Win32' feature was enabled but not explicitly allowed",
+        "'Win32_System' feature was enabled but not explicitly allowed",
+        "'default' feature was enabled but not explicitly allowed",
+        "'json' feature was enabled but not explicitly allowed"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
