@@ -36,7 +36,7 @@ When multiple versions of the same crate are encountered and `multiple-versions`
 
 ### Crate specifier
 
-The `allow`, `deny`, `skip`, and `skip-tree` fields all use a crate identifier to specify what crate(s) they want to match against.
+The `allow`, `deny`, `features`, `skip`, and `skip-tree` fields all use a crate identifier to specify what crate(s) they want to match against.
 
 ```ini
 { name = "some-crate-name-here", version = "<= 0.7.0" }
@@ -50,13 +50,50 @@ The name of the crate.
 
 An optional version constraint specifying the range of crate versions that will match. Defaults to any version.
 
+### The `deny` field (optional)
+
+```ini
+deny = [{ name = "crate-you-don't-want", version = "<= 0.7.0" }]
+```
+
+Determines specific crates that are denied.
+
 #### The `wrappers` field (optional)
 
-For `deny` entries, this field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.
+```ini
+deny = [{ name = "crate-you-don't-want", version = "<= 0.7.0", wrappers = ["this-can-use-it"] }]
+```
 
-### The `allow` and `deny` fields (optional)
+This field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.
 
-Determines specific crates that are allowed or denied. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care.
+### The `allow` field (optional)
+
+Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care.
+
+### The `features` field (optional)
+
+```ini
+[[bans.features]]
+name = "featured-krate"
+version = "1.0"
+deny = ["bad-feature"]
+allow = ["good-feature"]
+exact = true
+```
+
+Allows specification of crate specific allow/deny lists of features.
+
+#### The `features.deny` field (optional)
+
+Denies specific features for the crate.
+
+#### The `features.allow` field (optional)
+
+Allows specific features for the crate, enabled features not in this list are denied.
+
+#### The `features.exact` field (optional)
+
+If specified, requires that the features in `allow` exactly match the features enabled on the crate, and will fail if features are allowed that are not enabled.
 
 ### The `skip` field (optional)
 
@@ -77,21 +114,3 @@ Note that by default, the `depth` is infinite.
 ### The `allow-build-scripts` field (optional)
 
 Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.
-
-### The `deny-features` field (optional)
-
-If any of the denied features for a specific crate is used in the dependency graph, cargo-deny will deny it.
-
-**Note:** If this field is provided, cargo-deny will not ban the crate, unless it uses denied features.
-
-### The `allow-features` field (optional)
-
-A specific crate can only use the features provided in this config entry. If this is an empty set, it will have no effect.
-
-**Note:** If this field is provided, cargo-deny will not ban the crate, unless it uses non-allowed features.
-
-### The `exact-features` field (optional)
-
-Makes `allow-features` strict. If this is true, the feature set of the crate must be exactly the same as the `allow-features` set.
-
-**Note:** If this field is provided, cargo-deny will not ban the crate, unless the feature set doesn't match exactly.

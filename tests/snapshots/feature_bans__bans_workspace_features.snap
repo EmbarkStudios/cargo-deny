@@ -32,7 +32,7 @@ expression: "tu::to_snapshot(diags)"
       ],
       "labels": [
         {
-          "column": 54,
+          "column": 49,
           "line": 1,
           "message": "feature denied here",
           "span": "'simple'"

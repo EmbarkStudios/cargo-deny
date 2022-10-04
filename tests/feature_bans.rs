@@ -10,7 +10,7 @@ fn bans_workspace_features() {
     let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("features-galore"),
         "bans_workspace_features",
-        Some("deny = [{ name = 'features-galore', features.deny = ['simple'] }]"),
+        Some("features = [{ name = 'features-galore', deny = ['simple'] }]"),
         Some(&["x86_64-unknown-linux-gnu"]),
         |ctx, cs, tx| {
             bans::check(ctx, None, cs, tx);
@@ -32,7 +32,7 @@ fn bans_external_features() {
             ..Default::default()
         },
         "bans_external_features",
-        Some("deny = [{ name = 'libssh2-sys', features.deny = ['zlib-ng-compat'] }]"),
+        Some("features = [{ name = 'libssh2-sys', deny = ['zlib-ng-compat'] }]"),
         Some(&["x86_64-unknown-linux-gnu"]),
         |ctx, cs, tx| {
             bans::check(ctx, None, cs, tx);
@@ -49,7 +49,7 @@ fn bans_features_from_multiple_versions() {
     let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
         KrateGather::new("features-galore"),
         "bans_features_from_multiple_versions",
-        Some("multiple-versions = 'allow'\ndeny = [{ name = 'windows-sys', features.deny = ['Win32_System_LibraryLoader'] }]"),
+        Some("multiple-versions = 'allow'\nfeatures = [{ name = 'windows-sys', deny = ['Win32_System_LibraryLoader'] }]"),
         Some(&["x86_64-pc-windows-msvc"]),
         |ctx, cs, tx| {
             bans::check(ctx, None, cs, tx);

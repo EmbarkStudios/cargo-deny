@@ -129,7 +129,7 @@ expression: "tu::to_snapshot(diags)"
       ],
       "labels": [
         {
-          "column": 50,
+          "column": 45,
           "line": 1,
           "message": "feature denied here",
           "span": "'zlib-ng-compat'"

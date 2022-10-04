@@ -18,8 +18,22 @@ pub struct CrateId {
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct CrateBan {
+    pub name: Spanned<String>,
+    pub version: Option<VersionReq>,
+    /// One or more crates that will allow this crate to be used if it is a
+    /// direct dependency
+    #[serde(default)]
+    pub wrappers: Vec<Spanned<String>>,
+}
+
+#[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
-pub struct FeatureBans {
+pub struct CrateFeatures {
+    pub name: Spanned<String>,
+    pub version: Option<VersionReq>,
     /// All features that are allowed to be used.
     #[serde(default)]
     pub allow: Spanned<Vec<Spanned<String>>>,
@@ -29,20 +43,6 @@ pub struct FeatureBans {
     /// The actual feature set has to exactly match the `allow` set.
     #[serde(default)]
     pub exact: Spanned<bool>,
-}
-
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct CrateBan {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
-    /// One or more crates that will allow this crate to be used if it is a
-    /// direct dependency
-    #[serde(default)]
-    pub wrappers: Vec<Spanned<String>>,
-    #[serde(default)]
-    pub features: Option<FeatureBans>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -98,6 +98,9 @@ pub struct Config {
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
     pub allow: Vec<Spanned<CrateId>>,
+    /// Allows specifying features that are or are not allowed on crates
+    #[serde(default)]
+    pub features: Vec<CrateFeatures>,
     /// If specified, disregards the crate completely
     #[serde(default)]
     pub skip: Vec<Spanned<CrateId>>,
@@ -119,6 +122,7 @@ impl Default for Config {
             highlight: GraphHighlight::All,
             deny: Vec::new(),
             allow: Vec::new(),
+            features: Vec::new(),
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
@@ -153,7 +157,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     cb.name.span,
                 ),
                 wrappers: cb.wrappers,
-                features: cb.features,
             })
             .collect();
 
@@ -196,15 +199,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
             if let Some(dupe) = exact_match(&skipped, &d.id.value) {
                 diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "skip")));
             }
-
-            // Ensure that a feature isn't both allowed and denied
-            if let Some(fb) = &d.features {
-                for allowed in &fb.allow.value {
-                    if let Some(denied) = fb.deny.iter().find(|df| df.value == allowed.value) {
-                        diags.push(dupe_feature_diag(&d.id, allowed, denied));
-                    }
-                }
-            }
         }
 
         for all in &allowed {
@@ -213,12 +207,43 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
+        // Ensure that a feature isn't both allowed and denied
+        let features = self
+            .features
+            .into_iter()
+            .map(|cf| {
+                let id = Skrate::new(
+                    KrateId {
+                        name: cf.name.value,
+                        version: cf.version,
+                    },
+                    cf.name.span,
+                );
+
+                for allowed in &cf.allow.value {
+                    if let Some(denied) = cf.deny.iter().find(|df| df.value == allowed.value) {
+                        diags.push(dupe_feature_diag(&id, allowed, denied));
+                    }
+                }
+
+                KrateFeatures {
+                    id,
+                    features: Features {
+                        allow: cf.allow,
+                        deny: cf.deny,
+                        exact: cf.exact,
+                    },
+                }
+            })
+            .collect();
+
         ValidConfig {
             file_id: cfg_file,
             multiple_versions: self.multiple_versions,
             highlight: self.highlight,
             denied,
             allowed,
+            features,
             skipped,
             wildcards: self.wildcards,
             tree_skipped: self
@@ -253,7 +278,19 @@ pub(crate) type Skrate = Spanned<KrateId>;
 pub(crate) struct KrateBan {
     pub id: Skrate,
     pub wrappers: Vec<Spanned<String>>,
-    pub features: Option<FeatureBans>,
+}
+
+#[cfg_attr(test, derive(Debug))]
+pub struct Features {
+    pub allow: Spanned<Vec<Spanned<String>>>,
+    pub deny: Vec<Spanned<String>>,
+    pub exact: Spanned<bool>,
+}
+
+#[cfg_attr(test, derive(Debug))]
+pub(crate) struct KrateFeatures {
+    pub id: Skrate,
+    pub features: Features,
 }
 
 pub struct ValidConfig {
@@ -262,6 +299,7 @@ pub struct ValidConfig {
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<KrateBan>,
     pub(crate) allowed: Vec<Skrate>,
+    pub(crate) features: Vec<KrateFeatures>,
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
@@ -296,7 +334,7 @@ mod test {
     }
 
     #[test]
-    fn works() {
+    fn deserializes_ban_cfg() {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Bans {
@@ -335,5 +373,12 @@ mod test {
                 depth: Some(20),
             }]
         );
+
+        let kf = &validated.features[0];
+
+        assert_eq!(kf.id, kid!("featured-krate", "1.0"));
+        assert_eq!(kf.features.deny[0].value, "bad-feature");
+        assert_eq!(kf.features.allow.value[0].value, "good-feature");
+        assert!(kf.features.exact.value);
     }
 }

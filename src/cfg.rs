@@ -11,11 +11,6 @@ pub trait UnvalidatedConfig {
     ) -> Self::ValidCfg;
 }
 
-pub(crate) const NAME: &str = "$__toml_private_Spanned";
-pub(crate) const START: &str = "$__toml_private_start";
-pub(crate) const END: &str = "$__toml_private_end";
-pub(crate) const VALUE: &str = "$__toml_private_value";
-
 #[derive(Default)]
 pub struct Spanned<T> {
     pub(crate) value: T,
@@ -131,6 +126,11 @@ where
     where
         D: de::Deserializer<'de>,
     {
+        pub(crate) const NAME: &str = "$__toml_private_Spanned";
+        pub(crate) const START: &str = "$__toml_private_start";
+        pub(crate) const END: &str = "$__toml_private_end";
+        pub(crate) const VALUE: &str = "$__toml_private_value";
+
         struct SpannedVisitor<T>(::std::marker::PhantomData<T>);
 
         impl<'de, T> de::Visitor<'de> for SpannedVisitor<T>
