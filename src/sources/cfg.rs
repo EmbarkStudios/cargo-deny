@@ -202,7 +202,7 @@ mod test {
     use crate::cfg::{test::*, *};
 
     #[test]
-    fn works() {
+    fn deserializes_sources_cfg() {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Sources {
