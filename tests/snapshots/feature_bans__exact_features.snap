@@ -757,8 +757,7 @@ expression: "tu::to_snapshot(diags)"
       "notes": [
         "'Win32' feature was enabled but not explicitly allowed",
         "'Win32_System' feature was enabled but not explicitly allowed",
-        "'default' feature was enabled but not explicitly allowed",
-        "'json' feature was enabled but not explicitly allowed"
+        "'default' feature was enabled but not explicitly allowed"
       ],
       "severity": "error"
     },

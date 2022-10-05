@@ -916,7 +916,7 @@ dependencies = [
 [[package]]
 name = "krates"
 version = "0.11.0"
-source = "git+https://github.com/EmbarkStudios/krates?branch=add-features#ad91555dd9f5718212a0acedcaa2676cd48ab191"
+source = "git+https://github.com/EmbarkStudios/krates?branch=add-features#a06045d7049f75f67b3219fcf0eddfd89161991c"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",

@@ -43,7 +43,7 @@ fn bans_external_features() {
     insta::assert_snapshot!(tu::to_snapshot(diags));
 }
 
-/// Ensures non-workspace features are banned
+/// Ensures non-workspace features can be allowed
 #[test]
 fn allows_external_features() {
     let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
@@ -53,8 +53,30 @@ fn allows_external_features() {
             no_default_features: true,
             ..Default::default()
         },
-        "bans_external_features",
+        "allows_external_features",
         Some("features = [{ name = 'libssh2-sys', allow = ['zlib-ng-compat'] }]"),
+        Some(&["x86_64-unknown-linux-gnu"]),
+        |ctx, cs, tx| {
+            bans::check(ctx, None, cs, tx);
+        },
+    )
+    .unwrap();
+
+    insta::assert_snapshot!(tu::to_snapshot(diags));
+}
+
+/// Ensures workspace features fail if not all are allowed
+#[test]
+fn fails_if_not_all_features_allowed() {
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        KrateGather {
+            name: "features-galore",
+            features: &["zlib", "ssh"],
+            no_default_features: true,
+            ..Default::default()
+        },
+        "bans_external_features",
+        Some("features = [{ name = 'features-galore', allow = ['ssh'] }]"),
         Some(&["x86_64-unknown-linux-gnu"]),
         |ctx, cs, tx| {
             bans::check(ctx, None, cs, tx);

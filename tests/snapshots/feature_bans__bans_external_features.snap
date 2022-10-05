@@ -50,6 +50,72 @@ expression: "tu::to_snapshot(diags)"
                               }
                             }
                           ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "git2",
+                            "name": "ssh"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "features-galore",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "ssh"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "git2",
+                            "name": "ssh_key_from_memory"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "features-galore",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "ssh"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "git2",
+                            "name": "zlib-ng-compat"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "features-galore",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "zlib"
+                              },
+                              "repeat": true
+                            }
+                          ]
                         }
                       ]
                     },
@@ -69,6 +135,13 @@ expression: "tu::to_snapshot(diags)"
                               "Krate": {
                                 "name": "git2",
                                 "version": "0.14.4"
+                              },
+                              "repeat": true
+                            },
+                            {
+                              "Feature": {
+                                "crate_name": "git2",
+                                "name": "ssh"
                               },
                               "repeat": true
                             }
@@ -95,6 +168,13 @@ expression: "tu::to_snapshot(diags)"
                             "version": "0.14.4"
                           },
                           "repeat": true
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "git2",
+                            "name": "ssh_key_from_memory"
+                          },
+                          "repeat": true
                         }
                       ]
                     },
@@ -108,6 +188,13 @@ expression: "tu::to_snapshot(diags)"
                           "Krate": {
                             "name": "git2",
                             "version": "0.14.4"
+                          },
+                          "repeat": true
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "git2",
+                            "name": "zlib-ng-compat"
                           },
                           "repeat": true
                         }

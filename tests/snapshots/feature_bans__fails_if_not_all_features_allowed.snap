@@ -1,0 +1,44 @@
+---
+source: tests/feature_bans.rs
+expression: "tu::to_snapshot(diags)"
+---
+[
+  {
+    "fields": {
+      "code": "B014",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "ssh"
+              }
+            },
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "zlib"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 49,
+          "line": 1,
+          "message": "allowed features",
+          "span": "['ssh']"
+        }
+      ],
+      "message": "feature 'zlib' for crate 'features-galore = 0.1.0' was not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
