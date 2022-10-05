@@ -101,6 +101,14 @@ pub struct Config {
     /// Allows specifying features that are or are not allowed on crates
     #[serde(default)]
     pub features: Vec<CrateFeatures>,
+    /// The default lint level for default features for external, non-workspace
+    /// crates, can be overriden in `features` on a crate by crate basis
+    #[serde(default)]
+    pub external_default_features: Option<Spanned<LintLevel>>,
+    /// The default lint level for default features for workspace crates, can be
+    /// overriden in `features` on a crate by crate basis
+    #[serde(default)]
+    pub workspace_default_features: Option<Spanned<LintLevel>>,
     /// If specified, disregards the crate completely
     #[serde(default)]
     pub skip: Vec<Spanned<CrateId>>,
@@ -123,6 +131,8 @@ impl Default for Config {
             deny: Vec::new(),
             allow: Vec::new(),
             features: Vec::new(),
+            external_default_features: None,
+            workspace_default_features: None,
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
@@ -244,6 +254,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
             denied,
             allowed,
             features,
+            external_default_features: self.external_default_features,
+            workspace_default_features: self.workspace_default_features,
             skipped,
             wildcards: self.wildcards,
             tree_skipped: self
@@ -300,6 +312,8 @@ pub struct ValidConfig {
     pub(crate) denied: Vec<KrateBan>,
     pub(crate) allowed: Vec<Skrate>,
     pub(crate) features: Vec<KrateFeatures>,
+    pub external_default_features: Option<Spanned<LintLevel>>,
+    pub workspace_default_features: Option<Spanned<LintLevel>>,
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
@@ -350,6 +364,14 @@ mod test {
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.multiple_versions, LintLevel::Deny);
         assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
+        assert_eq!(
+            validated.external_default_features.unwrap().value,
+            LintLevel::Deny
+        );
+        assert_eq!(
+            validated.workspace_default_features.unwrap().value,
+            LintLevel::Warn
+        );
 
         assert_eq!(
             validated.allowed,

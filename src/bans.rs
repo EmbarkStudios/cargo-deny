@@ -193,6 +193,8 @@ pub fn check(
         denied,
         allowed,
         features,
+        workspace_default_features,
+        external_default_features,
         skipped,
         multiple_versions,
         highlight,
@@ -418,19 +420,53 @@ pub fn check(
             }
         }
 
+        let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
+
+        let default_lint_level = if enabled_features.contains("default") {
+            if ctx.krates.workspace_members().any(|n| {
+                if let krates::Node::Krate { id, .. } = n {
+                    id == &krate.id
+                } else {
+                    false
+                }
+            }) {
+                workspace_default_features.as_ref()
+            } else {
+                external_default_features.as_ref()
+            }
+        } else {
+            None
+        };
+
+        if let Some(ll) = default_lint_level {
+            if ll.value == LintLevel::Warn {
+                pack.push(diags::DefaultFeatureEnabled {
+                    krate,
+                    level: ll,
+                    file_id,
+                });
+            }
+        }
+
         // Check if the crate has had features denied/allowed or are required to be exact
         if let Some(matches) = matches(&feature_ids, krate) {
             for rm in matches {
                 let feature_bans = &features[rm.index];
 
                 let feature_set_allowed = {
-                    let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
-
                     // Gather features that were present, but not explicitly allowed
                     let not_explicitly_allowed: Vec<_> = enabled_features
                         .iter()
                         .filter_map(|ef| {
                             if !feature_bans.allow.value.iter().any(|af| &af.value == ef) {
+                                if ef == "default" {
+                                    if let Some(ll) = default_lint_level {
+                                        if ll.value != LintLevel::Deny {
+                                            return None;
+                                        }
+                                    }
+                                }
+
                                 Some(ef.as_str())
                             } else {
                                 None
@@ -475,16 +511,71 @@ pub fn check(
                         // the check has failed
                         let diag_count = pack.len();
 
-                        // Add diagnostics if features were explicitly allowed, but weren't present
+                        // Add diagnostics if features were explicitly allowed,
+                        // but didn't contain 1 or more features that were enabled
                         if !feature_bans.allow.value.is_empty() {
                             for feature in &not_explicitly_allowed {
-                                pack.push(diags::FeatureNotExplicitlyAllowed {
+                                // Since the user has not specified `exact` we
+                                // can also look at the full tree of features to
+                                // determine if the feature is covered by an allowed
+                                // parent feature
+                                fn has_feature(
+                                    map: &std::collections::HashMap<String, Vec<String>>,
+                                    parent: &str,
+                                    feature: &str,
+                                ) -> bool {
+                                    if let Some(parent) = map.get(parent) {
+                                        parent.iter().any(|f| {
+                                            let pf = krates::ParsedFeature::from(f.as_str());
+
+                                            if let krates::Feature::Simple(feat) = pf.feat() {
+                                                if feat == feature {
+                                                    true
+                                                } else {
+                                                    has_feature(map, feat, feature)
+                                                }
+                                            } else {
+                                                false
+                                            }
+                                        })
+                                    } else {
+                                        false
+                                    }
+                                }
+
+                                if !feature_bans.allow.value.iter().any(|allowed| {
+                                    has_feature(&krate.features, allowed.value.as_str(), feature)
+                                }) {
+                                    pack.push(diags::FeatureNotExplicitlyAllowed {
+                                        krate,
+                                        feature,
+                                        allowed: CfgCoord {
+                                            file: file_id,
+                                            span: feature_bans.allow.span.clone(),
+                                        },
+                                    });
+                                }
+                            }
+                        }
+
+                        // If the default feature has been denied at a global
+                        // level but not at the crate level, emit an error with
+                        // the global span, otherwise the crate level setting,
+                        // if the default feature was banned explicitly, takes
+                        // precedence
+                        if let Some(ll) = default_lint_level {
+                            if ll.value == LintLevel::Deny
+                                && !feature_bans
+                                    .allow
+                                    .value
+                                    .iter()
+                                    .any(|d| d.value == "default")
+                                && !feature_bans.deny.iter().any(|d| d.value == "default")
+                            {
+                                pack.push(diags::DefaultFeatureEnabled {
                                     krate,
-                                    feature,
-                                    allowed: CfgCoord {
-                                        file: file_id,
-                                        span: feature_bans.allow.span.clone(),
-                                    },
+                                    level: ll,
+                                    file_id,
                                 });
                             }
                         }
@@ -527,6 +618,14 @@ pub fn check(
                         }
                     }
                 }
+            }
+        } else if let Some(ll) = default_lint_level {
+            if ll.value == LintLevel::Deny {
+                pack.push(diags::DefaultFeatureEnabled {
+                    krate,
+                    level: ll,
+                    file_id,
+                });
             }
         }
 

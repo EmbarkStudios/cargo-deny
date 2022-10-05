@@ -876,6 +876,7 @@ dependencies = [
  "console",
  "lazy_static",
  "linked-hash-map",
+ "serde",
  "similar",
  "yaml-rust",
 ]
@@ -916,7 +917,7 @@ dependencies = [
 [[package]]
 name = "krates"
 version = "0.11.0"
-source = "git+https://github.com/EmbarkStudios/krates?branch=add-features#a06045d7049f75f67b3219fcf0eddfd89161991c"
+source = "git+https://github.com/EmbarkStudios/krates?branch=add-features#8c74a5809e782a130b261134480641a46c214638"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",

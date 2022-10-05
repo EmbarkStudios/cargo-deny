@@ -18,7 +18,7 @@ fn bans_workspace_features() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures non-workspace features are banned
@@ -40,7 +40,7 @@ fn bans_external_features() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures non-workspace features can be allowed
@@ -62,7 +62,7 @@ fn allows_external_features() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures workspace features fail if not all are allowed
@@ -84,7 +84,7 @@ fn fails_if_not_all_features_allowed() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures features banned in a crate with multiple versions are all found
@@ -101,7 +101,7 @@ fn bans_features_from_multiple_versions() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures exact works
@@ -118,7 +118,7 @@ fn exact_features() {
     )
     .unwrap();
 
-    insta::assert_snapshot!(tu::to_snapshot(diags));
+    insta::assert_json_snapshot!(diags);
 }
 
 /// Ensures weak dependencies are properly pruned from the graph
@@ -142,4 +142,114 @@ fn weak_dependencies_pruned() {
     .unwrap();
 
     assert!(diags.is_empty());
+}
+
+/// Ensures the `workspace_default_features` cfg works as expected
+#[test]
+fn workspace_default_features() {
+    let kg = KrateGather {
+        name: "features-galore",
+        no_default_features: false,
+        ..Default::default()
+    };
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        kg.clone(),
+            "workspace_default_features_gets_overriden",
+            Some("workspace-default-features = 'warn'\nfeatures = [{ name = 'features-galore', deny = ['default'] }]"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+            kg.clone(),
+            "workspace_default_features_denies",
+            Some("workspace-default-features = 'deny'\n"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        kg,
+            "workspace_default_features_deny_default",
+            Some("workspace-default-features = 'deny'\nfeatures = [{ name = 'features-galore', allow = ['default'] }]"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
+}
+
+/// Ensures the `external_default_features` cfg works as expected
+#[test]
+fn external_default_features() {
+    let kg = KrateGather {
+        name: "features-galore",
+        no_default_features: true,
+        ..Default::default()
+    };
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        kg.clone(),
+            "external_default_features_gets_overriden",
+            Some("external-default-features = 'allow'\nfeatures = [{ name = 'bitflags', deny = ['default'] }]"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+            kg.clone(),
+            "external_default_features_denies",
+            Some("external-default-features = 'deny'\n"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
+
+    {
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
+        kg,
+            "external_default_features_deny_default",
+            Some("external-default-features = 'deny'\nfeatures = [{ name = 'bitflags', allow = ['default'] }]"),
+            Some(&["x86_64-unknown-linux-gnu"]),
+            |ctx, cs, tx| {
+                bans::check(ctx, None, cs, tx);
+            },
+        )
+        .unwrap();
+
+        insta::assert_json_snapshot!(diags);
+    }
 }

@@ -2,6 +2,8 @@
 multiple-versions = "deny"
 wildcards = "deny"
 highlight = "simplest-path"
+workspace-default-features = "warn"
+external-default-features = "deny"
 allow = [
     { name = "all-versionsa" },
     { name = "specific-versiona", version = "<0.1.1" },
