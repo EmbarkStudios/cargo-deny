@@ -336,7 +336,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
             diag,
             graph_nodes: std::iter::once(GraphNode {
                 kid: fna.krate.id.clone(),
-                feature: Some(fna.feature.to_owned()),
+                feature: None,
             })
             .collect(),
             extra: None,
@@ -402,6 +402,37 @@ impl From<UnknownFeature<'_>> for Diag {
             .collect(),
             extra: None,
             with_features: false,
+        }
+    }
+}
+
+pub(crate) struct DefaultFeatureEnabled<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) level: &'a Spanned<crate::LintLevel>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<DefaultFeatureEnabled<'_>> for Diag {
+    fn from(dfe: DefaultFeatureEnabled<'_>) -> Diag {
+        let diag = Diagnostic::new(dfe.level.value.into())
+            .with_message(format!(
+                "'default' feature enabled for crate '{}'",
+                dfe.krate,
+            ))
+            .with_code("B017")
+            .with_labels(vec![
+                Label::primary(dfe.file_id, dfe.level.span.clone()).with_message("lint level")
+            ]);
+
+        Diag {
+            diag,
+            graph_nodes: std::iter::once(GraphNode {
+                kid: dfe.krate.id.clone(),
+                feature: Some("default".to_owned()),
+            })
+            .collect(),
+            extra: None,
+            with_features: true,
         }
     }
 }

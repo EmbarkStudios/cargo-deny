@@ -1,0 +1,38 @@
+---
+source: tests/feature_bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "default"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 30,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'features-galore = 0.1.0'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

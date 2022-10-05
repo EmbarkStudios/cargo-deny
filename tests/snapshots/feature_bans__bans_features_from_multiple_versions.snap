@@ -78,7 +78,7 @@ expression: "tu::to_snapshot(diags)"
       ],
       "labels": [
         {
-          "column": 50,
+          "column": 45,
           "line": 2,
           "message": "feature denied here",
           "span": "'Win32_System_LibraryLoader'"
@@ -156,7 +156,7 @@ expression: "tu::to_snapshot(diags)"
       ],
       "labels": [
         {
-          "column": 50,
+          "column": 45,
           "line": 2,
           "message": "feature denied here",
           "span": "'Win32_System_LibraryLoader'"

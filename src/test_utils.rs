@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Context as _;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct KrateGather<'k> {
     pub name: &'k str,
     pub features: &'k [&'k str],

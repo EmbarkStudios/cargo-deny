@@ -2,13 +2,13 @@
 multiple-versions = "deny"
 wildcards = "deny"
 highlight = "simplest-path"
+workspace-default-features = "warn"
+external-default-features = "deny"
 allow = [
     { name = "all-versionsa" },
     { name = "specific-versiona", version = "<0.1.1" },
 ]
-skip-tree = [
-    { name = "blah", depth = 20 },
-]
+skip-tree = [{ name = "blah", depth = 20 }]
 
 [[bans.deny]]
 name = "all-versionsd"
@@ -21,3 +21,10 @@ version = "=0.1.9"
 [[bans.skip]]
 name = "rand"
 version = "=0.6.5"
+
+[[bans.features]]
+name = "featured-krate"
+version = "1.0"
+deny = ["bad-feature"]
+allow = ["good-feature"]
+exact = true

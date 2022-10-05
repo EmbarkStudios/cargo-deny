@@ -1,0 +1,5 @@
+---
+source: tests/feature_bans.rs
+expression: "tu::to_snapshot(diags)"
+---
+[]

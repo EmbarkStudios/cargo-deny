@@ -1,0 +1,54 @@
+---
+source: tests/feature_bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B015",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "bitflags",
+            "version": "1.3.2"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "bitflags",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 42,
+          "line": 2,
+          "message": "feature denied here",
+          "span": "'default'"
+        }
+      ],
+      "message": "feature 'default' for crate 'bitflags = 1.3.2' is explicitly denied",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

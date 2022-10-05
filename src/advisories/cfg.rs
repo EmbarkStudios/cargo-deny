@@ -171,7 +171,7 @@ mod test {
     use std::borrow::Cow;
 
     #[test]
-    fn works() {
+    fn deserializes_advisories_cfg() {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Advisories {

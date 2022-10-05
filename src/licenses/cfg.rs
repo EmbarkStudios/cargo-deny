@@ -376,7 +376,7 @@ mod test {
     use crate::cfg::{test::*, *};
 
     #[test]
-    fn works() {
+    fn deserializes_licenses_cfg() {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Licenses {

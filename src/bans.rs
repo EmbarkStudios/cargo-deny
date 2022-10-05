@@ -192,6 +192,9 @@ pub fn check(
         file_id,
         denied,
         allowed,
+        features,
+        workspace_default_features,
+        external_default_features,
         skipped,
         multiple_versions,
         highlight,
@@ -207,10 +210,11 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) = denied
-        .iter()
-        .map(|kb| (kb.id.clone(), kb.wrappers.clone()))
-        .unzip();
+    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
+        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+
+    let (feature_ids, features): (Vec<_>, Vec<_>) =
+        features.into_iter().map(|cf| (cf.id, cf.features)).unzip();
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -303,7 +307,7 @@ pub fn check(
             sink.push(pack);
         }
 
-        if let Some(ref og) = output_graph {
+        if let Some(og) = &output_graph {
             match graph::create_graph(
                 multi_detector.name,
                 highlight,
@@ -311,15 +315,15 @@ pub fn check(
                 &multi_detector.dupes,
             ) {
                 Ok(graph) => {
-                    if let Err(e) = og(DupGraph {
+                    if let Err(err) = og(DupGraph {
                         duplicate: multi_detector.name.to_owned(),
                         graph,
                     }) {
-                        log::error!("{}", e);
+                        log::error!("{err}");
                     }
                 }
-                Err(e) => {
-                    log::error!("unable to create graph for {}: {}", multi_detector.name, e);
+                Err(err) => {
+                    log::error!("unable to create graph for {}: {err}", multi_detector.name);
                 }
             };
         }
@@ -328,6 +332,7 @@ pub fn check(
     for (i, krate) in ctx.krates.krates().enumerate() {
         let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
+        // Check if the crate has been explicitly banned
         if let Some(matches) = matches(&denied_ids, krate) {
             for rm in matches {
                 let ban_cfg = CfgCoord {
@@ -337,74 +342,131 @@ pub fn check(
 
                 // The crate is banned, but it might have be allowed if it's wrapped
                 // by one or more particular crates
-                let wrappers = ban_wrappers.get(rm.index);
+                let is_allowed_by_wrapper = if let Some(wrappers) = ban_wrappers.get(rm.index) {
+                    let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                    let graph = ctx.krates.graph();
 
-                // We can also ban specific features only, so a wrapper crate would
-                // not be required
-                let feature_bans = &denied[rm.index].features;
+                    // Ensure that every single crate that has a direct dependency
+                    // on the banned crate is an allowed wrapper
+                    graph
+                        .edges_directed(nid, Direction::Incoming)
+                        .filter_map(|edge| {
+                            if let krates::Edge::Dep { .. } = edge.weight() {
+                                Some(edge.source())
+                            } else {
+                                None
+                            }
+                        })
+                        .all(|nid| {
+                            let src = &ctx.krates[nid];
 
-                let is_allowed_by_wrapper = match wrappers {
-                    Some(wrappers) if !wrappers.is_empty() => {
-                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                        let graph = ctx.krates.graph();
+                            let (diag, is_allowed): (Diag, _) =
+                                match wrappers.iter().find(|aw| aw.value == src.name) {
+                                    Some(aw) => (
+                                        diags::BannedAllowedByWrapper {
+                                            ban_cfg: ban_cfg.clone(),
+                                            ban_exception_cfg: CfgCoord {
+                                                file: file_id,
+                                                span: aw.span.clone(),
+                                            },
+                                            banned_krate: krate,
+                                            wrapper_krate: src,
+                                        }
+                                        .into(),
+                                        true,
+                                    ),
+                                    None => (
+                                        diags::BannedUnmatchedWrapper {
+                                            ban_cfg: ban_cfg.clone(),
+                                            banned_krate: krate,
+                                            parent_krate: src,
+                                        }
+                                        .into(),
+                                        false,
+                                    ),
+                                };
 
-                        // Ensure that every single crate that has a direct dependency
-                        // on the banned crate is an allowed wrapper
-                        graph
-                            .edges_directed(nid, Direction::Incoming)
-                            .filter_map(|edge| {
-                                if let krates::Edge::Dep { .. } = edge.weight() {
-                                    Some(edge.source())
-                                } else {
-                                    None
-                                }
-                            })
-                            .all(|nid| {
-                                let src = &ctx.krates[nid];
-
-                                let (diag, is_allowed): (Diag, _) =
-                                    match wrappers.iter().find(|aw| aw.value == src.name) {
-                                        Some(aw) => (
-                                            diags::BannedAllowedByWrapper {
-                                                ban_cfg: ban_cfg.clone(),
-                                                ban_exception_cfg: CfgCoord {
-                                                    file: file_id,
-                                                    span: aw.span.clone(),
-                                                },
-                                                banned_krate: krate,
-                                                wrapper_krate: src,
-                                            }
-                                            .into(),
-                                            true,
-                                        ),
-                                        None => (
-                                            diags::BannedUnmatchedWrapper {
-                                                ban_cfg: ban_cfg.clone(),
-                                                banned_krate: krate,
-                                                parent_krate: src,
-                                            }
-                                            .into(),
-                                            false,
-                                        ),
-                                    };
-
-                                pack.push(diag);
-                                is_allowed
-                            })
-                    }
-                    _ => feature_bans.is_some(),
+                            pack.push(diag);
+                            is_allowed
+                        })
+                } else {
+                    false
                 };
 
-                // Ensure that the feature set of this krate, wherever it's used
-                // as a dependency, matches the ban entry.
-                let feature_set_allowed = if let Some(feature_bans) = feature_bans {
-                    let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
+                if !is_allowed_by_wrapper {
+                    pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
+                }
+            }
+        }
 
+        if !allowed.is_empty() {
+            // Since only allowing specific crates is pretty draconian,
+            // also emit which allow filters actually passed each crate
+            match matches(&allowed, krate) {
+                Some(matches) => {
+                    for rm in matches {
+                        pack.push(diags::ExplicitlyAllowed {
+                            krate,
+                            allow_cfg: CfgCoord {
+                                file: file_id,
+                                span: rm.id.span.clone(),
+                            },
+                        });
+                    }
+                }
+                None => {
+                    pack.push(diags::ImplicitlyBanned { krate });
+                }
+            }
+        }
+
+        let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
+
+        let default_lint_level = if enabled_features.contains("default") {
+            if ctx.krates.workspace_members().any(|n| {
+                if let krates::Node::Krate { id, .. } = n {
+                    id == &krate.id
+                } else {
+                    false
+                }
+            }) {
+                workspace_default_features.as_ref()
+            } else {
+                external_default_features.as_ref()
+            }
+        } else {
+            None
+        };
+
+        if let Some(ll) = default_lint_level {
+            if ll.value == LintLevel::Warn {
+                pack.push(diags::DefaultFeatureEnabled {
+                    krate,
+                    level: ll,
+                    file_id,
+                });
+            }
+        }
+
+        // Check if the crate has had features denied/allowed or are required to be exact
+        if let Some(matches) = matches(&feature_ids, krate) {
+            for rm in matches {
+                let feature_bans = &features[rm.index];
+
+                let feature_set_allowed = {
                     // Gather features that were present, but not explicitly allowed
                     let not_explicitly_allowed: Vec<_> = enabled_features
                         .iter()
                         .filter_map(|ef| {
                             if !feature_bans.allow.value.iter().any(|af| &af.value == ef) {
+                                if ef == "default" {
+                                    if let Some(ll) = default_lint_level {
+                                        if ll.value != LintLevel::Deny {
+                                            return None;
+                                        }
+                                    }
+                                }
+
                                 Some(ef.as_str())
                             } else {
                                 None
@@ -449,16 +511,71 @@ pub fn check(
                         // the check has failed
                         let diag_count = pack.len();
 
-                        // Add diagnostics if features were explicitly allowed, but weren't present
+                        // Add diagnostics if features were explicitly allowed,
+                        // but didn't contain 1 or more features that were enabled
                         if !feature_bans.allow.value.is_empty() {
                             for feature in &not_explicitly_allowed {
-                                pack.push(diags::FeatureNotExplicitlyAllowed {
+                                // Since the user has not specified `exact` we
+                                // can also look at the full tree of features to
+                                // determine if the feature is covered by an allowed
+                                // parent feature
+                                fn has_feature(
+                                    map: &std::collections::HashMap<String, Vec<String>>,
+                                    parent: &str,
+                                    feature: &str,
+                                ) -> bool {
+                                    if let Some(parent) = map.get(parent) {
+                                        parent.iter().any(|f| {
+                                            let pf = krates::ParsedFeature::from(f.as_str());
+
+                                            if let krates::Feature::Simple(feat) = pf.feat() {
+                                                if feat == feature {
+                                                    true
+                                                } else {
+                                                    has_feature(map, feat, feature)
+                                                }
+                                            } else {
+                                                false
+                                            }
+                                        })
+                                    } else {
+                                        false
+                                    }
+                                }
+
+                                if !feature_bans.allow.value.iter().any(|allowed| {
+                                    has_feature(&krate.features, allowed.value.as_str(), feature)
+                                }) {
+                                    pack.push(diags::FeatureNotExplicitlyAllowed {
+                                        krate,
+                                        feature,
+                                        allowed: CfgCoord {
+                                            file: file_id,
+                                            span: feature_bans.allow.span.clone(),
+                                        },
+                                    });
+                                }
+                            }
+                        }
+
+                        // If the default feature has been denied at a global
+                        // level but not at the crate level, emit an error with
+                        // the global span, otherwise the crate level setting,
+                        // if the default feature was banned explicitly, takes
+                        // precedence
+                        if let Some(ll) = default_lint_level {
+                            if ll.value == LintLevel::Deny
+                                && !feature_bans
+                                    .allow
+                                    .value
+                                    .iter()
+                                    .any(|d| d.value == "default")
+                                && !feature_bans.deny.iter().any(|d| d.value == "default")
+                            {
+                                pack.push(diags::DefaultFeatureEnabled {
                                     krate,
-                                    feature,
-                                    allowed: CfgCoord {
-                                        file: file_id,
-                                        span: feature_bans.allow.span.clone(),
-                                    },
+                                    level: ll,
+                                    file_id,
                                 });
                             }
                         }
@@ -477,19 +594,15 @@ pub fn check(
 
                         diag_count <= pack.len()
                     }
-                } else {
-                    true
                 };
 
-                if !is_allowed_by_wrapper || !feature_set_allowed {
-                    pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
-                } else if let Some(feature_bans) = &denied[rm.index].features {
-                    // If the crate isn't actually banned, but does reference
-                    // features that don't exist, emit warnings about them so
-                    // the user can cleanup their config. We _could_ emit these
-                    // warnings if the crate is banned, but feature graphs in
-                    // particular can be massive and adding warnings into the mix
-                    // will just make parsing the error graphs harder
+                // If the crate isn't actually banned, but does reference
+                // features that don't exist, emit warnings about them so
+                // the user can cleanup their config. We _could_ emit these
+                // warnings if the crate is banned, but feature graphs in
+                // particular can be massive and adding warnings into the mix
+                // will just make parsing the error graphs harder
+                if feature_set_allowed {
                     for feature in feature_bans
                         .allow
                         .value
@@ -506,26 +619,13 @@ pub fn check(
                     }
                 }
             }
-        }
-
-        if !allowed.is_empty() {
-            // Since only allowing specific crates is pretty draconian,
-            // also emit which allow filters actually passed each crate
-            match matches(&allowed, krate) {
-                Some(matches) => {
-                    for rm in matches {
-                        pack.push(diags::ExplicitlyAllowed {
-                            krate,
-                            allow_cfg: CfgCoord {
-                                file: file_id,
-                                span: rm.id.span.clone(),
-                            },
-                        });
-                    }
-                }
-                None => {
-                    pack.push(diags::ImplicitlyBanned { krate });
-                }
+        } else if let Some(ll) = default_lint_level {
+            if ll.value == LintLevel::Deny {
+                pack.push(diags::DefaultFeatureEnabled {
+                    krate,
+                    level: ll,
+                    file_id,
+                });
             }
         }
 
@@ -539,9 +639,9 @@ pub fn check(
                     },
                 });
 
-                // Keep a count of the number of times each skip filter is hit
-                // so that we can report unused filters to the user so that they
-                // can cleanup their configs as their dependency graph changes over time
+                // Mark each skip filter that is hit so that we can report unused
+                // filters to the user so that they can cleanup their configs as
+                // their dependency graph changes over time
                 skip_hit.as_mut_bitslice().set(rm.index, true);
             }
         } else if !tree_skipper.matches(krate, &mut pack) {

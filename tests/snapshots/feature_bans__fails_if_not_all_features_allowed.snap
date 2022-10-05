@@ -5,7 +5,7 @@ expression: "tu::to_snapshot(diags)"
 [
   {
     "fields": {
-      "code": "B015",
+      "code": "B014",
       "graphs": [
         {
           "Krate": {
@@ -16,16 +16,14 @@ expression: "tu::to_snapshot(diags)"
             {
               "Feature": {
                 "crate_name": "features-galore",
-                "name": "simple"
-              },
-              "parents": [
-                {
-                  "Feature": {
-                    "crate_name": "features-galore",
-                    "name": "default"
-                  }
-                }
-              ]
+                "name": "ssh"
+              }
+            },
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "zlib"
+              }
             }
           ]
         }
@@ -34,11 +32,11 @@ expression: "tu::to_snapshot(diags)"
         {
           "column": 49,
           "line": 1,
-          "message": "feature denied here",
-          "span": "'simple'"
+          "message": "allowed features",
+          "span": "['ssh']"
         }
       ],
-      "message": "feature 'simple' for crate 'features-galore = 0.1.0' is explicitly denied",
+      "message": "feature 'zlib' for crate 'features-galore = 0.1.0' was not explicitly allowed",
       "severity": "error"
     },
     "type": "diagnostic"
