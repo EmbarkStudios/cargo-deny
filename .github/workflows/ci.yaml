@@ -38,6 +38,13 @@ jobs:
         os: [ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
+      # We need to disable conversion to CRLF line endings on windows because it's
+      # dumb and causes advisory tests to fails since the submodule is checked
+      # out with the broken line endings
+      - if: matrix.os == 'windows-2022'
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@v3
         with:
           submodules: true
