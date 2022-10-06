@@ -175,6 +175,12 @@ pub struct DupGraph {
     pub graph: String,
 }
 
+impl fmt::Debug for DupGraph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.graph)
+    }
+}
+
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
 use crate::diag::{Check, Diag, Pack, Severity};

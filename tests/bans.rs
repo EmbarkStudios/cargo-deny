@@ -61,3 +61,29 @@ fn deterministic_duplicate_ordering() {
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Ensures duplicate graphs match expectations
+#[test]
+fn duplicate_graphs() {
+    use cargo_deny::bans;
+
+    let krates = KrateGather::new("duplicates").gather();
+    let cfg = "multiple-versions = 'deny'".into();
+
+    let dup_graphs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+
+    let duped_graphs = dup_graphs.clone();
+    gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx| {
+        bans::check(
+            ctx,
+            Some(Box::new(move |dg| {
+                duped_graphs.lock().unwrap().push(dg);
+                Ok(())
+            })),
+            cs,
+            tx,
+        );
+    });
+
+    insta::assert_debug_snapshot!(dup_graphs.lock().unwrap());
+}
