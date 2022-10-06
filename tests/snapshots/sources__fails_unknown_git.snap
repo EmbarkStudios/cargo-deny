@@ -1,0 +1,178 @@
+---
+source: tests/sources.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "S004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "amethyst_core",
+            "version": "0.10.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "sources",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 22,
+          "line": 7,
+          "message": "source",
+          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617#0c2da61772b89323af9dcfed0ed00b2a698d95b5"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "S004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "amethyst_error",
+            "version": "0.5.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "amethyst_core",
+                "version": "0.10.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "sources",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 22,
+          "line": 8,
+          "message": "source",
+          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617#0c2da61772b89323af9dcfed0ed00b2a698d95b5"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "S004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "krates",
+            "version": "0.4.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "sources",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 14,
+          "line": 38,
+          "message": "source",
+          "span": "git+https://github.com/EmbarkStudios/krates?branch=main#3c1eab0f2322bbb16d1d26e82953f702b965e2e5"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "S004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "line-wrap",
+            "version": "0.1.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "sources",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 42,
+          "message": "source",
+          "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs#41e42b9d95684d41615dd3d0aeeb1cfc4cc47225"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "S004",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.3.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "sources",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 88,
+          "message": "source",
+          "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4#ba8dc9f0b164619771892b865f00236ebbd4cd39"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
