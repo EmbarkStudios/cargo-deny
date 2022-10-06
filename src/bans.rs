@@ -397,7 +397,7 @@ pub fn check(
                         false
                     };
 
-                if is_allowed_by_wrapper {
+                if !is_allowed_by_wrapper {
                     pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
                 }
             }
