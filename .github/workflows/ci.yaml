@@ -20,6 +20,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: "clippy, rustfmt"
+      - uses: Swatinem/rust-cache@v2
 
       # make sure all code has been formatted with rustfmt and linted with clippy
       - name: rustfmt
@@ -41,6 +42,7 @@ jobs:
         with:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
       - name: cargo test build
         run: cargo build --tests
@@ -58,6 +60,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
       - run: cargo fetch --target aarch64-apple-darwin
       - run: cargo build --release --target aarch64-apple-darwin
 
@@ -76,6 +79,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
       - name: Install musl tools
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
@@ -97,7 +101,7 @@ jobs:
   # Build `mdBook` documentation and upload it as a temporary build artifact
   doc-book:
     name: Build the book
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - run: |
@@ -117,6 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
       - name: cargo publish
         run: cargo publish --dry-run
@@ -129,6 +134,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.60.0"
+      - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
       - name: cargo check
         run: cargo check --all-targets
@@ -168,6 +174,7 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get install -y musl-tools
+      - uses: Swatinem/rust-cache@v2
       - name: cargo fetch
         run: cargo fetch --target ${{ matrix.target }}
       - name: Release build
