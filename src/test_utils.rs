@@ -2,12 +2,12 @@ use crate::{
     diag::{self, CargoSpans, ErrorSink, Files, KrateSpans},
     CheckCtx,
 };
-use anyhow::Context as _;
 
 #[derive(Default, Clone)]
 pub struct KrateGather<'k> {
     pub name: &'k str,
     pub features: &'k [&'k str],
+    pub targets: &'k [&'k str],
     pub all_features: bool,
     pub no_default_features: bool,
 }
@@ -19,90 +19,99 @@ impl<'k> KrateGather<'k> {
             ..Default::default()
         }
     }
-}
 
-pub enum KratesSrc {
-    Provided(crate::Krates),
-    Cmd(krates::Cmd),
-}
-
-impl From<crate::Krates> for KratesSrc {
-    fn from(krates: crate::Krates) -> Self {
-        Self::Provided(krates)
-    }
-}
-
-impl<'k> From<KrateGather<'k>> for KratesSrc {
-    fn from(kg: KrateGather<'k>) -> Self {
+    pub fn gather(self) -> crate::Krates {
         let mut project_dir = std::path::PathBuf::from("./tests/test_data");
-        project_dir.push(kg.name);
+        project_dir.push(self.name);
 
         let mut cmd = krates::Cmd::new();
         cmd.current_dir(project_dir);
 
-        if kg.all_features {
+        if self.all_features {
             cmd.all_features();
         }
 
-        if kg.no_default_features {
+        if self.no_default_features {
             cmd.no_default_features();
         }
 
-        if !kg.features.is_empty() {
-            cmd.features(kg.features.iter().map(|f| (*f).to_owned()));
+        if !self.features.is_empty() {
+            cmd.features(self.features.iter().map(|f| (*f).to_owned()));
         }
 
-        Self::Cmd(cmd)
+        let mut kb = krates::Builder::new();
+
+        if !self.targets.is_empty() {
+            kb.include_targets(self.targets.iter().map(|t| (t, vec![])));
+        }
+
+        kb.build(cmd, krates::NoneFilter)
+            .expect("failed to build crate graph")
     }
 }
 
-pub fn gather_diagnostics<C, VC, R, KS>(
-    ks: KS,
-    test_name: &str,
-    cfg: Option<&str>,
-    targets: Option<&[&str]>,
-    runner: R,
-) -> anyhow::Result<Vec<serde_json::Value>>
+pub struct Config<C> {
+    deserialized: C,
+    config: String,
+}
+
+impl<C> Config<C>
 where
-    C: serde::de::DeserializeOwned + Default + crate::UnvalidatedConfig<ValidCfg = VC>,
+    C: serde::de::DeserializeOwned + Default,
+{
+    pub fn default() -> Self {
+        Self {
+            deserialized: C::default(),
+            config: "".to_owned(),
+        }
+    }
+
+    pub fn new(config: impl Into<String>) -> Self {
+        let config = config.into();
+        Self {
+            deserialized: toml::from_str(&config).expect("failed to deserialize test config"),
+            config,
+        }
+    }
+}
+
+impl<'s, C> From<&'s str> for Config<C>
+where
+    C: serde::de::DeserializeOwned + Default,
+{
+    fn from(s: &'s str) -> Self {
+        Self::new(s)
+    }
+}
+
+impl<C> From<String> for Config<C>
+where
+    C: serde::de::DeserializeOwned + Default,
+{
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
+pub fn gather_diagnostics<C, VC, R>(
+    krates: &crate::Krates,
+    test_name: &str,
+    cfg: Config<C>,
+    runner: R,
+) -> Vec<serde_json::Value>
+where
+    C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
     R: FnOnce(CheckCtx<'_, VC>, CargoSpans, ErrorSink) + Send,
-    KS: Into<KratesSrc>,
 {
-    let krates = match ks.into() {
-        KratesSrc::Provided(krates) => krates,
-        KratesSrc::Cmd(cmd) => {
-            let mut kb = krates::Builder::new();
-
-            if let Some(targets) = targets {
-                kb.include_targets(targets.iter().map(|t| (t, vec![])));
-            }
-
-            kb.build(cmd, krates::NoneFilter)
-                .context("failed to build crate graph")?
-        }
-    };
-
-    let (spans, content, hashmap) = KrateSpans::synthesize(&krates);
+    let (spans, content, hashmap) = KrateSpans::synthesize(krates);
     let mut files = Files::new();
 
     let spans_id = files.add(format!("{test_name}/Cargo.lock"), content);
-
     let spans = KrateSpans::with_spans(spans, spans_id);
 
-    let (config, cfg_id) = match cfg {
-        Some(cfg) => {
-            let config: C = toml::from_str(cfg).context("failed to deserialize test config")?;
-
-            let cfg_id = files.add(format!("{test_name}.toml"), cfg.to_owned());
-
-            (config, cfg_id)
-        }
-        None => (
-            C::default(),
-            files.add(format!("{test_name}.toml"), "".to_owned()),
-        ),
-    };
+    let config = cfg.deserialized;
+    let cfg_id = files.add(format!("{test_name}.toml"), cfg.config);
 
     let mut newmap = CargoSpans::new();
     for (key, val) in hashmap {
@@ -117,7 +126,7 @@ where
         .iter()
         .any(|d| d.severity >= crate::diag::Severity::Error)
     {
-        anyhow::bail!("encountered errors validating config: {cfg_diags:#?}");
+        panic!("encountered errors validating config: {cfg_diags:#?}");
     }
 
     let (tx, rx) = crossbeam::channel::unbounded();
@@ -161,12 +170,7 @@ where
         },
     );
 
-    gathered
-}
-
-#[inline]
-pub fn to_snapshot(diags: Vec<serde_json::Value>) -> String {
-    serde_json::to_string_pretty(&diags).unwrap()
+    gathered.unwrap()
 }
 
 #[macro_export]
@@ -181,4 +185,30 @@ macro_rules! assert_field_eq {
     ($obj:expr, $field:expr, $expected:expr) => {
         assert_eq!($obj.pointer($field), Some(&serde_json::json!($expected)));
     };
+}
+
+#[macro_export]
+macro_rules! func_name {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
+
+#[inline]
+pub fn gather_bans(
+    name: &str,
+    kg: KrateGather<'_>,
+    cfg: impl Into<Config<crate::bans::cfg::Config>>,
+) -> Vec<serde_json::Value> {
+    let krates = kg.gather();
+    let cfg = cfg.into();
+
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
+        crate::bans::check(ctx, None, cs, tx);
+    })
 }
