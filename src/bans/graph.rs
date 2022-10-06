@@ -4,7 +4,7 @@ use anyhow::{Context, Error};
 use krates::petgraph as pg;
 use semver::Version;
 use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{btree_map::Entry, BTreeMap, HashSet},
     fmt,
 };
 
@@ -80,49 +80,58 @@ pub(crate) fn create_graph(
     dup_name: &str,
     highlight: GraphHighlight,
     krates: &crate::Krates,
-    duplicates: &[usize],
+    dup_ids: &[usize],
 ) -> Result<String, Error> {
     use pg::visit::{EdgeRef, NodeRef};
 
     let mut graph = pg::Graph::new();
-    let mut node_map = HashMap::new();
+    let mut node_map = BTreeMap::new();
 
-    let mut node_stack = Vec::new();
+    let mut node_stack = Vec::with_capacity(dup_ids.len());
 
-    let duplicates: Vec<_> = duplicates.iter().map(|di| krates[*di].id.clone()).collect();
+    let duplicates: Vec<_> = dup_ids.iter().map(|di| krates[*di].id.clone()).collect();
 
-    for dup in &duplicates {
-        let nid = graph.add_node(dup);
-        node_map.insert(dup, nid);
-        node_stack.push(dup);
+    for (index, dupid) in dup_ids.iter().zip(duplicates.iter()) {
+        let nid = graph.add_node(dupid);
+        node_map.insert(dupid, nid);
+        node_stack.push((krates::NodeId::new(*index), dupid));
     }
 
-    while let Some(pid) = node_stack.pop() {
-        let target = node_map[pid];
-        let tid = krates.nid_for_kid(pid).context("unable to find crate")?;
-        for incoming in krates.graph().edges_directed(tid, pg::Direction::Incoming) {
-            let parent = &krates[incoming.source()];
-            let kind = if let krates::Edge::Dep { kind, .. } = incoming.weight() {
-                *kind
-            } else {
-                continue;
-            };
+    {
+        let kg = krates.graph();
 
-            if let Some(pindex) = node_map.get(&parent.id) {
-                graph.update_edge(*pindex, target, kind);
-            } else {
-                let pindex = graph.add_node(&parent.id);
+        let mut visited_features = HashSet::new();
 
-                graph.update_edge(pindex, target, kind);
+        while let Some((index, pid)) = node_stack.pop() {
+            let target = node_map[pid];
+            for edge in kg.edges_directed(index, pg::Direction::Incoming) {
+                match edge.weight() {
+                    krates::Edge::Feature => {
+                        if visited_features.insert(edge.source()) {
+                            node_stack.push((edge.source(), pid));
+                        }
+                    }
+                    krates::Edge::Dep { kind, .. } | krates::Edge::DepFeature { kind, .. } => {
+                        let parent = &krates[edge.source()];
 
-                node_map.insert(&parent.id, pindex);
-                node_stack.push(&parent.id);
+                        if let Some(pindex) = node_map.get(&parent.id) {
+                            graph.update_edge(*pindex, target, *kind);
+                        } else {
+                            let pindex = graph.add_node(&parent.id);
+
+                            graph.update_edge(pindex, target, *kind);
+
+                            node_map.insert(&parent.id, pindex);
+                            node_stack.push((edge.source(), &parent.id));
+                        }
+                    }
+                }
             }
         }
     }
 
     let mut node_stack = Vec::new();
-    let mut dupe_nodes = HashMap::<_, Vec<_>>::new();
+    let mut dupe_nodes = BTreeMap::<_, Vec<_>>::new();
 
     let mut edge_sets = Vec::with_capacity(duplicates.len());
 
