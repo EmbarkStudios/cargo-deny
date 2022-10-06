@@ -14,7 +14,7 @@ documentation = "https://docs.rs/cargo-deny"
 homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
-exclude = ["examples/", ".github/"]
+exclude = ["examples/", ".github/", "tests"]
 rust-version = "1.60.0"
 
 [badges]

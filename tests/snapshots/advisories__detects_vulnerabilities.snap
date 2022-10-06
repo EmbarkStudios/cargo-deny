@@ -1,0 +1,66 @@
+---
+source: tests/advisories.rs
+expression: diag
+---
+{
+  "fields": {
+    "advisory": {
+      "aliases": [
+        "CVE-2019-15542"
+      ],
+      "categories": [],
+      "collection": "crates",
+      "cvss": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "date": "2019-04-27",
+      "description": "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+      "id": "RUSTSEC-2019-0001",
+      "informational": null,
+      "keywords": [
+        "stack-overflow",
+        "crash"
+      ],
+      "package": "ammonia",
+      "references": [],
+      "related": [],
+      "source": null,
+      "title": "Uncontrolled recursion leads to abort in HTML serialization",
+      "url": "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+      "withdrawn": null
+    },
+    "code": "A001",
+    "graphs": [
+      {
+        "Krate": {
+          "name": "ammonia",
+          "version": "0.7.0"
+        },
+        "parents": [
+          {
+            "Krate": {
+              "name": "advisories",
+              "version": "0.1.0"
+            }
+          }
+        ]
+      }
+    ],
+    "labels": [
+      {
+        "column": 1,
+        "line": 4,
+        "message": "security vulnerability detected",
+        "span": "ammonia 0.7.0 registry+https://github.com/rust-lang/crates.io-index"
+      }
+    ],
+    "message": "Uncontrolled recursion leads to abort in HTML serialization",
+    "notes": [
+      "ID: RUSTSEC-2019-0001",
+      "Advisory: https://rustsec.org/advisories/RUSTSEC-2019-0001",
+      "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+      "Announcement: https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+      "Solution: Upgrade to >=2.1.0"
+    ],
+    "severity": "error"
+  },
+  "type": "diagnostic"
+}

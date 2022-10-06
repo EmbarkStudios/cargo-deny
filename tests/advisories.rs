@@ -1,6 +1,6 @@
 use cargo_deny::{
     advisories::{self, cfg},
-    assert_field_eq, field_eq,
+    field_eq,
     test_utils::{self as tu},
     Krates,
 };
@@ -9,22 +9,6 @@ struct TestCtx {
     dbs: advisories::DbSet,
     lock: advisories::PrunedLockfile,
     krates: Krates,
-}
-
-fn iter_notes(diag: &serde_json::Value) -> Option<impl Iterator<Item = &str>> {
-    diag.pointer("/fields/notes")
-        .and_then(|notes| notes.as_array())
-        .map(|array| array.iter().filter_map(|s| s.as_str()))
-}
-
-fn find_by_code<'a>(
-    diags: &'a [serde_json::Value],
-    code: &'_ str,
-) -> Option<&'a serde_json::Value> {
-    diags.iter().find(|v| match iter_notes(v) {
-        Some(mut notes) => notes.any(|note| note.contains(code)),
-        None => false,
-    })
 }
 
 fn load() -> TestCtx {
@@ -43,8 +27,12 @@ fn load() -> TestCtx {
     .unwrap();
 
     let db = {
-        let tmp = tempfile::tempdir().unwrap();
-        advisories::DbSet::load(Some(tmp), vec![], advisories::Fetch::Allow).unwrap()
+        advisories::DbSet::load(
+            Some("tests/advisory-db"),
+            vec![],
+            advisories::Fetch::Disallow,
+        )
+        .unwrap()
     };
 
     let lockfile = advisories::PrunedLockfile::prune(lock, &krates);
@@ -56,18 +44,32 @@ fn load() -> TestCtx {
     }
 }
 
+fn iter_notes(diag: &serde_json::Value) -> Option<impl Iterator<Item = &str>> {
+    diag.pointer("/fields/notes")
+        .and_then(|notes| notes.as_array())
+        .map(|array| array.iter().filter_map(|s| s.as_str()))
+}
+
+fn find_by_code<'a>(
+    diags: &'a [serde_json::Value],
+    code: &'_ str,
+) -> Option<&'a serde_json::Value> {
+    diags.iter().find(|v| match iter_notes(v) {
+        Some(mut notes) => notes.any(|note| note.contains(code)),
+        None => false,
+    })
+}
+
 #[test]
-#[ignore]
 fn detects_vulnerabilities() {
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "vulnerability = 'deny'";
+    let cfg = tu::Config::new("vulnerability = 'deny'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "detects_vulnerabilities",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -77,22 +79,11 @@ fn detects_vulnerabilities() {
                 tx,
             );
         },
-    )
-    .unwrap();
-
-    let vuln_diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
-
-    assert_field_eq!(vuln_diag, "/fields/severity", "error");
-    assert_field_eq!(
-        vuln_diag,
-        "/fields/message",
-        "Uncontrolled recursion leads to abort in HTML serialization"
     );
-    assert_field_eq!(
-        vuln_diag,
-        "/fields/labels/0/message",
-        "security vulnerability detected"
-    );
+
+    let diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
+
+    insta::assert_json_snapshot!(diag);
 }
 
 // #[test]
@@ -137,17 +128,15 @@ fn detects_vulnerabilities() {
 // }
 
 #[test]
-#[ignore]
 fn detects_unmaintained() {
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "unmaintained = 'warn'";
+    let cfg = tu::Config::new("unmaintained = 'warn'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "detects_unmaintained",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -157,36 +146,22 @@ fn detects_unmaintained() {
                 tx,
             );
         },
-    )
-    .unwrap();
+    );
 
     let unmaintained_diag = find_by_code(&diags, "RUSTSEC-2016-0004").unwrap();
-
-    assert_field_eq!(unmaintained_diag, "/fields/severity", "warning");
-    assert_field_eq!(
-        unmaintained_diag,
-        "/fields/message",
-        "libusb is unmaintained; use rusb instead"
-    );
-    assert_field_eq!(
-        unmaintained_diag,
-        "/fields/labels/0/message",
-        "unmaintained advisory detected"
-    );
+    insta::assert_json_snapshot!(unmaintained_diag);
 }
 
 #[test]
-#[ignore]
 fn detects_unsound() {
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "unsound = 'warn'";
+    let cfg = tu::Config::new("unsound = 'warn'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "detects_unsound",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -196,42 +171,23 @@ fn detects_unsound() {
                 tx,
             );
         },
-    )
-    .unwrap();
+    );
 
-    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
-
-    assert_field_eq!(unsound_diag, "/fields/severity", "warning");
-    assert_field_eq!(
-        unsound_diag,
-        "/fields/message",
-        "Type confusion if __private_get_type_id__ is overridden"
-    );
-    assert_field_eq!(
-        unsound_diag,
-        "/fields/labels/0/message",
-        "unsound advisory detected"
-    );
-    assert_field_eq!(
-        unsound_diag,
-        "/fields/labels/0/span",
-        "failure 0.1.8 registry+https://github.com/rust-lang/crates.io-index"
-    );
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
-#[ignore]
 fn downgrades_lint_levels() {
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "unmaintained = 'warn'
-    ignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']";
+    let cfg = tu::Config::new(
+        "unmaintained = 'warn'\nignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']",
+    );
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "downgrades_lint_levels",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -241,43 +197,27 @@ fn downgrades_lint_levels() {
                 tx,
             );
         },
-    )
-    .unwrap();
-
-    assert_field_eq!(
-        find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
-        "/fields/severity",
-        "help"
     );
 
-    assert_field_eq!(
-        find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
-        "/fields/severity",
-        "help"
-    );
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
-#[ignore]
 fn detects_yanked() {
-    // Force fetch the index just in case
-    {
-        let mut index = crates_index::Index::new_cargo_default().unwrap();
-        index.update().unwrap();
-    }
+    // This crate has been yanked for ages so no need to do a refresh of the registry
+    // {
+    //     let mut index = crates_index::Index::new_cargo_default().unwrap();
+    //     index.update().unwrap();
+    // }
 
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "yanked = 'deny'
-    unmaintained = 'allow'
-    vulnerability = 'allow'
-    ";
+    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "detects_yanked",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -287,8 +227,7 @@ fn detects_yanked() {
                 tx,
             );
         },
-    )
-    .unwrap();
+    );
 
     let yanked = ["spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"];
 
@@ -308,18 +247,14 @@ fn detects_yanked() {
 fn warns_on_ignored_and_withdrawn() {
     let TestCtx { dbs, lock, krates } = load();
 
-    let cfg = "yanked = 'deny'
-    unmaintained = 'deny'
-    vulnerability = 'deny'
+    let cfg = tu::Config::new(
+        "yanked = 'deny'\nunmaintained = 'deny'\nvulnerability = 'deny'\nignore = ['RUSTSEC-2020-0053']",
+    );
 
-    ignore = ['RUSTSEC-2020-0053']
-    ";
-
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _, _>(
-        krates,
+    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+        &krates,
         "warns_on_ignored_and_withdrawn",
-        Some(cfg),
-        None,
+        cfg,
         |ctx, _, tx| {
             advisories::check(
                 ctx,
@@ -329,20 +264,7 @@ fn warns_on_ignored_and_withdrawn() {
                 tx,
             );
         },
-    )
-    .unwrap();
-
-    assert!(
-        diags.iter().any(|v| {
-            field_eq!(v, "/fields/severity", "warning")
-                && field_eq!(v, "/fields/message", "advisory was not encountered")
-                && field_eq!(
-                    v,
-                    "/fields/labels/0/message",
-                    "no crate matched advisory criteria"
-                )
-                && field_eq!(v, "/fields/labels/0/span", "'RUSTSEC-2020-0053'")
-        }),
-        "failed to find ignored and withdrawn diagnostic for 'dirs'"
     );
+
+    insta::assert_json_snapshot!(diags);
 }
