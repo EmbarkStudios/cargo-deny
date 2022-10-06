@@ -1,0 +1,771 @@
+---
+source: tests/feature_bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libc",
+            "version": "0.2.134"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "libc",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "jobserver",
+                    "version": "0.1.25"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "cc",
+                        "version": "1.0.73"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "kind": "build",
+                            "name": "libz-sys",
+                            "version": "1.1.8"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "libz-sys",
+                                "name": "libc"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "libgit2-sys",
+                                    "version": "0.13.4+1.4.2"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "git2",
+                                        "version": "0.14.4"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "cc",
+                            "name": "jobserver"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "cc",
+                                "name": "parallel"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "kind": "build",
+                                    "name": "libgit2-sys",
+                                    "version": "0.13.4+1.4.2"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "cc",
+                            "name": "parallel"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "cc",
+                        "name": "jobserver"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "libz-sys",
+                    "version": "1.1.8"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'libc = 0.2.134'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "percent-encoding",
+            "version": "2.2.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "percent-encoding",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "form_urlencoded",
+                    "version": "1.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "url",
+                        "version": "2.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "url",
+                            "name": "default"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "git2",
+                                "version": "0.14.4"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "features-galore",
+                                    "version": "0.1.0"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      }
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "json"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Feature": {
+                                            "crate_name": "features-galore",
+                                            "name": "simple"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "default"
+                                              },
+                                              "repeat": true
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "simple"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "url",
+                    "version": "2.3.1"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'percent-encoding = 2.2.0'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tinyvec",
+            "version": "1.6.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "tinyvec",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "unicode-normalization",
+                    "version": "0.1.22"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "unicode-normalization",
+                        "name": "default"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "idna",
+                            "version": "0.3.0"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "url",
+                                "version": "2.3.1"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "url",
+                                    "name": "default"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "git2",
+                                        "version": "0.14.4"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "features-galore",
+                                            "version": "0.1.0"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "default"
+                                              }
+                                            },
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "json"
+                                              },
+                                              "parents": [
+                                                {
+                                                  "Feature": {
+                                                    "crate_name": "features-galore",
+                                                    "name": "simple"
+                                                  },
+                                                  "parents": [
+                                                    {
+                                                      "Feature": {
+                                                        "crate_name": "features-galore",
+                                                        "name": "default"
+                                                      },
+                                                      "repeat": true
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "simple"
+                                              },
+                                              "repeat": true
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "unicode-normalization",
+                        "name": "std"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "unicode-normalization",
+                            "name": "default"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'tinyvec = 1.6.0'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "unicode-bidi",
+            "version": "0.3.8"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "unicode-bidi",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "idna",
+                    "version": "0.3.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "url",
+                        "version": "2.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "url",
+                            "name": "default"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "git2",
+                                "version": "0.14.4"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "features-galore",
+                                    "version": "0.1.0"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      }
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "json"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Feature": {
+                                            "crate_name": "features-galore",
+                                            "name": "simple"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "default"
+                                              },
+                                              "repeat": true
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "simple"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'unicode-bidi = 0.3.8'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "unicode-normalization",
+            "version": "0.1.22"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "unicode-normalization",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "idna",
+                    "version": "0.3.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "url",
+                        "version": "2.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "url",
+                            "name": "default"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "git2",
+                                "version": "0.14.4"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "features-galore",
+                                    "version": "0.1.0"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "default"
+                                      }
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "json"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Feature": {
+                                            "crate_name": "features-galore",
+                                            "name": "simple"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Feature": {
+                                                "crate_name": "features-galore",
+                                                "name": "default"
+                                              },
+                                              "repeat": true
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Feature": {
+                                        "crate_name": "features-galore",
+                                        "name": "simple"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'unicode-normalization = 0.1.22'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "url",
+            "version": "2.3.1"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "url",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "default"
+                          }
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "json"
+                          },
+                          "parents": [
+                            {
+                              "Feature": {
+                                "crate_name": "features-galore",
+                                "name": "simple"
+                              },
+                              "parents": [
+                                {
+                                  "Feature": {
+                                    "crate_name": "features-galore",
+                                    "name": "default"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Feature": {
+                            "crate_name": "features-galore",
+                            "name": "simple"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 29,
+          "line": 1,
+          "message": "lint level",
+          "span": "'deny'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'url = 2.3.1'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

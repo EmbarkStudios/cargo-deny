@@ -186,8 +186,6 @@ pub fn check(
     cargo_spans: diag::CargoSpans,
     mut sink: diag::ErrorSink,
 ) {
-    let wildcard = VersionReq::parse("*").expect("Parsing wildcard mustnt fail");
-
     let ValidConfig {
         file_id,
         denied,
@@ -342,22 +340,28 @@ pub fn check(
 
                 // The crate is banned, but it might have be allowed if it's wrapped
                 // by one or more particular crates
-                let is_allowed_by_wrapper = if let Some(wrappers) = ban_wrappers.get(rm.index) {
-                    let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                    let graph = ctx.krates.graph();
+                let is_allowed_by_wrapper =
+                    if let Some(wrappers) = ban_wrappers.get(rm.index).and_then(|bw| bw.as_ref()) {
+                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                        let graph = ctx.krates.graph();
 
-                    // Ensure that every single crate that has a direct dependency
-                    // on the banned crate is an allowed wrapper
-                    graph
-                        .edges_directed(nid, Direction::Incoming)
-                        .filter_map(|edge| {
-                            if let krates::Edge::Dep { .. } = edge.weight() {
-                                Some(edge.source())
-                            } else {
-                                None
+                        let mut direct_dependencies = Vec::new();
+                        let mut stack = vec![nid];
+                        let mut visited = std::collections::BTreeSet::new();
+
+                        while let Some(nid) = stack.pop() {
+                            for edge in graph.edges_directed(nid, Direction::Incoming) {
+                                if let krates::Edge::Feature = edge.weight() {
+                                    stack.push(edge.source());
+                                } else if visited.insert(edge.source()) {
+                                    direct_dependencies.push(edge.source());
+                                }
                             }
-                        })
-                        .all(|nid| {
+                        }
+
+                        // Ensure that every single crate that has a direct dependency
+                        // on the banned crate is an allowed wrapper
+                        direct_dependencies.into_iter().all(|nid| {
                             let src = &ctx.krates[nid];
 
                             let (diag, is_allowed): (Diag, _) =
@@ -389,11 +393,11 @@ pub fn check(
                             pack.push(diag);
                             is_allowed
                         })
-                } else {
-                    false
-                };
+                    } else {
+                        false
+                    };
 
-                if !is_allowed_by_wrapper {
+                if is_allowed_by_wrapper {
                     pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
                 }
             }
@@ -664,7 +668,7 @@ pub fn check(
                 let wildcards: Vec<_> = krate
                     .deps
                     .iter()
-                    .filter(|dep| dep.req == wildcard)
+                    .filter(|dep| dep.req == VersionReq::STAR)
                     .collect();
 
                 if !wildcards.is_empty() {
