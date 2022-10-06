@@ -24,8 +24,7 @@ pub struct CrateBan {
     pub version: Option<VersionReq>,
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
-    #[serde(default)]
-    pub wrappers: Vec<Spanned<String>>,
+    pub wrappers: Option<Vec<Spanned<String>>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -289,7 +288,7 @@ pub(crate) type Skrate = Spanned<KrateId>;
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct KrateBan {
     pub id: Skrate,
-    pub wrappers: Vec<Spanned<String>>,
+    pub wrappers: Option<Vec<Spanned<String>>>,
 }
 
 #[cfg_attr(test, derive(Debug))]

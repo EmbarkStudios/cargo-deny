@@ -1,0 +1,62 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B006",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wildcards-test-crate",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 1,
+          "message": "wildcard crate entry",
+          "span": "ansi_term = '*'"
+        }
+      ],
+      "message": "found 1 wildcard dependency for crate 'wildcards-test-crate'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B006",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wildcards-test-dep",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wildcards-test-crate",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 1,
+          "message": "wildcard crate entry",
+          "span": "itoa = '*'"
+        }
+      ],
+      "message": "found 1 wildcard dependency for crate 'wildcards-test-dep'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

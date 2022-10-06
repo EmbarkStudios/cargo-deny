@@ -1,0 +1,61 @@
+---
+source: tests/advisories.rs
+expression: unmaintained_diag
+---
+{
+  "fields": {
+    "advisory": {
+      "aliases": [],
+      "categories": [],
+      "collection": "crates",
+      "cvss": null,
+      "date": "2016-09-10",
+      "description": "The `libusb` crate has not seen a release since September 2016, and its author\nis unresponsive.\n\nThe `rusb` crate is a maintained fork:\n\nhttps://github.com/a1ien/rusb",
+      "id": "RUSTSEC-2016-0004",
+      "informational": "unmaintained",
+      "keywords": [],
+      "package": "libusb",
+      "references": [],
+      "related": [],
+      "source": null,
+      "title": "libusb is unmaintained; use rusb instead",
+      "url": "https://github.com/dcuddeback/libusb-rs/issues/33",
+      "withdrawn": null
+    },
+    "code": "A003",
+    "graphs": [
+      {
+        "Krate": {
+          "name": "libusb",
+          "version": "0.3.0"
+        },
+        "parents": [
+          {
+            "Krate": {
+              "name": "advisories",
+              "version": "0.1.0"
+            }
+          }
+        ]
+      }
+    ],
+    "labels": [
+      {
+        "column": 1,
+        "line": 47,
+        "message": "unmaintained advisory detected",
+        "span": "libusb 0.3.0 registry+https://github.com/rust-lang/crates.io-index"
+      }
+    ],
+    "message": "libusb is unmaintained; use rusb instead",
+    "notes": [
+      "ID: RUSTSEC-2016-0004",
+      "Advisory: https://rustsec.org/advisories/RUSTSEC-2016-0004",
+      "The `libusb` crate has not seen a release since September 2016, and its author\nis unresponsive.\n\nThe `rusb` crate is a maintained fork:\n\nhttps://github.com/a1ien/rusb",
+      "Announcement: https://github.com/dcuddeback/libusb-rs/issues/33",
+      "Solution: No safe upgrade is available!"
+    ],
+    "severity": "warning"
+  },
+  "type": "diagnostic"
+}

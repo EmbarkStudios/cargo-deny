@@ -1,0 +1,46 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B001",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "dangerous-dep",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "safe-wrapper",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "allow-wrappers-crate",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 1,
+          "message": "banned here",
+          "span": "'dangerous-dep'"
+        }
+      ],
+      "message": "crate 'dangerous-dep = 0.1.0' is explicitly banned",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

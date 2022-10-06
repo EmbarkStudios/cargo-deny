@@ -199,7 +199,7 @@ impl KrateSpans {
 
             for dep in &krate.deps {
                 let span_start = sl2.len();
-                writeln!(sl2, "{} = \"{}\"", dep.name, dep.req)
+                writeln!(sl2, "{} = '{}'", dep.name, dep.req)
                     .expect("unable to synthesize Cargo.toml");
                 let span_end = sl2.len() - 1;
                 deps_map.insert(dep.name.clone(), span_start..span_end);

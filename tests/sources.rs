@@ -1,50 +1,28 @@
-use cargo_deny::{
-    field_eq, sources,
-    test_utils::{self as tu, KrateGather},
-};
+use cargo_deny::{func_name, sources, test_utils::*};
+
+#[inline]
+pub fn src_check(
+    name: &str,
+    kg: KrateGather<'_>,
+    cfg: impl Into<Config<sources::Config>>,
+) -> Vec<serde_json::Value> {
+    let krates = kg.gather();
+    let cfg = cfg.into();
+
+    gather_diagnostics::<sources::Config, _, _>(&krates, name, cfg, |ctx, _cs, tx| {
+        sources::check(ctx, tx);
+    })
+}
 
 #[test]
 fn fails_unknown_git() {
-    let cfg = "unknown-git = 'deny'";
-
-    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
+    let diags = src_check(
+        func_name!(),
         KrateGather::new("sources"),
-        "fails_unknown_git",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            sources::check(ctx, tx);
-        },
-    )
-    .unwrap();
+        "unknown-git = 'deny'",
+    );
 
-    let failed_urls = [
-        // Note this one is used by multiple crates, but that's ok
-        "https://gitlab.com/amethyst-engine/amethyst",
-        "https://github.com/EmbarkStudios/krates",
-        "https://bitbucket.org/marshallpierce/line-wrap-rs",
-        "https://github.com/EmbarkStudios/spdx",
-    ];
-
-    for url in &failed_urls {
-        assert!(
-            diags.iter().any(|v| {
-                field_eq!(v, "/fields/severity", "error")
-                    && field_eq!(
-                        v,
-                        "/fields/message",
-                        "detected 'git' source not explicitly allowed"
-                    )
-                    && v.pointer("/fields/labels/0/span")
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
-                        .contains(url)
-            }),
-            "failed to find diagnostic for git source '{}'",
-            url
-        );
-    }
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
@@ -56,40 +34,9 @@ fn allows_git() {
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
-        KrateGather::new("sources"),
-        "fails_unknown_git",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            sources::check(ctx, tx);
-        },
-    )
-    .unwrap();
+    let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
-    let allowed_urls = [
-        // Note this one is used by multiple crates, but that's ok
-        "https://gitlab.com/amethyst-engine/amethyst",
-        "https://github.com/EmbarkStudios/krates",
-        "https://bitbucket.org/marshallpierce/line-wrap-rs",
-    ];
-
-    for url in &allowed_urls {
-        assert!(
-            diags.iter().any(|v| {
-                field_eq!(v, "/fields/severity", "note")
-                    && field_eq!(v, "/fields/message", "\'git\' source explicitly allowed")
-                    && v.pointer("/fields/labels/0/span")
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
-                        .contains(url)
-                    && field_eq!(v, "/fields/labels/1/span", format!("'{}'", url))
-            }),
-            "failed to find diagnostic for git source '{}'",
-            url
-        );
-    }
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
@@ -100,45 +47,9 @@ fn allows_github_org() {
     github = ['EmbarkStudios']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
-        KrateGather::new("sources"),
-        "allows_github_org",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            sources::check(ctx, tx);
-        },
-    )
-    .unwrap();
+    let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
-    let allowed_by_org = [
-        "https://github.com/EmbarkStudios/krates",
-        "https://github.com/EmbarkStudios/spdx",
-    ];
-
-    for diag in diags {
-        match diag.pointer("/fields/severity").unwrap().as_str().unwrap() {
-            "error" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(!allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            "note" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            ty => unreachable!("unexpected '{}' diagnostic", ty),
-        }
-    }
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
@@ -148,42 +59,9 @@ fn allows_gitlab_org() {
     gitlab = ['amethyst-engine']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
-        KrateGather::new("sources"),
-        "allows_gitlab_org",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            sources::check(ctx, tx);
-        },
-    )
-    .unwrap();
+    let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
-    let allowed_by_org = ["https://gitlab.com/amethyst-engine"];
-
-    for diag in diags {
-        match diag.pointer("/fields/severity").unwrap().as_str().unwrap() {
-            "error" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(!allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            "note" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            ty => unreachable!("unexpected '{}' diagnostic", ty),
-        }
-    }
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
@@ -193,42 +71,9 @@ fn allows_bitbucket_org() {
     bitbucket = ['marshallpierce']
     ";
 
-    let diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
-        KrateGather::new("sources"),
-        "allows_bitbucket_org",
-        Some(cfg),
-        None,
-        |ctx, _, tx| {
-            sources::check(ctx, tx);
-        },
-    )
-    .unwrap();
+    let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
-    let allowed_by_org = ["https://bitbucket.org/marshallpierce/line-wrap-rs"];
-
-    for diag in diags {
-        match diag.pointer("/fields/severity").unwrap().as_str().unwrap() {
-            "error" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(!allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            "note" => {
-                let source = diag
-                    .pointer("/fields/labels/0/span")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-
-                assert!(allowed_by_org.iter().any(|ao| source.contains(ao)));
-            }
-            ty => unreachable!("unexpected '{}' diagnostic", ty),
-        }
-    }
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
@@ -256,16 +101,7 @@ fn validates_git_source_specs() {
             spec
         );
 
-        let mut diags = tu::gather_diagnostics::<sources::Config, _, _, _>(
-            KrateGather::new("sources"),
-            "validates_git_source_specs",
-            Some(&cfg),
-            None,
-            |ctx, _, tx| {
-                sources::check(ctx, tx);
-            },
-        )
-        .unwrap();
+        let mut diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
         diags.retain(|d| {
             d.pointer("/fields/message")

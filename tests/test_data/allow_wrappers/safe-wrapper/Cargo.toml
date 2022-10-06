@@ -6,4 +6,6 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
-dangerous-dep = { path = "../dangerous-dep", version = "0.1.0" }
+dangerous-dep = { version = "0.1.0", path = "../dangerous-dep", features = [
+    "not-dangerous-at-all",
+] }

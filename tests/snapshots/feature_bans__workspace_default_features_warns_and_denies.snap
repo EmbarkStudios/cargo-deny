@@ -1,0 +1,70 @@
+---
+source: tests/feature_bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "B017",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "default"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 30,
+          "line": 1,
+          "message": "lint level",
+          "span": "'warn'"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'features-galore = 0.1.0'",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "B015",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "features-galore",
+                "name": "default"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 49,
+          "line": 2,
+          "message": "feature denied here",
+          "span": "'default'"
+        }
+      ],
+      "message": "feature 'default' for crate 'features-galore = 0.1.0' is explicitly denied",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

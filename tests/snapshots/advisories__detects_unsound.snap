@@ -1,0 +1,66 @@
+---
+source: tests/advisories.rs
+expression: unsound_diag
+---
+{
+  "fields": {
+    "advisory": {
+      "aliases": [
+        "CVE-2020-25575",
+        "CVE-2019-25010"
+      ],
+      "categories": [],
+      "collection": "crates",
+      "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "date": "2019-11-13",
+      "description": "Safe Rust code can implement malfunctioning `__private_get_type_id__` and cause\ntype confusion when downcasting, which is an undefined behavior.\n\nUsers who derive `Fail` trait are not affected.",
+      "id": "RUSTSEC-2019-0036",
+      "informational": "unsound",
+      "keywords": [
+        "unsound"
+      ],
+      "package": "failure",
+      "references": [],
+      "related": [],
+      "source": null,
+      "title": "Type confusion if __private_get_type_id__ is overridden",
+      "url": "https://github.com/rust-lang-nursery/failure/issues/336",
+      "withdrawn": null
+    },
+    "code": "A004",
+    "graphs": [
+      {
+        "Krate": {
+          "name": "failure",
+          "version": "0.1.8"
+        },
+        "parents": [
+          {
+            "Krate": {
+              "name": "advisories",
+              "version": "0.1.0"
+            }
+          }
+        ]
+      }
+    ],
+    "labels": [
+      {
+        "column": 1,
+        "line": 25,
+        "message": "unsound advisory detected",
+        "span": "failure 0.1.8 registry+https://github.com/rust-lang/crates.io-index"
+      }
+    ],
+    "message": "Type confusion if __private_get_type_id__ is overridden",
+    "notes": [
+      "ID: RUSTSEC-2019-0036",
+      "Advisory: https://rustsec.org/advisories/RUSTSEC-2019-0036",
+      "Safe Rust code can implement malfunctioning `__private_get_type_id__` and cause\ntype confusion when downcasting, which is an undefined behavior.\n\nUsers who derive `Fail` trait are not affected.",
+      "Announcement: https://github.com/rust-lang-nursery/failure/issues/336",
+      "Solution: No safe upgrade is available!"
+    ],
+    "severity": "warning"
+  },
+  "type": "diagnostic"
+}

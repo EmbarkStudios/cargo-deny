@@ -1,0 +1,21 @@
+---
+source: tests/advisories.rs
+expression: "diags.iter().find(|diag| field_eq!(diag, \"/fields/code\", \"A007\")).unwrap()"
+---
+{
+  "fields": {
+    "code": "A007",
+    "graphs": [],
+    "labels": [
+      {
+        "column": 11,
+        "line": 4,
+        "message": "no crate matched advisory criteria",
+        "span": "'RUSTSEC-2020-0053'"
+      }
+    ],
+    "message": "advisory was not encountered",
+    "severity": "warning"
+  },
+  "type": "diagnostic"
+}

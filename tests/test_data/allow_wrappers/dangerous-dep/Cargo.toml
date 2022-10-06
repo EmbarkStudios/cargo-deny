@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = []
 edition = "2018"
 license = "MIT"
+
+[features]
+not-dangerous-at-all = []
