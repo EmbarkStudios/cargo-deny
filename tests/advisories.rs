@@ -173,7 +173,8 @@ fn detects_unsound() {
         },
     );
 
-    insta::assert_json_snapshot!(diags);
+    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
+    insta::assert_json_snapshot!(unsound_diag);
 }
 
 #[test]
@@ -199,7 +200,12 @@ fn downgrades_lint_levels() {
         },
     );
 
-    insta::assert_json_snapshot!(diags);
+    let downgraded = [
+        find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
+        find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
+    ];
+
+    insta::assert_json_snapshot!(downgraded);
 }
 
 #[test]
@@ -266,5 +272,8 @@ fn warns_on_ignored_and_withdrawn() {
         },
     );
 
-    insta::assert_json_snapshot!(diags);
+    insta::assert_json_snapshot!(diags
+        .iter()
+        .find(|diag| field_eq!(diag, "/fields/code", "A007"))
+        .unwrap());
 }
