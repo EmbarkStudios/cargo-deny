@@ -131,12 +131,12 @@ where
 
     let (tx, rx) = crossbeam::channel::unbounded();
 
-    let grapher = diag::InclusionGrapher::new(&krates);
+    let grapher = diag::InclusionGrapher::new(krates);
 
     let (_, gathered) = rayon::join(
         || {
             let ctx = crate::CheckCtx {
-                krates: &krates,
+                krates,
                 krate_spans: &spans,
                 cfg,
                 serialize_extra: true,
