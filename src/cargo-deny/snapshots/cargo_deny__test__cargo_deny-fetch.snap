@@ -1,0 +1,28 @@
+---
+source: src/cargo-deny/main.rs
+expression: help_text
+---
+fetch 0.0.0
+Fetches remote data
+
+USAGE:
+    fetch [OPTIONS] [SOURCES]...
+
+ARGS:
+    <SOURCES>...
+            The sources to fetch
+            
+            [possible values: db, index, all]
+
+OPTIONS:
+    -c, --config <CONFIG>
+            Path to the config to use
+            
+            Defaults to <cwd>/deny.toml if not specified
+
+    -h, --help
+            Print help information
+
+    -V, --version
+            Print version information
+

@@ -334,3 +334,74 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use clap::ColorChoice;
+    use clap::Command;
+
+    fn snapshot_test_cli_command(app: Command<'_>, cmd_name: String) {
+        let mut app = app
+            .clone()
+            // we do not want ASCII colors in our snapshot test output
+            .color(ColorChoice::Never)
+            // override versions to not have to update test when changing versions
+            .version("0.0.0")
+            .long_version("0.0.0");
+
+        // don't show current env vars as that will make snapshot test output diff depending on environment run in
+        let arg_names = app
+            .get_arguments()
+            .filter_map(|a| {
+                let id = a.get_id();
+
+                if id != "version" && id != "help" {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        for arg_name in arg_names {
+            app = app.mut_arg(arg_name, |arg| arg.hide_env_values(true));
+        }
+
+        // get the long help text for the command
+        let mut buffer = Vec::new();
+        app.write_long_help(&mut buffer).unwrap();
+        let help_text = std::str::from_utf8(&buffer).unwrap();
+
+        // use internal `insta` function instead of the macro so we can pass in the
+        // right module information from the crate and to gather up the errors instead of panicking directly on failures
+        insta::_macro_support::assert_snapshot(
+            cmd_name.clone().into(),
+            help_text,
+            env!("CARGO_MANIFEST_DIR"),
+            "cli-cmd",
+            module_path!(),
+            file!(),
+            line!(),
+            "help_text",
+        )
+        .unwrap();
+
+        // recursively test all subcommands
+        for app in app.get_subcommands() {
+            if app.get_name() == "help" {
+                continue;
+            }
+
+            snapshot_test_cli_command(app.clone(), format!("{cmd_name}-{}", app.get_name()));
+        }
+    }
+
+    #[test]
+    fn cli_snapshot() {
+        use clap::CommandFactory;
+        snapshot_test_cli_command(
+            super::Opts::command().name("cargo_deny"),
+            "cargo_deny".to_owned(),
+        );
+    }
+}
