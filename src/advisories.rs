@@ -3,6 +3,7 @@ mod diags;
 mod helpers;
 
 use crate::{diag, LintLevel};
+pub use diags::Code;
 use helpers::*;
 pub use helpers::{load_lockfile, DbSet, Fetch, PrunedLockfile, Report};
 

@@ -1,15 +1,27 @@
 use super::Pack;
 
-pub enum ErrorSink {
-    Channel(crossbeam::channel::Sender<Pack>),
-    Vec(Vec<Pack>),
+pub struct ErrorSink {
+    pub overrides: Option<std::sync::Arc<super::DiagnosticOverrides>>,
+    pub channel: super::PackChannel,
 }
 
 impl ErrorSink {
-    pub fn push<P: Into<Pack>>(&mut self, pack: P) {
-        match self {
-            Self::Channel(chan) => chan.send(pack.into()).unwrap(),
-            Self::Vec(v) => v.push(pack.into()),
+    pub fn push(&mut self, pack: impl Into<Pack>) {
+        let mut pack = pack.into();
+
+        if let Some(overrides) = &self.overrides {
+            for diag in &mut pack.diags {
+                if let Some(new_severity) = diag
+                    .diag
+                    .code
+                    .as_deref()
+                    .map(|code| overrides.get(code, diag.diag.severity))
+                {
+                    diag.diag.severity = new_severity;
+                }
+            }
         }
+
+        self.channel.send(pack).unwrap();
     }
 }

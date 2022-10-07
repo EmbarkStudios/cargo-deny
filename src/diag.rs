@@ -18,6 +18,8 @@ pub type Files = codespan::Files<String>;
 pub type RawCargoSpans = HashMap<Kid, (krates::Utf8PathBuf, String, HashMap<String, Range<usize>>)>;
 // Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
 pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
+/// Channel type used to send diagnostics from checks
+pub type PackChannel = crossbeam::channel::Sender<Pack>;
 
 impl From<crate::LintLevel> for Severity {
     fn from(ll: crate::LintLevel) -> Self {
@@ -67,7 +69,7 @@ pub enum Check {
 
 pub struct Pack {
     pub check: Check,
-    diags: Vec<Diag>,
+    pub(crate) diags: Vec<Diag>,
     kid: Option<Kid>,
 }
 
@@ -252,4 +254,83 @@ impl From<Coord> for Label {
 struct NodePrint {
     node: krates::NodeId,
     edge: Option<krates::EdgeId>,
+}
+
+use std::collections::BTreeMap;
+
+/// Each diagnostic will have a default severity, but these can be overriden
+/// by the user via the CLI so that eg. warnings can be made into errors on CI
+pub struct DiagnosticOverrides {
+    pub code_overrides: BTreeMap<&'static str, Severity>,
+    pub level_overrides: Vec<(Severity, Severity)>,
+}
+
+impl DiagnosticOverrides {
+    #[inline]
+    fn get(&self, name: &str, severity: Severity) -> Severity {
+        let code_severity = self.code_overrides.get(name).copied();
+
+        let severity = code_severity.unwrap_or(severity);
+
+        self.level_overrides
+            .iter()
+            .find_map(|(input, output)| {
+                if *input == severity {
+                    Some(*output)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(severity)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DiagnosticCode {
+    Advisory(crate::advisories::Code),
+}
+
+impl DiagnosticCode {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        use strum::IntoEnumIterator;
+        crate::advisories::Code::iter().map(Self::Advisory)
+    }
+
+    #[inline]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Advisory(code) => code.into(),
+        }
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for DiagnosticCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for DiagnosticCode {
+    type Err = strum::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<crate::advisories::Code>().map(Self::Advisory)
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn codes_unique() {
+        let mut unique = std::collections::BTreeSet::<&'static str>::new();
+
+        for code in super::DiagnosticCode::iter() {
+            if !unique.insert(code.as_str()) {
+                panic!("existing code {code}");
+            }
+        }
+    }
 }

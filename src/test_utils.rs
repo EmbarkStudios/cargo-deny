@@ -1,5 +1,5 @@
 use crate::{
-    diag::{self, CargoSpans, ErrorSink, Files, KrateSpans},
+    diag::{self, CargoSpans, ErrorSink, Files, KrateSpans, PackChannel},
     CheckCtx,
 };
 
@@ -102,7 +102,7 @@ pub fn gather_diagnostics<C, VC, R>(
 where
     C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, ErrorSink) + Send,
+    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel) + Send,
 {
     let (spans, content, hashmap) = KrateSpans::synthesize(krates);
     let mut files = Files::new();
@@ -142,7 +142,7 @@ where
                 serialize_extra: true,
                 colorize: false,
             };
-            runner(ctx, newmap, ErrorSink::Channel(tx));
+            runner(ctx, newmap, tx);
         },
         || {
             let mut diagnostics = Vec::new();
@@ -209,6 +209,37 @@ pub fn gather_bans(
     let cfg = cfg.into();
 
     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-        crate::bans::check(ctx, None, cs, tx);
+        crate::bans::check(
+            ctx,
+            None,
+            cs,
+            ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    })
+}
+
+#[inline]
+pub fn gather_bans_with_overrides(
+    name: &str,
+    kg: KrateGather<'_>,
+    cfg: impl Into<Config<crate::bans::cfg::Config>>,
+    overrides: diag::DiagnosticOverrides,
+) -> Vec<serde_json::Value> {
+    let krates = kg.gather();
+    let cfg = cfg.into();
+
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
+        crate::bans::check(
+            ctx,
+            None,
+            cs,
+            ErrorSink {
+                overrides: Some(std::sync::Arc::new(overrides)),
+                channel: tx,
+            },
+        );
     })
 }

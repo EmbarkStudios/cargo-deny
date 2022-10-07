@@ -16,6 +16,9 @@ ARGS:
             all]
 
 OPTIONS:
+    -A, --allow <ALLOW>
+            Set lint allowed
+
         --audit-compatible-output
             To ease transition from cargo-audit to cargo-deny, this flag will
             tell cargo-deny to output the exact same output as cargo-audit
@@ -39,6 +42,9 @@ OPTIONS:
             database won't be fetched, but an error will occur if it doesn't
             already exist locally.
 
+    -D, --deny <DENY>
+            Set lint denied
+
     -g, --graph <GRAPH>
             Path to graph_output root directory
             
@@ -59,4 +65,7 @@ OPTIONS:
 
     -V, --version
             Print version information
+
+    -W, --warn <WARN>
+            Set lint warnings
 
