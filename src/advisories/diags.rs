@@ -4,7 +4,17 @@ use crate::{
 };
 use rustsec::advisory::{Id, Informational, Metadata, Versions};
 
-#[derive(strum::Display, strum::EnumString, Copy, Clone)]
+#[derive(
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    strum::IntoStaticStr,
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum Code {
     Vulnerability,
@@ -106,14 +116,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 lint_level
             };
 
-            (
-                match lint_level {
-                    LintLevel::Warn => Severity::Warning,
-                    LintLevel::Deny => Severity::Error,
-                    LintLevel::Allow => Severity::Help,
-                },
-                msg,
-            )
+            (lint_level.into(), msg)
         };
 
         let mut notes = get_notes_from_advisory(advisory);
@@ -170,16 +173,12 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
     ) -> Pack {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
         pack.push(
-            Diagnostic::new(match self.cfg.yanked.value {
-                LintLevel::Allow => Severity::Help,
-                LintLevel::Deny => Severity::Error,
-                LintLevel::Warn => Severity::Warning,
-            })
-            .with_message("detected yanked crate")
-            .with_code(Code::Yanked)
-            .with_labels(vec![self
-                .krate_spans
-                .label_for_index(krate_index.index(), "yanked version")]),
+            Diagnostic::new(self.cfg.yanked.value.into())
+                .with_message("detected yanked crate")
+                .with_code(Code::Yanked)
+                .with_labels(vec![self
+                    .krate_spans
+                    .label_for_index(krate_index.index(), "yanked version")]),
         );
 
         pack

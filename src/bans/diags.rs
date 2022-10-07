@@ -79,7 +79,7 @@ pub(crate) struct Skipped<'a> {
 
 impl<'a> From<Skipped<'a>> for Diag {
     fn from(sk: Skipped<'a>) -> Self {
-        Diagnostic::new(Severity::Help)
+        Diagnostic::new(Severity::Note)
             .with_message(format!(
                 "crate '{}' skipped when checking for duplicates",
                 sk.krate
@@ -165,7 +165,7 @@ pub(crate) struct BannedAllowedByWrapper<'a> {
 
 impl<'a> From<BannedAllowedByWrapper<'a>> for Diag {
     fn from(baw: BannedAllowedByWrapper<'a>) -> Self {
-        Diagnostic::new(Severity::Help)
+        Diagnostic::new(Severity::Note)
             .with_message(format!(
                 "banned crate '{}' allowed by wrapper '{}'",
                 baw.banned_krate, baw.wrapper_krate
@@ -224,7 +224,7 @@ pub(crate) struct SkippedByRoot<'a> {
 
 impl<'a> From<SkippedByRoot<'a>> for Diag {
     fn from(sbr: SkippedByRoot<'a>) -> Self {
-        Diagnostic::new(Severity::Help)
+        Diagnostic::new(Severity::Note)
             .with_message(format!("skipping crate '{}' due to root skip", sbr.krate))
             .with_code("B011")
             .with_labels(vec![sbr

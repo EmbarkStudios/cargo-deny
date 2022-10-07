@@ -25,7 +25,7 @@ pub(crate) struct SkippedPrivateWorkspaceCrate<'a> {
 
 impl<'a> From<SkippedPrivateWorkspaceCrate<'a>> for Diag {
     fn from(spwc: SkippedPrivateWorkspaceCrate<'a>) -> Self {
-        Diagnostic::new(Severity::Help)
+        Diagnostic::new(Severity::Note)
             .with_message(format!("skipping private workspace crate '{}'", spwc.krate))
             .with_code("L004")
             .into()
