@@ -5,6 +5,7 @@ use crate::{
 use rustsec::advisory::{Id, Informational, Metadata, Versions};
 
 #[derive(strum::Display, strum::EnumString, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
 pub enum Code {
     Vulnerability,
     Notice,

@@ -1,10 +1,10 @@
 ---
 source: tests/advisories.rs
-expression: "diags.iter().find(|diag| field_eq!(diag, \"/fields/code\", \"A007\")).unwrap()"
+expression: "diags.iter().find(|diag|\n            field_eq!(diag, \"/fields/code\", \"advisory_not_detected\")).unwrap()"
 ---
 {
   "fields": {
-    "code": "A007",
+    "code": "advisory_not_detected",
     "graphs": [],
     "labels": [
       {

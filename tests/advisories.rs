@@ -274,6 +274,6 @@ fn warns_on_ignored_and_withdrawn() {
 
     insta::assert_json_snapshot!(diags
         .iter()
-        .find(|diag| field_eq!(diag, "/fields/code", "A007"))
+        .find(|diag| field_eq!(diag, "/fields/code", "advisory_not_detected"))
         .unwrap());
 }

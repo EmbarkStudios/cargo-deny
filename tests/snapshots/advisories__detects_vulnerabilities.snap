@@ -27,7 +27,7 @@ expression: diag
       "url": "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
       "withdrawn": null
     },
-    "code": "A001",
+    "code": "vulnerability",
     "graphs": [
       {
         "Krate": {

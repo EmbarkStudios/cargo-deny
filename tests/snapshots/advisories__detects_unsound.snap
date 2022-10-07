@@ -27,7 +27,7 @@ expression: unsound_diag
       "url": "https://github.com/rust-lang-nursery/failure/issues/336",
       "withdrawn": null
     },
-    "code": "A004",
+    "code": "unsound",
     "graphs": [
       {
         "Krate": {
@@ -47,7 +47,7 @@ expression: unsound_diag
     "labels": [
       {
         "column": 1,
-        "line": 25,
+        "line": 30,
         "message": "unsound advisory detected",
         "span": "failure 0.1.8 registry+https://github.com/rust-lang/crates.io-index"
       }

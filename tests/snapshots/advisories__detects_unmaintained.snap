@@ -22,7 +22,7 @@ expression: unmaintained_diag
       "url": "https://github.com/dcuddeback/libusb-rs/issues/33",
       "withdrawn": null
     },
-    "code": "A003",
+    "code": "unmaintained",
     "graphs": [
       {
         "Krate": {
@@ -42,7 +42,7 @@ expression: unmaintained_diag
     "labels": [
       {
         "column": 1,
-        "line": 47,
+        "line": 67,
         "message": "unmaintained advisory detected",
         "span": "libusb 0.3.0 registry+https://github.com/rust-lang/crates.io-index"
       }
