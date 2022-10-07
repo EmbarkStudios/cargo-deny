@@ -81,40 +81,6 @@ pub fn check<R>(
             ctx.krates, pkg,
         ) {
             Some((i, krate)) => {
-                // This is a workaround for https://github.com/steveklabnik/semver/issues/172,
-                // it's not strictly correct so we do emit a warning to notify the user
-                // (though to be honest most people only run cargo-deny in CI and won't notice)
-                if let Some(versions) = versions {
-                    if !krate.version.pre.is_empty() {
-                        let rematch = semver::Version::new(
-                            krate.version.major,
-                            krate.version.minor,
-                            krate.version.patch,
-                        );
-
-                        // Patches are usually (always) specified in ascending order,
-                        // so we walk them in reverse to get the closest patch that
-                        // may apply to the crate version in question
-                        for patched in versions.patched().iter().rev() {
-                            if patched.matches(&rematch) {
-                                let skipped_diag =
-                                    ctx.diag_for_prerelease_skipped(krate, i, advisory, patched);
-                                sink.push(skipped_diag);
-                                return;
-                            }
-                        }
-
-                        for unaffected in versions.unaffected().iter().rev() {
-                            if unaffected.matches(&rematch) {
-                                let skipped_diag =
-                                    ctx.diag_for_prerelease_skipped(krate, i, advisory, unaffected);
-                                sink.push(skipped_diag);
-                                return;
-                            }
-                        }
-                    }
-                }
-
                 let diag = ctx.diag_for_advisory(krate, i, advisory, versions, |index| {
                     ignore_hits.as_mut_bitslice().set(index, true);
                 });

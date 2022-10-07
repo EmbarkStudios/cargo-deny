@@ -227,39 +227,4 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         )
             .into()
     }
-
-    pub(crate) fn diag_for_prerelease_skipped(
-        &self,
-        krate: &crate::Krate,
-        krate_index: krates::NodeId,
-        advisory: &Metadata,
-        matched: &semver::VersionReq,
-    ) -> Pack {
-        let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
-
-        let notes = {
-            let mut n = vec![format!("ID: {}", advisory.id)];
-            if let Some(url) = advisory.id.url() {
-                n.push(format!("Advisory: {url}"));
-            }
-
-            n.push(format!("Satisfied version requirement: {matched}"));
-
-            n
-        };
-
-        pack.push(
-            Diagnostic::new(Severity::Warning)
-                .with_message(
-                    "advisory for a crate with a pre-release was skipped as it matched a patch",
-                )
-                .with_code("A009")
-                .with_notes(notes)
-                .with_labels(vec![self
-                    .krate_spans
-                    .label_for_index(krate_index.index(), "pre-release crate")]),
-        );
-
-        pack
-    }
 }
