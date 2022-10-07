@@ -21,6 +21,19 @@ pub enum WhichCheck {
 }
 
 #[derive(clap::Parser, Debug)]
+pub struct LintLevels {
+    /// Set lint warnings
+    #[clap(long, short = 'W')]
+    warn: Vec<String>,
+    /// Set lint allowed
+    #[clap(long, short = 'A')]
+    allow: Vec<String>,
+    /// Set lint denied
+    #[clap(long, short = 'D')]
+    deny: Vec<String>,
+}
+
+#[derive(clap::Parser, Debug)]
 pub struct Args {
     /// Path to the config to use
     ///
@@ -50,6 +63,8 @@ pub struct Args {
     /// Show stats for all the checks, regardless of the log-level
     #[clap(short, long, action)]
     pub show_stats: bool,
+    #[clap(flatten)]
+    pub lint_levels: LintLevels,
     /// The check(s) to perform
     #[clap(value_enum, action)]
     pub which: Vec<WhichCheck>,

@@ -4,15 +4,34 @@ use crate::{
 };
 use rustsec::advisory::{Id, Informational, Metadata, Versions};
 
+#[derive(strum::Display, strum::EnumString, Copy, Clone)]
+pub enum Code {
+    Vulnerability,
+    Notice,
+    Unmaintained,
+    Unsound,
+    Yanked,
+    IndexFailure,
+    AdvisoryNotDetected,
+    UnknownAdvisory,
+}
+
+impl From<Code> for String {
+    fn from(c: Code) -> Self {
+        c.to_string()
+    }
+}
+
 fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
     let mut n = vec![format!("ID: {}", advisory.id)];
     if let Some(url) = advisory.id.url() {
-        n.push(format!("Advisory: {}", &url));
+        n.push(format!("Advisory: {url}"));
     }
+
     n.push(advisory.description.clone());
 
-    if let Some(ref url) = advisory.url {
-        n.push(format!("Announcement: {}", url));
+    if let Some(url) = &advisory.url {
+        n.push(format!("Announcement: {url}"));
     }
 
     n
@@ -118,10 +137,10 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
         let (message, code) = match ty {
-            AdvisoryType::Vulnerability => ("security vulnerability detected", "A001"),
-            AdvisoryType::Notice => ("notice advisory detected", "A002"),
-            AdvisoryType::Unmaintained => ("unmaintained advisory detected", "A003"),
-            AdvisoryType::Unsound => ("unsound advisory detected", "A004"),
+            AdvisoryType::Vulnerability => ("security vulnerability detected", Code::Vulnerability),
+            AdvisoryType::Notice => ("notice advisory detected", Code::Notice),
+            AdvisoryType::Unmaintained => ("unmaintained advisory detected", Code::Unmaintained),
+            AdvisoryType::Unsound => ("unsound advisory detected", Code::Unsound),
         };
 
         let diag = pack.push(
@@ -156,7 +175,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 LintLevel::Warn => Severity::Warning,
             })
             .with_message("detected yanked crate")
-            .with_code("A005")
+            .with_code(Code::Yanked)
             .with_labels(vec![self
                 .krate_spans
                 .label_for_index(krate_index.index(), "yanked version")]),
@@ -169,13 +188,14 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         (
             Check::Advisories,
             Diagnostic::new(Severity::Warning)
-                .with_message(format!("unable to check for yanked crates: {}", error))
-                .with_code("A006")
+                .with_message("unable to check for yanked crates")
+                .with_code(Code::IndexFailure)
                 .with_labels(vec![Label::primary(
                     self.cfg.file_id,
                     self.cfg.yanked.span.clone(),
                 )
-                .with_message("lint level defined here")]),
+                .with_message("lint level defined here")])
+                .with_notes(vec![error.to_string()]),
         )
             .into()
     }
@@ -188,7 +208,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Check::Advisories,
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory was not encountered")
-                .with_code("A007")
+                .with_code(Code::AdvisoryNotDetected)
                 .with_labels(vec![Label::primary(self.cfg.file_id, not_hit.span.clone())
                     .with_message("no crate matched advisory criteria")]),
         )
@@ -200,7 +220,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Check::Advisories,
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory not found in any advisory database")
-                .with_code("A008")
+                .with_code(Code::UnknownAdvisory)
                 .with_labels(vec![Label::primary(self.cfg.file_id, unknown.span.clone())
                     .with_message("unknown advisory")]),
         )
@@ -219,10 +239,10 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         let notes = {
             let mut n = vec![format!("ID: {}", advisory.id)];
             if let Some(url) = advisory.id.url() {
-                n.push(format!("Advisory: {}", &url));
+                n.push(format!("Advisory: {url}"));
             }
 
-            n.push(format!("Satisfied version requirement: {}", matched));
+            n.push(format!("Satisfied version requirement: {matched}"));
 
             n
         };
