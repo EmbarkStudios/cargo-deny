@@ -1,11 +1,11 @@
 ---
 source: tests/feature_bans.rs
-expression: "tu::to_snapshot(diags)"
+expression: diags
 ---
 [
   {
     "fields": {
-      "code": "B013",
+      "code": "exact-features-mismatch",
       "graphs": [
         {
           "Krate": {
@@ -538,7 +538,7 @@ expression: "tu::to_snapshot(diags)"
   },
   {
     "fields": {
-      "code": "B013",
+      "code": "exact-features-mismatch",
       "graphs": [
         {
           "Krate": {

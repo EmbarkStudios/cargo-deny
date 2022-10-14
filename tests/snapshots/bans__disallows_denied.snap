@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "B001",
+      "code": "banned",
       "graphs": [
         {
           "Krate": {

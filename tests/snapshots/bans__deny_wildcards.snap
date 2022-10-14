@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "B006",
+      "code": "wildcard",
       "graphs": [
         {
           "Krate": {
@@ -29,7 +29,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B006",
+      "code": "wildcard",
       "graphs": [
         {
           "Krate": {

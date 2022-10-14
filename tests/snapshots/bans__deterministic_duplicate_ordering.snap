@@ -1,11 +1,11 @@
 ---
 source: tests/bans.rs
-expression: "tu::to_snapshot(diags)"
+expression: diags
 ---
 [
   {
     "fields": {
-      "code": "B004",
+      "code": "duplicate",
       "graphs": [
         {
           "Krate": {
@@ -232,7 +232,7 @@ expression: "tu::to_snapshot(diags)"
   },
   {
     "fields": {
-      "code": "B004",
+      "code": "duplicate",
       "graphs": [
         {
           "Krate": {
@@ -444,7 +444,7 @@ expression: "tu::to_snapshot(diags)"
   },
   {
     "fields": {
-      "code": "B004",
+      "code": "duplicate",
       "graphs": [
         {
           "Krate": {

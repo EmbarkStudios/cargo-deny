@@ -209,15 +209,7 @@ pub fn gather_bans(
     let cfg = cfg.into();
 
     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-        crate::bans::check(
-            ctx,
-            None,
-            cs,
-            ErrorSink {
-                overrides: None,
-                channel: tx,
-            },
-        );
+        crate::bans::check(ctx, None, cs, tx);
     })
 }
 

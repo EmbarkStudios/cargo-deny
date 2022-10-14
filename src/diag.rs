@@ -2,7 +2,7 @@ mod grapher;
 mod sink;
 
 pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
-pub use sink::ErrorSink;
+pub use sink::{DiagnosticOverrides, ErrorSink};
 
 use std::{collections::HashMap, ops::Range};
 
@@ -256,50 +256,25 @@ struct NodePrint {
     edge: Option<krates::EdgeId>,
 }
 
-use std::collections::BTreeMap;
-
-/// Each diagnostic will have a default severity, but these can be overriden
-/// by the user via the CLI so that eg. warnings can be made into errors on CI
-pub struct DiagnosticOverrides {
-    pub code_overrides: BTreeMap<&'static str, Severity>,
-    pub level_overrides: Vec<(Severity, Severity)>,
-}
-
-impl DiagnosticOverrides {
-    #[inline]
-    fn get(&self, name: &str, severity: Severity) -> Severity {
-        let code_severity = self.code_overrides.get(name).copied();
-
-        let severity = code_severity.unwrap_or(severity);
-
-        self.level_overrides
-            .iter()
-            .find_map(|(input, output)| {
-                if *input == severity {
-                    Some(*output)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(severity)
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DiagnosticCode {
     Advisory(crate::advisories::Code),
+    Bans(crate::bans::Code),
 }
 
 impl DiagnosticCode {
     pub fn iter() -> impl Iterator<Item = Self> {
         use strum::IntoEnumIterator;
-        crate::advisories::Code::iter().map(Self::Advisory)
+        crate::advisories::Code::iter()
+            .map(Self::Advisory)
+            .chain(crate::bans::Code::iter().map(Self::Bans))
     }
 
     #[inline]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Advisory(code) => code.into(),
+            Self::Bans(code) => code.into(),
         }
     }
 }
@@ -316,7 +291,9 @@ impl std::str::FromStr for DiagnosticCode {
     type Err = strum::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse::<crate::advisories::Code>().map(Self::Advisory)
+        s.parse::<crate::advisories::Code>()
+            .map(Self::Advisory)
+            .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
     }
 }
 

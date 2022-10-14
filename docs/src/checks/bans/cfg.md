@@ -70,6 +70,34 @@ This field allows specific crates to have a direct dependency on the banned crat
 
 Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care.
 
+### The `external-default-features` field (optional)
+
+Determines the lint level used for when the `default` feature is enabled on a crate not in the workspace. This lint level will can then be overridden on a per-crate basis if desired.
+
+For example, if `an-external-crate` had the `default` feature enabled it could be explicitly allowed.
+
+```ini
+[bans]
+external-default-features = "deny"
+
+[[bans.features]]
+name = "an-external-crate"
+allow = ["default"]
+```
+
+### The `workspace-default-features` field (optional)
+
+The workspace version of `external-default-features`.
+
+```ini
+[bans]
+external-default-features = "allow"
+
+[[bans.features]]
+name = "a-workspace-crate"
+deny = ["default"]
+```
+
 ### The `features` field (optional)
 
 ```ini

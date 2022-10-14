@@ -6,6 +6,44 @@ use crate::{
     Krate, Spanned,
 };
 
+#[derive(
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    strum::IntoStaticStr,
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+#[strum(serialize_all = "kebab-case")]
+pub enum Code {
+    Banned,
+    Allowed,
+    NotAllowed,
+    Duplicate,
+    Skipped,
+    Wildcard,
+    UnmatchedSkip,
+    AllowedByWrapper,
+    UnmatchedWrapper,
+    SkippedByRoot,
+    UnmatchedSkipRoot,
+    BuildScriptNotAllowed,
+    ExactFeaturesMismatch,
+    FeatureNotExplicitlyAllowed,
+    FeatureBanned,
+    UnknownFeature,
+    DefaultFeatureEnabled,
+}
+
+impl From<Code> for String {
+    fn from(c: Code) -> Self {
+        c.to_string()
+    }
+}
+
 pub(crate) struct ExplicitlyBanned<'a> {
     pub(crate) krate: &'a Krate,
     pub(crate) ban_cfg: CfgCoord,
@@ -15,7 +53,7 @@ impl<'a> From<ExplicitlyBanned<'a>> for Diag {
     fn from(eb: ExplicitlyBanned<'a>) -> Self {
         Diagnostic::new(Severity::Error)
             .with_message(format!("crate '{}' is explicitly banned", eb.krate))
-            .with_code("B001")
+            .with_code(Code::Banned)
             .with_labels(vec![eb.ban_cfg.into_label().with_message("banned here")])
             .into()
     }
@@ -30,21 +68,21 @@ impl<'a> From<ExplicitlyAllowed<'a>> for Diag {
     fn from(ea: ExplicitlyAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Note)
             .with_message(format!("crate '{}' is explicitly allowed", ea.krate))
-            .with_code("B002")
+            .with_code(Code::Allowed)
             .with_labels(vec![ea.allow_cfg.into_label().with_message("allowed here")])
             .into()
     }
 }
 
-pub(crate) struct ImplicitlyBanned<'a> {
+pub(crate) struct NotAllowed<'a> {
     pub(crate) krate: &'a Krate,
 }
 
-impl<'a> From<ImplicitlyBanned<'a>> for Diag {
-    fn from(ib: ImplicitlyBanned<'a>) -> Self {
+impl<'a> From<NotAllowed<'a>> for Diag {
+    fn from(ib: NotAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!("crate '{}' is implicitly banned", ib.krate))
-            .with_code("B003")
+            .with_message(format!("crate '{}' is not explicitly allowed", ib.krate))
+            .with_code(Code::NotAllowed)
             .into()
     }
 }
@@ -63,7 +101,7 @@ impl<'a> From<Duplicates<'a>> for Diag {
                 "found {} duplicate entries for crate '{}'",
                 dup.num_dupes, dup.krate_name,
             ))
-            .with_code("B004")
+            .with_code(Code::Duplicate)
             .with_labels(vec![dup
                 .krates_coord
                 .into_label()
@@ -84,7 +122,7 @@ impl<'a> From<Skipped<'a>> for Diag {
                 "crate '{}' skipped when checking for duplicates",
                 sk.krate
             ))
-            .with_code("B005")
+            .with_code(Code::Skipped)
             .with_labels(vec![sk.skip_cfg.into_label().with_message("skipped here")])
             .into()
     }
@@ -118,7 +156,7 @@ impl<'a> From<Wildcards<'a>> for Pack {
                     if labels.len() == 1 { "y" } else { "ies" },
                     wc.krate.name
                 ))
-                .with_code("B006")
+                .with_code(Code::Wildcard)
                 .with_labels(labels),
         );
 
@@ -147,7 +185,7 @@ impl<'a> From<UnmatchedSkip<'a>> for Diag {
                     us.skipped_krate.name
                 ),
             })
-            .with_code("B007")
+            .with_code(Code::UnmatchedSkip)
             .with_labels(vec![us
                 .skip_cfg
                 .into_label()
@@ -170,7 +208,7 @@ impl<'a> From<BannedAllowedByWrapper<'a>> for Diag {
                 "banned crate '{}' allowed by wrapper '{}'",
                 baw.banned_krate, baw.wrapper_krate
             ))
-            .with_code("B008")
+            .with_code(Code::AllowedByWrapper)
             .with_labels(vec![
                 baw.ban_cfg.into_label().with_message("banned here"),
                 baw.ban_exception_cfg
@@ -194,25 +232,8 @@ impl<'a> From<BannedUnmatchedWrapper<'a>> for Diag {
                 "direct parent '{}' of banned crate '{}' was not marked as a wrapper",
                 buw.parent_krate, buw.banned_krate
             ))
-            .with_code("B009")
+            .with_code(Code::UnmatchedWrapper)
             .with_labels(vec![buw.ban_cfg.into_label().with_message("banned here")])
-            .into()
-    }
-}
-
-pub(crate) struct UnmatchedSkipRoot {
-    pub(crate) skip_root_cfg: CfgCoord,
-}
-
-impl From<UnmatchedSkipRoot> for Diag {
-    fn from(usr: UnmatchedSkipRoot) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("skip tree root was not found in the dependency graph")
-            .with_code("B010")
-            .with_labels(vec![usr
-                .skip_root_cfg
-                .into_label()
-                .with_message("no crate matched these criteria")])
             .into()
     }
 }
@@ -226,11 +247,28 @@ impl<'a> From<SkippedByRoot<'a>> for Diag {
     fn from(sbr: SkippedByRoot<'a>) -> Self {
         Diagnostic::new(Severity::Note)
             .with_message(format!("skipping crate '{}' due to root skip", sbr.krate))
-            .with_code("B011")
+            .with_code(Code::SkippedByRoot)
             .with_labels(vec![sbr
                 .skip_root_cfg
                 .into_label()
                 .with_message("matched skip root")])
+            .into()
+    }
+}
+
+pub(crate) struct UnmatchedSkipRoot {
+    pub(crate) skip_root_cfg: CfgCoord,
+}
+
+impl From<UnmatchedSkipRoot> for Diag {
+    fn from(usr: UnmatchedSkipRoot) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("skip tree root was not found in the dependency graph")
+            .with_code(Code::UnmatchedSkipRoot)
+            .with_labels(vec![usr
+                .skip_root_cfg
+                .into_label()
+                .with_message("no crate matched these criteria")])
             .into()
     }
 }
@@ -246,7 +284,7 @@ impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
                 "crate '{}' has a build script but is not allowed to have one",
                 bs.krate
             ))
-            .with_code("B012")
+            .with_code(Code::BuildScriptNotAllowed)
             .with_notes(vec![
                 "the `bans.allow-build-scripts` field did not contain a match for the crate"
                     .to_owned(),
@@ -280,7 +318,7 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
                 "feature set for crate '{}' did not match exactly",
                 efm.krate
             ))
-            .with_code("B013")
+            .with_code(Code::ExactFeaturesMismatch)
             .with_labels(labels)
             .with_notes(
                 efm.not_allowed
@@ -326,7 +364,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
                 "feature '{}' for crate '{}' was not explicitly allowed",
                 fna.feature, fna.krate,
             ))
-            .with_code("B014")
+            .with_code(Code::FeatureNotExplicitlyAllowed)
             .with_labels(vec![fna
                 .allowed
                 .into_label()
@@ -345,20 +383,20 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
     }
 }
 
-pub(crate) struct FeatureExplicitlyDenied<'a> {
+pub(crate) struct FeatureBanned<'a> {
     pub(crate) krate: &'a Krate,
     pub(crate) feature: &'a Spanned<String>,
     pub(crate) file_id: FileId,
 }
 
-impl From<FeatureExplicitlyDenied<'_>> for Diag {
-    fn from(fed: FeatureExplicitlyDenied<'_>) -> Diag {
+impl From<FeatureBanned<'_>> for Diag {
+    fn from(fed: FeatureBanned<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Error)
             .with_message(format!(
                 "feature '{}' for crate '{}' is explicitly denied",
                 fed.feature.value, fed.krate,
             ))
-            .with_code("B015")
+            .with_code(Code::FeatureBanned)
             .with_labels(vec![Label::primary(fed.file_id, fed.feature.span.clone())
                 .with_message("feature denied here")]);
 
@@ -388,7 +426,7 @@ impl From<UnknownFeature<'_>> for Diag {
                 "found unknown feature '{}' for crate '{}'",
                 uf.feature.value, uf.krate,
             ))
-            .with_code("B016")
+            .with_code(Code::UnknownFeature)
             .with_labels(vec![
                 Label::primary(uf.file_id, uf.feature.span.clone()).with_message("unknown feature")
             ]);
@@ -419,7 +457,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
                 "'default' feature enabled for crate '{}'",
                 dfe.krate,
             ))
-            .with_code("B017")
+            .with_code(Code::DefaultFeatureEnabled)
             .with_labels(vec![
                 Label::primary(dfe.file_id, dfe.level.span.clone()).with_message("lint level")
             ]);

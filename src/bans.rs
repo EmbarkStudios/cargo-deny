@@ -8,6 +8,7 @@ use crate::{
     Kid, Krate, Krates, LintLevel,
 };
 use anyhow::Error;
+pub use diags::Code;
 use semver::VersionReq;
 use std::fmt;
 
@@ -426,7 +427,7 @@ pub fn check(
                     }
                 }
                 None => {
-                    pack.push(diags::ImplicitlyBanned { krate });
+                    pack.push(diags::NotAllowed { krate });
                 }
             }
         }
@@ -596,7 +597,7 @@ pub fn check(
                             .iter()
                             .filter(|feat| enabled_features.contains(&feat.value))
                         {
-                            pack.push(diags::FeatureExplicitlyDenied {
+                            pack.push(diags::FeatureBanned {
                                 krate,
                                 feature,
                                 file_id,

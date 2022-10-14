@@ -1,11 +1,11 @@
 ---
 source: tests/feature_bans.rs
-expression: "tu::to_snapshot(diags)"
+expression: diags
 ---
 [
   {
     "fields": {
-      "code": "B015",
+      "code": "feature-banned",
       "graphs": [
         {
           "Krate": {

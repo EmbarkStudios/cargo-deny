@@ -1,49 +1,65 @@
 # Bans diagnostics
 
-### `B001` - crate is explicitly banned
+### `banned`
 
 A crate which is [explicitly banned](cfg.md#the-allow-and-deny-fields-optional) was detected.
 
-### `B002` - crate is explicitly allowed
+### `allowed`
 
 A crate which is [explicitly allowed](cfg.md#the-allow-and-deny-fields-optional) was detected.
 
-### `B003` - crate is implicitly banned
+### `not-allowed`
 
 When using [`bans.allow`](cfg.md#the-allow-and-deny-fields-optional), a crate was detected that wasn't in that list.
 
-### `B004` - found duplicate entries for crate
+### `duplicate`
 
 One or more [duplicate versions](cfg.md#the-multiple-versions-field-optional) of the same crate were detected.
 
-### `B005` - crate skipped when checking for duplicates
+### `skipped`
 
 A crate version that matched an entry in [`bans.skip`](cfg.md#the-skip-field-optional) was encountered.
 
-### `B006` - found wildcard dependency for crate
+### `wildcard`
 
 A crate was included via a [wildcard dependency](cfg.md#the-wildcards-field-optional) by one or more crates.
 
-### `B007` - skipped crate was not encountered
+### `unmatched-skip`
 
 A crate version in [`bans.skip`](cfg.md#the-skip-field-optional) was not encountered.
 
-### `B008` - banned crate allowed by wrapper
+### `allowed-by-wrapper`
 
-A crate in `bans.deny` was allowed since it was referenced by a [`wrappers`](cfg.md#the-wrappers-field-optional) crate.
+A crate in `bans.deny` was allowed since it was directly depended on by a [`wrappers`](cfg.md#the-wrappers-field-optional) crate.
 
-### `B009` - direct parent of banned crate was not marked as a wrapper
+### `unmatched-wrapper`
 
 A crate in `bans.deny` had one or more [`wrappers`](cfg.md#the-wrappers-field-optional) crates, but a crate not in that list had a direct dependency on the banned crate.
 
-### `B010` - skip tree root was not found in the dependency graph
-
-A crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional) was not encountered.
-
-### `B011` - skipping crate due to root skip
+### `skipped-by-root`
 
 A crate was skipped from being checked as a duplicate due to being transitively referenced by a crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional).
 
-### `B012` - crate has build script but is not allowed to have one
+### `unmatched-root`
+
+A crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional) was not encountered.
+
+### `build-script-not-allowed`
 
 A crate which has been denied because it has a build script but is not part of the [`bans.allow-build-script`](cfg.md#the-allow-build-scripts-field-optional) list.
+
+### `exact-features-mismatch`
+
+A crate's features do not exactly match the configured feature set, and [`bans.features.exact`](cfg.md#the-features-exact-field-optional) is `true`.
+
+### `feature-banned`
+
+An enabled crate feature is present in the [`bans.features.deny`](cfg.md#the-features-deny-field-optional) list.
+
+### `unknown-feature`
+
+A feature in either [`bans.features.deny`](cfg.md#the-features-deny-field-optional) or [`bans.features.allow`](cfg.md#the-features-allow-field-optional) does not exist for the crate.
+
+### `default-feature-enabled`
+
+The `default` feature was enabled on a crate, and the [`bans.external-default-features`](cfg.md#the-external-default-features-field-optional) or [`bans.workspace-default-features`](cfg.md#the-workspace-default-features-field-optional) was configured.

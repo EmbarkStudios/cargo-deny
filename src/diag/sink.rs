@@ -1,7 +1,7 @@
 use super::Pack;
 
 pub struct ErrorSink {
-    pub overrides: Option<std::sync::Arc<super::DiagnosticOverrides>>,
+    pub overrides: Option<std::sync::Arc<DiagnosticOverrides>>,
     pub channel: super::PackChannel,
 }
 
@@ -32,5 +32,34 @@ impl ErrorSink {
         }
 
         self.channel.send(pack).unwrap();
+    }
+}
+
+use super::Severity;
+
+/// Each diagnostic will have a default severity, but these can be overriden
+/// by the user via the CLI so that eg. warnings can be made into errors on CI
+pub struct DiagnosticOverrides {
+    pub code_overrides: std::collections::BTreeMap<&'static str, Severity>,
+    pub level_overrides: Vec<(Severity, Severity)>,
+}
+
+impl DiagnosticOverrides {
+    #[inline]
+    fn get(&self, name: &str, severity: Severity) -> Severity {
+        let code_severity = self.code_overrides.get(name).copied();
+
+        let severity = code_severity.unwrap_or(severity);
+
+        self.level_overrides
+            .iter()
+            .find_map(|(input, output)| {
+                if *input == severity {
+                    Some(*output)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(severity)
     }
 }
