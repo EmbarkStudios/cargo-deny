@@ -15,7 +15,7 @@ use rustsec::advisory::{Id, Informational, Metadata, Versions};
     PartialEq,
     Eq,
 )]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Code {
     Vulnerability,
     Notice,
