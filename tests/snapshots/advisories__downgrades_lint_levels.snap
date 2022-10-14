@@ -56,7 +56,7 @@ expression: downgraded
         "Announcement: https://github.com/dcuddeback/libusb-rs/issues/33",
         "Solution: No safe upgrade is available!"
       ],
-      "severity": "help"
+      "severity": "note"
     },
     "type": "diagnostic"
   },
@@ -118,7 +118,7 @@ expression: downgraded
         "Announcement: https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
         "Solution: Upgrade to >=2.1.0"
       ],
-      "severity": "help"
+      "severity": "note"
     },
     "type": "diagnostic"
   }
