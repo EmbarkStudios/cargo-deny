@@ -28,17 +28,19 @@ where
 
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
-pub fn check<R>(
+pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     lockfile: PrunedLockfile,
     audit_compatible_reporter: Option<R>,
-    mut sink: diag::ErrorSink,
+    sink: S,
 ) where
     R: AuditReporter,
+    S: Into<diag::ErrorSink>,
 {
     use rustsec::{advisory::Metadata, advisory::Versions, package::Package};
 
+    let mut sink = sink.into();
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(

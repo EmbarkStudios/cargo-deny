@@ -10,13 +10,15 @@ use url::Url;
 
 const CRATES_IO_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
-pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, mut sink: ErrorSink) {
+pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) {
     use bitvec::prelude::*;
 
     // early out if everything is allowed
     if ctx.cfg.unknown_registry == LintLevel::Allow && ctx.cfg.unknown_git == LintLevel::Allow {
         return;
     }
+
+    let mut sink = sink.into();
 
     // scan through each crate and check the source of it
 

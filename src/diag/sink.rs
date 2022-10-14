@@ -5,6 +5,15 @@ pub struct ErrorSink {
     pub channel: super::PackChannel,
 }
 
+impl From<super::PackChannel> for ErrorSink {
+    fn from(channel: super::PackChannel) -> Self {
+        Self {
+            overrides: None,
+            channel,
+        }
+    }
+}
+
 impl ErrorSink {
     pub fn push(&mut self, pack: impl Into<Pack>) {
         let mut pack = pack.into();
