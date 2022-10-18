@@ -721,10 +721,10 @@ mod test {
 
         if let super::PackFileData::Good(lf) = pf.data {
             if lf.hash != expected_hash {
-                eprintln!("hash: {:#x} != {:#x}", expected_hash, lf.hash);
+                eprintln!("hash: {expected_hash:#x} != {:#x}", lf.hash);
 
                 for (i, (a, b)) in lf.content.chars().zip(expected.chars()).enumerate() {
-                    assert_eq!(a, b, "character @ {}", i);
+                    assert_eq!(a, b, "character @ {i}");
                 }
             }
         }

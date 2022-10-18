@@ -260,6 +260,7 @@ struct NodePrint {
 pub enum DiagnosticCode {
     Advisory(crate::advisories::Code),
     Bans(crate::bans::Code),
+    License(crate::licenses::Code),
 }
 
 impl DiagnosticCode {
@@ -268,6 +269,7 @@ impl DiagnosticCode {
         crate::advisories::Code::iter()
             .map(Self::Advisory)
             .chain(crate::bans::Code::iter().map(Self::Bans))
+            .chain(crate::licenses::Code::iter().map(Self::License))
     }
 
     #[inline]
@@ -275,6 +277,7 @@ impl DiagnosticCode {
         match self {
             Self::Advisory(code) => code.into(),
             Self::Bans(code) => code.into(),
+            Self::License(code) => code.into(),
         }
     }
 }
@@ -294,6 +297,7 @@ impl std::str::FromStr for DiagnosticCode {
         s.parse::<crate::advisories::Code>()
             .map(Self::Advisory)
             .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
+            .or_else(|_err| s.parse::<crate::licenses::Code>().map(Self::License))
     }
 }
 
