@@ -399,9 +399,14 @@ mod test {
     #[test]
     fn cli_snapshot() {
         use clap::CommandFactory;
-        snapshot_test_cli_command(
-            super::Opts::command().name("cargo_deny"),
-            "cargo_deny".to_owned(),
-        );
+
+        insta::with_settings!({
+            snapshot_path => "../../tests/snapshots",
+        }, {
+            snapshot_test_cli_command(
+                super::Opts::command().name("cargo_deny"),
+                "cargo_deny".to_owned(),
+            );
+        });
     }
 }
