@@ -51,8 +51,8 @@ impl<'k> KrateGather<'k> {
 }
 
 pub struct Config<C> {
-    deserialized: C,
-    config: String,
+    pub deserialized: C,
+    pub config: String,
 }
 
 impl<C> Config<C>
@@ -93,6 +93,7 @@ where
     }
 }
 
+#[inline]
 pub fn gather_diagnostics<C, VC, R>(
     krates: &crate::Krates,
     test_name: &str,
@@ -104,8 +105,22 @@ where
     VC: Send,
     R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel) + Send,
 {
+    gather_diagnostics_with_files(krates, test_name, cfg, Files::new(), runner)
+}
+
+pub fn gather_diagnostics_with_files<C, VC, R>(
+    krates: &crate::Krates,
+    test_name: &str,
+    cfg: Config<C>,
+    mut files: Files,
+    runner: R,
+) -> Vec<serde_json::Value>
+where
+    C: crate::UnvalidatedConfig<ValidCfg = VC>,
+    VC: Send,
+    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel) + Send,
+{
     let (spans, content, hashmap) = KrateSpans::synthesize(krates);
-    let mut files = Files::new();
 
     let spans_id = files.add(format!("{test_name}/Cargo.lock"), content);
     let spans = KrateSpans::with_spans(spans, spans_id);
@@ -197,6 +212,22 @@ macro_rules! func_name {
         let name = type_name_of(f);
         &name[..name.len() - 3]
     }};
+}
+
+#[macro_export]
+macro_rules! overrides {
+    ($($code:expr => $severity:ident),* $(,)?) => {
+        {
+            let mut map = std::collections::BTreeMap::new();
+
+            $(map.insert($code, $crate::diag::Severity::$severity);)*
+
+            $crate::diag::DiagnosticOverrides {
+                code_overrides: map,
+                level_overrides: Vec::new(),
+            }
+        }
+    }
 }
 
 #[inline]

@@ -1,0 +1,2312 @@
+---
+source: tests/licenses.rs
+assertion_line: 88
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "bitflags",
+            "version": "1.3.2"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "git2",
+                "version": "0.14.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "redox_syscall",
+                "version": "0.2.16"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cc",
+            "version": "1.0.73"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libgit2-sys",
+                "version": "0.13.4+1.4.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libz-sys",
+                "version": "1.1.8"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cfg-if",
+            "version": "1.0.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "log",
+                "version": "0.4.17"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.9.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unlicensed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression was not specified",
+          "span": ""
+        },
+        {
+          "column": 9,
+          "line": 2,
+          "message": "a valid license expression could not be retrieved for the crate",
+          "span": "features-galore"
+        }
+      ],
+      "message": "features-galore = 0.1.0 is unlicensed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "form_urlencoded",
+            "version": "1.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "url",
+                "version": "2.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "git2",
+            "version": "0.14.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "features-galore",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "idna",
+            "version": "0.3.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "url",
+                "version": "2.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "jobserver",
+            "version": "0.1.25"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "cc",
+                "version": "1.0.73"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "git2",
+                        "version": "0.14.4"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "libz-sys",
+                    "version": "1.1.8"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "libgit2-sys",
+                        "version": "0.13.4+1.4.2"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libgit2-sys",
+                "version": "0.13.4+1.4.2"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libc",
+            "version": "0.2.134"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "git2",
+                "version": "0.14.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "jobserver",
+                "version": "0.1.25"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "cc",
+                    "version": "1.0.73"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "kind": "build",
+                        "name": "libgit2-sys",
+                        "version": "0.13.4+1.4.2"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "git2",
+                            "version": "0.14.4"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "kind": "build",
+                        "name": "libz-sys",
+                        "version": "1.1.8"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "libgit2-sys",
+                            "version": "0.13.4+1.4.2"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "libgit2-sys",
+                "version": "0.13.4+1.4.2"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "libz-sys",
+                "version": "1.1.8"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.9.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libgit2-sys",
+            "version": "0.13.4+1.4.2"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "git2",
+                "version": "0.14.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libz-sys",
+            "version": "1.1.8"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "libgit2-sys",
+                "version": "0.13.4+1.4.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "log",
+            "version": "0.4.17"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "git2",
+                "version": "0.14.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "parking_lot_core",
+            "version": "0.9.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "features-galore",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "percent-encoding",
+            "version": "2.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "form_urlencoded",
+                "version": "1.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "url",
+                    "version": "2.3.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "git2",
+                        "version": "0.14.4"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "url",
+                "version": "2.3.1"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "pkg-config",
+            "version": "0.3.25"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libgit2-sys",
+                "version": "0.13.4+1.4.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "git2",
+                    "version": "0.14.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libz-sys",
+                "version": "1.1.8"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "redox_syscall",
+            "version": "0.2.16"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.9.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "smallvec",
+            "version": "1.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.9.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tinyvec",
+            "version": "1.6.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "unicode-normalization",
+                "version": "0.1.22"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "idna",
+                    "version": "0.3.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "url",
+                        "version": "2.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "git2",
+                            "version": "0.14.4"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "features-galore",
+                                "version": "0.1.0"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "Zlib OR Apache-2.0 OR MIT"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Zlib"
+        },
+        {
+          "column": 20,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 34,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tinyvec_macros",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "tinyvec",
+                "version": "1.6.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "unicode-normalization",
+                    "version": "0.1.22"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "idna",
+                        "version": "0.3.0"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "url",
+                            "version": "2.3.1"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "git2",
+                                "version": "0.14.4"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "features-galore",
+                                    "version": "0.1.0"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "unicode-normalization",
+                "version": "0.1.22"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0 OR Zlib"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 33,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Zlib"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "unicode-bidi",
+            "version": "0.3.8"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "idna",
+                "version": "0.3.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "url",
+                    "version": "2.3.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "git2",
+                        "version": "0.14.4"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "unicode-normalization",
+            "version": "0.1.22"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "idna",
+                "version": "0.3.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "url",
+                    "version": "2.3.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "git2",
+                        "version": "0.14.4"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "url",
+            "version": "2.3.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "git2",
+                "version": "0.14.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "vcpkg",
+            "version": "0.2.15"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "libz-sys",
+                "version": "1.1.8"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "libgit2-sys",
+                    "version": "0.13.4+1.4.2"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "git2",
+                        "version": "0.14.4"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "features-galore",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.9.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows-sys",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "features-galore",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_aarch64_gnullvm",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_aarch64_msvc",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.36.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_aarch64_msvc",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_i686_gnu",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.36.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_i686_gnu",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_i686_msvc",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.36.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_i686_msvc",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_x86_64_gnu",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.36.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_x86_64_gnu",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_x86_64_gnullvm",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_x86_64_msvc",
+            "version": "0.36.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.36.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot_core",
+                    "version": "0.9.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "features-galore",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "windows_x86_64_msvc",
+            "version": "0.42.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "windows-sys",
+                "version": "0.42.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features-galore",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

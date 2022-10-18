@@ -1,0 +1,186 @@
+---
+source: tests/licenses.rs
+assertion_line: 105
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tinyvec",
+            "version": "1.6.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "unicode-normalization",
+                "version": "0.1.22"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "idna",
+                    "version": "0.3.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "url",
+                        "version": "2.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "git2",
+                            "version": "0.14.4"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "features-galore",
+                                "version": "0.1.0"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "Zlib OR Apache-2.0 OR MIT"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Zlib"
+        },
+        {
+          "column": 20,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 34,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tinyvec_macros",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "tinyvec",
+                "version": "1.6.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "unicode-normalization",
+                    "version": "0.1.22"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "idna",
+                        "version": "0.3.0"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "url",
+                            "version": "2.3.1"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "git2",
+                                "version": "0.14.4"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "features-galore",
+                                    "version": "0.1.0"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "unicode-normalization",
+                "version": "0.1.22"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0 OR Zlib"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "rejected: not explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 33,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed via an exception",
+          "span": "Zlib"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]

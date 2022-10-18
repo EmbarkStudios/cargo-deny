@@ -1,0 +1,24 @@
+---
+source: tests/licenses.rs
+assertion_line: 141
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "license-not-encountered",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 10,
+          "line": 1,
+          "message": "unmatched license allowance",
+          "span": "'Aladdin'"
+        }
+      ],
+      "message": "license was not encountered",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
