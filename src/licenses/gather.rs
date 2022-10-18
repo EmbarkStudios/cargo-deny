@@ -700,6 +700,8 @@ impl Gatherer {
             })
             .collect();
 
+        summary.nfos.par_sort_by_key(|nfo| nfo.krate);
+
         summary
     }
 }
