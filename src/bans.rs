@@ -238,14 +238,14 @@ pub fn check(
     };
 
     let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
-        if multi_detector.dupes.len() <= 1 {
+        if multi_detector.dupes.len() <= 1 || multiple_versions == LintLevel::Allow {
             return;
         }
 
         let severity = match multiple_versions {
             LintLevel::Warn => Severity::Warning,
             LintLevel::Deny => Severity::Error,
-            LintLevel::Allow => Severity::Note,
+            LintLevel::Allow => unreachable!(),
         };
 
         let mut all_start = std::usize::MAX;
