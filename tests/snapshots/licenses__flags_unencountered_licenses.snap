@@ -1,6 +1,5 @@
 ---
 source: tests/licenses.rs
-assertion_line: 141
 expression: diags
 ---
 [
