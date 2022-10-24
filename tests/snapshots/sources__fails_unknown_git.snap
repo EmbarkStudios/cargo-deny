@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -38,7 +38,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -79,7 +79,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -111,7 +111,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -144,7 +144,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {

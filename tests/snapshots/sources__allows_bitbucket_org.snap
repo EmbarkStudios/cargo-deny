@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -38,7 +38,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -79,7 +79,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -111,7 +111,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S003",
+      "code": "allowed-by-organization",
       "graphs": [
         {
           "Krate": {
@@ -139,7 +139,7 @@ expression: diags
         {
           "column": 18,
           "line": 3,
-          "message": "org allowance configuration",
+          "message": "organization allowance",
           "span": "'marshallpierce'"
         }
       ],
@@ -150,7 +150,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {

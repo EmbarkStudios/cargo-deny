@@ -1,6 +1,7 @@
 mod cfg;
 mod diags;
 pub use cfg::{Config, GitSpec, ValidConfig};
+pub use diags::Code;
 
 use crate::{
     diag::{CfgCoord, Check, ErrorSink, Label, Pack},

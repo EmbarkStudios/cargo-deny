@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "S002",
+      "code": "allowed-source",
       "graphs": [
         {
           "Krate": {
@@ -33,7 +33,7 @@ expression: diags
         {
           "column": 9,
           "line": 3,
-          "message": "source allowance configuration",
+          "message": "source allowance",
           "span": "'https://gitlab.com/amethyst-engine/amethyst'"
         }
       ],
@@ -44,7 +44,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S002",
+      "code": "allowed-source",
       "graphs": [
         {
           "Krate": {
@@ -80,7 +80,7 @@ expression: diags
         {
           "column": 9,
           "line": 3,
-          "message": "source allowance configuration",
+          "message": "source allowance",
           "span": "'https://gitlab.com/amethyst-engine/amethyst'"
         }
       ],
@@ -91,7 +91,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S002",
+      "code": "allowed-source",
       "graphs": [
         {
           "Krate": {
@@ -118,7 +118,7 @@ expression: diags
         {
           "column": 9,
           "line": 4,
-          "message": "source allowance configuration",
+          "message": "source allowance",
           "span": "'https://github.com/EmbarkStudios/krates'"
         }
       ],
@@ -129,7 +129,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S002",
+      "code": "allowed-source",
       "graphs": [
         {
           "Krate": {
@@ -157,7 +157,7 @@ expression: diags
         {
           "column": 9,
           "line": 5,
-          "message": "source allowance configuration",
+          "message": "source allowance",
           "span": "'https://bitbucket.org/marshallpierce/line-wrap-rs'"
         }
       ],
@@ -168,7 +168,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {

@@ -3,6 +3,33 @@ use crate::{
     LintLevel,
 };
 
+#[derive(
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    strum::IntoStaticStr,
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+#[strum(serialize_all = "kebab-case")]
+pub enum Code {
+    GitSourceUnderspecified,
+    AllowedSource,
+    AllowedByOrganization,
+    SourceNotAllowed,
+    UnmatchedSource,
+    UnmatchedOrganization,
+}
+
+impl From<Code> for String {
+    fn from(c: Code) -> Self {
+        c.to_string()
+    }
+}
+
 pub(crate) struct BelowMinimumRequiredSpec<'a> {
     pub(crate) src_label: &'a Label,
     pub(crate) min_spec: super::cfg::GitSpec,
@@ -17,7 +44,7 @@ impl<'a> From<BelowMinimumRequiredSpec<'a>> for Diag {
                 "'git' source is underspecified, expected '{}', but found '{}'",
                 bmrs.min_spec, bmrs.actual_spec,
             ))
-            .with_code("S001")
+            .with_code(Code::GitSourceUnderspecified)
             .with_labels(vec![
                 bmrs.src_label.clone(),
                 bmrs.min_spec_cfg
@@ -38,12 +65,10 @@ impl<'a> From<ExplicitlyAllowedSource<'a>> for Diag {
     fn from(eas: ExplicitlyAllowedSource<'a>) -> Self {
         Diagnostic::new(Severity::Note)
             .with_message(format!("'{}' source explicitly allowed", eas.type_name))
-            .with_code("S002")
+            .with_code(Code::AllowedSource)
             .with_labels(vec![
                 eas.src_label.clone(),
-                eas.allow_cfg
-                    .into_label()
-                    .with_message("source allowance configuration"),
+                eas.allow_cfg.into_label().with_message("source allowance"),
             ])
             .into()
     }
@@ -58,12 +83,12 @@ impl<'a> From<SourceAllowedByOrg<'a>> for Diag {
     fn from(sabo: SourceAllowedByOrg<'a>) -> Self {
         Diagnostic::new(Severity::Note)
             .with_message("source allowed by organization allowance")
-            .with_code("S003")
+            .with_code(Code::AllowedByOrganization)
             .with_labels(vec![
                 sabo.src_label.clone(),
                 sabo.org_cfg
                     .into_label()
-                    .with_message("org allowance configuration"),
+                    .with_message("organization allowance"),
             ])
             .into()
     }
@@ -82,7 +107,7 @@ impl<'a> From<SourceNotExplicitlyAllowed<'a>> for Diag {
                 "detected '{}' source not explicitly allowed",
                 snea.type_name,
             ))
-            .with_code("S004")
+            .with_code(Code::SourceNotAllowed)
             .with_labels(vec![snea.src_label.clone()])
             .into()
     }
@@ -96,7 +121,7 @@ impl From<UnmatchedAllowSource> for Diag {
     fn from(uas: UnmatchedAllowSource) -> Self {
         Diagnostic::new(Severity::Warning)
             .with_message("allowed source was not encountered")
-            .with_code("S005")
+            .with_code(Code::UnmatchedSource)
             .with_labels(vec![uas
                 .allow_src_cfg
                 .into_label()
@@ -117,7 +142,7 @@ impl From<UnmatchedAllowOrg> for Diag {
                 "allowed '{}' organization  was not encountered",
                 uao.org_type
             ))
-            .with_code("S006")
+            .with_code(Code::UnmatchedOrganization)
             .with_labels(vec![uao
                 .allow_org_cfg
                 .into_label()

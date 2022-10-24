@@ -261,6 +261,7 @@ pub enum DiagnosticCode {
     Advisory(crate::advisories::Code),
     Bans(crate::bans::Code),
     License(crate::licenses::Code),
+    Source(crate::sources::Code),
 }
 
 impl DiagnosticCode {
@@ -270,6 +271,7 @@ impl DiagnosticCode {
             .map(Self::Advisory)
             .chain(crate::bans::Code::iter().map(Self::Bans))
             .chain(crate::licenses::Code::iter().map(Self::License))
+            .chain(crate::sources::Code::iter().map(Self::Source))
     }
 
     #[inline]
@@ -278,6 +280,7 @@ impl DiagnosticCode {
             Self::Advisory(code) => code.into(),
             Self::Bans(code) => code.into(),
             Self::License(code) => code.into(),
+            Self::Source(code) => code.into(),
         }
     }
 }
@@ -298,6 +301,7 @@ impl std::str::FromStr for DiagnosticCode {
             .map(Self::Advisory)
             .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
             .or_else(|_err| s.parse::<crate::licenses::Code>().map(Self::License))
+            .or_else(|_err| s.parse::<crate::sources::Code>().map(Self::Source))
     }
 }
 
@@ -310,7 +314,7 @@ mod test {
 
         for code in super::DiagnosticCode::iter() {
             if !unique.insert(code.as_str()) {
-                panic!("existing code {code}");
+                panic!("existing code '{code}'");
             }
         }
     }
