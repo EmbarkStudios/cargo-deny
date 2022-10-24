@@ -1,6 +1,6 @@
 use cargo_deny::{
     advisories::{self, cfg},
-    field_eq,
+    field_eq, func_name,
     test_utils::{self as tu},
     Krates,
 };
@@ -66,11 +66,8 @@ fn detects_vulnerabilities() {
 
     let cfg = tu::Config::new("vulnerability = 'deny'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "detects_vulnerabilities",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -78,54 +75,12 @@ fn detects_vulnerabilities() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     let diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
 
     insta::assert_json_snapshot!(diag);
 }
-
-// #[test]
-// #[ignore]
-// fn detects_prereleases() {
-//     let TestCtx { dbs, lock, krates } = load();
-
-//     let cfg = "vulnerability = 'deny'";
-
-//     let diags = utils::gather_diagnostics::<cfg::Config, _, _>(
-//         krates,
-//         "detects_prereleases",
-//         Some(cfg),
-//         None,
-//         |ctx, _, tx| {
-//             advisories::check(
-//                 ctx,
-//                 &dbs,
-//                 lock,
-//                 Option::<advisories::NoneReporter>::None,
-//                 tx,
-//             );
-//         },
-//     )
-//     .unwrap();
-
-//     println!("{:#?}", diags);
-
-//     let vuln_diag = find_by_code(&diags, "RUSTSEC-2020-0069").unwrap();
-
-//     assert_field_eq!(vuln_diag, "/fields/severity", "error");
-//     assert_field_eq!(
-//         vuln_diag,
-//         "/fields/message",
-//         "advisory for a crate with a pre-release was skipped as it matched a patch"
-//     );
-//     assert_field_eq!(vuln_diag, "/fields/labels/0/message", "pre-release crate");
-
-//     assert!(iter_notes(vuln_diag)
-//         .expect("expected notes on diag")
-//         .any(|s| s == "Satisfied version requirement: >=0.5.0-alpha.3"));
-// }
 
 #[test]
 fn detects_unmaintained() {
@@ -133,11 +88,8 @@ fn detects_unmaintained() {
 
     let cfg = tu::Config::new("unmaintained = 'warn'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "detects_unmaintained",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -145,8 +97,7 @@ fn detects_unmaintained() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     let unmaintained_diag = find_by_code(&diags, "RUSTSEC-2016-0004").unwrap();
     insta::assert_json_snapshot!(unmaintained_diag);
@@ -158,11 +109,8 @@ fn detects_unsound() {
 
     let cfg = tu::Config::new("unsound = 'warn'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "detects_unsound",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -170,8 +118,7 @@ fn detects_unsound() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
     insta::assert_json_snapshot!(unsound_diag);
@@ -185,11 +132,8 @@ fn downgrades_lint_levels() {
         "unmaintained = 'warn'\nignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']",
     );
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "downgrades_lint_levels",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -197,8 +141,7 @@ fn downgrades_lint_levels() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     let downgraded = [
         find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
@@ -220,11 +163,8 @@ fn detects_yanked() {
 
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "detects_yanked",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -232,8 +172,7 @@ fn detects_yanked() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     let yanked = ["spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"];
 
@@ -257,11 +196,8 @@ fn warns_on_ignored_and_withdrawn() {
         "yanked = 'deny'\nunmaintained = 'deny'\nvulnerability = 'deny'\nignore = ['RUSTSEC-2020-0053']",
     );
 
-    let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-        &krates,
-        "warns_on_ignored_and_withdrawn",
-        cfg,
-        |ctx, _, tx| {
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -269,11 +205,10 @@ fn warns_on_ignored_and_withdrawn() {
                 Option::<advisories::NoneReporter>::None,
                 tx,
             );
-        },
-    );
+        });
 
     insta::assert_json_snapshot!(diags
         .iter()
-        .find(|diag| field_eq!(diag, "/fields/code", "A007"))
+        .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
         .unwrap());
 }

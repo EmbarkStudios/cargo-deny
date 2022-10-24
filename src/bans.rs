@@ -8,6 +8,7 @@ use crate::{
     Kid, Krate, Krates, LintLevel,
 };
 use anyhow::Error;
+pub use diags::Code;
 use semver::VersionReq;
 use std::fmt;
 
@@ -190,7 +191,7 @@ pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
     output_graph: Option<Box<OutputGraph>>,
     cargo_spans: diag::CargoSpans,
-    mut sink: diag::ErrorSink,
+    sink: impl Into<diag::ErrorSink>,
 ) {
     let ValidConfig {
         file_id,
@@ -207,6 +208,7 @@ pub fn check(
         allow_build_scripts,
     } = ctx.cfg;
 
+    let mut sink = sink.into();
     let krate_spans = &ctx.krate_spans;
     let (mut tree_skipper, build_diags) = TreeSkipper::build(tree_skipped, ctx.krates, file_id);
 
@@ -425,7 +427,7 @@ pub fn check(
                     }
                 }
                 None => {
-                    pack.push(diags::ImplicitlyBanned { krate });
+                    pack.push(diags::NotAllowed { krate });
                 }
             }
         }
@@ -595,7 +597,7 @@ pub fn check(
                             .iter()
                             .filter(|feat| enabled_features.contains(&feat.value))
                         {
-                            pack.push(diags::FeatureExplicitlyDenied {
+                            pack.push(diags::FeatureBanned {
                                 krate,
                                 feature,
                                 file_id,

@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -53,7 +53,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -216,7 +216,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -295,7 +295,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -398,7 +398,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -470,7 +470,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {
@@ -542,7 +542,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "B017",
+      "code": "default-feature-enabled",
       "graphs": [
         {
           "Krate": {

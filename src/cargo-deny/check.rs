@@ -2,7 +2,9 @@ use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{
     advisories, bans,
-    diag::{CargoSpans, Diagnostic, ErrorSink, Files, Severity},
+    diag::{
+        CargoSpans, Diagnostic, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity,
+    },
     licenses, sources, CheckCtx,
 };
 use log::error;
@@ -18,6 +20,55 @@ pub enum WhichCheck {
     Licenses,
     Sources,
     All,
+}
+
+#[derive(strum::EnumString, Debug, Copy, Clone, PartialEq, Eq)]
+#[strum(serialize_all = "snake_case")]
+pub enum Level {
+    Allowed,
+    Warnings,
+    Denied,
+}
+
+impl From<Level> for Severity {
+    fn from(l: Level) -> Self {
+        match l {
+            Level::Allowed => Self::Note,
+            Level::Warnings => Self::Warning,
+            Level::Denied => Self::Error,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CodeOrLevel {
+    Code(DiagnosticCode),
+    Level(Level),
+}
+
+impl std::str::FromStr for CodeOrLevel {
+    type Err = strum::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Attempt to parse level first, since the error
+        // for codes are probably more meaningful for most users
+        s.parse::<Level>()
+            .map(Self::Level)
+            .or_else(|_err| s.parse::<DiagnosticCode>().map(Self::Code))
+    }
+}
+
+#[derive(clap::Parser, Debug)]
+pub struct LintLevels {
+    /// Set lint warnings
+    #[clap(long, short = 'W')]
+    warn: Vec<CodeOrLevel>,
+    /// Set lint allowed
+    #[clap(long, short = 'A')]
+    allow: Vec<CodeOrLevel>,
+    /// Set lint denied
+    #[clap(long, short = 'D')]
+    deny: Vec<CodeOrLevel>,
 }
 
 #[derive(clap::Parser, Debug)]
@@ -50,6 +101,8 @@ pub struct Args {
     /// Show stats for all the checks, regardless of the log-level
     #[clap(short, long, action)]
     pub show_stats: bool,
+    #[clap(flatten)]
+    pub lint_levels: LintLevels,
     /// The check(s) to perform
     #[clap(value_enum, action)]
     pub which: Vec<WhichCheck>,
@@ -174,7 +227,7 @@ pub(crate) fn cmd(
     log_ctx: crate::common::LogContext,
     args: Args,
     krate_ctx: crate::common::KrateContext,
-) -> Result<AllStats, Error> {
+) -> anyhow::Result<AllStats> {
     let mut files = Files::new();
     let ValidConfig {
         advisories,
@@ -217,6 +270,59 @@ pub(crate) fn cmd(
     let mut advisory_dbs = None;
     let mut advisory_lockfile = None;
     let mut krate_spans = None;
+
+    // Create an override structure that remaps specific codes
+    let overrides = {
+        let ll = args.lint_levels;
+
+        if ll.allow.is_empty() && ll.deny.is_empty() && ll.warn.is_empty() {
+            None
+        } else {
+            let mut code_overrides = std::collections::BTreeMap::new();
+            let mut level_overrides = Vec::new();
+
+            let mut insert = |list: Vec<CodeOrLevel>, severity: Severity| -> anyhow::Result<()> {
+                for cl in list {
+                    match cl {
+                        CodeOrLevel::Code(code) => {
+                            if let Some(current) = code_overrides.get(code.as_str()) {
+                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                            }
+
+                            code_overrides.insert(code.as_str(), severity);
+                        }
+                        CodeOrLevel::Level(level) => {
+                            let ls = level.into();
+                            if let Some(current) =
+                                level_overrides.iter().find_map(|(input, output)| {
+                                    if ls == *input {
+                                        Some(*output)
+                                    } else {
+                                        None
+                                    }
+                                })
+                            {
+                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                            }
+
+                            level_overrides.push((ls, severity));
+                        }
+                    }
+                }
+
+                Ok(())
+            };
+
+            insert(ll.allow, Severity::Note)?;
+            insert(ll.warn, Severity::Warning)?;
+            insert(ll.deny, Severity::Error)?;
+
+            Some(std::sync::Arc::new(DiagnosticOverrides {
+                code_overrides,
+                level_overrides,
+            }))
+        }
+    };
 
     rayon::scope(|s| {
         s.spawn(|_| {
@@ -359,7 +465,10 @@ pub(crate) fn cmd(
         });
 
         if let Some(summary) = license_summary {
-            let lic_tx = tx.clone();
+            let sink = ErrorSink {
+                overrides: overrides.clone(),
+                channel: tx.clone(),
+            };
 
             let ctx = CheckCtx {
                 cfg: licenses,
@@ -372,7 +481,7 @@ pub(crate) fn cmd(
             s.spawn(move |_| {
                 log::info!("checking licenses...");
                 let start = Instant::now();
-                licenses::check(ctx, summary, ErrorSink::Channel(lic_tx));
+                licenses::check(ctx, summary, sink);
                 let end = Instant::now();
 
                 log::info!("licenses checked in {}ms", (end - start).as_millis());
@@ -393,11 +502,10 @@ pub(crate) fn cmd(
 
                         Ok(())
                     }),
-                    Err(e) => {
+                    Err(err) => {
                         error!(
-                            "unable to create directory '{}': {}",
-                            output_dir.display(),
-                            e
+                            "unable to create directory '{}': {err}",
+                            output_dir.display()
                         );
 
                         Box::new(move |dup_graph: bans::DupGraph| {
@@ -410,7 +518,10 @@ pub(crate) fn cmd(
                 }
             });
 
-            let ban_tx = tx.clone();
+            let bans_sink = ErrorSink {
+                overrides: overrides.clone(),
+                channel: tx.clone(),
+            };
 
             let ctx = CheckCtx {
                 cfg: bans,
@@ -423,7 +534,7 @@ pub(crate) fn cmd(
             s.spawn(|_| {
                 log::info!("checking bans...");
                 let start = Instant::now();
-                bans::check(ctx, output_graph, cargo_spans, ErrorSink::Channel(ban_tx));
+                bans::check(ctx, output_graph, cargo_spans, bans_sink);
                 let end = Instant::now();
 
                 log::info!("bans checked in {}ms", (end - start).as_millis());
@@ -431,7 +542,10 @@ pub(crate) fn cmd(
         }
 
         if check_sources {
-            let sources_tx = tx.clone();
+            let sources_sink = ErrorSink {
+                overrides: overrides.clone(),
+                channel: tx.clone(),
+            };
 
             let ctx = CheckCtx {
                 cfg: sources,
@@ -444,7 +558,7 @@ pub(crate) fn cmd(
             s.spawn(|_| {
                 log::info!("checking sources...");
                 let start = Instant::now();
-                sources::check(ctx, ErrorSink::Channel(sources_tx));
+                sources::check(ctx, sources_sink);
                 let end = Instant::now();
 
                 log::info!("sources checked in {}ms", (end - start).as_millis());
@@ -452,6 +566,11 @@ pub(crate) fn cmd(
         }
 
         if let Some((db, lockfile)) = advisory_ctx {
+            let advisories_sink = ErrorSink {
+                overrides,
+                channel: tx,
+            };
+
             let ctx = CheckCtx {
                 cfg: advisories,
                 krates,
@@ -468,13 +587,13 @@ pub(crate) fn cmd(
 
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
-                        println!("{}", val);
+                        println!("{val}");
                     })
                 } else {
                     None
                 };
 
-                advisories::check(ctx, &db, lf, audit_reporter, ErrorSink::Channel(tx));
+                advisories::check(ctx, &db, lf, audit_reporter, advisories_sink);
                 let end = Instant::now();
 
                 log::info!("advisories checked in {}ms", (end - start).as_millis());

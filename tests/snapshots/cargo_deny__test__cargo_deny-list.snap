@@ -1,0 +1,48 @@
+---
+source: src/cargo-deny/main.rs
+expression: help_text
+---
+list 0.0.0
+Outputs a listing of all licenses and the crates that use them
+
+USAGE:
+    list [OPTIONS]
+
+OPTIONS:
+    -c, --config <CONFIG>
+            Path to the config to use
+            
+            Defaults to a deny.toml in the same folder as the manifest path, or
+            a deny.toml in a parent directory.
+
+    -f, --format <FORMAT>
+            The format of the output
+            
+            [default: human]
+            [possible values: human, json, tsv]
+
+    -h, --help
+            Print help information
+
+    -l, --layout <LAYOUT>
+            The layout for the output, does not apply to TSV
+            
+            [default: license]
+            [possible values: crate, license]
+
+    -t, --threshold <THRESHOLD>
+            Minimum confidence threshold for license text
+            
+            When determining the license from file contents, a confidence score
+            is assigned according to how close the contents are to the canonical
+            license text. If the confidence score is below this threshold, they
+            license text will ignored, which might mean the crate is treated as
+            unlicensed.
+            
+            [possible values: 0.0 - 1.0]
+            
+            [default: 0.8]
+
+    -V, --version
+            Print version information
+

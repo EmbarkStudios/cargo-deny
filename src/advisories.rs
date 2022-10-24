@@ -3,6 +3,7 @@ mod diags;
 mod helpers;
 
 use crate::{diag, LintLevel};
+pub use diags::Code;
 use helpers::*;
 pub use helpers::{load_lockfile, DbSet, Fetch, PrunedLockfile, Report};
 
@@ -27,17 +28,19 @@ where
 
 /// Check crates against the advisory database to detect vulnerabilities or
 /// unmaintained crates
-pub fn check<R>(
+pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     lockfile: PrunedLockfile,
     audit_compatible_reporter: Option<R>,
-    mut sink: diag::ErrorSink,
+    sink: S,
 ) where
     R: AuditReporter,
+    S: Into<diag::ErrorSink>,
 {
     use rustsec::{advisory::Metadata, advisory::Versions, package::Package};
 
+    let mut sink = sink.into();
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(
@@ -81,40 +84,6 @@ pub fn check<R>(
             ctx.krates, pkg,
         ) {
             Some((i, krate)) => {
-                // This is a workaround for https://github.com/steveklabnik/semver/issues/172,
-                // it's not strictly correct so we do emit a warning to notify the user
-                // (though to be honest most people only run cargo-deny in CI and won't notice)
-                if let Some(versions) = versions {
-                    if !krate.version.pre.is_empty() {
-                        let rematch = semver::Version::new(
-                            krate.version.major,
-                            krate.version.minor,
-                            krate.version.patch,
-                        );
-
-                        // Patches are usually (always) specified in ascending order,
-                        // so we walk them in reverse to get the closest patch that
-                        // may apply to the crate version in question
-                        for patched in versions.patched().iter().rev() {
-                            if patched.matches(&rematch) {
-                                let skipped_diag =
-                                    ctx.diag_for_prerelease_skipped(krate, i, advisory, patched);
-                                sink.push(skipped_diag);
-                                return;
-                            }
-                        }
-
-                        for unaffected in versions.unaffected().iter().rev() {
-                            if unaffected.matches(&rematch) {
-                                let skipped_diag =
-                                    ctx.diag_for_prerelease_skipped(krate, i, advisory, unaffected);
-                                sink.push(skipped_diag);
-                                return;
-                            }
-                        }
-                    }
-                }
-
                 let diag = ctx.diag_for_advisory(krate, i, advisory, versions, |index| {
                     ignore_hits.as_mut_bitslice().set(index, true);
                 });

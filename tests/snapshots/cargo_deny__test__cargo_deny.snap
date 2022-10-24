@@ -1,0 +1,108 @@
+---
+source: src/cargo-deny/main.rs
+expression: help_text
+---
+cargo_deny 0.0.0
+Embark <opensource@embark-studios.com>, Jake Shadle
+<jake.shadle@embark-studios.com>
+Cargo plugin to help you manage large dependency graphs
+
+USAGE:
+    cargo_deny [OPTIONS] <SUBCOMMAND>
+
+OPTIONS:
+        --all-features
+            Activate all available features
+
+    -c, --color <COLOR>
+            [env: CARGO_TERM_COLOR]
+            [default: auto]
+            [possible values: auto, always, never]
+
+        --exclude <EXCLUDE>
+            One or more crates to exclude from the crate graph that is used.
+            
+            NOTE: Unlike cargo, this does not have to be used with the
+            `--workspace` flag.
+
+    -f, --format <FORMAT>
+            Specify the format of cargo-deny's output
+            
+            [default: human]
+            [possible values: human, json]
+
+        --features <FEATURES>
+            Space or comma separated list of features to activate
+
+        --frozen
+            Require Cargo.lock and cache are up to date
+
+    -h, --help
+            Print help information
+
+    -L, --log-level <LOG_LEVEL>
+            The log level for messages
+            
+            Only log messages at or above the level will be emitted.
+            
+            Possible values:
+            * off
+            * error
+            * warn
+            * info
+            * debug
+            * trace
+            
+            
+            [default: warn]
+
+        --locked
+            Require Cargo.lock is up to date
+
+        --manifest-path <MANIFEST_PATH>
+            The path of a Cargo.toml to use as the context for the operation.
+            
+            By default, the Cargo.toml in the current working directory is used.
+
+        --no-default-features
+            Do not activate the `default` feature
+
+        --offline
+            Run without accessing the network. If used with the `check`
+            subcommand, this also disables advisory database fetching
+
+    -t, --target <TARGET>
+            One or more platforms to filter crates by
+            
+            If a dependency is target specific, it will be ignored if it does
+            not match 1 or more of the specified targets. This option overrides
+            the top-level `targets = []` configuration value.
+
+    -V, --version
+            Print version information
+
+        --workspace
+            If passed, all workspace packages are used as roots for the crate
+            graph.
+            
+            Automatically assumed if the manifest path points to a virtual
+            manifest.
+            
+            Normally, if you specify a manifest path that is a member of a
+            workspace, that crate will be the sole root of the crate graph,
+            meaning only other workspace members that are dependencies of that
+            workspace crate will be included in the graph. This overrides that
+            behavior to include all workspace members.
+
+SUBCOMMANDS:
+    check
+            Checks a project's crate graph
+    fetch
+            Fetches remote data
+    help
+            Print this message or the help of the given subcommand(s)
+    init
+            Creates a cargo-deny config from a template
+    list
+            Outputs a listing of all licenses and the crates that use them
+

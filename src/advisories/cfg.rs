@@ -185,8 +185,7 @@ mod test {
             !diags
                 .iter()
                 .any(|d| d.severity >= crate::diag::Severity::Error),
-            "{:#?}",
-            diags
+            "{diags:#?}"
         );
 
         assert_eq!(validated.file_id, cd.id);

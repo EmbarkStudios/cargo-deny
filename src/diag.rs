@@ -2,7 +2,7 @@ mod grapher;
 mod sink;
 
 pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
-pub use sink::ErrorSink;
+pub use sink::{DiagnosticOverrides, ErrorSink};
 
 use std::{collections::HashMap, ops::Range};
 
@@ -18,6 +18,8 @@ pub type Files = codespan::Files<String>;
 pub type RawCargoSpans = HashMap<Kid, (krates::Utf8PathBuf, String, HashMap<String, Range<usize>>)>;
 // Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
 pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
+/// Channel type used to send diagnostics from checks
+pub type PackChannel = crossbeam::channel::Sender<Pack>;
 
 impl From<crate::LintLevel> for Severity {
     fn from(ll: crate::LintLevel) -> Self {
@@ -67,7 +69,7 @@ pub enum Check {
 
 pub struct Pack {
     pub check: Check,
-    diags: Vec<Diag>,
+    pub(crate) diags: Vec<Diag>,
     kid: Option<Kid>,
 }
 
@@ -252,4 +254,68 @@ impl From<Coord> for Label {
 struct NodePrint {
     node: krates::NodeId,
     edge: Option<krates::EdgeId>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DiagnosticCode {
+    Advisory(crate::advisories::Code),
+    Bans(crate::bans::Code),
+    License(crate::licenses::Code),
+    Source(crate::sources::Code),
+}
+
+impl DiagnosticCode {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        use strum::IntoEnumIterator;
+        crate::advisories::Code::iter()
+            .map(Self::Advisory)
+            .chain(crate::bans::Code::iter().map(Self::Bans))
+            .chain(crate::licenses::Code::iter().map(Self::License))
+            .chain(crate::sources::Code::iter().map(Self::Source))
+    }
+
+    #[inline]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Advisory(code) => code.into(),
+            Self::Bans(code) => code.into(),
+            Self::License(code) => code.into(),
+            Self::Source(code) => code.into(),
+        }
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for DiagnosticCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for DiagnosticCode {
+    type Err = strum::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<crate::advisories::Code>()
+            .map(Self::Advisory)
+            .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
+            .or_else(|_err| s.parse::<crate::licenses::Code>().map(Self::License))
+            .or_else(|_err| s.parse::<crate::sources::Code>().map(Self::Source))
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn codes_unique() {
+        let mut unique = std::collections::BTreeSet::<&'static str>::new();
+
+        for code in super::DiagnosticCode::iter() {
+            if !unique.insert(code.as_str()) {
+                panic!("existing code '{code}'");
+            }
+        }
+    }
 }

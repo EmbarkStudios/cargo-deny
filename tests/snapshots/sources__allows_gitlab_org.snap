@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "S003",
+      "code": "allowed-by-organization",
       "graphs": [
         {
           "Krate": {
@@ -33,7 +33,7 @@ expression: diags
         {
           "column": 15,
           "line": 3,
-          "message": "org allowance configuration",
+          "message": "organization allowance",
           "span": "'amethyst-engine'"
         }
       ],
@@ -44,7 +44,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S003",
+      "code": "allowed-by-organization",
       "graphs": [
         {
           "Krate": {
@@ -80,7 +80,7 @@ expression: diags
         {
           "column": 15,
           "line": 3,
-          "message": "org allowance configuration",
+          "message": "organization allowance",
           "span": "'amethyst-engine'"
         }
       ],
@@ -91,7 +91,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -123,7 +123,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {
@@ -156,7 +156,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "S004",
+      "code": "source-not-allowed",
       "graphs": [
         {
           "Krate": {

@@ -1,0 +1,23 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "license-exception-not-encountered",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 25,
+          "line": 3,
+          "message": "unmatched license exception",
+          "span": "'bippity-boopity-bop'"
+        }
+      ],
+      "message": "license exception was not encountered",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

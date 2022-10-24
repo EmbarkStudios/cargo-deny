@@ -1,0 +1,36 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unlicensed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression was not specified",
+          "span": ""
+        },
+        {
+          "column": 9,
+          "line": 2,
+          "message": "a valid license expression could not be retrieved for the crate",
+          "span": "features-galore"
+        }
+      ],
+      "message": "features-galore = 0.1.0 is unlicensed",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

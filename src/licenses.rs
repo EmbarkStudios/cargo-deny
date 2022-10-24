@@ -27,6 +27,7 @@ pub use gather::{Gatherer, LicenseInfo, LicenseStore};
 use gather::{KrateLicense, LicenseExprInfo, LicenseExprSource, Summary};
 
 pub use cfg::{Config, ValidConfig};
+pub use diags::Code;
 
 use bitvec::prelude::*;
 
@@ -249,9 +250,9 @@ fn evaluate_expression(
     Diagnostic::new(severity)
         .with_message(message)
         .with_code(if severity != Severity::Error {
-            "L002"
+            diags::Code::Accepted
         } else {
-            "L001"
+            diags::Code::Rejected
         })
         .with_labels(labels)
 }
