@@ -47,8 +47,6 @@ pub fn gather_licenses_with_overrides(
 
     let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
 
-    let cfg = cfg.into();
-
     tu::gather_diagnostics_with_files::<crate::licenses::cfg::Config, _, _>(
         &krates,
         name,
