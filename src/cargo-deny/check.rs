@@ -328,7 +328,7 @@ pub(crate) fn cmd(
         s.spawn(|_| {
             let gathered = krate_ctx.gather_krates(targets, exclude);
 
-            if let Ok(ref krates) = gathered {
+            if let Ok(krates) = &gathered {
                 rayon::scope(|s| {
                     if check_advisories {
                         s.spawn(|_| {

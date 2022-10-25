@@ -528,7 +528,7 @@ where
         if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
             attempts.push(s);
         }
-        if let Some(ref s) = cred_helper.username {
+        if let Some(s) = &cred_helper.username {
             attempts.push(s.clone());
         }
 

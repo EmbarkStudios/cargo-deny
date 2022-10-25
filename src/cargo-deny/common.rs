@@ -153,7 +153,7 @@ impl KrateContext {
             }
         });
 
-        if let Ok(ref krates) = graph {
+        if let Ok(krates) = &graph {
             log::info!(
                 "gathered {} crates in {}ms",
                 krates.len(),
