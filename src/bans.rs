@@ -351,29 +351,12 @@ pub fn check(
                 let is_allowed_by_wrapper =
                     if let Some(wrappers) = ban_wrappers.get(rm.index).and_then(|bw| bw.as_ref()) {
                         let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                        let graph = ctx.krates.graph();
-
-                        let mut direct_dependencies = Vec::new();
-                        let mut stack = vec![nid];
-                        let mut visited = std::collections::BTreeSet::new();
-
-                        while let Some(nid) = stack.pop() {
-                            for edge in graph.edges_directed(nid, Direction::Incoming) {
-                                if let krates::Edge::Feature = edge.weight() {
-                                    stack.push(edge.source());
-                                } else if visited.insert(edge.source()) {
-                                    direct_dependencies.push(edge.source());
-                                }
-                            }
-                        }
 
                         // Ensure that every single crate that has a direct dependency
                         // on the banned crate is an allowed wrapper
-                        direct_dependencies.into_iter().all(|nid| {
-                            let src = &ctx.krates[nid];
-
+                        ctx.krates.direct_dependents(nid).into_iter().all(|src| {
                             let (diag, is_allowed): (Diag, _) =
-                                match wrappers.iter().find(|aw| aw.value == src.name) {
+                                match wrappers.iter().find(|aw| aw.value == src.krate.name) {
                                     Some(aw) => (
                                         diags::BannedAllowedByWrapper {
                                             ban_cfg: ban_cfg.clone(),
@@ -382,7 +365,7 @@ pub fn check(
                                                 span: aw.span.clone(),
                                             },
                                             banned_krate: krate,
-                                            wrapper_krate: src,
+                                            wrapper_krate: src.krate,
                                         }
                                         .into(),
                                         true,
@@ -391,7 +374,7 @@ pub fn check(
                                         diags::BannedUnmatchedWrapper {
                                             ban_cfg: ban_cfg.clone(),
                                             banned_krate: krate,
-                                            parent_krate: src,
+                                            parent_krate: src.krate,
                                         }
                                         .into(),
                                         false,

@@ -96,7 +96,7 @@ impl Pack {
     pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Diag {
         let mut diag = diag.into();
         if diag.graph_nodes.is_empty() {
-            if let Some(kid) = self.kid.take() {
+            if let Some(kid) = self.kid.clone() {
                 diag.graph_nodes.push(GraphNode { kid, feature: None });
             }
         }
@@ -113,6 +113,11 @@ impl Pack {
     #[inline]
     pub(crate) fn is_empty(&self) -> bool {
         self.diags.is_empty()
+    }
+
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &Diag> {
+        self.diags.iter()
     }
 }
 

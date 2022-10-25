@@ -482,9 +482,8 @@ pub(crate) fn cmd(
                 log::info!("checking licenses...");
                 let start = Instant::now();
                 licenses::check(ctx, summary, sink);
-                let end = Instant::now();
 
-                log::info!("licenses checked in {}ms", (end - start).as_millis());
+                log::info!("licenses checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -535,9 +534,8 @@ pub(crate) fn cmd(
                 log::info!("checking bans...");
                 let start = Instant::now();
                 bans::check(ctx, output_graph, cargo_spans, bans_sink);
-                let end = Instant::now();
 
-                log::info!("bans checked in {}ms", (end - start).as_millis());
+                log::info!("bans checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -559,9 +557,8 @@ pub(crate) fn cmd(
                 log::info!("checking sources...");
                 let start = Instant::now();
                 sources::check(ctx, sources_sink);
-                let end = Instant::now();
 
-                log::info!("sources checked in {}ms", (end - start).as_millis());
+                log::info!("sources checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -594,9 +591,8 @@ pub(crate) fn cmd(
                 };
 
                 advisories::check(ctx, &db, lf, audit_reporter, advisories_sink);
-                let end = Instant::now();
 
-                log::info!("advisories checked in {}ms", (end - start).as_millis());
+                log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });
         }
     });
@@ -617,8 +613,6 @@ fn print_diagnostics(
     match crate::common::DiagPrinter::new(log_ctx, krates) {
         Some(printer) => {
             for pack in rx {
-                let mut lock = printer.lock();
-
                 let check_stats = match pack.check {
                     Check::Advisories => stats.advisories.as_mut().unwrap(),
                     Check::Bans => stats.bans.as_mut().unwrap(),
@@ -626,7 +620,7 @@ fn print_diagnostics(
                     Check::Sources => stats.sources.as_mut().unwrap(),
                 };
 
-                for diag in pack {
+                for diag in pack.iter() {
                     match diag.diag.severity {
                         Severity::Error => check_stats.errors += 1,
                         Severity::Warning => check_stats.warnings += 1,
@@ -634,9 +628,10 @@ fn print_diagnostics(
                         Severity::Help => check_stats.helps += 1,
                         Severity::Bug => {}
                     }
-
-                    lock.print_krate_diag(diag, &files);
                 }
+
+                let mut lock = printer.lock();
+                lock.print_krate_pack(pack, &files);
             }
         }
         None => while rx.recv().is_ok() {},

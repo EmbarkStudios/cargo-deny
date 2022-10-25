@@ -480,14 +480,6 @@ expression: diags
                   ]
                 }
               ]
-            },
-            {
-              "Krate": {
-                "kind": "build",
-                "name": "libgit2-sys",
-                "version": "0.13.4+1.4.2"
-              },
-              "repeat": true
             }
           ]
         }
@@ -586,14 +578,6 @@ expression: diags
                       ]
                     }
                   ]
-                },
-                {
-                  "Krate": {
-                    "kind": "build",
-                    "name": "libgit2-sys",
-                    "version": "0.13.4+1.4.2"
-                  },
-                  "repeat": true
                 }
               ]
             },
@@ -1249,13 +1233,6 @@ expression: diags
                   ]
                 }
               ]
-            },
-            {
-              "Krate": {
-                "name": "unicode-normalization",
-                "version": "0.1.22"
-              },
-              "repeat": true
             }
           ]
         }

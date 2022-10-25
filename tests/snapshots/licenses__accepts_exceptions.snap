@@ -140,13 +140,6 @@ expression: diags
                   ]
                 }
               ]
-            },
-            {
-              "Krate": {
-                "name": "unicode-normalization",
-                "version": "0.1.22"
-              },
-              "repeat": true
             }
           ]
         }
