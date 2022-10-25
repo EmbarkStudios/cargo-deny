@@ -6,19 +6,53 @@ The check command is the primary subcommand of cargo-deny as it is what actually
 
 ### `<which>`
 
-The check(s) to perform. By default, **all** checks will be performed, unless one or more specific checks are specified.
+The check(s) to perform. By default, **all** checks will be performed, unless one or more checks are specified here.
 
 See [checks](../checks/index.html) for the list of available checks.
 
-## Flags
+## Options
+
+### `-A, --allow <ALLOW>`
+
+Set lint allowed
+
+### `--audit-compatible-output`
+
+To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
+
+Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
+
+### `-c, --config <CONFIG>`
+
+Path to the config to use
+
+Defaults to `<cwd>/deny.toml` if not specified
 
 ### `-d, --disable-fetch`
 
-Disables fetching of advisory databases, if they would be loaded. If disabled, and there is not already an existing advisory database locally, an error will occur.
+Disable fetching of the advisory database
+
+When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
+
+### `-D, --deny <DENY>`
+
+Set lint denied
+
+### `--feature-depth <FEATURE_DEPTH>`
+
+Specifies the depth at which feature edges are added in inclusion graphs
+
+### `-g, --graph <GRAPH>`
+
+Path to graph_output root directory
+
+If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
+
+Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
 
 ### `--hide-inclusion-graph`
 
-Hides the inclusion graph when printing out info for a crate.
+Hides the inclusion graph when printing out info for a crate
 
 By default, if a diagnostic message pertains to a specific crate, cargo-deny will append an inverse dependency graph to the diagnostic to show you how that crate was pulled into your project.
 
@@ -31,12 +65,10 @@ the-crate
     └── c-crate
 ```
 
-## Options
+### `-s, --show-stats`
 
-### `-c, --config`
+Show stats for all the checks, regardless of the log-level
 
-The path to the config file used to determine which crates are allowed or denied. Will default to `<context>/deny.toml` if not specified.
+### `-W, --warn <WARN>`
 
-### `-g, --graph`
-
-A root directory to place dotviz graphs into when duplicate crate versions are detected. Will be `<dir>/graph_output/<crate_name>.dot`. The `/graph_output/*` is deleted and recreated each run.
+Set lint warnings

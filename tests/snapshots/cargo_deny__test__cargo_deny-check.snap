@@ -45,6 +45,10 @@ OPTIONS:
     -D, --deny <DENY>
             Set lint denied
 
+        --feature-depth <FEATURE_DEPTH>
+            Specifies the depth at which feature edges are added in inclusion
+            graphs
+
     -g, --graph <GRAPH>
             Path to graph_output root directory
             

@@ -74,7 +74,7 @@ impl ValidConfig {
                 return;
             }
 
-            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
                     lock.print(diag, files);
