@@ -287,6 +287,7 @@ pub struct Human<'a> {
     stream: term::termcolor::StandardStream,
     grapher: Option<diag::InclusionGrapher<'a>>,
     config: term::Config,
+    feature_depth: Option<u32>,
 }
 
 pub enum StdioStream {
@@ -317,8 +318,13 @@ enum OutputFormat<'a> {
 impl<'a> OutputFormat<'a> {
     fn lock(&'a self, max_severity: Severity) -> OutputLock<'a, '_> {
         match self {
-            Self::Human(ref human) => OutputLock::Human(human, max_severity, human.stream.lock()),
-            Self::Json(ref json) => OutputLock::Json(json, max_severity, json.stream.lock()),
+            Self::Human(human) => OutputLock::Human(
+                human,
+                max_severity,
+                human.stream.lock(),
+                human.feature_depth,
+            ),
+            Self::Json(json) => OutputLock::Json(json, max_severity, json.stream.lock()),
         }
     }
 }
@@ -349,6 +355,7 @@ pub enum OutputLock<'a, 'b> {
         &'a Human<'a>,
         Severity,
         term::termcolor::StandardStreamLock<'b>,
+        Option<u32>,
     ),
     Json(&'a Json<'a>, Severity, StdLock<'b>),
 }
@@ -356,7 +363,7 @@ pub enum OutputLock<'a, 'b> {
 impl<'a, 'b> OutputLock<'a, 'b> {
     pub fn print(&mut self, diag: CsDiag, files: &Files) {
         match self {
-            Self::Human(cfg, max, l) => {
+            Self::Human(cfg, max, l, _) => {
                 if diag.severity < *max {
                     return;
                 }
@@ -385,7 +392,7 @@ impl<'a, 'b> OutputLock<'a, 'b> {
         let mut emitted = std::collections::BTreeSet::new();
 
         match self {
-            Self::Human(cfg, max, l) => {
+            Self::Human(cfg, max, l, fd) => {
                 for mut diag in pack {
                     if diag.diag.severity < *max {
                         continue;
@@ -399,9 +406,14 @@ impl<'a, 'b> OutputLock<'a, 'b> {
                                 diag.diag
                                     .notes
                                     .push(format!("{} v{} (*)", krate.name, krate.version));
-                            } else if let Ok(graph) =
-                                grapher.build_graph(&gn, if diag.with_features { 1 } else { 0 })
-                            {
+                            } else if let Ok(graph) = grapher.build_graph(
+                                &gn,
+                                if diag.with_features {
+                                    fd.unwrap_or(1) as usize
+                                } else {
+                                    0
+                                },
+                            ) {
                                 let graph_text = diag::write_graph_as_text(&graph);
                                 diag.diag.notes.push(graph_text);
                                 emitted.insert(gn.kid);
@@ -446,7 +458,11 @@ pub struct DiagPrinter<'a> {
 }
 
 impl<'a> DiagPrinter<'a> {
-    pub fn new(ctx: LogContext, krates: Option<&'a cargo_deny::Krates>) -> Option<Self> {
+    pub fn new(
+        ctx: LogContext,
+        krates: Option<&'a cargo_deny::Krates>,
+        feature_depth: Option<u32>,
+    ) -> Option<Self> {
         let max_severity = log_level_to_severity(ctx.log_level);
 
         max_severity.map(|max_severity| match ctx.format {
@@ -461,6 +477,7 @@ impl<'a> DiagPrinter<'a> {
                         stream,
                         grapher: krates.map(diag::InclusionGrapher::new),
                         config: term::Config::default(),
+                        feature_depth,
                     }),
                     max_severity,
                 }

@@ -105,7 +105,7 @@ impl<'a> InclusionGrapher<'a> {
             Node::Krate { krate, .. } => {
                 let kind = np.edge.and_then(|eid| match self.krates.graph()[eid] {
                     Edge::Dep { kind, .. } | Edge::DepFeature { kind, .. } => match kind {
-                        DepKind::Normal => None, //Some("feature (normal)"),
+                        DepKind::Normal => None,
                         DepKind::Dev => Some("dev"),
                         DepKind::Build => Some("build"),
                     },

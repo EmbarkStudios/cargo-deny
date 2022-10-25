@@ -103,6 +103,9 @@ pub struct Args {
     pub show_stats: bool,
     #[clap(flatten)]
     pub lint_levels: LintLevels,
+    /// Specifies the depth at which feature edges are added in inclusion graphs
+    #[clap(long, conflicts_with = "hide-inclusion-graph")]
+    pub feature_depth: Option<u32>,
     /// The check(s) to perform
     #[clap(value_enum, action)]
     pub which: Vec<WhichCheck>,
@@ -118,6 +121,7 @@ struct Config {
     targets: Vec<crate::common::Target>,
     #[serde(default)]
     exclude: Vec<String>,
+    feature_depth: Option<u32>,
 }
 
 struct ValidConfig {
@@ -127,6 +131,7 @@ struct ValidConfig {
     sources: sources::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
     exclude: Vec<String>,
+    feature_depth: Option<u32>,
 }
 
 impl ValidConfig {
@@ -178,6 +183,7 @@ impl ValidConfig {
 
             let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
             let exclude = cfg.exclude;
+            let feature_depth = cfg.feature_depth;
 
             (
                 diags,
@@ -188,6 +194,7 @@ impl ValidConfig {
                     sources,
                     targets,
                     exclude,
+                    feature_depth,
                 },
             )
         };
@@ -197,7 +204,7 @@ impl ValidConfig {
                 return;
             }
 
-            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None) {
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
                 let mut lock = printer.lock();
                 for diag in diags {
                     lock.print(diag, files);
@@ -236,6 +243,7 @@ pub(crate) fn cmd(
         sources,
         targets,
         exclude,
+        feature_depth,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         &mut files,
@@ -264,6 +272,8 @@ pub(crate) fn cmd(
             .which
             .iter()
             .any(|w| *w == WhichCheck::Sources || *w == WhichCheck::All);
+
+    let feature_depth = args.feature_depth.or(feature_depth);
 
     let mut krates = None;
     let mut license_store = None;
@@ -461,6 +471,7 @@ pub(crate) fn cmd(
                 },
                 files,
                 &mut stats,
+                feature_depth,
             );
         });
 
@@ -607,10 +618,11 @@ fn print_diagnostics(
     krates: Option<&cargo_deny::Krates>,
     files: Files,
     stats: &mut AllStats,
+    feature_depth: Option<u32>,
 ) {
     use cargo_deny::diag::Check;
 
-    match crate::common::DiagPrinter::new(log_ctx, krates) {
+    match crate::common::DiagPrinter::new(log_ctx, krates, feature_depth) {
         Some(printer) => {
             for pack in rx {
                 let check_stats = match pack.check {
