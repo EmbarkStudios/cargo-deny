@@ -482,9 +482,8 @@ pub(crate) fn cmd(
                 log::info!("checking licenses...");
                 let start = Instant::now();
                 licenses::check(ctx, summary, sink);
-                let end = Instant::now();
 
-                log::info!("licenses checked in {}ms", (end - start).as_millis());
+                log::info!("licenses checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -535,9 +534,8 @@ pub(crate) fn cmd(
                 log::info!("checking bans...");
                 let start = Instant::now();
                 bans::check(ctx, output_graph, cargo_spans, bans_sink);
-                let end = Instant::now();
 
-                log::info!("bans checked in {}ms", (end - start).as_millis());
+                log::info!("bans checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -559,9 +557,8 @@ pub(crate) fn cmd(
                 log::info!("checking sources...");
                 let start = Instant::now();
                 sources::check(ctx, sources_sink);
-                let end = Instant::now();
 
-                log::info!("sources checked in {}ms", (end - start).as_millis());
+                log::info!("sources checked in {}ms", start.elapsed().as_millis());
             });
         }
 
@@ -594,9 +591,8 @@ pub(crate) fn cmd(
                 };
 
                 advisories::check(ctx, &db, lf, audit_reporter, advisories_sink);
-                let end = Instant::now();
 
-                log::info!("advisories checked in {}ms", (end - start).as_millis());
+                log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });
         }
     });

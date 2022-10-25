@@ -154,11 +154,10 @@ impl KrateContext {
         });
 
         if let Ok(ref krates) = graph {
-            let end = std::time::Instant::now();
             log::info!(
                 "gathered {} crates in {}ms",
                 krates.len(),
-                (end - start).as_millis()
+                start.elapsed().as_millis()
             );
         }
 
