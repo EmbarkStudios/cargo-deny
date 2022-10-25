@@ -613,8 +613,6 @@ fn print_diagnostics(
     match crate::common::DiagPrinter::new(log_ctx, krates) {
         Some(printer) => {
             for pack in rx {
-                let mut lock = printer.lock();
-
                 let check_stats = match pack.check {
                     Check::Advisories => stats.advisories.as_mut().unwrap(),
                     Check::Bans => stats.bans.as_mut().unwrap(),
@@ -622,7 +620,7 @@ fn print_diagnostics(
                     Check::Sources => stats.sources.as_mut().unwrap(),
                 };
 
-                for diag in pack {
+                for diag in pack.iter() {
                     match diag.diag.severity {
                         Severity::Error => check_stats.errors += 1,
                         Severity::Warning => check_stats.warnings += 1,
@@ -630,9 +628,10 @@ fn print_diagnostics(
                         Severity::Help => check_stats.helps += 1,
                         Severity::Bug => {}
                     }
-
-                    lock.print_krate_diag(diag, &files);
                 }
+
+                let mut lock = printer.lock();
+                lock.print_krate_pack(pack, &files);
             }
         }
         None => while rx.recv().is_ok() {},

@@ -381,39 +381,52 @@ impl<'a, 'b> OutputLock<'a, 'b> {
         }
     }
 
-    pub fn print_krate_diag(&mut self, mut diag: cargo_deny::diag::Diag, files: &Files) {
+    pub fn print_krate_pack(&mut self, pack: cargo_deny::diag::Pack, files: &Files) {
+        let mut emitted = std::collections::BTreeSet::new();
+
         match self {
             Self::Human(cfg, max, l) => {
-                if diag.diag.severity < *max {
-                    return;
-                }
+                for mut diag in pack {
+                    if diag.diag.severity < *max {
+                        continue;
+                    }
 
-                if let Some(grapher) = &cfg.grapher {
-                    for gn in diag.graph_nodes {
-                        if let Ok(graph) =
-                            grapher.build_graph(&gn, if diag.with_features { 1 } else { 0 })
-                        {
-                            let graph_text = diag::write_graph_as_text(&graph);
-                            diag.diag.notes.push(graph_text);
+                    if let Some(grapher) = &cfg.grapher {
+                        for gn in diag.graph_nodes {
+                            if emitted.contains(&gn.kid) {
+                                let krate =
+                                    &grapher.krates[grapher.krates.nid_for_kid(&gn.kid).unwrap()];
+                                diag.diag
+                                    .notes
+                                    .push(format!("{} v{} (*)", krate.name, krate.version));
+                            } else if let Ok(graph) =
+                                grapher.build_graph(&gn, if diag.with_features { 1 } else { 0 })
+                            {
+                                let graph_text = diag::write_graph_as_text(&graph);
+                                diag.diag.notes.push(graph_text);
+                                emitted.insert(gn.kid);
+                            }
                         }
                     }
-                }
 
-                let _ = term::emit(l, &cfg.config, files, &diag.diag);
+                    let _ = term::emit(l, &cfg.config, files, &diag.diag);
+                }
             }
             Self::Json(cfg, max, w) => {
-                if diag.diag.severity < *max {
-                    return;
-                }
+                for diag in pack {
+                    if diag.diag.severity < *max {
+                        continue;
+                    }
 
-                let to_print = diag::diag_to_json(diag, files, cfg.grapher.as_ref());
+                    let to_print = diag::diag_to_json(diag, files, cfg.grapher.as_ref());
 
-                use serde::Serialize;
+                    use serde::Serialize;
 
-                let mut ser = serde_json::Serializer::new(w);
-                if to_print.serialize(&mut ser).is_ok() {
-                    let w = ser.into_inner();
-                    let _ = w.write(b"\n");
+                    let mut ser = serde_json::Serializer::new(&mut *w);
+                    if to_print.serialize(&mut ser).is_ok() {
+                        let w = ser.into_inner();
+                        let _ = w.write(b"\n");
+                    }
                 }
             }
         }
