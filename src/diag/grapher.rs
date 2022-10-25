@@ -41,7 +41,7 @@ fn is_empty(v: &Vec<GraphNode>) -> bool {
 /// Provides the `InclusionGrapher::write_graph` method which creates a reverse
 /// dependency graph rooted at a specific node
 pub struct InclusionGrapher<'a> {
-    krates: &'a Krates,
+    pub krates: &'a Krates,
 }
 
 impl<'a> InclusionGrapher<'a> {
@@ -163,24 +163,17 @@ impl<'a> InclusionGrapher<'a> {
             ));
         } else {
             // If we're not adding features we need to walk up any feature edges
-            // until we reach
-            let mut node_stack = vec![np.node];
-            let mut visited_nodes = HashSet::new();
+            // until we reach an actual crate dependenc
 
-            while let Some(node) = node_stack.pop() {
-                for edge in graph.edges_directed(node, pg::Direction::Incoming) {
-                    if let Edge::Feature = edge.weight() {
-                        if visited_nodes.insert(edge.source()) {
-                            node_stack.push(edge.source());
-                        }
-                    } else if !node_parents.iter().any(|np| np.node == edge.source()) {
-                        node_parents.push(NodePrint {
-                            node: edge.source(),
-                            edge: Some(edge.id()),
-                        });
-                    }
-                }
-            }
+            node_parents.extend(
+                self.krates
+                    .direct_dependents(np.node)
+                    .into_iter()
+                    .map(|dd| NodePrint {
+                        node: dd.node_id,
+                        edge: Some(dd.edge_id),
+                    }),
+            );
         }
 
         let parents = if !node_parents.is_empty() {
