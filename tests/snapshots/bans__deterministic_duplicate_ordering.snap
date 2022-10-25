@@ -99,38 +99,10 @@ expression: diags
               "parents": [
                 {
                   "Krate": {
-                    "name": "duplicates",
-                    "version": "0.1.0"
-                  }
-                },
-                {
-                  "Krate": {
                     "name": "sha2",
                     "version": "0.10.2"
                   },
                   "parents": [
-                    {
-                      "Krate": {
-                        "name": "duplicates",
-                        "version": "0.1.0"
-                      },
-                      "repeat": true
-                    },
-                    {
-                      "Krate": {
-                        "name": "sqlx",
-                        "version": "0.5.13"
-                      },
-                      "parents": [
-                        {
-                          "Krate": {
-                            "name": "duplicates",
-                            "version": "0.1.0"
-                          },
-                          "repeat": true
-                        }
-                      ]
-                    },
                     {
                       "Krate": {
                         "name": "sqlx-core",
@@ -139,21 +111,7 @@ expression: diags
                       "parents": [
                         {
                           "Krate": {
-                            "name": "duplicates",
-                            "version": "0.1.0"
-                          },
-                          "repeat": true
-                        },
-                        {
-                          "Krate": {
                             "name": "sqlx",
-                            "version": "0.5.13"
-                          },
-                          "repeat": true
-                        },
-                        {
-                          "Krate": {
-                            "name": "sqlx-macros",
                             "version": "0.5.13"
                           },
                           "parents": [
@@ -161,9 +119,16 @@ expression: diags
                               "Krate": {
                                 "name": "duplicates",
                                 "version": "0.1.0"
-                              },
-                              "repeat": true
-                            },
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "name": "sqlx-macros",
+                            "version": "0.5.13"
+                          },
+                          "parents": [
                             {
                               "Krate": {
                                 "name": "sqlx",
@@ -183,36 +148,8 @@ expression: diags
                       "repeat": true
                     }
                   ]
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx",
-                    "version": "0.5.13"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx-core",
-                    "version": "0.5.13"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx-macros",
-                    "version": "0.5.13"
-                  },
-                  "repeat": true
                 }
               ]
-            },
-            {
-              "Krate": {
-                "name": "sha2",
-                "version": "0.10.2"
-              },
-              "repeat": true
             }
           ]
         }
@@ -320,38 +257,10 @@ expression: diags
           "parents": [
             {
               "Krate": {
-                "name": "duplicates",
-                "version": "0.1.0"
-              }
-            },
-            {
-              "Krate": {
                 "name": "sha2",
                 "version": "0.10.2"
               },
               "parents": [
-                {
-                  "Krate": {
-                    "name": "duplicates",
-                    "version": "0.1.0"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx",
-                    "version": "0.5.13"
-                  },
-                  "parents": [
-                    {
-                      "Krate": {
-                        "name": "duplicates",
-                        "version": "0.1.0"
-                      },
-                      "repeat": true
-                    }
-                  ]
-                },
                 {
                   "Krate": {
                     "name": "sqlx-core",
@@ -360,21 +269,7 @@ expression: diags
                   "parents": [
                     {
                       "Krate": {
-                        "name": "duplicates",
-                        "version": "0.1.0"
-                      },
-                      "repeat": true
-                    },
-                    {
-                      "Krate": {
                         "name": "sqlx",
-                        "version": "0.5.13"
-                      },
-                      "repeat": true
-                    },
-                    {
-                      "Krate": {
-                        "name": "sqlx-macros",
                         "version": "0.5.13"
                       },
                       "parents": [
@@ -382,9 +277,16 @@ expression: diags
                           "Krate": {
                             "name": "duplicates",
                             "version": "0.1.0"
-                          },
-                          "repeat": true
-                        },
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "sqlx-macros",
+                        "version": "0.5.13"
+                      },
+                      "parents": [
                         {
                           "Krate": {
                             "name": "sqlx",
@@ -404,27 +306,6 @@ expression: diags
                   "repeat": true
                 }
               ]
-            },
-            {
-              "Krate": {
-                "name": "sqlx",
-                "version": "0.5.13"
-              },
-              "repeat": true
-            },
-            {
-              "Krate": {
-                "name": "sqlx-core",
-                "version": "0.5.13"
-              },
-              "repeat": true
-            },
-            {
-              "Krate": {
-                "name": "sqlx-macros",
-                "version": "0.5.13"
-              },
-              "repeat": true
             }
           ]
         }
@@ -567,38 +448,10 @@ expression: diags
                   "parents": [
                     {
                       "Krate": {
-                        "name": "duplicates",
-                        "version": "0.1.0"
-                      }
-                    },
-                    {
-                      "Krate": {
                         "name": "sha2",
                         "version": "0.10.2"
                       },
                       "parents": [
-                        {
-                          "Krate": {
-                            "name": "duplicates",
-                            "version": "0.1.0"
-                          },
-                          "repeat": true
-                        },
-                        {
-                          "Krate": {
-                            "name": "sqlx",
-                            "version": "0.5.13"
-                          },
-                          "parents": [
-                            {
-                              "Krate": {
-                                "name": "duplicates",
-                                "version": "0.1.0"
-                              },
-                              "repeat": true
-                            }
-                          ]
-                        },
                         {
                           "Krate": {
                             "name": "sqlx-core",
@@ -607,21 +460,7 @@ expression: diags
                           "parents": [
                             {
                               "Krate": {
-                                "name": "duplicates",
-                                "version": "0.1.0"
-                              },
-                              "repeat": true
-                            },
-                            {
-                              "Krate": {
                                 "name": "sqlx",
-                                "version": "0.5.13"
-                              },
-                              "repeat": true
-                            },
-                            {
-                              "Krate": {
-                                "name": "sqlx-macros",
                                 "version": "0.5.13"
                               },
                               "parents": [
@@ -629,9 +468,16 @@ expression: diags
                                   "Krate": {
                                     "name": "duplicates",
                                     "version": "0.1.0"
-                                  },
-                                  "repeat": true
-                                },
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "sqlx-macros",
+                                "version": "0.5.13"
+                              },
+                              "parents": [
                                 {
                                   "Krate": {
                                     "name": "sqlx",
@@ -651,36 +497,8 @@ expression: diags
                           "repeat": true
                         }
                       ]
-                    },
-                    {
-                      "Krate": {
-                        "name": "sqlx",
-                        "version": "0.5.13"
-                      },
-                      "repeat": true
-                    },
-                    {
-                      "Krate": {
-                        "name": "sqlx-core",
-                        "version": "0.5.13"
-                      },
-                      "repeat": true
-                    },
-                    {
-                      "Krate": {
-                        "name": "sqlx-macros",
-                        "version": "0.5.13"
-                      },
-                      "repeat": true
                     }
                   ]
-                },
-                {
-                  "Krate": {
-                    "name": "sha2",
-                    "version": "0.10.2"
-                  },
-                  "repeat": true
                 }
               ]
             },
@@ -694,41 +512,6 @@ expression: diags
                   "Krate": {
                     "name": "digest",
                     "version": "0.10.3"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "duplicates",
-                    "version": "0.1.0"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sha2",
-                    "version": "0.10.2"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx",
-                    "version": "0.5.13"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx-core",
-                    "version": "0.5.13"
-                  },
-                  "repeat": true
-                },
-                {
-                  "Krate": {
-                    "name": "sqlx-macros",
-                    "version": "0.5.13"
                   },
                   "repeat": true
                 }
