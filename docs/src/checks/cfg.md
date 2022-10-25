@@ -38,6 +38,22 @@ Note that excluding a crate is recursive, if any of its transitive dependencies 
 
 Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute) predicate, but at the moment, the only way to actually pass them when compiling is to use the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more `target_feature`s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
+### The `all-features` field (optional)
+
+If set to `true`, `--all-features` will be used when collecting metadata.
+
+### The `no-default-features` field (optional)
+
+If set to `true`, `--no-default-features` will be used when collecting metadata.
+
+### The `features` field (optional)
+
+If set, and `--features` is not specified on the cmd line, these features will be used when collecting metadata.
+
+### The `feature-depth` field (optional)
+
+The maximum depth that features will be displayed when inclusion graphs are included in diagnostics, unless specified via `--feature-depth` on the command line. Only applies to diagnostics that actually print features. If not specified defaults to `1`.
+
 ### The `[licenses]` section
 
 See the [licenses config](licenses/cfg.html) for more info.

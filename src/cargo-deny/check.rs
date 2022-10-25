@@ -122,6 +122,12 @@ struct Config {
     #[serde(default)]
     exclude: Vec<String>,
     feature_depth: Option<u32>,
+    #[serde(default)]
+    all_features: bool,
+    #[serde(default)]
+    no_default_features: bool,
+    #[serde(default)]
+    features: Vec<String>,
 }
 
 struct ValidConfig {
@@ -132,6 +138,9 @@ struct ValidConfig {
     targets: Vec<(krates::Target, Vec<String>)>,
     exclude: Vec<String>,
     feature_depth: Option<u32>,
+    all_features: bool,
+    no_default_features: bool,
+    features: Vec<String>,
 }
 
 impl ValidConfig {
@@ -184,6 +193,9 @@ impl ValidConfig {
             let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
             let exclude = cfg.exclude;
             let feature_depth = cfg.feature_depth;
+            let all_features = cfg.all_features;
+            let no_default_features = cfg.no_default_features;
+            let features = cfg.features;
 
             (
                 diags,
@@ -195,6 +207,9 @@ impl ValidConfig {
                     targets,
                     exclude,
                     feature_depth,
+                    all_features,
+                    no_default_features,
+                    features,
                 },
             )
         };
@@ -233,7 +248,7 @@ impl ValidConfig {
 pub(crate) fn cmd(
     log_ctx: crate::common::LogContext,
     args: Args,
-    krate_ctx: crate::common::KrateContext,
+    mut krate_ctx: crate::common::KrateContext,
 ) -> anyhow::Result<AllStats> {
     let mut files = Files::new();
     let ValidConfig {
@@ -244,6 +259,9 @@ pub(crate) fn cmd(
         targets,
         exclude,
         feature_depth,
+        all_features,
+        no_default_features,
+        features,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         &mut files,
@@ -274,6 +292,19 @@ pub(crate) fn cmd(
             .any(|w| *w == WhichCheck::Sources || *w == WhichCheck::All);
 
     let feature_depth = args.feature_depth.or(feature_depth);
+
+    // If not specified on the cmd line, fallback to the feature related config options
+    if !krate_ctx.all_features {
+        krate_ctx.all_features = all_features;
+    }
+
+    if !krate_ctx.no_default_features {
+        krate_ctx.no_default_features = no_default_features;
+    }
+
+    if krate_ctx.features.is_empty() {
+        krate_ctx.features = features;
+    }
 
     let mut krates = None;
     let mut license_store = None;
