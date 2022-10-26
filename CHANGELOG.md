@@ -428,6 +428,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 [0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0-beta...0.3.0
 [0.3.0-beta]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.5...0.3.0-beta
+[0.2.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.4...0.2.5
+[0.2.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.2.1
