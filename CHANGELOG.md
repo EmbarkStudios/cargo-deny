@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.0] - 2022-10-26
 ### Added
 - [PR#434](https://github.com/EmbarkStudios/cargo-deny/pull/434) together with [PR#461](https://github.com/EmbarkStudios/cargo-deny/pull/461) resolved [#206](https://github.com/EmbarkStudios/cargo-deny/issues/206) and [#226](https://github.com/EmbarkStudios/cargo-deny/issues/226) by adding support for checking the feature sets enabled for crates. See [the docs](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-features-field-optional) for configuration options. Thanks [@Stupremee](https://github.com/Stupremee)!
 - [PR#464](https://github.com/EmbarkStudios/cargo-deny/pull/464) added the `-A, --allow`, `-D, --deny` and `-W, --warn` options to the `check` subcommand. This allows one to override the severity level of both specific diagnostics, eg. `-D unmaintained` would fail if there was an unmaintained dependency, even if `advisories.unmaintained` was `allow` or `warn`. One can also change an entire severity itself, the typical case being `-D warnings` to upgrade all warnings to errors. Resolved [#454](https://github.com/EmbarkStudios/cargo-deny/issues/454).
@@ -382,7 +383,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.2...0.13.0
 [0.12.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.11.4...0.12.0
