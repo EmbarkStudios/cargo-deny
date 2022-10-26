@@ -63,7 +63,20 @@ The licenses check is used to verify that every crate you use has license terms 
 cargo deny check licenses
 ```
 
-<img src="https://imgur.com/XMmvx9L.png"/>
+<div class="term-container">cargo-deny --manifest-path examples&#47;02_deny_license&#47;Cargo.toml --color always check licenses`
+<span class="term-fgx9 term-fg1">error[rejected]</span><span class="term-fg1">: failed to satisfy license requirements</span>
+  <span class="term-fg34">┌─</span> deny-license 0.1.0 (path+file:&#47;&#47;&#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;02_deny_license):4:12
+  <span class="term-fg34">│</span>
+<span class="term-fg34">4</span> <span class="term-fg34">│</span> license = &quot;<span class="term-fg31">MIT</span> AND <span class="term-fg31">Apache-2.0</span>&quot;
+  <span class="term-fg34">│</span>            <span class="term-fg31">^^^</span><span class="term-fg34">-----</span><span class="term-fg31">^^^^^^^^^^</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">│</span>       <span class="term-fg31">│</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">│</span>       <span class="term-fg31">rejected: explicitly denied</span>
+  <span class="term-fg34">│</span>            <span class="term-fg34">license expression retrieved via Cargo.toml `license`</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">accepted: license is explicitly allowed</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> deny-license v0.1.0
+&nbsp;
+licenses <span class="term-fg31">FAILED</span></div>
 
 #### [Bans](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)
 
