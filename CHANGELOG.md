@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#434](https://github.com/EmbarkStudios/cargo-deny/pull/434) together with [PR#461](https://github.com/EmbarkStudios/cargo-deny/pull/461) resolved [#206](https://github.com/EmbarkStudios/cargo-deny/issues/206) and [#226](https://github.com/EmbarkStudios/cargo-deny/issues/226) by adding support for checking the feature sets enabled for crates. See [the docs](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-features-field-optional) for configuration options. Thanks [@Stupremee](https://github.com/Stupremee)!
+- [PR#464](https://github.com/EmbarkStudios/cargo-deny/pull/464) added the `-A, --allow`, `-D, --deny` and `-W, --warn` options to the `check` subcommand. This allows one to override the severity level of both specific diagnostics, eg. `-D unmaintained` would fail if there was an unmaintained dependency, even if `advisories.unmaintained` was `allow` or `warn`. One can also change an entire severity itself, the typical case being `-D warnings` to upgrade all warnings to errors. Resolved [#454](https://github.com/EmbarkStudios/cargo-deny/issues/454).
+- [PR#466](https://github.com/EmbarkStudios/cargo-deny/pull/466) added the `all-features`, `no-default-features`, `features`, and `feature-depth` configuration options, allowing configuration of features so that one doesn't need to always specify them via the command line.
+
+### Changed
+- [PR#447](https://github.com/EmbarkStudios/cargo-deny/pull/447) add more details to the diagnostic reported when a `bans.skip` crate was not located in the graph. Thanks [@daviddrysdale](https://github.com/daviddrysdale)!
+- [PR#464](https://github.com/EmbarkStudios/cargo-deny/pull/464) changed all error codes from the previous rustc style eg. `B001` style to more clippy style descriptive names, eg. `banned`, resolving [#61](https://github.com/EmbarkStudios/cargo-deny/issues/61).
+
+### Fixed
+- [PR#465](https://github.com/EmbarkStudios/cargo-deny/pull/465) fixed an issue where inclusion graphs would not be printed in diagnostics if the same crate had an earlier associated diagnostic, even if that diagnostic was not printed due to the log level.
+- [PR#464](https://github.com/EmbarkStudios/cargo-deny/pull/464) fixed [#455](https://github.com/EmbarkStudios/cargo-deny/issues/455) by removing code. The best kind of fix.
+
 ## [0.12.2] - 2022-08-05
 ### Added
 - [PR#431](https://github.com/EmbarkStudios/cargo-deny/pull/432) resolved [#19](https://github.com/EmbarkStudios/cargo-deny/issues/19) by adding support for an allow list for build scripts, allowing a project to opt in (or deny completely) build scripts on a case by case basis rather than blanket allowing all build scripts. See the [`bans.allow-build-scripts`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-allow-build-scripts-field-optional) config option for more details. Thanks [@Stupremee](https://github.com/Stupremee)!

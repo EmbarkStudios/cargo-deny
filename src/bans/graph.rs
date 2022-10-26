@@ -100,29 +100,32 @@ pub(crate) fn create_graph(
     {
         let kg = krates.graph();
 
-        let mut visited_features = HashSet::new();
+        let mut visited = HashSet::new();
 
-        while let Some((index, pid)) = node_stack.pop() {
+        while let Some((nid, pid)) = node_stack.pop() {
             let target = node_map[pid];
-            for edge in kg.edges_directed(index, pg::Direction::Incoming) {
-                match edge.weight() {
-                    krates::Edge::Feature => {
-                        if visited_features.insert(edge.source()) {
-                            node_stack.push((edge.source(), pid));
+
+            for edge in kg.edges_directed(nid, pg::Direction::Incoming) {
+                match &kg[edge.source()] {
+                    krates::Node::Krate { krate, .. } => {
+                        if let krates::Edge::Dep { kind, .. }
+                        | krates::Edge::DepFeature { kind, .. } = edge.weight()
+                        {
+                            if let Some(pindex) = node_map.get(&krate.id) {
+                                graph.update_edge(*pindex, target, *kind);
+                            } else {
+                                let pindex = graph.add_node(&krate.id);
+
+                                graph.update_edge(pindex, target, *kind);
+
+                                node_map.insert(&krate.id, pindex);
+                                node_stack.push((edge.source(), &krate.id));
+                            }
                         }
                     }
-                    krates::Edge::Dep { kind, .. } | krates::Edge::DepFeature { kind, .. } => {
-                        let parent = &krates[edge.source()];
-
-                        if let Some(pindex) = node_map.get(&parent.id) {
-                            graph.update_edge(*pindex, target, *kind);
-                        } else {
-                            let pindex = graph.add_node(&parent.id);
-
-                            graph.update_edge(pindex, target, *kind);
-
-                            node_map.insert(&parent.id, pindex);
-                            node_stack.push((edge.source(), &parent.id));
+                    krates::Node::Feature { krate_index, .. } => {
+                        if *krate_index == nid && visited.insert(edge.source()) {
+                            node_stack.push((edge.source(), pid));
                         }
                     }
                 }
@@ -135,9 +138,8 @@ pub(crate) fn create_graph(
 
     let mut edge_sets = Vec::with_capacity(duplicates.len());
 
-    // Find all of the edges that lead to each duplicate,
-    // and also keep track any crate duplicates anywhere, to make
-    // them stand out more in the graph
+    // Find all of the edges that lead to each duplicate, and also keep track of
+    // any additional crate duplicates, to make them stand out more in the dotgraph
     for id in &duplicates {
         let dup_node = node_map[id];
         let mut set = HashSet::new();
@@ -179,7 +181,7 @@ pub(crate) fn create_graph(
 
     // Find the version with the least number of total edges to the least common ancestor,
     // this will presumably be the easiest version to "fix"
-    // This just returns the first lowest one, there can be multiple with
+    // This just returns the first lowest one, there can be multiple with the
     // same number of edges
     let smollest = edge_sets
         .iter()

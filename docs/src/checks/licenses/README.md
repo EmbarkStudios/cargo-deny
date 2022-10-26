@@ -6,9 +6,7 @@ The licenses check is used to verify that every crate you use has license terms 
 cargo deny check licenses
 ```
 
-<img src="https://imgur.com/XMmvx9L.png"/>
-
-### SPDX
+## SPDX
 
 cargo-deny uses [SPDX license expressions][SPDX] as the source of truth for the license requirements of a crate. Note however, that cargo-deny does **not** (currently)exhaustively search the entirety of the source code of every crate to find every possible license that could be attributed to the crate, as there are a ton of edge cases to that approach.
 
@@ -32,6 +30,10 @@ Currently, the precedence for determining whether a particular license is accept
 [`[licenses.copyleft]`](cfg.md#the-copyleft-field-optional) configuration determines its status
 1. If the license is [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html), the [`[licenses.allow-osi-fsf-free]`](cfg.md#the-allow-osi-fsf-free-field-optional) configuration determines its status, if it is `neither` the check continues
 1. If the license does not match any of the above criteria, the [`[licenses.default]`](cfg.md#the-default-field-optional) configuration determines its status
+
+## Example output
+
+![licenses output](../../output/licenses.svg)
 
 [SPDX]: https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/
 [cargo-md]: https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata

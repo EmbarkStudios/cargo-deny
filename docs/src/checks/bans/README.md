@@ -6,8 +6,6 @@ The bans check is used to deny (or allow) specific crates, as well as detect and
 cargo deny check bans
 ```
 
-<img src="https://imgur.com/K3UeXcR.png"/>
-
 ## Use Case - Denying specific crates
 
 Sometimes, certain crates just don't fit in your project, so you have to remove them. However, nothing really stops them from sneaking back in due to innocuous changes like doing a `cargo update` and getting it transitively, or even forgetting to set `default-features = false, features = ["feature-without-the-thing"]` when the crate is pulled in via the default features of a crate you already depend on, in your entire workspace.
@@ -37,3 +35,7 @@ The intention of duplicate detection in cargo-deny is not to "correct" cargo's b
 * Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily introduce a `[patch]` to force the crate to use a particular version for your entire workspace.
 * Sometimes having the "latest and greatest" is not really that important for every version, and you can just specify a lower version in your own project that matches the transitive constraint(s).
 * And finally, you don't care about a particular case of multiple versions, so you just tell cargo-deny to ignore one or more of the specific versions, and the situation will eventually resolve itself.
+
+## Example output
+
+![bans output](../../output/bans.svg)

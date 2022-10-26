@@ -32,9 +32,7 @@ cargo install --locked cargo-deny && cargo deny init && cargo deny check
 
 ### [Install](https://embarkstudios.github.io/cargo-deny/cli/index.html) cargo-deny
 
-If you want to use `cargo-deny` without having `cargo` installed,
-build `cargo-deny` with the `standalone` feature.
-This can be useful in Docker Images.
+If you want to use `cargo-deny` without having `cargo` installed, build `cargo-deny` with the `standalone` feature. This can be useful in Docker Images.
 
 ```bash
 cargo install --locked cargo-deny
@@ -63,7 +61,7 @@ The licenses check is used to verify that every crate you use has license terms 
 cargo deny check licenses
 ```
 
-<img src="https://imgur.com/XMmvx9L.png"/>
+![licenses output](docs/src/output/licenses.svg)
 
 #### [Bans](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)
 
@@ -73,7 +71,7 @@ The bans check is used to deny (or allow) specific crates, as well as detect and
 cargo deny check bans
 ```
 
-<img src="https://imgur.com/K3UeXcR.png"/>
+![bans output](docs/src/output/bans.svg)
 
 #### [Advisories](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)
 
@@ -83,7 +81,7 @@ The advisories check is used to detect issues for crates by looking in an adviso
 cargo deny check advisories
 ```
 
-<img src="https://imgur.com/FK50XLb.png"/>
+![advisories output](docs/src/output/advisories.svg)
 
 #### [Sources](https://embarkstudios.github.io/cargo-deny/checks/sources/index.html)
 
@@ -93,7 +91,7 @@ The sources check ensures crates only come from sources you trust.
 cargo deny check sources
 ```
 
-<img src="https://imgur.com/xdHFDWS.png"/>
+![sources output](docs/src/output/sources.svg)
 
 ## Contributing
 
