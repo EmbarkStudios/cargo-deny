@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#471](https://github.com/EmbarkStudios/cargo-deny/pull/471) fixed a bug where optional dependencies could be pruned if the feature that enabled it was named differently from the crate.
+- [PR#471](https://github.com/EmbarkStudios/cargo-deny/pull/471) resolved an issue where `skip-tree` entries weren't properly ignoring all of their transitive dependencies, resolving [#469](https://github.com/EmbarkStudios/cargo-deny/issues/469).
+
 ## [0.13.0] - 2022-10-26
 ### Added
 - [PR#434](https://github.com/EmbarkStudios/cargo-deny/pull/434) together with [PR#461](https://github.com/EmbarkStudios/cargo-deny/pull/461) resolved [#206](https://github.com/EmbarkStudios/cargo-deny/issues/206) and [#226](https://github.com/EmbarkStudios/cargo-deny/issues/226) by adding support for checking the feature sets enabled for crates. See [the docs](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-features-field-optional) for configuration options. Thanks [@Stupremee](https://github.com/Stupremee)!
@@ -430,8 +434,6 @@ Now each license has to be explicitly approved, either by listing them in `licen
 [0.4.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.3.0-beta...0.3.0
 [0.3.0-beta]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.5...0.3.0-beta
-[0.2.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.4...0.2.5
-[0.2.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.2.1
