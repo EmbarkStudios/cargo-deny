@@ -124,7 +124,8 @@ impl KrateContext {
             gb.include_targets(cfg_targets);
         }
 
-        gb.ignore_kind(DepKind::Dev, krates::Scope::NonWorkspace);
+        let scope = krates::Scope::NonWorkspace; // krates::Scope::All
+        gb.ignore_kind(DepKind::Dev, scope);
         gb.workspace(self.workspace);
 
         if !self.exclude.is_empty() || !cfg_excludes.is_empty() {

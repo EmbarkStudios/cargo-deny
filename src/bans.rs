@@ -130,11 +130,8 @@ impl TreeSkipper {
                 skip_crates.insert(i, pkg_id.clone());
 
                 if depth < max_depth {
-                    for dep in graph
-                        .edges_directed(node_id, Direction::Outgoing)
-                        .filter(|edge| !matches!(edge.weight(), krates::Edge::Feature))
-                    {
-                        pending.push((dep.target(), depth + 1));
+                    for dep in krates.direct_dependencies(node_id) {
+                        pending.push((dep.node_id, depth + 1));
                     }
                 }
             }
@@ -185,7 +182,6 @@ impl fmt::Debug for DupGraph {
 pub type OutputGraph = dyn Fn(DupGraph) -> Result<(), Error> + Send + Sync;
 
 use crate::diag::{Check, Diag, Pack, Severity};
-use krates::petgraph::{visit::EdgeRef, Direction};
 
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,

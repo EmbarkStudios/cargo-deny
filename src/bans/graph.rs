@@ -41,6 +41,7 @@ type Id = pg::graph::NodeIndex<u32>;
 #[derive(Debug)]
 pub enum Shape {
     r#box,
+    diamond,
 }
 
 #[allow(non_camel_case_types)]
@@ -76,6 +77,12 @@ struct EdgeAttributes<'a> {
 
 const INDENT: &str = "    ";
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+struct DupNode<'k> {
+    kid: &'k Kid,
+    feature: Option<&'k str>,
+}
+
 pub(crate) fn create_graph(
     dup_name: &str,
     highlight: GraphHighlight,
@@ -92,40 +99,101 @@ pub(crate) fn create_graph(
     let duplicates: Vec<_> = dup_ids.iter().map(|di| krates[*di].id.clone()).collect();
 
     for (index, dupid) in dup_ids.iter().zip(duplicates.iter()) {
-        let nid = graph.add_node(dupid);
-        node_map.insert(dupid, nid);
-        node_stack.push((krates::NodeId::new(*index), dupid));
+        let dn = DupNode {
+            kid: dupid,
+            feature: None,
+        };
+        let nid = graph.add_node(dn);
+        node_map.insert(dn, nid);
+        node_stack.push((krates::NodeId::new(*index), nid));
     }
 
     {
         let kg = krates.graph();
-
         let mut visited = HashSet::new();
 
-        while let Some((nid, pid)) = node_stack.pop() {
-            let target = node_map[pid];
+        if true {
+            while let Some((nid, target)) = node_stack.pop() {
+                for edge in kg.edges_directed(nid, pg::Direction::Incoming) {
+                    match &kg[edge.source()] {
+                        krates::Node::Krate { krate, .. } => {
+                            if let krates::Edge::Dep { kind, .. }
+                            | krates::Edge::DepFeature { kind, .. } = edge.weight()
+                            {
+                                let dn = DupNode {
+                                    kid: &krate.id,
+                                    feature: None,
+                                };
 
-            for edge in kg.edges_directed(nid, pg::Direction::Incoming) {
-                match &kg[edge.source()] {
-                    krates::Node::Krate { krate, .. } => {
-                        if let krates::Edge::Dep { kind, .. }
-                        | krates::Edge::DepFeature { kind, .. } = edge.weight()
-                        {
-                            if let Some(pindex) = node_map.get(&krate.id) {
-                                graph.update_edge(*pindex, target, *kind);
-                            } else {
-                                let pindex = graph.add_node(&krate.id);
+                                if let Some(pindex) = node_map.get(&dn) {
+                                    graph.update_edge(*pindex, target, *kind);
+                                } else {
+                                    let pindex = graph.add_node(DupNode {
+                                        kid: &krate.id,
+                                        feature: None,
+                                    });
 
-                                graph.update_edge(pindex, target, *kind);
+                                    graph.update_edge(pindex, target, *kind);
 
-                                node_map.insert(&krate.id, pindex);
-                                node_stack.push((edge.source(), &krate.id));
+                                    node_map.insert(dn, pindex);
+                                    node_stack.push((edge.source(), pindex));
+                                }
+                            }
+                        }
+                        krates::Node::Feature { krate_index, .. } => {
+                            if *krate_index == nid && visited.insert(edge.source()) {
+                                node_stack.push((edge.source(), target));
                             }
                         }
                     }
-                    krates::Node::Feature { krate_index, .. } => {
-                        if *krate_index == nid && visited.insert(edge.source()) {
-                            node_stack.push((edge.source(), pid));
+                }
+            }
+        } else {
+            while let Some((src_id, tar_id)) = node_stack.pop() {
+                let target = tar_id;
+
+                for edge in kg.edges_directed(src_id, pg::Direction::Incoming) {
+                    let source = edge.source();
+                    match &kg[source] {
+                        krates::Node::Krate { krate, .. } => {
+                            if let krates::Edge::Dep { kind, .. }
+                            | krates::Edge::DepFeature { kind, .. } = edge.weight()
+                            {
+                                let node = DupNode {
+                                    kid: &krate.id,
+                                    feature: None,
+                                };
+
+                                if let Some(pindex) = node_map.get(&node) {
+                                    graph.update_edge(*pindex, target, *kind);
+                                } else {
+                                    let pindex = graph.add_node(node);
+
+                                    graph.update_edge(pindex, target, *kind);
+
+                                    node_map.insert(node, pindex);
+                                    node_stack.push((source, pindex));
+                                }
+                            }
+                        }
+                        krates::Node::Feature { krate_index, name } => {
+                            let kid = &krates[*krate_index].id;
+
+                            let node = DupNode {
+                                kid,
+                                feature: Some(name.as_str()),
+                            };
+
+                            if let Some(pindex) = node_map.get(&node) {
+                                graph.update_edge(*pindex, target, DepKind::Normal);
+                            } else {
+                                let pindex = graph.add_node(node);
+
+                                graph.update_edge(pindex, target, DepKind::Normal);
+
+                                node_map.insert(node, pindex);
+                                node_stack.push((source, pindex));
+                            }
                         }
                     }
                 }
@@ -141,14 +209,17 @@ pub(crate) fn create_graph(
     // Find all of the edges that lead to each duplicate, and also keep track of
     // any additional crate duplicates, to make them stand out more in the dotgraph
     for id in &duplicates {
-        let dup_node = node_map[id];
+        let dup_node = node_map[&DupNode {
+            kid: id,
+            feature: None,
+        }];
         let mut set = HashSet::new();
 
         node_stack.push(dup_node);
 
         while let Some(nid) = node_stack.pop() {
             let node = &graph[nid];
-            let mut iditer = node.repr.splitn(3, ' ');
+            let mut iditer = node.kid.repr.splitn(3, ' ');
             let name = iditer.next().unwrap();
 
             match dupe_nodes.entry(name) {
@@ -195,34 +266,44 @@ pub(crate) fn create_graph(
     print_graph(
         &graph,
         |node| {
-            let node_weight = *node.weight();
-            let repr = &node_weight.repr;
+            let node_weight = node.weight();
 
-            let mut i = repr.splitn(3, ' ');
-            let name = i.next().unwrap();
-            let _version = i.next().unwrap();
-            let source = i.next().unwrap();
-
-            if dupe_nodes.contains_key(name) {
-                let label = if source != "(registry+https://github.com/rust-lang/crates.io-index)" {
-                    &repr[name.len() + 1..]
-                } else {
-                    &repr[name.len() + 1..repr.len() - source.len() - 1]
-                };
-
+            if let Some(feat) = &node_weight.feature {
                 NodeAttributes {
-                    label: Some(label),
-                    shape: Some(Shape::r#box),
-                    color: Some("red"),
-                    style: Some(Style::rounded),
+                    label: Some(feat),
+                    shape: Some(Shape::diamond),
                     ..Default::default()
                 }
             } else {
-                NodeAttributes {
-                    label: Some(&repr[0..repr.len() - source.len() - 1]),
-                    shape: Some(Shape::r#box),
-                    style: Some(Style::rounded),
-                    ..Default::default()
+                let repr = &node_weight.kid.repr;
+
+                let mut i = repr.splitn(3, ' ');
+                let name = i.next().unwrap();
+                let _version = i.next().unwrap();
+                let source = i.next().unwrap();
+
+                if dupe_nodes.contains_key(name) {
+                    let label =
+                        if source != "(registry+https://github.com/rust-lang/crates.io-index)" {
+                            &repr[name.len() + 1..]
+                        } else {
+                            &repr[name.len() + 1..repr.len() - source.len() - 1]
+                        };
+
+                    NodeAttributes {
+                        label: Some(label),
+                        shape: Some(Shape::r#box),
+                        color: Some("red"),
+                        style: Some(Style::rounded),
+                        ..Default::default()
+                    }
+                } else {
+                    NodeAttributes {
+                        label: Some(&repr[0..repr.len() - source.len() - 1]),
+                        shape: Some(Shape::r#box),
+                        style: Some(Style::rounded),
+                        ..Default::default()
+                    }
                 }
             }
         },
@@ -275,13 +356,13 @@ pub(crate) fn create_graph(
 }
 
 fn print_graph<'a: 'b, 'b, NP, EP, SG>(
-    graph: &'a pg::Graph<&'a crate::Kid, DepKind>,
+    graph: &'a pg::Graph<DupNode<'a>, DepKind>,
     node_print: NP,
     edge_print: EP,
     subgraphs: SG,
 ) -> Result<String, Error>
 where
-    NP: Fn((Id, &'b &'a Kid)) -> NodeAttributes<'b>,
+    NP: Fn((Id, &'b DupNode<'a>)) -> NodeAttributes<'b>,
     EP: Fn(&pg::graph::EdgeReference<'_, DepKind, u32>) -> EdgeAttributes<'b>,
     SG: Fn(&mut String) -> Result<(), Error>,
 {
