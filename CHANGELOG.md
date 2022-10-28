@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.1] - 2022-10-28
 ### Fixed
 - [PR#471](https://github.com/EmbarkStudios/cargo-deny/pull/471) fixed a bug where optional dependencies could be pruned if the feature that enabled it was named differently from the crate.
 - [PR#471](https://github.com/EmbarkStudios/cargo-deny/pull/471) resolved an issue where `skip-tree` entries weren't properly ignoring all of their transitive dependencies, resolving [#469](https://github.com/EmbarkStudios/cargo-deny/issues/469).
@@ -387,7 +388,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.1...HEAD
+[0.13.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.2...0.13.0
 [0.12.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.0...0.12.1
