@@ -917,12 +917,13 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9120c4d72191846f2f52ceaf84a0b48393a9f0e3969348914d8309838b22b7cd"
+checksum = "0425cc5541bc7cc1a175907c6c0bd6010e00d6d876fdc894deea03e33a0d1a59"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",
+ "crates-index",
  "petgraph",
  "semver",
 ]

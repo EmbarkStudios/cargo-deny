@@ -69,7 +69,7 @@ git2 = "0.14"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.12", features = ["targets"] }
+krates = { version = "0.12", features = ["prefer-index", "targets"] }
 # Log macros
 log = "0.4"
 # Moar brrrr
