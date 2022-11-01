@@ -132,7 +132,7 @@ expression: diags
       "labels": [
         {
           "column": 17,
-          "line": 42,
+          "line": 41,
           "message": "source",
           "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs#41e42b9d95684d41615dd3d0aeeb1cfc4cc47225"
         },
@@ -171,7 +171,7 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 88,
+          "line": 86,
           "message": "source",
           "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4#ba8dc9f0b164619771892b865f00236ebbd4cd39"
         }
