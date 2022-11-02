@@ -203,7 +203,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.13.2"
+version = "0.13.3"
 dependencies = [
  "ansi_term",
  "anyhow",

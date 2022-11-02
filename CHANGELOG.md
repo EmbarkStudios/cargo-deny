@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.3] - 2022-11-02
 ### Fixed
 - [PR#475](https://github.com/EmbarkStudios/cargo-deny/pull/475) updated `krates` to 0.12.4, which fixes an issue where cycles in a crate's feature set would result in an infinite loop.
 
@@ -395,7 +396,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.3...HEAD
+[0.13.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.2...0.13.3
 [0.13.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.1...0.13.2
 [0.13.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.12.2...0.13.0
