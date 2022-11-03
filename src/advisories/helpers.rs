@@ -382,7 +382,7 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> Result<(), Error> {
 
         // pull latest changes
         let mut cmd = Command::new("git");
-        cmd.arg("pull").current_dir("/blah/nope");
+        cmd.arg("pull").current_dir(db_path);
 
         capture(cmd).context("failed to pull latest changes")?;
         log::debug!("pulled {url}");
