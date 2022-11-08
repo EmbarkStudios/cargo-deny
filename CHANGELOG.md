@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#481](https://github.com/EmbarkStudios/cargo-deny/pull/481) bumped `krates` to 0.12.5 to fix an issue where features present (and enabled) for a crate could be remove if the index entry for the crate didn't contain that feature. The features are now merged to (hopefully) more accurately reflect the features that are "truly" available according to both the index and the actual crate manifest on disk.
+- [PR#481](https://github.com/EmbarkStudios/cargo-deny/pull/481) fixed an issue where gathering licenses from files would fail if any license file could not have its license determined, even if one or more license files _could_ be successfully identified. This now no longer fails, and the license files that fail to be identified are now shown as additional labels in any diagnostic that is shown for that crate's licenses.
+
 ## [0.13.4] - 2022-11-03
 ### Fixed
 - [PR#477](https://github.com/EmbarkStudios/cargo-deny/pull/477) resolved [#476](https://github.com/EmbarkStudios/cargo-deny/issues/476) by replacing bad test code with the correct code.
