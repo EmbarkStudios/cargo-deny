@@ -236,8 +236,8 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
     // otherwise empty.
     //
     // See: https://github.com/RustSec/cargo-audit/issues/32
-    if db_path.is_dir() && std::fs::read_dir(&db_path)?.next().is_none() {
-        std::fs::remove_dir(&db_path)?;
+    if db_path.is_dir() && std::fs::read_dir(db_path)?.next().is_none() {
+        std::fs::remove_dir(db_path)?;
     }
 
     /// Ref for the `main` branch in the local repository
@@ -260,7 +260,7 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
         fetch_opts.proxy_options(proxy_opts);
 
         if db_path.exists() {
-            let repo = git2::Repository::open(&db_path)?;
+            let repo = git2::Repository::open(db_path)?;
             let refspec = format!("{LOCAL_REF}:{REMOTE_REF}");
 
             // Fetch remote packfiles and update tips
@@ -276,11 +276,11 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
                 Ok(mut local_main_ref) => {
                     local_main_ref.set_target(
                         remote_target,
-                        &format!("moving `main` to {}: {}", REMOTE_REF, &remote_target),
+                        &format!("moving `main` to {REMOTE_REF}: {remote_target}"),
                     )?;
                 }
                 Err(e) if e.code() == git2::ErrorCode::NotFound => {
-                    anyhow::bail!("unable to find reference '{}'", LOCAL_REF);
+                    anyhow::bail!("unable to find reference '{LOCAL_REF}'");
                 }
                 Err(e) => {
                     return Err(e.into());
@@ -295,7 +295,7 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> Result<(), Error> {
         Ok(())
     })?;
 
-    let repo = git2::Repository::open(&db_path).context("failed to open repository")?;
+    let repo = git2::Repository::open(db_path).context("failed to open repository")?;
 
     // Retrieve the HEAD commit
     let head = repo.head()?;
