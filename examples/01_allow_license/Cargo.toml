@@ -11,3 +11,4 @@ path = "main.rs"
 
 [dependencies]
 shared = { path = "../shared" }
+las = { version = "=0.7.7", features = ["laz"] }

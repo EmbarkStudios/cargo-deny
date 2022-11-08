@@ -193,11 +193,11 @@ impl LicensePack {
         file: FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
-    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
+    ) -> Result<(String, Vec<Label>, spdx::Expression, Vec<String>), (String, Vec<Label>)> {
         use std::fmt::Write;
 
         let mut expr = String::new();
-        let mut lic_count = 0;
+        let mut sources = Vec::new();
 
         let mut synth_toml = String::new();
         if let Some(err) = &self.err {
@@ -236,12 +236,14 @@ impl LicensePack {
                                 // is somewhat ok at least
                                 if lic_match.score >= confidence {
                                     if let Some(id) = spdx::license_id(identified.name) {
-                                        if lic_count > 0 {
+                                        if !sources.is_empty() {
                                             expr.push_str(" AND ");
                                         }
 
                                         expr.push_str(id.name);
-                                        lic_count += 1;
+                                        sources.push(
+                                            lic_contents.path.file_name().unwrap().to_owned(),
+                                        );
                                     } else {
                                         write!(synth_toml, "score = {:.2}", lic_match.score)
                                             .unwrap();
@@ -301,8 +303,13 @@ impl LicensePack {
 
         synth_toml.push(']');
 
-        if fails.is_empty() {
-            Ok((synth_toml, spdx::Expression::parse(&expr).unwrap()))
+        if fails.is_empty() || !sources.is_empty() {
+            Ok((
+                synth_toml,
+                fails,
+                spdx::Expression::parse(&expr).unwrap(),
+                sources,
+            ))
         } else {
             Err((synth_toml, fails))
         }
@@ -325,7 +332,7 @@ pub enum LicenseExprSource {
     /// An override from an overlay
     OverlayOverride,
     /// An expression synthesized from one or more LICENSE files
-    LicenseFiles,
+    LicenseFiles(Vec<String>),
 }
 
 #[derive(Debug)]
@@ -625,7 +632,7 @@ impl Gatherer {
                     let (id, _) = get_span("license");
 
                     match license_pack.get_expression(krate, id, &strategy, threshold) {
-                        Ok((new_toml, expr)) => {
+                        Ok((new_toml, fails, expr, sources)) => {
                             // Push our synthesized license files toml content to the end of
                             // the other synthesized toml then fixup all of our spans
                             let expr_offset = {
@@ -643,6 +650,16 @@ impl Gatherer {
                                 offset
                             };
 
+                            let fail_offset = expr_offset + expr.to_string().len() + 2;
+
+                            for fail in fails {
+                                let span =
+                                    fail.range.start + fail_offset..fail.range.end + fail_offset;
+                                labels.push(
+                                    Label::secondary(fail.file_id, span).with_message(fail.message),
+                                );
+                            }
+
                             return KrateLicense {
                                 krate,
                                 lic_info: LicenseInfo::SpdxExpression {
@@ -650,7 +667,7 @@ impl Gatherer {
                                     nfo: LicenseExprInfo {
                                         file_id: id,
                                         offset: expr_offset,
-                                        source: LicenseExprSource::LicenseFiles,
+                                        source: LicenseExprSource::LicenseFiles(sources),
                                     },
                                 },
                                 labels,
@@ -664,7 +681,7 @@ impl Gatherer {
 
                                 let (new_source, old_end) = {
                                     let source = fl.source(id);
-                                    (format!("{}{}\n", source, new_toml), source.len())
+                                    (format!("{source}{new_toml}\n"), source.len())
                                 };
 
                                 fl.update(id, new_source);
