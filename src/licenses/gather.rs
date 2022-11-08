@@ -129,6 +129,13 @@ struct LicensePack {
     err: Option<std::io::Error>,
 }
 
+struct GatheredExpr {
+    synthesized_toml: String,
+    failures: Vec<Label>,
+    expr: spdx::Expression,
+    file_sources: Vec<String>,
+}
+
 impl LicensePack {
     fn read(krate: &Krate) -> Self {
         let root_path = krate.manifest_path.parent().unwrap();
@@ -193,11 +200,11 @@ impl LicensePack {
         file: FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
-    ) -> Result<(String, spdx::Expression), (String, Vec<Label>)> {
+    ) -> Result<GatheredExpr, (String, Vec<Label>)> {
         use std::fmt::Write;
 
         let mut expr = String::new();
-        let mut lic_count = 0;
+        let mut sources = Vec::new();
 
         let mut synth_toml = String::new();
         if let Some(err) = &self.err {
@@ -210,7 +217,7 @@ impl LicensePack {
             ));
         }
 
-        let mut fails = Vec::new();
+        let mut failures = Vec::new();
         synth_toml.push_str("license-files = [\n");
 
         let root_path = krate.manifest_path.parent().unwrap();
@@ -236,12 +243,14 @@ impl LicensePack {
                                 // is somewhat ok at least
                                 if lic_match.score >= confidence {
                                     if let Some(id) = spdx::license_id(identified.name) {
-                                        if lic_count > 0 {
+                                        if !sources.is_empty() {
                                             expr.push_str(" AND ");
                                         }
 
                                         expr.push_str(id.name);
-                                        lic_count += 1;
+                                        sources.push(
+                                            lic_contents.path.file_name().unwrap().to_owned(),
+                                        );
                                     } else {
                                         write!(synth_toml, "score = {:.2}", lic_match.score)
                                             .unwrap();
@@ -250,7 +259,7 @@ impl LicensePack {
                                             .unwrap();
                                         let end = synth_toml.len();
 
-                                        fails.push(
+                                        failures.push(
                                             Label::secondary(file, start + 13..end - 1)
                                                 .with_message("unknown SPDX identifier"),
                                         );
@@ -262,7 +271,7 @@ impl LicensePack {
                                     write!(synth_toml, ", license = \"{}\"", identified.name)
                                         .unwrap();
 
-                                    fails.push(
+                                    failures.push(
                                         Label::secondary(file, start + 8..end)
                                             .with_message("low confidence in the license text"),
                                     );
@@ -273,7 +282,7 @@ impl LicensePack {
                                 write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
                                 let end = synth_toml.len();
 
-                                fails.push(
+                                failures.push(
                                     Label::secondary(file, start + 8..end)
                                         .with_message("low confidence in the license text"),
                                 );
@@ -289,7 +298,7 @@ impl LicensePack {
                     write!(synth_toml, "err = \"{}\"", err).unwrap();
                     let end = synth_toml.len();
 
-                    fails.push(
+                    failures.push(
                         Label::secondary(file, start + 7..end - 1)
                             .with_message("unable to read license file"),
                     );
@@ -301,10 +310,15 @@ impl LicensePack {
 
         synth_toml.push(']');
 
-        if fails.is_empty() {
-            Ok((synth_toml, spdx::Expression::parse(&expr).unwrap()))
+        if failures.is_empty() || !sources.is_empty() {
+            Ok(GatheredExpr {
+                synthesized_toml: synth_toml,
+                failures,
+                expr: spdx::Expression::parse(&expr).unwrap(),
+                file_sources: sources,
+            })
         } else {
-            Err((synth_toml, fails))
+            Err((synth_toml, failures))
         }
     }
 }
@@ -325,7 +339,7 @@ pub enum LicenseExprSource {
     /// An override from an overlay
     OverlayOverride,
     /// An expression synthesized from one or more LICENSE files
-    LicenseFiles,
+    LicenseFiles(Vec<String>),
 }
 
 #[derive(Debug)]
@@ -625,7 +639,12 @@ impl Gatherer {
                     let (id, _) = get_span("license");
 
                     match license_pack.get_expression(krate, id, &strategy, threshold) {
-                        Ok((new_toml, expr)) => {
+                        Ok(GatheredExpr {
+                            synthesized_toml,
+                            failures,
+                            expr,
+                            file_sources,
+                        }) => {
                             // Push our synthesized license files toml content to the end of
                             // the other synthesized toml then fixup all of our spans
                             let expr_offset = {
@@ -634,7 +653,9 @@ impl Gatherer {
                                 let (new_source, offset) = {
                                     let source = fl.source(id);
                                     (
-                                        format!("{source}files-expr = \"{expr}\"\n{new_toml}\n"),
+                                        format!(
+                                            "{source}files-expr = \"{expr}\"\n{synthesized_toml}\n"
+                                        ),
                                         (source.len() + 14),
                                     )
                                 };
@@ -643,6 +664,16 @@ impl Gatherer {
                                 offset
                             };
 
+                            let fail_offset = expr_offset + expr.to_string().len() + 2;
+
+                            for fail in failures {
+                                let span =
+                                    fail.range.start + fail_offset..fail.range.end + fail_offset;
+                                labels.push(
+                                    Label::secondary(fail.file_id, span).with_message(fail.message),
+                                );
+                            }
+
                             return KrateLicense {
                                 krate,
                                 lic_info: LicenseInfo::SpdxExpression {
@@ -650,7 +681,7 @@ impl Gatherer {
                                     nfo: LicenseExprInfo {
                                         file_id: id,
                                         offset: expr_offset,
-                                        source: LicenseExprSource::LicenseFiles,
+                                        source: LicenseExprSource::LicenseFiles(file_sources),
                                     },
                                 },
                                 labels,
@@ -664,7 +695,7 @@ impl Gatherer {
 
                                 let (new_source, old_end) = {
                                     let source = fl.source(id);
-                                    (format!("{}{}\n", source, new_toml), source.len())
+                                    (format!("{source}{new_toml}\n"), source.len())
                                 };
 
                                 fl.update(id, new_source);

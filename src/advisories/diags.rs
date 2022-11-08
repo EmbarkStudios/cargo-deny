@@ -158,9 +158,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         );
 
         if self.serialize_extra {
-            diag.extra = serde_json::to_value(&advisory)
-                .ok()
-                .map(|v| ("advisory", v));
+            diag.extra = serde_json::to_value(advisory).ok().map(|v| ("advisory", v));
         }
 
         pack

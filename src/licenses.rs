@@ -200,15 +200,16 @@ fn evaluate_expression(
     };
 
     let mut labels = Vec::with_capacity(reasons.len() + 1);
+    labels.extend(krate_lic_nfo.labels.clone());
 
     labels.push(
         Label::secondary(nfo.file_id, nfo.offset..nfo.offset + expr.as_ref().len()).with_message(
             format!(
                 "license expression retrieved via {}",
-                match nfo.source {
-                    LicenseExprSource::Metadata => "Cargo.toml `license`",
-                    LicenseExprSource::UserOverride => "user override",
-                    LicenseExprSource::LicenseFiles => "LICENSE file(s)",
+                match &nfo.source {
+                    LicenseExprSource::Metadata => "Cargo.toml `license`".to_owned(),
+                    LicenseExprSource::UserOverride => "user override".to_owned(),
+                    LicenseExprSource::LicenseFiles(lfs) => lfs.join(", "),
                     LicenseExprSource::OverlayOverride => unreachable!(),
                 }
             ),
