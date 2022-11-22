@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Added
-- [PR#] This project and repository is now part of our Security Bug Bounty Program and has Private vulnerability reporting enabled. See [`SECURITY.md`](./SECURITY.md) for more details.
+- [PR#485](https://github.com/EmbarkStudios/cargo-deny/pull/485) This project and repository is now part of our Security Bug Bounty Program and has Private vulnerability reporting enabled. See [`SECURITY.md`](./SECURITY.md) for more details.
 
 ## [0.13.5] - 2022-11-08
 ### Fixed
