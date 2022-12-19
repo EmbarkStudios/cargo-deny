@@ -118,6 +118,14 @@ pub struct Config {
     /// How to handle wildcard dependencies
     #[serde(default = "crate::lint_allow")]
     pub wildcards: LintLevel,
+    /// Wildcard dependencies defined using path attributes will be treated as
+    /// if they were [`LintLevel::Allow`] for private crates, but other wildcard
+    /// dependencies will be treated as [`LintLevel::Deny`].
+    ///
+    /// crates.io does not allow packages to be published with path dependencies,
+    /// thus this rule will not effect public packages.
+    #[serde(default)]
+    pub allow_wildcard_paths: bool,
     /// List of crates that are allowed to have a build step.
     pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
 }
@@ -135,6 +143,7 @@ impl Default for Config {
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
+            allow_wildcard_paths: false,
             allow_build_scripts: None,
         }
     }
@@ -257,6 +266,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             workspace_default_features: self.workspace_default_features,
             skipped,
             wildcards: self.wildcards,
+            allow_wildcard_paths: self.allow_wildcard_paths,
             tree_skipped: self
                 .skip_tree
                 .into_iter()
@@ -316,6 +326,7 @@ pub struct ValidConfig {
     pub(crate) skipped: Vec<Skrate>,
     pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
     pub wildcards: LintLevel,
+    pub allow_wildcard_paths: bool,
     pub allow_build_scripts: Option<Spanned<Vec<KrateId>>>,
 }
 
@@ -362,6 +373,10 @@ mod test {
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.multiple_versions, LintLevel::Deny);
+
+        assert_eq!(validated.wildcards, LintLevel::Deny);
+        assert!(validated.allow_wildcard_paths);
+
         assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
         assert_eq!(
             validated.external_default_features.unwrap().value,

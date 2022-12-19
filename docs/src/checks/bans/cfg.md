@@ -24,6 +24,16 @@ Determines what happens when a dependency is specified with the `*` (wildcard) v
 * `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
 * `allow` - Ignores all wildcard version specifications.
 
+### The `allow-wildcard-paths` field (optional)
+
+If specified, alters how the `wildcard` field behaves:
+
+  * [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) `dependencies` in **private** crates will no longer emit a warning or error.
+  * path `dev-dependencies` in both public and private crates will no longer emit a warning or error.
+  * path `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
+
+Being limited to private crates is due to crates.io not allowing packages to be published with `path` dependencies except for `dev-dependencies`.
+
 ### The `highlight` field (optional)
 
 When multiple versions of the same crate are encountered and `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.

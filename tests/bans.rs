@@ -48,6 +48,39 @@ fn deny_wildcards() {
     insta::assert_json_snapshot!(diags);
 }
 
+/// Ensures that wildcard dependencies are still banned when
+/// allow-wildcard-paths is set to true but the package is public.
+#[test]
+fn allow_path_wildcards_public_package() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("wildcards/allow-paths-public"),
+        r#"
+multiple-versions = 'allow'
+wildcards = 'deny'
+allow-wildcard-paths = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Ensures that wildcard paths are allowed for private packages
+#[test]
+fn allow_path_wildcards_private_package() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("wildcards/allow-paths-private"),
+        r#"
+multiple-versions = 'allow'
+wildcards = 'deny'
+allow-wildcard-paths = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Ensures that multiple versions are always deterministically sorted by
 /// version number
 /// See <https://github.com/EmbarkStudios/cargo-deny/issues/384>
