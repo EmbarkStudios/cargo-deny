@@ -667,7 +667,8 @@ pub fn check(
                         if is_private {
                             dep.path.is_none()
                         } else {
-                            let is_path_dev_dependency = dep.path.is_some() && dep.kind != DependencyKind::Development;
+                            let is_path_dev_dependency =
+                                dep.path.is_some() && dep.kind != DependencyKind::Development;
                             is_path_dev_dependency || dep.path.is_none()
                         }
                     });
