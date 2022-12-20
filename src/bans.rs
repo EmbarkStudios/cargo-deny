@@ -647,7 +647,7 @@ pub fn check(
 
             multi_detector.dupes.push(i);
 
-            if wildcards != LintLevel::Allow {
+            if wildcards != LintLevel::Allow && !krate.is_git_source() {
                 let severity = match wildcards {
                     LintLevel::Warn => Severity::Warning,
                     LintLevel::Deny => Severity::Error,
