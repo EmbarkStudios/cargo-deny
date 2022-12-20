@@ -25,7 +25,10 @@ ignore = [
 [bans]
 multiple-versions = "deny"
 deny = []
-skip = []
+skip = [
+    # cargo dependes on two versions
+    { name = "hex", version = "=0.3.2" },
+]
 
 [sources]
 unknown-registry = "deny"
