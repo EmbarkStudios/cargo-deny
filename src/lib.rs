@@ -193,6 +193,11 @@ impl Krate {
             url
         })
     }
+
+    #[inline]
+    pub(crate) fn is_git_source(&self) -> bool {
+        self.source.as_ref().map_or(false, |src| src.is_git())
+    }
 }
 
 impl fmt::Display for Krate {

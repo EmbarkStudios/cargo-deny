@@ -1,6 +1,7 @@
 [bans]
 multiple-versions = "deny"
 wildcards = "deny"
+allow-wildcard-paths = true
 highlight = "simplest-path"
 workspace-default-features = "warn"
 external-default-features = "deny"

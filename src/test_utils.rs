@@ -55,17 +55,22 @@ pub struct Config<C> {
     pub config: String,
 }
 
-impl<C> Config<C>
+impl<C> Default for Config<C>
 where
-    C: serde::de::DeserializeOwned + Default,
+    C: Default,
 {
-    pub fn default() -> Self {
+    fn default() -> Self {
         Self {
             deserialized: C::default(),
             config: "".to_owned(),
         }
     }
+}
 
+impl<C> Config<C>
+where
+    C: serde::de::DeserializeOwned,
+{
     pub fn new(config: impl Into<String>) -> Self {
         let config = config.into();
         Self {

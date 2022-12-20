@@ -9,6 +9,7 @@ use crate::{
 };
 use anyhow::Error;
 pub use diags::Code;
+use krates::cm::DependencyKind;
 use semver::VersionReq;
 use std::fmt;
 
@@ -201,6 +202,7 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
+        allow_wildcard_paths,
         allow_build_scripts,
     } = ctx.cfg;
 
@@ -645,24 +647,39 @@ pub fn check(
 
             multi_detector.dupes.push(i);
 
-            if wildcards != LintLevel::Allow {
+            if wildcards != LintLevel::Allow && !krate.is_git_source() {
                 let severity = match wildcards {
                     LintLevel::Warn => Severity::Warning,
                     LintLevel::Deny => Severity::Error,
                     LintLevel::Allow => unreachable!(),
                 };
 
-                let wildcards: Vec<_> = krate
+                let mut wildcards: Vec<_> = krate
                     .deps
                     .iter()
                     .filter(|dep| dep.req == VersionReq::STAR)
                     .collect();
+
+                if allow_wildcard_paths {
+                    let is_private = krate.is_private(&[]);
+
+                    wildcards.retain(|dep| {
+                        if is_private {
+                            dep.path.is_none()
+                        } else {
+                            let is_path_dev_dependency =
+                                dep.path.is_some() && dep.kind != DependencyKind::Development;
+                            is_path_dev_dependency || dep.path.is_none()
+                        }
+                    });
+                }
 
                 if !wildcards.is_empty() {
                     sink.push(diags::Wildcards {
                         krate,
                         severity,
                         wildcards,
+                        allow_wildcard_paths,
                         cargo_spans: &cargo_spans,
                     });
                 }

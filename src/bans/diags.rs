@@ -132,6 +132,7 @@ pub(crate) struct Wildcards<'a> {
     pub(crate) krate: &'a Krate,
     pub(crate) severity: Severity,
     pub(crate) wildcards: Vec<&'a krates::cm::Dependency>,
+    pub(crate) allow_wildcard_paths: bool,
     pub(crate) cargo_spans: &'a crate::diag::CargoSpans,
 }
 
@@ -151,10 +152,15 @@ impl<'a> From<Wildcards<'a>> for Pack {
         let diag = Diag::new(
             Diagnostic::new(wc.severity)
                 .with_message(format!(
-                    "found {} wildcard dependenc{} for crate '{}'",
+                    "found {} wildcard dependenc{} for crate '{}'{}",
                     labels.len(),
                     if labels.len() == 1 { "y" } else { "ies" },
-                    wc.krate.name
+                    wc.krate.name,
+                    if wc.allow_wildcard_paths {
+                        ". allow-wildcard-paths is enabled, but does not apply to public crates as crates.io disallows path dependencies."
+                    } else {
+                        ""
+                    },
                 ))
                 .with_code(Code::Wildcard)
                 .with_labels(labels),
