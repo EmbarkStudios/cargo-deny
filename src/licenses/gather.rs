@@ -439,14 +439,9 @@ impl Gatherer {
         self
     }
 
+    #[inline]
     pub fn with_confidence_threshold(mut self, threshold: f32) -> Self {
-        self.threshold = if threshold > 1.0 {
-            1.0
-        } else if threshold < 0.0 {
-            0.0
-        } else {
-            threshold
-        };
+        self.threshold = threshold.clamp(0.0, 1.0);
         self
     }
 
