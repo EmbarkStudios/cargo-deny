@@ -23,8 +23,9 @@ ignore = [
 multiple-versions = "deny"
 deny = []
 skip = [
-    # cargo depends on two versions
+    # cargo depends on two versions of these crates
     { name = "hex", version = "=0.3.2" },
+    { name = "bstr", version = "=0.2.17" },
 ]
 skip-tree = [
     # windows-sys minor version bumps are still incredibly tedious
