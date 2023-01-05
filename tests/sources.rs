@@ -84,21 +84,29 @@ fn validates_git_source_specs() {
     assert!(GitSpec::Tag > GitSpec::Branch);
     assert!(GitSpec::Branch > GitSpec::Any);
 
-    let levels = [
-        (GitSpec::Rev, "https://gitlab.com/amethyst-engine/amethyst"),
-        (GitSpec::Tag, "https://github.com/EmbarkStudios/spdx"),
-        (GitSpec::Branch, "https://github.com/EmbarkStudios/krates"),
-        (
+    let levels: &[&[(_, _)]] = &[
+        [(GitSpec::Rev, "https://gitlab.com/amethyst-engine/amethyst")].as_ref(),
+        [(GitSpec::Tag, "https://github.com/EmbarkStudios/spdx")].as_ref(),
+        [
+            (GitSpec::Branch, "https://github.com/EmbarkStudios/krates"),
+            (GitSpec::Branch, "https://github.com/dtolnay/anyhow"),
+        ]
+        .as_ref(),
+        [(
             GitSpec::Any,
             "https://bitbucket.org/marshallpierce/line-wrap-rs",
-        ),
+        )]
+        .as_ref(),
     ];
 
-    for (i, (spec, _url)) in levels.iter().enumerate() {
+    for (i, (spec, _url)) in levels
+        .iter()
+        .enumerate()
+        .flat_map(|(i, lvl)| lvl.iter().map(move |l| (i, l)))
+    {
         let cfg = format!(
             "unknown-git = 'allow'
-        required-git-spec = '{}'",
-            spec
+        required-git-spec = '{spec}'"
         );
 
         let mut diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
@@ -111,7 +119,11 @@ fn validates_git_source_specs() {
                 .starts_with("'git' source is underspecified, expected")
         });
 
-        for (j, (_, url)) in levels.iter().enumerate() {
+        for (j, (_, url)) in levels
+            .iter()
+            .enumerate()
+            .flat_map(|(i, lvl)| lvl.iter().map(move |l| (i, l)))
+        {
             let severities: Vec<_> = diags
                 .iter()
                 .filter_map(|d| {

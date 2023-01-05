@@ -5,7 +5,8 @@ authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 
 [dependencies]
-krates = "0.4.1"
+anyhow = "1.0"
+krates = "0.12"
 
 [dev-dependencies]
 spdx = "0.3.4"
@@ -20,6 +21,7 @@ line-wrap = "0.1.1"
 # custom = { version = "0.10.0", registry = "fancy-pants" }
 
 [patch.crates-io]
+anyhow = { git = "https://github.com/dtolnay/anyhow", branch = "master" }
 amethyst_core = { git = "https://gitlab.com/amethyst-engine/amethyst", rev = "0c2da617" }
 krates = { git = "https://github.com/EmbarkStudios/krates", branch = "main" }
 line-wrap = { git = "https://bitbucket.org/marshallpierce/line-wrap-rs" }

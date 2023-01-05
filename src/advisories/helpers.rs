@@ -650,7 +650,7 @@ pub(crate) fn krate_for_pkg<'a>(
         .find(|(_, krate)| {
             pkg.version == krate.version
                 && match (&pkg.source, &krate.source) {
-                    (Some(psrc), Some(ksrc)) => psrc == ksrc,
+                    (Some(psrc), Some(ksrc)) => ksrc == psrc,
                     (None, None) => true,
                     _ => false,
                 }

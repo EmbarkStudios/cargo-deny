@@ -52,12 +52,29 @@ const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
 
+/// Wrapper around the original source url
+#[derive(Debug)]
+pub struct Source {
+    /// The original url obtained via cargo
+    pub url: url::Url,
+    /// The rustsec id, this is used to match crates in our graph with the one
+    /// that rustsec uses
+    pub source_id: SourceId,
+}
+
+impl PartialEq<SourceId> for Source {
+    #[inline]
+    fn eq(&self, o: &SourceId) -> bool {
+        &self.source_id == o
+    }
+}
+
 #[derive(Debug)]
 pub struct Krate {
     pub name: String,
     pub id: Kid,
     pub version: Version,
-    pub source: Option<SourceId>,
+    pub source: Option<Source>,
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
@@ -133,16 +150,28 @@ impl From<cm::Package> for Krate {
             authors: pkg.authors,
             repository: pkg.repository,
             source: {
-                // rustsec's SourceId has better introspection
                 pkg.source.and_then(|src| {
-                    let url = format!("{}", src);
-                    SourceId::from_url(&url).map_or_else(
-                        |e| {
-                            log::warn!("unable to parse source url '{}': {}", url, e);
+                    let url = src.to_string();
+
+                    match url.parse() {
+                        Ok(source_id) => {
+                            // Strip the leading <kind>+ from the url
+                            let url = if let Some(ind) = url.find('+') {
+                                url[ind + 1..].to_owned()
+                            } else {
+                                url
+                            };
+
+                            Some(Source {
+                                url: url.parse().unwrap(),
+                                source_id,
+                            })
+                        }
+                        Err(err) => {
+                            log::warn!("unable to parse source url '{url}': {err}");
                             None
-                        },
-                        Some,
-                    )
+                        }
+                    }
                 })
             },
             targets: pkg.targets,
@@ -186,7 +215,7 @@ impl Krate {
     /// Returns the normalized source URL
     pub(crate) fn normalized_source_url(&self) -> Option<url::Url> {
         self.source.as_ref().map(|source| {
-            let mut url = source.url().clone();
+            let mut url = source.url.clone();
             url.set_query(None);
             url.set_fragment(None);
             crate::sources::normalize_url(&mut url);
@@ -196,7 +225,9 @@ impl Krate {
 
     #[inline]
     pub(crate) fn is_git_source(&self) -> bool {
-        self.source.as_ref().map_or(false, |src| src.is_git())
+        self.source
+            .as_ref()
+            .map_or(false, |src| src.source_id.is_git())
     }
 }
 
