@@ -40,7 +40,7 @@ standalone = ["cargo"]
 
 [dependencies]
 # Output coloring
-ansi_term = "0.12"
+nu-ansi-term = "0.46"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
@@ -50,9 +50,9 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.65", optional = true }
+cargo = { version = "0.67", optional = true }
 # Argument parsing, kept aligned with cargo
-clap = { version = "3.2", features = ["derive", "env"] }
+clap = { version = "4.0", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
@@ -65,7 +65,7 @@ crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
 # We directly interact with git when doing index operations eg during fix
-git2 = "0.14"
+git2 = "0.15"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
@@ -84,7 +84,7 @@ serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
 smallvec = "1.9"
 # Used for parsing and checking SPDX license expressions
-spdx = "0.9"
+spdx = "0.10"
 # Lazy
 strum = { version = "0.24", features = ["derive"] }
 # Timestamp emission

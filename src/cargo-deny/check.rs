@@ -40,7 +40,7 @@ impl From<Level> for Severity {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CodeOrLevel {
     Code(DiagnosticCode),
     Level(Level),
@@ -104,7 +104,7 @@ pub struct Args {
     #[clap(flatten)]
     pub lint_levels: LintLevels,
     /// Specifies the depth at which feature edges are added in inclusion graphs
-    #[clap(long, conflicts_with = "hide-inclusion-graph")]
+    #[clap(long, conflicts_with = "hide_inclusion_graph")]
     pub feature_depth: Option<u32>,
     /// The check(s) to perform
     #[clap(value_enum, action)]

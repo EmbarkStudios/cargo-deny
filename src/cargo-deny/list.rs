@@ -1,6 +1,6 @@
-use ansi_term::Color;
 use anyhow::{Context, Error};
 use cargo_deny::{diag::Files, licenses, Kid};
+use nu_ansi_term::Color;
 use serde::Serialize;
 use std::path::PathBuf;
 

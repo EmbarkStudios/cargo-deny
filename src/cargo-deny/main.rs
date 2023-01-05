@@ -136,8 +136,8 @@ fn setup_logger(
     format: Format,
     color: bool,
 ) -> Result<(), fern::InitError> {
-    use ansi_term::Color::{Blue, Green, Purple, Red, Yellow};
     use log::Level::{Debug, Error, Info, Trace, Warn};
+    use nu_ansi_term::Color::{Blue, Green, Purple, Red, Yellow};
 
     let now = time::OffsetDateTime::now_utc();
 
@@ -340,9 +340,8 @@ mod test {
     use clap::ColorChoice;
     use clap::Command;
 
-    fn snapshot_test_cli_command(app: Command<'_>, cmd_name: String) {
+    fn snapshot_test_cli_command(app: Command, cmd_name: String) {
         let mut app = app
-            .clone()
             // we do not want ASCII colors in our snapshot test output
             .color(ColorChoice::Never)
             // override versions to not have to update test when changing versions
@@ -356,7 +355,7 @@ mod test {
                 let id = a.get_id();
 
                 if id != "version" && id != "help" {
-                    Some(id)
+                    Some(id.clone())
                 } else {
                     None
                 }
