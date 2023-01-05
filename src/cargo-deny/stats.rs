@@ -1,4 +1,5 @@
-use crate::{Color, Format};
+use crate::Format;
+use nu_ansi_term::Color;
 use serde::Serialize;
 
 #[derive(Default, Serialize)]
@@ -35,7 +36,7 @@ pub(crate) fn print_stats(
     show_stats: bool,
     log_level: log::LevelFilter,
     format: Format,
-    color: Color,
+    color: crate::Color,
 ) {
     // In the case of human, we print to stdout, to distinguish it from the rest
     // of the output, but for JSON we still go to stderr since presumably computers
@@ -45,9 +46,9 @@ pub(crate) fn print_stats(
             let mut summary = String::new();
 
             let color = match color {
-                Color::Auto => atty::is(atty::Stream::Stdout),
-                Color::Always => true,
-                Color::Never => false,
+                crate::Color::Auto => atty::is(atty::Stream::Stdout),
+                crate::Color::Always => true,
+                crate::Color::Never => false,
             };
 
             // If we're using the default or higher log level, just emit
@@ -91,9 +92,9 @@ fn write_min_stats(mut summary: &mut String, stats: &AllStats, color: bool) {
                     &mut summary,
                     "{}, ",
                     if stats.errors > 0 {
-                        ansi_term::Color::Red.paint("FAILED")
+                        Color::Red.paint("FAILED")
                     } else {
-                        ansi_term::Color::Green.paint("ok")
+                        Color::Green.paint("ok")
                     }
                 )
                 .unwrap();
@@ -157,14 +158,14 @@ fn write_full_stats(summary: &mut String, stats: &AllStats, color: bool) {
                         "{} {}",
                         check,
                         if stats.errors > 0 {
-                            ansi_term::Color::Red.paint("FAILED")
+                            Color::Red.paint("FAILED")
                         } else {
-                            ansi_term::Color::Green.paint("ok")
+                            Color::Green.paint("ok")
                         }
                     ),
-                    ansi_term::Color::Red.paint(format!("{}", stats.errors)),
-                    ansi_term::Color::Yellow.paint(format!("{}", stats.warnings)),
-                    ansi_term::Color::Blue.paint(format!("{}", stats.notes + stats.helps)),
+                    Color::Red.paint(format!("{}", stats.errors)),
+                    Color::Yellow.paint(format!("{}", stats.warnings)),
+                    Color::Blue.paint(format!("{}", stats.notes + stats.helps)),
                     column = column,
                 )
                 .unwrap();

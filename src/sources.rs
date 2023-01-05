@@ -47,13 +47,8 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         // get URL without git revision (query & fragment)
         // example URL in Cargo.lock: https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
         // where we only want:        https://github.com/RustSec/rustsec-crate.git
-        let source_url = {
-            let mut url = source.url().clone();
-            url.set_query(None);
-            url.set_fragment(None);
-            normalize_url(&mut url);
-            url
-        };
+        // Unwrap is ok since we already know we have a source
+        let source_url = krate.normalized_source_url().unwrap();
 
         let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
 
@@ -69,30 +64,21 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         };
 
         // get allowed list of sources to check
-        let (lint_level, type_name) = if source.is_registry() {
+        let (lint_level, type_name) = if source.source_id.is_registry() {
             (ctx.cfg.unknown_registry, "registry")
-        } else if source.is_git() {
+        } else if source.source_id.is_git() {
             // Ensure the git source has at least the minimum specification
             if let Some((min, cfg_coord)) = &min_git_spec {
-                pub use rustsec::package::GitReference;
+                let mut spec = GitSpec::Any;
 
-                let spec = source
-                    .git_reference()
-                    .map(|gr| match gr {
-                        GitReference::Branch(name) => {
-                            // TODO: Workaround logic hardcoded in the rustsec crate,
-                            // that crate can be changed to support the new v3 lock format
-                            // whenever it is stabilized https://github.com/rust-lang/cargo/pull/8522
-                            if name == "master" {
-                                GitSpec::Any
-                            } else {
-                                GitSpec::Branch
-                            }
-                        }
-                        GitReference::Tag(_) => GitSpec::Tag,
-                        GitReference::Rev(_) => GitSpec::Rev,
-                    })
-                    .unwrap_or_default();
+                for (k, _v) in source.url.query_pairs() {
+                    spec = match k.as_ref() {
+                        "branch" | "ref" => GitSpec::Branch,
+                        "tag" => GitSpec::Tag,
+                        "rev" => GitSpec::Rev,
+                        _ => continue,
+                    };
+                }
 
                 if spec < *min {
                     pack.push(diags::BelowMinimumRequiredSpec {

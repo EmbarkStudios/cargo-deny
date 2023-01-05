@@ -14,9 +14,6 @@ unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
 ignore = [
-    # ansi_term is unmaintained, but it does exactly what it needs to and no more
-    # so no reason to change just for the sake of it
-    "RUSTSEC-2021-0139",
     # potential unaligned pointer read on windows. Doesn't happen in practice, don't
     # care
     "RUSTSEC-2021-0145",
@@ -26,8 +23,13 @@ ignore = [
 multiple-versions = "deny"
 deny = []
 skip = [
-    # cargo dependes on two versions
+    # cargo depends on two versions of these crates
     { name = "hex", version = "=0.3.2" },
+    { name = "bstr", version = "=0.2.17" },
+]
+skip-tree = [
+    # windows-sys minor version bumps are still incredibly tedious
+    { name = "windows-sys", version = "=0.36.1" },
 ]
 
 [sources]
@@ -46,14 +48,6 @@ confidence-threshold = 0.93
 allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0"]
 
 exceptions = [
-    { allow = [
-        "Zlib",
-    ], name = "tinyvec" },
-    { allow = [
-        "Apache-2.0",
-        "BSD-2-Clause",
-    ], name = "crossbeam-queue" },
-    { allow = [
-        "Unicode-DFS-2016",
-    ], name = "unicode-ident" },
+    { allow = ["Zlib"], name = "tinyvec" },
+    { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
 ]

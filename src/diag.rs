@@ -183,7 +183,7 @@ impl KrateSpans {
         for krate in krates {
             let span_start = sl.len();
             match &krate.source {
-                Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src)
+                Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src.source_id)
                     .expect("unable to synthesize lockfile"),
                 None => writeln!(
                     sl,

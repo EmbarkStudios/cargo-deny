@@ -2,22 +2,20 @@
 source: src/cargo-deny/main.rs
 expression: help_text
 ---
-init 0.0.0
 Creates a cargo-deny config from a template
 
-USAGE:
-    init [CONFIG]
+Usage: init [CONFIG]
 
-ARGS:
-    <CONFIG>
-            The path to create
-            
-            Defaults to <cwd>/deny.toml
+Arguments:
+  [CONFIG]
+          The path to create
+          
+          Defaults to <cwd>/deny.toml
 
-OPTIONS:
-    -h, --help
-            Print help information
+Options:
+  -h, --help
+          Print help information (use `-h` for a summary)
 
-    -V, --version
-            Print version information
+  -V, --version
+          Print version information
 

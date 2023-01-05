@@ -83,8 +83,8 @@ expression: diags
       "graphs": [
         {
           "Krate": {
-            "name": "krates",
-            "version": "0.4.1"
+            "name": "anyhow",
+            "version": "1.0.68"
           },
           "parents": [
             {
@@ -98,10 +98,42 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 14,
-          "line": 38,
+          "column": 15,
+          "line": 9,
           "message": "source",
-          "span": "git+https://github.com/EmbarkStudios/krates?branch=main#3c1eab0f2322bbb16d1d26e82953f702b965e2e5"
+          "span": "git+https://github.com/dtolnay/anyhow#0a45d7665c32ba61788e09273bb17912ed402332"
+        }
+      ],
+      "message": "detected 'git' source not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "source-not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "krates",
+            "version": "0.12.6"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "sources",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 15,
+          "line": 45,
+          "message": "source",
+          "span": "git+https://github.com/EmbarkStudios/krates?branch=main#6aa02ee69d69444c910f0ca04ccebb949d76e738"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",
@@ -132,7 +164,7 @@ expression: diags
       "labels": [
         {
           "column": 17,
-          "line": 42,
+          "line": 49,
           "message": "source",
           "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs#41e42b9d95684d41615dd3d0aeeb1cfc4cc47225"
         }
@@ -165,7 +197,7 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 88,
+          "line": 94,
           "message": "source",
           "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4#ba8dc9f0b164619771892b865f00236ebbd4cd39"
         }
