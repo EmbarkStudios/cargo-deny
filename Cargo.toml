@@ -25,7 +25,7 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
-default = ["vendored-openssl"]
+default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
 vendored-openssl = [
@@ -33,6 +33,7 @@ vendored-openssl = [
   "crates-index/vendored-openssl",
   "git2/vendored-openssl",
 ]
+vendored-libgit2 = ["cargo?/vendored-libgit2", "git2/vendored-libgit2"]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
 # to still function

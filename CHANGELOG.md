@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#491](https://github.com/EmbarkStudios/cargo-deny/pull/491) resolved [#490](https://github.com/EmbarkStudios/cargo-deny/issues/490) by building libgit2 from vendored sources instead of relying on potentially outdated packages.
+
 ## [0.13.6] - 2023-01-11
 ### Changed
 - [PR#489](https://github.com/EmbarkStudios/cargo-deny/pull/489) updated dependencies, notably `clap`, `cargo`, and `git2`
