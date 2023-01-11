@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.6] - 2023-01-11
 ### Changed
 - [PR#489](https://github.com/EmbarkStudios/cargo-deny/pull/489) updated dependencies, notably `clap`, `cargo`, and `git2`
 
@@ -415,7 +416,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.6...HEAD
+[0.13.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.5...0.13.6
 [0.13.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.4...0.13.5
 [0.13.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.3...0.13.4
 [0.13.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.2...0.13.3
