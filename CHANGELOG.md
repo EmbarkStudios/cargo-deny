@@ -8,8 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#489](https://github.com/EmbarkStudios/cargo-deny/pull/489) updated dependencies, notably `clap`, `cargo`, and `git2`
+
 ### Added
-- [PR#485](https://github.com/EmbarkStudios/cargo-deny/pull/485) This project and repository is now part of our Security Bug Bounty Program and has Private vulnerability reporting enabled. See [`SECURITY.md`](./SECURITY.md) for more details.
+- [PR#485](https://github.com/EmbarkStudios/cargo-deny/pull/485) added this project and repository to our Security Bug Bounty Program and has Private vulnerability reporting enabled. See [`SECURITY.md`](./SECURITY.md) for more details.
+- [PR#487](https://github.com/EmbarkStudios/cargo-deny/pull/487) added `allow-wildcard-paths`, fixing [#488](https://github.com/EmbarkStudios/cargo-deny/issues/448) by allowing wildcards to be denied, but allowing them for internal, private crates. Thanks [@sribich](https://github.com/sribich)!
+
+### Fixed
+- [PR#489](https://github.com/EmbarkStudios/cargo-deny/pull/489) fixed an issue where git sources where `branch=master` would be incorrectly categorized as not specifying the branch (ie use HEAD of default branch).
 
 ## [0.13.5] - 2022-11-08
 ### Fixed
