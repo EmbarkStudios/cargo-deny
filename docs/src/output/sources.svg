@@ -8,7 +8,7 @@
   color: #abb2bf;
   word-break: break-word;
   overflow-wrap: break-word;
-  font-family: Monaco, courier;
+  font-family: Monaco, courier, monospace;
   font-size: 12px;
   line-height: 20px;
   padding: 14px 18px;
