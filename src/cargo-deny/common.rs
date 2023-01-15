@@ -87,6 +87,12 @@ impl KrateContext {
                     return Some(config_path);
                 }
 
+                config_path.pop();
+                config_path.push(".cargo/deny.toml");
+                if config_path.exists() {
+                    return Some(config_path);
+                }
+
                 p = parent.parent();
             }
 
