@@ -41,7 +41,7 @@ standalone = ["cargo"]
 
 [dependencies]
 # Output coloring
-nu-ansi-term = "0.46"
+nu-ansi-term = "0.47"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
@@ -51,14 +51,14 @@ atty = "0.2"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.67", optional = true }
+cargo = { version = "0.69", optional = true }
 # Argument parsing, kept aligned with cargo
 clap = { version = "4.0", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
 # Fetching and reading of crates.io (or other indices)
-crates-index = { version = "0.18", default-features = false, features = [
+crates-index = { version = "0.19", default-features = false, features = [
   "parallel",
 ] }
 # Brrrrr
@@ -66,11 +66,11 @@ crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
 # We directly interact with git when doing index operations eg during fix
-git2 = "0.15"
+git2 = "0.16"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.12", features = ["prefer-index", "targets"] }
+krates = { version = "0.13", features = ["prefer-index", "targets"] }
 # Log macros
 log = "0.4"
 # Moar brrrr
@@ -94,7 +94,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml = "0.5"
+toml = "0.7"
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation

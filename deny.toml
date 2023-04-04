@@ -17,6 +17,12 @@ ignore = [
     # potential unaligned pointer read on windows. Doesn't happen in practice, don't
     # care
     "RUSTSEC-2021-0145",
+    # rmp-serde used by askalono for the cache files, these are always utf-8 so
+    # the advisory is not relevant
+    "RUSTSEC-2022-0092",
+    # This is kind of relevant since cargo-deny can do git operations via SSH
+    # from cargo, but cargo needs to update before we can
+    "RUSTSEC-2023-0003",
 ]
 
 [bans]
@@ -25,11 +31,14 @@ deny = []
 skip = [
     # cargo depends on two versions of these crates
     { name = "hex", version = "=0.3.2" },
-    { name = "bstr", version = "=0.2.17" },
+    # cargo-lock uses this older version
+    { name = "toml", version = "=0.5.11" },
 ]
 skip-tree = [
-    # windows-sys minor version bumps are still incredibly tedious
-    { name = "windows-sys", version = "=0.36.1" },
+    # Sigh
+    { name = "windows-sys", version = "=0.42" },
+    # cargo uses an old version
+    { name = "toml_edit", version = "=0.15" },
 ]
 
 [sources]
@@ -50,4 +59,5 @@ allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0"]
 exceptions = [
     { allow = ["Zlib"], name = "tinyvec" },
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
+    { allow = ["BSD-3-Clause"], name = "subtle" },
 ]
