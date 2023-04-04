@@ -36,7 +36,7 @@ const fn confidence_threshold() -> f32 {
 /// Allows agreement of licensing terms based on whether the license is
 /// [OSI Approved](https://opensource.org/licenses) or [considered free](
 /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BlanketAgreement {
     /// The license must be both OSI Approved and FSF/Free Libre
@@ -48,13 +48,8 @@ pub enum BlanketAgreement {
     /// The license must be FSF/Free Libre but not OSI Approved
     FsfOnly,
     /// The license is not regarded specially
+    #[default]
     Neither,
-}
-
-impl Default for BlanketAgreement {
-    fn default() -> Self {
-        BlanketAgreement::Neither
-    }
 }
 
 /// Configures how private crates are handled and detected
