@@ -64,9 +64,9 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         };
 
         // get allowed list of sources to check
-        let (lint_level, type_name) = if source.source_id.is_registry() {
+        let (lint_level, type_name) = if source.is_registry() {
             (ctx.cfg.unknown_registry, "registry")
-        } else if source.source_id.is_git() {
+        } else if source.is_git() {
             // Ensure the git source has at least the minimum specification
             if let Some((min, cfg_coord)) = &min_git_spec {
                 let mut spec = GitSpec::Any;

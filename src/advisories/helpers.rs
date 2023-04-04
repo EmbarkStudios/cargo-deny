@@ -105,17 +105,19 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
     }
 
     #[allow(deprecated)]
-    fn hash_u64(url: &str) -> u64 {
+    fn hash_u64(url: &str, kind: u64) -> u64 {
         use std::hash::{Hash, Hasher, SipHasher};
 
         let mut hasher = SipHasher::new_with_keys(0, 0);
-        // Registry. Note the explicit use of u64 here so that we get the same
-        // hash on 32 and 64-bit arches
-        2u64.hash(&mut hasher);
-        // Url
+        kind.hash(&mut hasher);
         url.hash(&mut hasher);
         hasher.finish()
     }
+
+    const KIND_GIT_INDEX: u64 = 2;
+    const KIND_SPARSE_INDEX: u64 = 3;
+
+    let mut is_sparse = false;
 
     // Ensure we have a registry or bare url
     let (url, scheme_ind) = {
@@ -124,7 +126,10 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
             .with_context(|| format!("'{}' is not a valid url", url))?;
 
         let scheme_str = &url[..scheme_ind];
-        if let Some(ind) = scheme_str.find('+') {
+        if scheme_str == "sparse+https" {
+            is_sparse = true;
+            (url, scheme_ind)
+        } else if let Some(ind) = scheme_str.find('+') {
             if &scheme_str[..ind] != "registry" {
                 anyhow::bail!("'{}' is not a valid registry url", url);
             }
@@ -158,7 +163,14 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(query);
     }
 
-    let ident = to_hex(hash_u64(&canonical));
+    let ident = to_hex(hash_u64(
+        &canonical,
+        if is_sparse {
+            KIND_SPARSE_INDEX
+        } else {
+            KIND_GIT_INDEX
+        },
+    ));
 
     if canonical.ends_with('/') {
         canonical.pop();
@@ -168,7 +180,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.truncate(canonical.len() - 4);
     }
 
-    Ok((format!("{}-{}", host, ident), canonical))
+    Ok((format!("{host}-{ident}"), canonical))
 }
 
 /// Convert an advisory url to a directory underneath a specified root
@@ -614,48 +626,52 @@ where
     Ok(res)
 }
 
-pub fn load_lockfile(path: &krates::Utf8Path) -> Result<Lockfile, Error> {
-    let mut lockfile = Lockfile::load(path)?;
-
-    // Remove the metadata as it is irrelevant
-    lockfile.metadata = Default::default();
-
-    Ok(lockfile)
+pub(super) enum Index {
+    Git(crates_index::Index),
+    Http(crates_index::SparseIndex),
 }
 
-/// A wrapper around a rustsec `Lockfile`, this is used to filter out all of
-/// the crates that are not part of the crate graph for some reason, eg. a target
-/// specific dependency for a target the user doesn't actually target, so that
-/// any advisories that affect crates not in the graph are triggered
-pub struct PrunedLockfile(pub(crate) Lockfile);
+impl Index {
+    fn load_all(krates: &Krates) -> anyhow::Result<Vec<Self>> {
+        let mut indices = Vec::<(&Url, Index)>::new();
+        for (krate, source) in krates
+            .krates()
+            .filter_map(|k| k.source.as_ref().map(|s| (k, s)))
+        {
+            if indices
+                .iter()
+                .any(|(url, _)| url.as_str() == source.url.as_str())
+            {
+                continue;
+            }
 
-impl PrunedLockfile {
-    pub fn prune(mut lf: Lockfile, krates: &Krates) -> Self {
-        // Remove any packages from the rustsec's view of the lockfile that we
-        // have filtered out of the graph we are actually checking
-        lf.packages
-            .retain(|pkg| krate_for_pkg(krates, pkg).is_some());
-
-        Self(lf)
-    }
-}
-
-#[inline]
-pub(crate) fn krate_for_pkg<'a>(
-    krates: &'a Krates,
-    pkg: &'a rustsec::package::Package,
-) -> Option<(krates::NodeId, &'a Krate)> {
-    krates
-        .krates_by_name(pkg.name.as_str())
-        .find(|(_, krate)| {
-            pkg.version == krate.version
-                && match (&pkg.source, &krate.source) {
-                    (Some(psrc), Some(ksrc)) => ksrc == psrc,
-                    (None, None) => true,
-                    _ => false,
+            let index = match source.source_id {
+                crate::SourceId::Sparse(sparse) => {
+                    let surl = format!("sparse+{sparse}");
+                    Index::Http(crates_index::SparseIndex::from_url(&surl).with_context(|| {
+                        format!("failed to load sparse index '{surl}' used by crate {krate}")
+                    })?)
                 }
-        })
-        .map(|(ind, krate)| (ind, krate))
+                crate::SourceId::Rustsec(ssi) => {
+                    let gindex = if ssi.is_default_registry() {
+                        crates_index::Index::new_cargo_default().with_context(|| {
+                            format!("failed to load crates.io index used by crate {krate}")
+                        })?
+                    } else {
+                        crates_index::Index::from_url(ssi.url().as_str()).with_context(|| {
+                            format!("failed to load index '{ssi}' used by crate {krate}")
+                        })?
+                    };
+
+                    Index::Git(gindex)
+                }
+            };
+
+            indices.push((&source.url, index));
+        }
+
+        Ok(indices.into_iter().map(|(url, index)| index).collect())
+    }
 }
 
 pub use rustsec::{Warning, WarningKind};
@@ -672,11 +688,7 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn generate(
-        advisory_dbs: &DbSet,
-        lockfile: &PrunedLockfile,
-        serialize_reports: bool,
-    ) -> Self {
+    pub fn generate(advisory_dbs: &DbSet, krates: &Krates, serialize_reports: bool) -> Self {
         use rustsec::advisory::Informational;
 
         let settings = rustsec::report::Settings {

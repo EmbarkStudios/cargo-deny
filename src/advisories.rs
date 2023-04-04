@@ -5,7 +5,8 @@ mod helpers;
 use crate::{diag, LintLevel};
 pub use diags::Code;
 use helpers::*;
-pub use helpers::{load_lockfile, DbSet, Fetch, PrunedLockfile, Report};
+pub use helpers::{DbSet, Fetch, Report};
+use rayon::prelude::*;
 
 pub trait AuditReporter {
     fn report(&mut self, report: serde_json::Value);
@@ -31,7 +32,6 @@ where
 pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
-    lockfile: PrunedLockfile,
     audit_compatible_reporter: Option<R>,
     sink: S,
 ) where
@@ -44,38 +44,52 @@ pub fn check<R, S>(
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(
-        || Report::generate(advisory_dbs, &lockfile, emit_audit_compatible_reports),
+        || Report::generate(advisory_dbs, &ctx.krates, emit_audit_compatible_reports),
         || {
             // TODO: Once rustsec fully supports non-crates.io sources we'll want
             // to also fetch those as well
             let git_index = crates_index::Index::new_cargo_default().ok();
             let http_index =
                 crates_index::SparseIndex::from_url("sparse+https://index.crates.io/").ok();
-            let mut yanked = Vec::new();
 
-            for package in &lockfile.0.packages {
-                // Ignore non-registry crates when checking, as a crate sourced
-                // locally or via git can have the same name as a registry package
-                if package.source.as_ref().map_or(true, |s| !s.is_registry()) {
-                    continue;
-                }
+            
 
-                let pkg_name = package.name.as_str();
+            let yanked: Vec<_> = ctx
+                .krates
+                .krates()
 
-                if let Some(krate) = http_index
-                    .as_ref()
-                    .and_then(|h| h.crate_from_cache(pkg_name).ok())
-                    .or_else(|| git_index.as_ref().and_then(|g| g.crate_(pkg_name)))
-                {
-                    if krate
-                        .versions()
-                        .iter()
-                        .any(|kv| kv.version() == package.version.to_string() && kv.is_yanked())
-                    {
-                        yanked.push(package);
+            let yanked: Vec<_> = ctx
+                .krates
+                .krates()
+                .par_bridge()
+                .filter(|package| {
+                    // Ignore non-registry crates when checking, as a crate sourced
+                    // locally or via git can have the same name as a registry package
+                    if package.source.as_ref().map_or(true, |s| !s.is_registry()) {
+                        return false;
                     }
-                }
-            }
+
+                    package.n
+                })
+                .collect();
+
+            // for package in &lockfile.0.packages {
+            //     let pkg_name = package.name.as_str();
+
+            //     if let Some(krate) = http_index
+            //         .as_ref()
+            //         .and_then(|h| h.crate_from_cache(pkg_name).ok())
+            //         .or_else(|| git_index.as_ref().and_then(|g| g.crate_(pkg_name)))
+            //     {
+            //         if krate
+            //             .versions()
+            //             .iter()
+            //             .any(|kv| kv.version() == package.version.to_string() && kv.is_yanked())
+            //         {
+            //             yanked.push(package);
+            //         }
+            //     }
+            // }
 
             Ok(yanked)
         },

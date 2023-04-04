@@ -17,7 +17,7 @@ pub mod test_utils;
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid, Utf8PathBuf};
-pub use rustsec::package::SourceId;
+pub use rustsec::package::SourceId as SecSrcId;
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
@@ -47,6 +47,52 @@ const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
 
+#[derive(Debug)]
+enum SourceId {
+    Sparse(url::Url),
+    Rustsec(SecSrcId),
+}
+
+impl SourceId {
+    #[inline]
+    pub fn is_registry(&self) -> bool {
+        match self {
+            Self::Sparse(_) => true,
+            Self::Rustsec(ssi) => ssi.is_registry(),
+        }
+    }
+
+    #[inline]
+    pub fn is_git(&self) -> bool {
+        match self {
+            Self::Sparse(_) => false,
+            Self::Rustsec(ssi) => ssi.is_git(),
+        }
+    }
+}
+
+impl fmt::Display for SourceId {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Sparse(s) => write!(f, "sparse+{s}"),
+            Self::Rustsec(ssi) => write!(f, "{ssi}"),
+        }
+    }
+}
+
+impl std::str::FromStr for SourceId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(sparse_url) = s.strip_prefix("sparse+") {
+            Ok(Self::Sparse(sparse_url.parse()?))
+        } else {
+            Ok(Self::Rustsec(s.parse()?))
+        }
+    }
+}
+
 /// Wrapper around the original source url
 #[derive(Debug)]
 pub struct Source {
@@ -57,10 +103,22 @@ pub struct Source {
     pub source_id: SourceId,
 }
 
-impl PartialEq<SourceId> for Source {
+impl Source {
     #[inline]
-    fn eq(&self, o: &SourceId) -> bool {
-        &self.source_id == o
+    pub fn is_registry(&self) -> bool {
+        self.source_id.is_registry()
+    }
+
+    #[inline]
+    pub fn is_git(&self) -> bool {
+        self.source_id.is_git()
+    }
+}
+
+impl fmt::Display for Source {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.source_id)
     }
 }
 
