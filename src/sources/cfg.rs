@@ -17,11 +17,12 @@ pub struct Orgs {
 
 /// The types of specifiers that can be used on git sources by cargo, in order
 /// of their specificity from least to greatest
-#[derive(Deserialize, PartialEq, Eq, Debug, PartialOrd, Clone, Copy)]
+#[derive(Deserialize, PartialEq, Eq, Debug, PartialOrd, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum GitSpec {
     /// Specifies the HEAD of the `master` branch, though eventually this might
     /// change to the default branch
+    #[default]
     Any,
     /// Specifies the HEAD of a particular branch
     Branch,
@@ -41,12 +42,6 @@ impl fmt::Display for GitSpec {
             Self::Tag => "tag",
             Self::Rev => "rev",
         })
-    }
-}
-
-impl Default for GitSpec {
-    fn default() -> Self {
-        GitSpec::Any
     }
 }
 

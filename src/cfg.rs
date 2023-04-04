@@ -126,10 +126,10 @@ where
     where
         D: de::Deserializer<'de>,
     {
-        pub(crate) const NAME: &str = "$__toml_private_Spanned";
-        pub(crate) const START: &str = "$__toml_private_start";
-        pub(crate) const END: &str = "$__toml_private_end";
-        pub(crate) const VALUE: &str = "$__toml_private_value";
+        pub(crate) const NAME: &str = "$__serde_spanned_private_Spanned";
+        pub(crate) const START: &str = "$__serde_spanned_private_start";
+        pub(crate) const END: &str = "$__serde_spanned_private_end";
+        pub(crate) const VALUE: &str = "$__serde_spanned_private_value";
 
         struct SpannedVisitor<T>(::std::marker::PhantomData<T>);
 

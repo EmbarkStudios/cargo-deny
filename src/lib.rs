@@ -21,23 +21,18 @@ pub use rustsec::package::SourceId;
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
-#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy, Debug, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum LintLevel {
     /// A debug or info diagnostic _may_ be emitted if the lint is violated
     Allow,
     /// A warning will be emitted if the lint is violated, but the command
     /// will succeed
+    #[default]
     Warn,
     /// An error will be emitted if the lint is violated, and the command
     /// will fail with a non-zero exit code
     Deny,
-}
-
-impl Default for LintLevel {
-    fn default() -> Self {
-        LintLevel::Warn
-    }
 }
 
 const fn lint_allow() -> LintLevel {

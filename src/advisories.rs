@@ -48,7 +48,9 @@ pub fn check<R, S>(
         || {
             // TODO: Once rustsec fully supports non-crates.io sources we'll want
             // to also fetch those as well
-            let index = crates_index::Index::new_cargo_default()?;
+            let git_index = crates_index::Index::new_cargo_default().ok();
+            let http_index =
+                crates_index::SparseIndex::from_url("sparse+https://index.crates.io/").ok();
             let mut yanked = Vec::new();
 
             for package in &lockfile.0.packages {
@@ -58,7 +60,13 @@ pub fn check<R, S>(
                     continue;
                 }
 
-                if let Some(krate) = index.crate_(package.name.as_str()) {
+                let pkg_name = package.name.as_str();
+
+                if let Some(krate) = http_index
+                    .as_ref()
+                    .and_then(|h| h.crate_from_cache(pkg_name).ok())
+                    .or_else(|| git_index.as_ref().and_then(|g| g.crate_(pkg_name)))
+                {
                     if krate
                         .versions()
                         .iter()
