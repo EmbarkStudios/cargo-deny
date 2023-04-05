@@ -7,7 +7,6 @@ use crate::{
     diag::{CfgCoord, Check, ErrorSink, Label, Pack},
     LintLevel,
 };
-use url::Url;
 
 const CRATES_IO_URL: &str = "https://github.com/rust-lang/crates.io-index";
 
@@ -44,12 +43,6 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
             None => continue,
         };
 
-        // get URL without git revision (query & fragment)
-        // example URL in Cargo.lock: https://github.com/RustSec/rustsec-crate.git?rev=aaba369#aaba369bebc4fcfb9133b1379bcf430b707188a2
-        // where we only want:        https://github.com/RustSec/rustsec-crate.git
-        // Unwrap is ok since we already know we have a source
-        let source_url = krate.normalized_source_url().unwrap();
-
         let mut pack = Pack::with_kid(Check::Sources, krate.id.clone());
 
         let source_label = {
@@ -64,22 +57,11 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         };
 
         // get allowed list of sources to check
-        let (lint_level, type_name) = if source.source_id.is_registry() {
+        let (lint_level, type_name) = if source.is_registry() {
             (ctx.cfg.unknown_registry, "registry")
-        } else if source.source_id.is_git() {
+        } else if let Some(spec) = source.git_spec() {
             // Ensure the git source has at least the minimum specification
             if let Some((min, cfg_coord)) = &min_git_spec {
-                let mut spec = GitSpec::Any;
-
-                for (k, _v) in source.url.query_pairs() {
-                    spec = match k.as_ref() {
-                        "branch" | "ref" => GitSpec::Branch,
-                        "tag" => GitSpec::Tag,
-                        "rev" => GitSpec::Rev,
-                        _ => continue,
-                    };
-                }
-
                 if spec < *min {
                     pack.push(diags::BelowMinimumRequiredSpec {
                         src_label: &source_label,
@@ -96,68 +78,69 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         };
 
         // check if the source URL is list of allowed sources
-        if let Some(ind) = ctx.cfg.allowed_sources.iter().position(|src| {
-            if src.exact {
-                src.url == source_url
-            } else {
-                source_url.host() == src.url.value.host()
-                    && source_url.path().starts_with(src.url.value.path())
-            }
-        }) {
+        let diag: crate::diag::Diag = if let Some(ind) = ctx
+            .cfg
+            .allowed_sources
+            .iter()
+            .position(|src| krate.matches_url(&src.url.value, src.exact))
+        {
+            source_hits.as_mut_bitslice().set(ind, true);
+
             // Show the location of the config that allowed this source, unless
             // it's crates.io since that will be a vast majority of crates and
             // is the default, so we might not have a real source location anyways
-            if source_url.as_str() != CRATES_IO_URL {
-                pack.push(diags::ExplicitlyAllowedSource {
-                    src_label: &source_label,
-                    type_name,
-                    allow_cfg: CfgCoord {
-                        file: ctx.cfg.file_id,
-                        span: ctx.cfg.allowed_sources[ind].url.span.clone(),
-                    },
-                });
+            if krate.is_crates_io() {
+                continue;
             }
 
-            source_hits.as_mut_bitslice().set(ind, true);
-        } else {
-            let diag: crate::diag::Diag = match get_org(&source_url) {
-                Some((orgt, orgname)) => {
-                    match ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
-                        orgt == *sorgt && sorgn.value.as_str() == orgname
-                    }) {
-                        Some(ind) => {
-                            org_hits.as_mut_bitslice().set(ind, true);
-                            diags::SourceAllowedByOrg {
-                                src_label: &source_label,
-                                org_cfg: CfgCoord {
-                                    file: ctx.cfg.file_id,
-                                    span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
-                                },
-                            }
-                            .into()
-                        }
-                        None => diags::SourceNotExplicitlyAllowed {
-                            src_label: &source_label,
-                            lint_level,
-                            type_name,
-                        }
-                        .into(),
-                    }
+            diags::ExplicitlyAllowedSource {
+                src_label: &source_label,
+                type_name,
+                allow_cfg: CfgCoord {
+                    file: ctx.cfg.file_id,
+                    span: ctx.cfg.allowed_sources[ind].url.span.clone(),
+                },
+            }
+            .into()
+        } else if let Some((orgt, orgname)) = krate
+            .source
+            .as_ref()
+            .and_then(|s| s.url().and_then(get_org))
+        {
+            if let Some(ind) = ctx
+                .cfg
+                .allowed_orgs
+                .iter()
+                .position(|(sorgt, sorgn)| orgt == *sorgt && sorgn.value.as_str() == orgname)
+            {
+                org_hits.as_mut_bitslice().set(ind, true);
+                diags::SourceAllowedByOrg {
+                    src_label: &source_label,
+                    org_cfg: CfgCoord {
+                        file: ctx.cfg.file_id,
+                        span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
+                    },
                 }
-                None => diags::SourceNotExplicitlyAllowed {
+                .into()
+            } else {
+                diags::SourceNotExplicitlyAllowed {
                     src_label: &source_label,
                     lint_level,
                     type_name,
                 }
-                .into(),
-            };
+                .into()
+            }
+        } else {
+            diags::SourceNotExplicitlyAllowed {
+                src_label: &source_label,
+                lint_level,
+                type_name,
+            }
+            .into()
+        };
 
-            pack.push(diag);
-        }
-
-        if !pack.is_empty() {
-            sink.push(pack);
-        }
+        pack.push(diag);
+        sink.push(pack);
     }
 
     let mut pack = Pack::new(Check::Sources);
@@ -197,23 +180,6 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
     if !pack.is_empty() {
         sink.push(pack);
-    }
-}
-
-pub(crate) fn normalize_url(url: &mut Url) {
-    // Normalizes the URL so that different representations can be compared to each other.
-    // At the moment we just remove a tailing `.git` but there are more possible optimisations.
-    // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
-    // for what cargo does
-
-    let git_extension = ".git";
-    let needs_chopping = url.path().ends_with(&git_extension);
-    if needs_chopping {
-        let last = {
-            let last = url.path_segments().unwrap().last().unwrap();
-            last[..last.len() - git_extension.len()].to_owned()
-        };
-        url.path_segments_mut().unwrap().pop().push(&last);
     }
 }
 

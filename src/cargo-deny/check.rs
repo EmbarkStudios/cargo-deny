@@ -309,7 +309,6 @@ pub(crate) fn cmd(
     let mut krates = None;
     let mut license_store = None;
     let mut advisory_dbs = None;
-    let mut advisory_lockfile = None;
     let mut krate_spans = None;
 
     // Create an override structure that remaps specific codes
@@ -366,21 +365,11 @@ pub(crate) fn cmd(
     };
 
     rayon::scope(|s| {
-        s.spawn(|_| {
+        s.spawn(|_s| {
             let gathered = krate_ctx.gather_krates(targets, exclude);
 
             if let Ok(krates) = &gathered {
-                rayon::scope(|s| {
-                    if check_advisories {
-                        s.spawn(|_| {
-                            advisory_lockfile = Some(advisories::load_lockfile(krates.lock_path()));
-                        });
-                    }
-
-                    s.spawn(|_| {
-                        krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
-                    });
-                });
+                krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
             }
 
             krates = Some(gathered);
@@ -413,11 +402,9 @@ pub(crate) fn cmd(
 
     let krates = krates.unwrap()?;
 
-    let advisory_ctx = if check_advisories {
-        let db = advisory_dbs.unwrap()?;
-        let lockfile = advisory_lockfile.unwrap()?;
-
-        Some((db, lockfile))
+    let advisory_db_set = if check_advisories {
+        let dbset = advisory_dbs.unwrap()?;
+        Some(dbset)
     } else {
         None
     };
@@ -604,7 +591,7 @@ pub(crate) fn cmd(
             });
         }
 
-        if let Some((db, lockfile)) = advisory_ctx {
+        if let Some(dbset) = advisory_db_set {
             let advisories_sink = ErrorSink {
                 overrides,
                 channel: tx,
@@ -622,8 +609,6 @@ pub(crate) fn cmd(
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
-                let lf = advisories::PrunedLockfile::prune(lockfile, krates);
-
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
                         println!("{val}");
@@ -632,7 +617,7 @@ pub(crate) fn cmd(
                     None
                 };
 
-                advisories::check(ctx, &db, lf, audit_reporter, advisories_sink);
+                advisories::check(ctx, &dbset, audit_reporter, advisories_sink);
 
                 log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });
