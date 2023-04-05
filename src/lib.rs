@@ -48,7 +48,7 @@ const fn lint_deny() -> LintLevel {
 }
 
 #[derive(Debug)]
-enum SourceId {
+pub enum SourceId {
     Sparse(url::Url),
     Rustsec(SecSrcId),
 }
@@ -67,6 +67,23 @@ impl SourceId {
         match self {
             Self::Sparse(_) => false,
             Self::Rustsec(ssi) => ssi.is_git(),
+        }
+    }
+
+    #[inline]
+    pub fn is_crates_io(&self) -> bool {
+        match self {
+            Self::Sparse(u) => u.as_str() == "https://index.crates.io/",
+            Self::Rustsec(ssi) => ssi.is_default_registry(),
+        }
+    }
+
+    #[inline]
+    pub fn to_rustsec(&self) -> SecSrcId {
+        match self {
+            // Fake it until rustsec supports sparse indices
+            Self::Sparse(u) => SecSrcId::for_registry(u).unwrap(),
+            Self::Rustsec(ssi) => ssi.clone(),
         }
     }
 }
@@ -112,6 +129,18 @@ impl Source {
     #[inline]
     pub fn is_git(&self) -> bool {
         self.source_id.is_git()
+    }
+
+    /// Whether the source is crates.io, regardless of whether it is using the
+    /// git or HTTP sparse index
+    #[inline]
+    pub fn is_crates_io(&self) -> bool {
+        self.source_id.is_crates_io()
+    }
+
+    #[inline]
+    pub fn to_rustsec(&self) -> SecSrcId {
+        self.source_id.to_rustsec()
     }
 }
 

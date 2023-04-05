@@ -1,6 +1,7 @@
 use crate::{Krate, Krates};
 use anyhow::{Context, Error};
 use log::{debug, info};
+use rayon::prelude::*;
 pub use rustsec::{advisory::Id, Database, Lockfile, Vulnerability};
 use std::path::{Path, PathBuf};
 use url::Url;
@@ -631,9 +632,13 @@ pub(super) enum Index {
     Http(crates_index::SparseIndex),
 }
 
-impl Index {
-    fn load_all(krates: &Krates) -> anyhow::Result<Vec<Self>> {
-        let mut indices = Vec::<(&Url, Index)>::new();
+pub(super) struct Indices<'k> {
+    indices: Vec<(&'k Url, Option<Index>)>,
+}
+
+impl<'k> Indices<'k> {
+    pub(super) fn load(krates: &'k Krates) -> Self {
+        let mut indices = Vec::<(&Url, Option<Index>)>::new();
         for (krate, source) in krates
             .krates()
             .filter_map(|k| k.source.as_ref().map(|s| (k, s)))
@@ -645,83 +650,233 @@ impl Index {
                 continue;
             }
 
-            let index = match source.source_id {
+            let index = match &source.source_id {
                 crate::SourceId::Sparse(sparse) => {
                     let surl = format!("sparse+{sparse}");
-                    Index::Http(crates_index::SparseIndex::from_url(&surl).with_context(|| {
-                        format!("failed to load sparse index '{surl}' used by crate {krate}")
-                    })?)
+                    match crates_index::SparseIndex::from_url(&surl) {
+                        Ok(index) => Some(Index::Http(index)),
+                        Err(err) => {
+                            log::warn!("failed to load sparse index '{surl}' used by crate '{krate}': {err}");
+                            None
+                        }
+                    }
                 }
                 crate::SourceId::Rustsec(ssi) => {
                     let gindex = if ssi.is_default_registry() {
-                        crates_index::Index::new_cargo_default().with_context(|| {
-                            format!("failed to load crates.io index used by crate {krate}")
-                        })?
+                        match crates_index::Index::new_cargo_default() {
+                            Ok(i) => Some(i),
+                            Err(err) => {
+                                log::warn!(
+                                    "failed to load crates.io index used by crate '{krate}': {err}"
+                                );
+                                None
+                            }
+                        }
                     } else {
-                        crates_index::Index::from_url(ssi.url().as_str()).with_context(|| {
-                            format!("failed to load index '{ssi}' used by crate {krate}")
-                        })?
+                        match crates_index::Index::from_url(ssi.url().as_str()) {
+                            Ok(i) => Some(i),
+                            Err(err) => {
+                                log::warn!(
+                                    "failed to load index '{ssi}' used by crate '{krate}': {err}"
+                                );
+                                None
+                            }
+                        }
                     };
 
-                    Index::Git(gindex)
+                    gindex.map(Index::Git)
                 }
             };
 
             indices.push((&source.url, index));
         }
 
-        Ok(indices.into_iter().map(|(url, index)| index).collect())
+        Self { indices }
+    }
+
+    #[inline]
+    pub(super) fn is_yanked(&self, krate: &Krate) -> anyhow::Result<bool> {
+        // Ignore non-registry crates when checking, as a crate sourced
+        // locally or via git can have the same name as a registry package
+        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else { return Ok(false) };
+
+        let index = self
+            .indices
+            .iter()
+            .find_map(|(url, index)| {
+                index
+                    .as_ref()
+                    .filter(|_i| (src.url.as_str() == url.as_str()))
+            })
+            .context("failed to load source index")?;
+
+        let index_krate = match index {
+            Index::Git(gindex) => gindex
+                .crate_(&krate.name)
+                .context("failed to find crate in git index")?,
+            Index::Http(hindex) => hindex
+                .crate_from_cache(&krate.name)
+                .context("failed to find crate in sparse index")?,
+        };
+
+        Ok(index_krate
+            .versions()
+            .iter()
+            .any(|kv| kv.version() == krate.version.to_string() && kv.is_yanked()))
     }
 }
 
 pub use rustsec::{Warning, WarningKind};
 
-pub struct Report {
-    pub vulnerabilities: Vec<Vulnerability>,
-    pub notices: Vec<Warning>,
-    pub unmaintained: Vec<Warning>,
-    pub unsound: Vec<Warning>,
+pub struct Report<'db, 'k> {
+    pub advisories: Vec<(&'k Krate, krates::NodeId, &'db rustsec::Advisory)>,
     /// For backwards compatiblity with cargo-audit, we optionally serialize the
     /// reports to JSON and output them in addition to the normal cargo-deny
     /// diagnostics
     pub serialized_reports: Vec<serde_json::Value>,
 }
 
-impl Report {
-    pub fn generate(advisory_dbs: &DbSet, krates: &Krates, serialize_reports: bool) -> Self {
-        use rustsec::advisory::Informational;
-
-        let settings = rustsec::report::Settings {
-            // We already prune packages we don't care about, so don't filter
-            // any here
-            target_arch: None,
-            target_os: None,
-            // We handle the severity ourselves
-            severity: None,
-            // We handle the ignoring of particular advisory ids ourselves
-            ignore: Vec::new(),
-            informational_warnings: vec![
-                Informational::Notice,
-                Informational::Unmaintained,
-                Informational::Unsound,
-                //Informational::Other("*"),
-            ],
-        };
-
-        let mut vulnerabilities = Vec::new();
-        let mut notices = Vec::new();
-        let mut unmaintained = Vec::new();
-        let mut unsound = Vec::new();
+impl<'db, 'k> Report<'db, 'k> {
+    pub fn generate(advisory_dbs: &'db DbSet, krates: &'k Krates, serialize_reports: bool) -> Self {
         let mut serialized_reports = Vec::with_capacity(if serialize_reports {
             advisory_dbs.dbs.len()
         } else {
             0
         });
 
-        for (url, db) in advisory_dbs.iter() {
-            let mut rep = rustsec::Report::generate(db, &lockfile.0, &settings);
+        // We just use rustsec::Report directly to avoid divergence with cargo-audit,
+        // but since we operate differently we need to do shenanigans
+        let fake_lockfile = serialize_reports.then(|| {
+            // This is really gross, but the only field is private :p
+            let lfi: rustsec::report::LockfileInfo = serde_json::from_value(serde_json::json!({
+                "dependency-count": krates.len()
+            }))
+            .expect("check the definition of rustsec::report::LockfileInfo, it's been changed");
 
-            if serialize_reports {
+            lfi
+        });
+
+        let mut advisories = Vec::new();
+
+        for (url, db) in advisory_dbs.iter() {
+            // Ugh, db exposes advisories as a slice iter which rayon doesn't have an impl for :(
+            let mut db_advisories: Vec<_> = db
+                .iter()
+                .par_bridge()
+                .filter(|advisory| {
+                    if let Some(wdate) = &advisory.metadata.withdrawn {
+                        log::trace!(
+                            "ignoring advisory '{}', withdrawn {wdate}",
+                            advisory.metadata.id
+                        );
+                        return false;
+                    }
+
+                    // TODO: Support Rust std/core advisories at some point, but
+                    // AFAIK rustsec/cargo-audit doesn't support checking for them either
+                    advisory
+                        .metadata
+                        .collection
+                        .map_or(true, |c| c == rustsec::Collection::Crates)
+                })
+                .flat_map(|advisory| {
+                    krates
+                        .krates_by_name(advisory.metadata.package.as_str())
+                        .par_bridge()
+                        .filter_map(move |(nid, krate)| {
+                            let ksrc = krate.source.as_ref()?;
+
+                            // Validate the crate's source is the same as the advisory
+                            if !(advisory.metadata.collection.is_some() && ksrc.is_crates_io()) {
+                                if !ksrc.is_registry()
+                                    || !advisory
+                                        .metadata
+                                        .source
+                                        .as_ref()
+                                        .map_or(false, |sid| sid.url() == &ksrc.url)
+                                {
+                                    return None;
+                                }
+                            }
+
+                            // Ensure the crate's version is actually affected
+                            if !advisory.versions.is_vulnerable(&krate.version) {
+                                return None;
+                            }
+
+                            Some((krate, nid, advisory))
+                        })
+                })
+                .collect();
+
+            if let Some(lockfile) = fake_lockfile.clone() {
+                let mut warnings = std::collections::BTreeMap::<_, Vec<rustsec::Warning>>::new();
+                let mut vulns = Vec::new();
+
+                for (krate, _nid, advisory) in &db_advisories {
+                    let package = rustsec::package::Package {
+                        // :(
+                        name: krate.name.parse().unwrap(),
+                        version: krate.version.clone(),
+                        source: krate.source.as_ref().map(|s| s.to_rustsec()),
+                        // TODO: Get this info from the lockfile
+                        checksum: None,
+                        dependencies: Vec::new(),
+                        replace: None,
+                    };
+
+                    if let Some(kind) = advisory
+                        .metadata
+                        .informational
+                        .as_ref()
+                        .and_then(|i| i.warning_kind())
+                    {
+                        let warning = rustsec::Warning {
+                            kind,
+                            package,
+                            advisory: Some(advisory.metadata.clone()),
+                            versions: Some(advisory.versions.clone()),
+                        };
+
+                        if let Some(v) = warnings.get_mut(&kind) {
+                            v.push(warning);
+                        } else {
+                            warnings.insert(kind, vec![warning]);
+                        }
+                    } else {
+                        // Note we don't use new here since it takes references and just clones :p
+                        vulns.push(rustsec::Vulnerability {
+                            advisory: advisory.metadata.clone(),
+                            versions: advisory.versions.clone(),
+                            affected: advisory.affected.clone(),
+                            package,
+                        });
+                    }
+                }
+
+                use rustsec::advisory::Informational;
+                let rep = rustsec::Report {
+                    settings: rustsec::report::Settings {
+                        // We already prune packages we don't care about, so don't filter
+                        // any here
+                        target_arch: None,
+                        target_os: None,
+                        // We handle the severity ourselves
+                        severity: None,
+                        // We handle the ignoring of particular advisory ids ourselves
+                        ignore: Vec::new(),
+                        informational_warnings: vec![
+                            Informational::Notice,
+                            Informational::Unmaintained,
+                            Informational::Unsound,
+                            //Informational::Other("*"),
+                        ],
+                    },
+                    lockfile,
+                    vulnerabilities: rustsec::report::VulnerabilityInfo::new(vulns),
+                    warnings,
+                };
+
                 match serde_json::to_value(&rep) {
                     Ok(val) => serialized_reports.push(val),
                     Err(err) => {
@@ -730,41 +885,13 @@ impl Report {
                 }
             }
 
-            vulnerabilities.append(&mut rep.vulnerabilities.list);
-
-            for (kind, mut wi) in rep.warnings {
-                if wi.is_empty() {
-                    continue;
-                }
-
-                match kind {
-                    WarningKind::Notice => notices.append(&mut wi),
-                    WarningKind::Unmaintained => unmaintained.append(&mut wi),
-                    WarningKind::Unsound => unsound.append(&mut wi),
-                    _ => unreachable!(),
-                }
-            }
+            advisories.append(&mut db_advisories);
         }
 
         Self {
-            vulnerabilities,
-            notices,
-            unmaintained,
-            unsound,
+            advisories,
             serialized_reports,
         }
-    }
-
-    pub fn iter_warnings(&self) -> impl Iterator<Item = (WarningKind, &Warning)> {
-        self.notices
-            .iter()
-            .map(|wi| (WarningKind::Notice, wi))
-            .chain(
-                self.unmaintained
-                    .iter()
-                    .map(|wi| (WarningKind::Unmaintained, wi)),
-            )
-            .chain(self.unsound.iter().map(|wi| (WarningKind::Unsound, wi)))
     }
 }
 
