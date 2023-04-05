@@ -105,7 +105,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         } else if let Some((orgt, orgname)) = krate
             .source
             .as_ref()
-            .and_then(|s| s.url().and_then(|u| get_org(u)))
+            .and_then(|s| s.url().and_then(get_org))
         {
             if let Some(ind) = ctx
                 .cfg
