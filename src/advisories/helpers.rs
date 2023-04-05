@@ -76,10 +76,12 @@ impl DbSet {
         })
     }
 
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &(Url, Database)> {
         self.dbs.iter()
     }
 
+    #[inline]
     pub fn has_advisory(&self, id: &Id) -> bool {
         self.dbs.iter().any(|db| db.1.get(id).is_some())
     }
@@ -633,26 +635,29 @@ pub(super) enum Index {
 }
 
 pub(super) struct Indices<'k> {
-    indices: Vec<(&'k Url, Option<Index>)>,
+    indices: Vec<(&'k crate::Source, Option<Index>)>,
 }
 
 impl<'k> Indices<'k> {
     pub(super) fn load(krates: &'k Krates) -> Self {
-        let mut indices = Vec::<(&Url, Option<Index>)>::new();
+        let mut indices = Vec::<(&crate::Source, Option<Index>)>::new();
         for (krate, source) in krates
             .krates()
             .filter_map(|k| k.source.as_ref().map(|s| (k, s)))
         {
-            if indices
-                .iter()
-                .any(|(url, _)| url.as_str() == source.url.as_str())
-            {
+            if indices.iter().any(|(src, _)| *src == source) {
                 continue;
             }
 
-            let index = match &source.source_id {
-                crate::SourceId::Sparse(sparse) => {
-                    let surl = format!("sparse+{sparse}");
+            use crate::SourceKind;
+            let index = match (source.kind, source.url()) {
+                (SourceKind::CratesIo(true) | SourceKind::Sparse, url) => {
+                    let surl = if let Some(url) = url {
+                        format!("sparse+{url}")
+                    } else {
+                        crate::CRATES_IO_SPARSE.to_owned()
+                    };
+
                     match crates_index::SparseIndex::from_url(&surl) {
                         Ok(index) => Some(Index::Http(index)),
                         Err(err) => {
@@ -661,34 +666,32 @@ impl<'k> Indices<'k> {
                         }
                     }
                 }
-                crate::SourceId::Rustsec(ssi) => {
-                    let gindex = if ssi.is_default_registry() {
-                        match crates_index::Index::new_cargo_default() {
-                            Ok(i) => Some(i),
-                            Err(err) => {
-                                log::warn!(
-                                    "failed to load crates.io index used by crate '{krate}': {err}"
-                                );
-                                None
-                            }
+                (SourceKind::CratesIo(false), None) => {
+                    match crates_index::Index::new_cargo_default() {
+                        Ok(i) => Some(Index::Git(i)),
+                        Err(err) => {
+                            log::warn!(
+                                "failed to load crates.io index used by crate '{krate}': {err}"
+                            );
+                            None
                         }
-                    } else {
-                        match crates_index::Index::from_url(ssi.url().as_str()) {
-                            Ok(i) => Some(i),
-                            Err(err) => {
-                                log::warn!(
-                                    "failed to load index '{ssi}' used by crate '{krate}': {err}"
-                                );
-                                None
-                            }
-                        }
-                    };
-
-                    gindex.map(Index::Git)
+                    }
                 }
+                (SourceKind::Registry, Some(url)) => {
+                    match crates_index::Index::from_url(url.as_str()) {
+                        Ok(i) => Some(Index::Git(i)),
+                        Err(err) => {
+                            log::warn!(
+                                "failed to load index '{url}' used by crate '{krate}': {err}"
+                            );
+                            None
+                        }
+                    }
+                }
+                _ => None,
             };
 
-            indices.push((&source.url, index));
+            indices.push((source, index));
         }
 
         Self { indices }
@@ -703,11 +706,7 @@ impl<'k> Indices<'k> {
         let index = self
             .indices
             .iter()
-            .find_map(|(url, index)| {
-                index
-                    .as_ref()
-                    .filter(|_i| (src.url.as_str() == url.as_str()))
-            })
+            .find_map(|(url, index)| index.as_ref().filter(|_i| src == *url))
             .context("failed to load source index")?;
 
         let index_krate = match index {
@@ -787,16 +786,8 @@ impl<'db, 'k> Report<'db, 'k> {
                             let ksrc = krate.source.as_ref()?;
 
                             // Validate the crate's source is the same as the advisory
-                            if !(advisory.metadata.collection.is_some() && ksrc.is_crates_io()) {
-                                if !ksrc.is_registry()
-                                    || !advisory
-                                        .metadata
-                                        .source
-                                        .as_ref()
-                                        .map_or(false, |sid| sid.url() == &ksrc.url)
-                                {
-                                    return None;
-                                }
+                            if !ksrc.matches_rustsec(advisory.metadata.source.as_ref()) {
+                                return None;
                             }
 
                             // Ensure the crate's version is actually affected

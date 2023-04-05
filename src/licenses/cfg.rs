@@ -201,7 +201,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         for aurl in &self.private.ignore_sources {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    crate::sources::normalize_url(&mut url);
+                    crate::normalize_url(&mut url);
                     ignore_sources.push(url);
                 }
                 Err(pe) => {

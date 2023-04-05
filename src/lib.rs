@@ -2,6 +2,7 @@
 
 pub use semver::Version;
 use std::{cmp, collections::HashMap, fmt};
+use url::Url;
 
 pub mod advisories;
 pub mod bans;
@@ -17,7 +18,9 @@ pub mod test_utils;
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid, Utf8PathBuf};
-pub use rustsec::package::SourceId as SecSrcId;
+
+const CRATES_IO_SPARSE: &str = "sparse+https://index.crates.io/";
+const CRATES_IO_GIT: &str = "registry+https://github.com/rust-lang/crates.io-index";
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
@@ -47,107 +50,128 @@ const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
 
-#[derive(Debug)]
-pub enum SourceId {
-    Sparse(url::Url),
-    Rustsec(SecSrcId),
-}
-
-impl SourceId {
-    #[inline]
-    pub fn is_registry(&self) -> bool {
-        match self {
-            Self::Sparse(_) => true,
-            Self::Rustsec(ssi) => ssi.is_registry(),
-        }
-    }
-
-    #[inline]
-    pub fn is_git(&self) -> bool {
-        match self {
-            Self::Sparse(_) => false,
-            Self::Rustsec(ssi) => ssi.is_git(),
-        }
-    }
-
-    #[inline]
-    pub fn is_crates_io(&self) -> bool {
-        match self {
-            Self::Sparse(u) => u.as_str() == "https://index.crates.io/",
-            Self::Rustsec(ssi) => ssi.is_default_registry(),
-        }
-    }
-
-    #[inline]
-    pub fn to_rustsec(&self) -> SecSrcId {
-        match self {
-            // Fake it until rustsec supports sparse indices
-            Self::Sparse(u) => SecSrcId::for_registry(u).unwrap(),
-            Self::Rustsec(ssi) => ssi.clone(),
-        }
-    }
-}
-
-impl fmt::Display for SourceId {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Sparse(s) => write!(f, "sparse+{s}"),
-            Self::Rustsec(ssi) => write!(f, "{ssi}"),
-        }
-    }
-}
-
-impl std::str::FromStr for SourceId {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(sparse_url) = s.strip_prefix("sparse+") {
-            Ok(Self::Sparse(sparse_url.parse()?))
-        } else {
-            Ok(Self::Rustsec(s.parse()?))
-        }
-    }
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum SourceKind {
+    /// crates.io, the boolean indicates whether it is a sparse index
+    CratesIo(bool),
+    /// A remote git patch
+    Git,
+    /// A remote git index
+    Registry,
+    /// A remote sparse index
+    Sparse,
 }
 
 /// Wrapper around the original source url
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Source {
-    /// The original url obtained via cargo
-    pub url: url::Url,
-    /// The rustsec id, this is used to match crates in our graph with the one
-    /// that rustsec uses
-    pub source_id: SourceId,
+    pub kind: SourceKind,
+    url: Option<url::Url>,
 }
 
 impl Source {
-    #[inline]
-    pub fn is_registry(&self) -> bool {
-        self.source_id.is_registry()
+    fn from_metadata(urls: String) -> anyhow::Result<Self> {
+        if urls == CRATES_IO_GIT {
+            return Ok(Self {
+                kind: SourceKind::CratesIo(false),
+                url: None,
+            });
+        } else if urls == CRATES_IO_SPARSE {
+            return Ok(Self {
+                kind: SourceKind::CratesIo(true),
+                url: None,
+            });
+        }
+
+        use anyhow::Context as _;
+        let index = urls.find('+').context("url is not a valid crate source")?;
+        let mut url = Url::parse(&urls[index + 1..]).context("failed to parse url")?;
+
+        let kind = match &urls[..index] {
+            "sparse" => SourceKind::Sparse,
+            "registry" => SourceKind::Registry,
+            "git" => {
+                normalize_url(&mut url);
+                SourceKind::Git
+            }
+            unknown => anyhow::bail!("unknown source spec '{unknown}' for url {urls}"),
+        };
+
+        Ok(Self {
+            kind,
+            url: Some(url),
+        })
     }
 
     #[inline]
     pub fn is_git(&self) -> bool {
-        self.source_id.is_git()
+        matches!(self.kind, SourceKind::Git)
     }
 
-    /// Whether the source is crates.io, regardless of whether it is using the
-    /// git or HTTP sparse index
+    #[inline]
+    pub fn is_registry(&self) -> bool {
+        matches!(
+            self.kind,
+            SourceKind::CratesIo(_) | SourceKind::Registry | SourceKind::Sparse
+        )
+    }
+
     #[inline]
     pub fn is_crates_io(&self) -> bool {
-        self.source_id.is_crates_io()
+        matches!(self.kind, SourceKind::CratesIo(_))
     }
 
     #[inline]
-    pub fn to_rustsec(&self) -> SecSrcId {
-        self.source_id.to_rustsec()
+    pub fn url(&self) -> Option<&Url> {
+        self.url.as_ref()
+    }
+
+    #[inline]
+    pub fn to_rustsec(&self) -> rustsec::package::SourceId {
+        use rustsec::package::SourceId;
+        // TODO: Change this once rustsec supports sparse indices
+        match (self.kind, &self.url) {
+            (SourceKind::CratesIo(_), None) => SourceId::default(),
+            (SourceKind::Registry | SourceKind::Sparse, Some(url)) => {
+                SourceId::for_registry(url).unwrap()
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[inline]
+    pub fn matches_rustsec(&self, sid: Option<&rustsec::package::SourceId>) -> bool {
+        let Some(sid) = sid else { return self.is_crates_io(); };
+        let Some(ksid) = &self.url else { return false; };
+
+        if self.is_registry() && sid.is_remote_registry() {
+            sid.url() == ksid
+        } else {
+            false
+        }
     }
 }
 
 impl fmt::Display for Source {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.source_id)
+        match (self.kind, self.url.as_ref()) {
+            (SourceKind::CratesIo(is_sparse), None) => f.write_str(if is_sparse {
+                CRATES_IO_SPARSE
+            } else {
+                CRATES_IO_GIT
+            }),
+            (SourceKind::Git, Some(url)) => {
+                write!(f, "git+{url}")
+            }
+            (SourceKind::Registry, Some(url)) => {
+                write!(f, "registry+{url}")
+            }
+            (SourceKind::Sparse, Some(url)) => {
+                write!(f, "sparse+{url}")
+            }
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -225,37 +249,28 @@ impl krates::KrateDetails for Krate {
 
 impl From<cm::Package> for Krate {
     fn from(pkg: cm::Package) -> Self {
+        let source = pkg.source.and_then(|src| {
+            let url = src.to_string();
+
+            Source::from_metadata(url)
+                .map_err(|err| {
+                    log::warn!(
+                        "unable to parse source url for {}:{}: {err}",
+                        pkg.name,
+                        pkg.version
+                    );
+                    err
+                })
+                .ok()
+        });
+
         Self {
             name: pkg.name,
             id: pkg.id,
             version: pkg.version,
             authors: pkg.authors,
             repository: pkg.repository,
-            source: {
-                pkg.source.and_then(|src| {
-                    let url = src.to_string();
-
-                    match url.parse() {
-                        Ok(source_id) => {
-                            // Strip the leading <kind>+ from the url
-                            let url = if let Some(ind) = url.find('+') {
-                                url[ind + 1..].to_owned()
-                            } else {
-                                url
-                            };
-
-                            Some(Source {
-                                url: url.parse().unwrap(),
-                                source_id,
-                            })
-                        }
-                        Err(err) => {
-                            log::warn!("unable to parse source url '{url}': {err}");
-                            None
-                        }
-                    }
-                })
-            },
+            source,
             targets: pkg.targets,
             license: pkg.license.map(|lf| {
                 // cargo used to allow / in place of OR which is not valid
@@ -294,22 +309,34 @@ impl Krate {
         })
     }
 
-    /// Returns the normalized source URL
-    pub(crate) fn normalized_source_url(&self) -> Option<url::Url> {
-        self.source.as_ref().map(|source| {
-            let mut url = source.url.clone();
-            url.set_query(None);
-            url.set_fragment(None);
-            crate::sources::normalize_url(&mut url);
-            url
-        })
+    /// Determines if the specified url matches the source
+    #[inline]
+    pub(crate) fn matches_url(&self, url: &Url, exact: bool) -> bool {
+        let Some(src) = &self.source else { return false };
+
+        // It's irrelevant if it's sparse or not
+        if src.is_crates_io() {
+            return url.as_str().ends_with(&CRATES_IO_SPARSE[8..])
+                || url.as_str().ends_with(&CRATES_IO_GIT[10..]);
+        }
+
+        let Some(kurl) = &src.url else { return false; };
+
+        if kurl.scheme() != url.scheme() || kurl.host() != url.host() {
+            return false;
+        }
+
+        (exact && kurl.path() == url.path()) || (!exact && kurl.path().starts_with(url.path()))
+    }
+
+    #[inline]
+    pub(crate) fn is_crates_io(&self) -> bool {
+        self.source.as_ref().map_or(false, |src| src.is_crates_io())
     }
 
     #[inline]
     pub(crate) fn is_git_source(&self) -> bool {
-        self.source
-            .as_ref()
-            .map_or(false, |src| src.source_id.is_git())
+        self.source.as_ref().map_or(false, |src| src.is_git())
     }
 }
 
@@ -371,4 +398,55 @@ pub struct CheckCtx<'ctx, T> {
 #[inline]
 pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
     req.map_or(true, |req| req.matches(version))
+}
+
+#[inline]
+pub(crate) fn normalize_url(url: &mut Url) {
+    // Normalizes the URL so that different representations can be compared to each other.
+    // At the moment we just remove a tailing `.git` but there are more possible optimisations.
+    // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
+    // for what cargo does
+    const GIT_EXT: &str = ".git";
+
+    let needs_chopping = url.path().ends_with(&GIT_EXT);
+    if needs_chopping {
+        let last = {
+            let last = url.path_segments().unwrap().last().unwrap();
+            last[..last.len() - GIT_EXT.len()].to_owned()
+        };
+        url.path_segments_mut().unwrap().pop().push(&last);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Source;
+
+    #[test]
+    fn parses_sources() {
+        let crates_io_git = Source::from_metadata(
+            "registry+https://github.com/rust-lang/crates.io-index".to_owned(),
+        )
+        .unwrap();
+        let crates_io_sparse =
+            Source::from_metadata("sparse+https://index.crates.io/".to_owned()).unwrap();
+
+        assert!(crates_io_git.is_registry() && crates_io_sparse.is_registry());
+        assert!(crates_io_git.is_crates_io() && crates_io_sparse.is_crates_io());
+
+        assert!(
+            Source::from_metadata("registry+https://my-own-my-precious.com/".to_owned())
+                .unwrap()
+                .is_registry()
+        );
+        assert!(
+            Source::from_metadata("sparse+https://my-registry.rs/".to_owned())
+                .unwrap()
+                .is_registry()
+        );
+
+        let src = Source::from_metadata("git+https://github.com/EmbarkStudios/wasmtime?branch=v6.0.1-profiler#84b8cacceacb585ef53774c3790b2372ba080067".to_owned()).unwrap();
+
+        assert!(src.is_git());
+    }
 }

@@ -41,9 +41,9 @@ pub fn check<R, S>(
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(
-        || Report::generate(advisory_dbs, &ctx.krates, emit_audit_compatible_reports),
+        || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
         || {
-            let indices = Indices::load(&ctx.krates);
+            let indices = Indices::load(ctx.krates);
 
             let yanked: Vec<_> = ctx
                 .krates

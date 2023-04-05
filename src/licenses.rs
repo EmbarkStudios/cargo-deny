@@ -284,10 +284,11 @@ pub fn check(
         // a help message that we skipped it
         if ctx.cfg.private.ignore
             && (krate_lic_nfo.krate.is_private(&private_registries)
-                || krate_lic_nfo
-                    .krate
-                    .normalized_source_url()
-                    .map_or(false, |source| ctx.cfg.ignore_sources.contains(&source)))
+                || ctx
+                    .cfg
+                    .ignore_sources
+                    .iter()
+                    .any(|url| krate_lic_nfo.krate.matches_url(url, true)))
         {
             pack.push(diags::SkippedPrivateWorkspaceCrate {
                 krate: krate_lic_nfo.krate,

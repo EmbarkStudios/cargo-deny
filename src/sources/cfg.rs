@@ -1,4 +1,4 @@
-use super::{normalize_url, OrgType};
+use super::OrgType;
 use crate::{cfg, diag::FileId, LintLevel, Spanned};
 use serde::Deserialize;
 
@@ -121,7 +121,7 @@ impl cfg::UnvalidatedConfig for Config {
         {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    normalize_url(&mut url);
+                    crate::normalize_url(&mut url);
                     allowed_sources.push(UrlSource {
                         url: UrlSpan {
                             value: url,
