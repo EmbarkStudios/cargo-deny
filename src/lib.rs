@@ -91,7 +91,7 @@ impl Source {
             "sparse" => SourceKind::Sparse,
             "registry" => SourceKind::Registry,
             "git" => {
-                normalize_url(&mut url);
+                normalize_git_url(&mut url);
                 SourceKind::Git
             }
             unknown => anyhow::bail!("unknown source spec '{unknown}' for url {urls}"),
@@ -401,7 +401,7 @@ pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
 }
 
 #[inline]
-pub(crate) fn normalize_url(url: &mut Url) {
+pub(crate) fn normalize_git_url(url: &mut Url) {
     // Normalizes the URL so that different representations can be compared to each other.
     // At the moment we just remove a tailing `.git` but there are more possible optimisations.
     // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
@@ -415,6 +415,28 @@ pub(crate) fn normalize_url(url: &mut Url) {
             last[..last.len() - GIT_EXT.len()].to_owned()
         };
         url.path_segments_mut().unwrap().pop().push(&last);
+    }
+
+    if url
+        .query_pairs()
+        .any(|(k, v)| k == "branch" && v == "master")
+    {
+        if url.query_pairs().count() == 1 {
+            url.set_query(None);
+        } else {
+            let mut nq = String::new();
+            for (k, v) in url.query_pairs() {
+                if k == "branch" && v == "master" {
+                    continue;
+                }
+
+                use std::fmt::Write;
+                write!(&mut nq, "{k}={v}&").unwrap();
+            }
+
+            nq.pop();
+            url.set_query(Some(&nq));
+        }
     }
 }
 

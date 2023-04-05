@@ -121,7 +121,7 @@ impl cfg::UnvalidatedConfig for Config {
         {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    crate::normalize_url(&mut url);
+                    crate::normalize_git_url(&mut url);
                     allowed_sources.push(UrlSource {
                         url: UrlSpan {
                             value: url,
