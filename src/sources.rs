@@ -59,20 +59,9 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         // get allowed list of sources to check
         let (lint_level, type_name) = if source.is_registry() {
             (ctx.cfg.unknown_registry, "registry")
-        } else if let Some(git_url) = source.url().filter(|_| source.is_git()) {
+        } else if let Some(spec) = source.git_spec() {
             // Ensure the git source has at least the minimum specification
             if let Some((min, cfg_coord)) = &min_git_spec {
-                let mut spec = GitSpec::Any;
-
-                for (k, _v) in git_url.query_pairs() {
-                    spec = match k.as_ref() {
-                        "branch" | "ref" => GitSpec::Branch,
-                        "tag" => GitSpec::Tag,
-                        "rev" => GitSpec::Rev,
-                        _ => continue,
-                    };
-                }
-
                 if spec < *min {
                     pack.push(diags::BelowMinimumRequiredSpec {
                         src_label: &source_label,

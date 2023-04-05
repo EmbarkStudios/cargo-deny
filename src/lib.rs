@@ -55,7 +55,7 @@ pub enum SourceKind {
     /// crates.io, the boolean indicates whether it is a sparse index
     CratesIo(bool),
     /// A remote git patch
-    Git,
+    Git(GitSpec),
     /// A remote git index
     Registry,
     /// A remote sparse index
@@ -91,8 +91,8 @@ impl Source {
             "sparse" => SourceKind::Sparse,
             "registry" => SourceKind::Registry,
             "git" => {
-                normalize_git_url(&mut url);
-                SourceKind::Git
+                let spec = normalize_git_url(&mut url);
+                SourceKind::Git(spec)
             }
             unknown => anyhow::bail!("unknown source spec '{unknown}' for url {urls}"),
         };
@@ -105,7 +105,16 @@ impl Source {
 
     #[inline]
     pub fn is_git(&self) -> bool {
-        matches!(self.kind, SourceKind::Git)
+        matches!(self.kind, SourceKind::Git(_))
+    }
+
+    #[inline]
+    pub fn git_spec(&self) -> Option<GitSpec> {
+        if let SourceKind::Git(spec) = self.kind {
+            Some(spec)
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -161,7 +170,7 @@ impl fmt::Display for Source {
             } else {
                 CRATES_IO_GIT
             }),
-            (SourceKind::Git, Some(url)) => {
+            (SourceKind::Git(_), Some(url)) => {
                 write!(f, "git+{url}")
             }
             (SourceKind::Registry, Some(url)) => {
@@ -400,8 +409,10 @@ pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
     req.map_or(true, |req| req.matches(version))
 }
 
+use sources::GitSpec;
+
 #[inline]
-pub(crate) fn normalize_git_url(url: &mut Url) {
+pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
     // Normalizes the URL so that different representations can be compared to each other.
     // At the moment we just remove a tailing `.git` but there are more possible optimisations.
     // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
@@ -415,6 +426,17 @@ pub(crate) fn normalize_git_url(url: &mut Url) {
             last[..last.len() - GIT_EXT.len()].to_owned()
         };
         url.path_segments_mut().unwrap().pop().push(&last);
+    }
+
+    let mut spec = GitSpec::Any;
+
+    for (k, _v) in url.query_pairs() {
+        spec = match k.as_ref() {
+            "branch" | "ref" => GitSpec::Branch,
+            "tag" => GitSpec::Tag,
+            "rev" => GitSpec::Rev,
+            _ => continue,
+        };
     }
 
     if url
@@ -438,6 +460,8 @@ pub(crate) fn normalize_git_url(url: &mut Url) {
             url.set_query(Some(&nq));
         }
     }
+
+    spec
 }
 
 #[cfg(test)]
