@@ -1,4 +1,5 @@
 use crate::Format;
+use is_terminal::IsTerminal as _;
 use nu_ansi_term::Color;
 use serde::Serialize;
 
@@ -46,7 +47,7 @@ pub(crate) fn print_stats(
             let mut summary = String::new();
 
             let color = match color {
-                crate::Color::Auto => atty::is(atty::Stream::Stdout),
+                crate::Color::Auto => std::io::stdout().is_terminal(),
                 crate::Color::Always => true,
                 crate::Color::Never => false,
             };

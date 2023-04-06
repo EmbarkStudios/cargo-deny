@@ -2,6 +2,7 @@
 
 use anyhow::{bail, Context, Error};
 use clap::{Parser, Subcommand, ValueEnum};
+use is_terminal::IsTerminal as _;
 use std::path::PathBuf;
 
 mod check;
@@ -231,7 +232,7 @@ fn real_main() -> Result<(), Error> {
     let log_level = args.log_level;
 
     let color = match args.color {
-        Color::Auto => atty::is(atty::Stream::Stderr),
+        Color::Auto => std::io::stderr().is_terminal(),
         Color::Always => true,
         Color::Never => false,
     };
