@@ -7,6 +7,7 @@ use cargo_deny::{
     },
     licenses, sources, CheckCtx,
 };
+use is_terminal::IsTerminal as _;
 use log::error;
 use serde::Deserialize;
 use std::{path::PathBuf, time::Instant};
@@ -471,7 +472,7 @@ pub(crate) fn cmd(
 
     let colorize = log_ctx.format == crate::Format::Human
         && match log_ctx.color {
-            crate::Color::Auto => atty::is(atty::Stream::Stderr),
+            crate::Color::Auto => std::io::stderr().is_terminal(),
             crate::Color::Always => true,
             crate::Color::Never => false,
         };

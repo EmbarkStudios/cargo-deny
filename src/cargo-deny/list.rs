@@ -1,5 +1,6 @@
 use anyhow::{Context, Error};
 use cargo_deny::{diag::Files, licenses, Kid};
+use is_terminal::IsTerminal as _;
 use nu_ansi_term::Color;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -250,7 +251,7 @@ pub fn cmd(
             let color = match log_ctx.color {
                 crate::Color::Always => true,
                 crate::Color::Never => false,
-                crate::Color::Auto => atty::is(atty::Stream::Stdout),
+                crate::Color::Auto => std::io::stdout().is_terminal(),
             };
 
             match args.layout {

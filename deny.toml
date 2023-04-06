@@ -14,9 +14,6 @@ unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
 ignore = [
-    # potential unaligned pointer read on windows. Doesn't happen in practice, don't
-    # care
-    "RUSTSEC-2021-0145",
     # rmp-serde used by askalono for the cache files, these are always utf-8 so
     # the advisory is not relevant
     "RUSTSEC-2022-0092",

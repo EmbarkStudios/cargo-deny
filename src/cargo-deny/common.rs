@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-
 use cargo_deny::{
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
 };
+use is_terminal::IsTerminal;
+use std::path::PathBuf;
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
@@ -272,12 +272,12 @@ pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
 use codespan_reporting::term::{self, termcolor::ColorChoice};
 use std::io::Write;
 
-fn color_to_choice(color: crate::Color, stream: atty::Stream) -> ColorChoice {
+fn color_to_choice(color: crate::Color, stream: impl IsTerminal) -> ColorChoice {
     match color {
         crate::Color::Auto => {
             // The termcolor crate doesn't check the stream to see if it's a TTY
             // which doesn't really fit with how the rest of the coloring works
-            if atty::is(stream) {
+            if stream.is_terminal() {
                 ColorChoice::Auto
             } else {
                 ColorChoice::Never
@@ -476,7 +476,7 @@ impl<'a> DiagPrinter<'a> {
             crate::Format::Human => {
                 let stream = term::termcolor::StandardStream::stderr(color_to_choice(
                     ctx.color,
-                    atty::Stream::Stderr,
+                    std::io::stderr(),
                 ));
 
                 Self {

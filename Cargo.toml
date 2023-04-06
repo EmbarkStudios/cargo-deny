@@ -47,7 +47,7 @@ anyhow = "1.0"
 # Used for detecting the license type of a file
 askalono = "0.4"
 # Used to detect if an output stream is a TTY to control default coloring
-atty = "0.2"
+is-terminal = "0.4.6"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Allows us to do eg cargo metadata operations without relying on an external cargo
