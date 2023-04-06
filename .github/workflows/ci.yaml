@@ -112,7 +112,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - env:
-          version: "0.4.21"
+          version: "0.4.28"
         run: |
           set -e
           curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v${version}/mdbook-v${version}-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
@@ -225,7 +225,7 @@ jobs:
     name: Publish Docs
     needs: [doc-book]
     runs-on: ubuntu-22.04
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' #&& github.ref == 'refs/heads/main'
     steps:
       - name: Download book
         uses: actions/download-artifact@v1
@@ -240,7 +240,7 @@ jobs:
       # rebuild.
       - name: Push to gh-pages
         # Uses a rust script to setup and push to the gh-pages branch
-        run: curl -LsSf https://git.io/fhJ8n | rustc - && (cd gh-pages && ../rust_out)
+        run: rustc scripts/build-pages.rs && (cd gh-pages && ../rust_out)
         env:
           GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
           BUILD_REPOSITORY_ID: ${{ github.repository }}
