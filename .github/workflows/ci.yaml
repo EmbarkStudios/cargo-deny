@@ -234,13 +234,14 @@ jobs:
       - name: Assemble gh-pages
         run: |
           mv doc-book gh-pages
+      - uses: actions/checkout@v3
       # If this is a push to the main branch push to the `gh-pages` using a
       # deploy key. Note that a deploy key is necessary for now because otherwise
       # using the default token for github actions doesn't actually trigger a page
       # rebuild.
       - name: Push to gh-pages
         # Uses a rust script to setup and push to the gh-pages branch
-        run: rustc scripts/build-pages.rs && (cd gh-pages && ../rust_out)
+        run: rustc scripts/build-pages.rs && (cd gh-pages && ../build-pages)
         env:
           GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
           BUILD_REPOSITORY_ID: ${{ github.repository }}
