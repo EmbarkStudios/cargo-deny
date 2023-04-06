@@ -28,9 +28,9 @@ Determines what happens when a dependency is specified with the `*` (wildcard) v
 
 If specified, alters how the `wildcard` field behaves:
 
-  * [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) `dependencies` in **private** crates will no longer emit a warning or error.
-  * path `dev-dependencies` in both public and private crates will no longer emit a warning or error.
-  * path `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
+* [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) `dependencies` in **private** crates will no longer emit a warning or error.
+* path `dev-dependencies` in both public and private crates will no longer emit a warning or error.
+* path `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
 
 Being limited to private crates is due to crates.io not allowing packages to be published with `path` dependencies except for `dev-dependencies`.
 
@@ -75,6 +75,15 @@ deny = [{ name = "crate-you-don't-want", version = "<= 0.7.0", wrappers = ["this
 ```
 
 This field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.
+
+#### The `deny-multiple-versions` field (optional)
+
+```ini
+multiple-versions = 'allow'
+deny = [{ name = "crate-you-want-only-one-version-of", deny-multiple-versions = true }]
+```
+
+This field allows specific crates to deny multiple versions of themselves, but allowing or warning on multiple versions for all other crates. This field cannot be set simultaneously with `wrappers`.
 
 ### The `allow` field (optional)
 
