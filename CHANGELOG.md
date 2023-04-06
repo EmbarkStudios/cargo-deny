@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#504](https://github.com/EmbarkStudios/cargo-deny/pull/504) (though really [PR#365](https://github.com/EmbarkStudios/cargo-deny/pull/365)) resolved [#350](https://github.com/EmbarkStudios/cargo-deny/issues/350) by adding the `deny-multiple-versions` field to `bans.deny` entries, allowing specific crates to deny multiple versions while allowing/warning on them more generally. Thanks [@leops](https://github.com/leops)!
+- [PR#493](https://github.com/EmbarkStudios/cargo-deny/pull/493) resolved [#437](https://github.com/EmbarkStudios/cargo-deny/issues/437) by also looking for deny configuration files in `.cargo`. Thanks [@DJMcNab](https://github.com/DJMcNab)!
+- [PR#502](https://github.com/EmbarkStudios/cargo-deny/pull/502) resolved [#500](https://github.com/EmbarkStudios/cargo-deny/issues/500) by adding initial support for [sparse indices](https://blog.rust-lang.org/inside-rust/2023/01/30/cargo-sparse-protocol.html).
+
+### Fixed
+- [PR#503](https://github.com/EmbarkStudios/cargo-deny/pull/503) resolved [#498](https://github.com/EmbarkStudios/cargo-deny/issues/498) by falling back to more lax parsing of the SPDX expression of crate if fails to parse according to the stricter but more correct rules.
+
 ## [0.13.7] - 2023-01-11
 ### Fixed
 - [PR#491](https://github.com/EmbarkStudios/cargo-deny/pull/491) resolved [#490](https://github.com/EmbarkStudios/cargo-deny/issues/490) by building libgit2 from vendored sources instead of relying on potentially outdated packages.
