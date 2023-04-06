@@ -170,12 +170,11 @@ fn lax_fallback() {
 
     let mut files = codespan::Files::new();
 
-    let cfg = tu::Config::new(
+    let cfg: tu::Config<crate::licenses::cfg::Config> = tu::Config::new(
         "allow = ['GPL-2.0', 'LGPL-3.0']
     unlicensed = 'deny'",
     );
 
-    let cfg: tu::Config<crate::licenses::cfg::Config> = cfg.into();
     let lic_cfg = {
         let des: licenses::cfg::Config = toml::from_str(&cfg.config).unwrap();
         let cfg_id = files.add("config.toml", cfg.config.clone());
