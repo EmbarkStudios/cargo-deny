@@ -27,7 +27,7 @@ pub struct CrateBan {
     pub wrappers: Option<Spanned<Vec<Spanned<String>>>>,
     /// Setting this to true will only emit an error if multiple
     // versions of the crate are found
-    pub multiple_versions: Option<Spanned<bool>>,
+    pub deny_multiple_versions: Option<Spanned<bool>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -168,7 +168,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         let (deny_multiple_versions, deny): (Vec<_>, Vec<_>) =
             self.deny.into_iter().partition(|kb| {
-                kb.multiple_versions
+                kb.deny_multiple_versions
                     .as_ref()
                     .map_or(false, |spanned| spanned.value)
             });
@@ -194,7 +194,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 if let Some(wrappers) = wrappers {
                     // cb.multiple_versions is guaranteed to be Some(_) by the
                     // earlier call to `partition`
-                    let multiple_versions = cb.multiple_versions.unwrap();
+                    let multiple_versions = cb.deny_multiple_versions.unwrap();
                     diags.push(
                         Diagnostic::error()
                             .with_message(

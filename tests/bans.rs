@@ -120,3 +120,22 @@ fn duplicate_graphs() {
 
     insta::assert_debug_snapshot!(dup_graphs.lock().unwrap());
 }
+
+/// Ensures that we can allow duplicates generally, but deny them for specific
+/// crates
+#[test]
+fn deny_multiple_versions_for_specific_krates() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("duplicates"),
+        r#"
+multiple-versions = 'allow'
+deny = [
+    { name = 'block-buffer', deny-multiple-versions = true },
+    { name = 'generic-array', deny-multiple-versions = true },
+]
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
