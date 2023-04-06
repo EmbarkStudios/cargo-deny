@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.8] - 2023-04-06
 ### Added
 - [PR#504](https://github.com/EmbarkStudios/cargo-deny/pull/504) (though really [PR#365](https://github.com/EmbarkStudios/cargo-deny/pull/365)) resolved [#350](https://github.com/EmbarkStudios/cargo-deny/issues/350) by adding the `deny-multiple-versions` field to `bans.deny` entries, allowing specific crates to deny multiple versions while allowing/warning on them more generally. Thanks [@leops](https://github.com/leops)!
 - [PR#493](https://github.com/EmbarkStudios/cargo-deny/pull/493) resolved [#437](https://github.com/EmbarkStudios/cargo-deny/issues/437) by also looking for deny configuration files in `.cargo`. Thanks [@DJMcNab](https://github.com/DJMcNab)!
@@ -428,7 +429,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.7...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...HEAD
+[0.13.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.7...0.13.8
 [0.13.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.6...0.13.7
 [0.13.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.5...0.13.6
 [0.13.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.4...0.13.5
