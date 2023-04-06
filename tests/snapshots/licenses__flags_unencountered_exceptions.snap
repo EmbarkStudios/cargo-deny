@@ -12,7 +12,7 @@ expression: diags
           "column": 25,
           "line": 3,
           "message": "unmatched license exception",
-          "span": "'bippity-boopity-bop'"
+          "span": "'bippity-boppity-boop'"
         }
       ],
       "message": "license exception was not encountered",
