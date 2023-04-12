@@ -119,8 +119,8 @@ fn verify_yanked(name: &str, dbs: &advisories::DbSet, krates: &Krates) {
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+        tu::gather_diagnostics::<cfg::Config, _, _>(krates, func_name!(), cfg, |ctx, _, tx| {
+            advisories::check(ctx, dbs, Option::<advisories::NoneReporter>::None, tx);
         });
 
     let diags: Vec<_> = diags
@@ -166,7 +166,7 @@ fn detects_yanked_sparse() {
     let registry_root = home::cargo_home()
         .unwrap()
         .join("registry/index/github.com-1ecc6299db9ec823");
-    std::fs::remove_dir_all(&registry_root).expect("failed to nuke registry");
+    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
     verify_yanked(func_name!(), &dbs, &krates);
 }
 
@@ -198,7 +198,7 @@ fn warns_on_index_failures() {
 
     let cfg = tu::Config::new("yanked = 'deny'\ncrates-io-git-fallback = false\nunmaintained = 'allow'\nvulnerability = 'allow'");
     let registry_root = home::cargo_home().unwrap().join("registry/index");
-    std::fs::remove_dir_all(&registry_root).expect("failed to nuke registry");
+    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {

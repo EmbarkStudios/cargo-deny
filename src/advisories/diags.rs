@@ -199,7 +199,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             labels.push(
                 Label::primary(self.cfg.file_id, self.cfg.yanked.span.clone())
                     .with_message("lint level defined here"),
-            )
+            );
         }
 
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
