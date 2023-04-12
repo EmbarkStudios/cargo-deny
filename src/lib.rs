@@ -428,6 +428,10 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
         url.path_segments_mut().unwrap().pop().push(&last);
     }
 
+    if url.path().ends_with('/') {
+        url.path_segments_mut().unwrap().pop_if_empty();
+    }
+
     let mut spec = GitSpec::Any;
 
     for (k, _v) in url.query_pairs() {

@@ -29,7 +29,7 @@ fn fails_unknown_git() {
 fn allows_git() {
     let cfg = "unknown-git = 'deny'
     allow-git = [
-        'https://gitlab.com/amethyst-engine/amethyst',
+        'https://gitlab.com/amethyst-engine/amethyst/',
         'https://github.com/EmbarkStudios/krates',
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
@@ -72,6 +72,46 @@ fn allows_bitbucket_org() {
     ";
 
     let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn allows_registry_index_git() {
+    let cfg = "unknown-registry = 'deny'
+    allow-registry = [
+        'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git'
+    ]
+    ";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn allows_registry_index_sparse() {
+    let cfg = "unknown-registry = 'deny'
+    allow-registry = [
+        'https://cargo.cloudsmith.io/embark/deny/'
+    ]
+    ";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn allows_registry_index_sparse_or_git() {
+    let cfg = "unknown-registry = 'deny'
+allow-registry = [
+    'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git',
+    'https://cargo.cloudsmith.io/embark/deny/',
+]
+";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
 
     insta::assert_json_snapshot!(diags);
 }

@@ -34,7 +34,7 @@ expression: diags
           "column": 9,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://gitlab.com/amethyst-engine/amethyst'"
+          "span": "'https://gitlab.com/amethyst-engine/amethyst/'"
         }
       ],
       "message": "'git' source explicitly allowed",
@@ -81,7 +81,7 @@ expression: diags
           "column": 9,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://gitlab.com/amethyst-engine/amethyst'"
+          "span": "'https://gitlab.com/amethyst-engine/amethyst/'"
         }
       ],
       "message": "'git' source explicitly allowed",
