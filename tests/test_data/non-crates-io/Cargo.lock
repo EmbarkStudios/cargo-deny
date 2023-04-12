@@ -10,9 +10,9 @@ checksum = "a12b64b5462f14585186b282beaa160bd9b1bbcce9cf42fcace3ba20dc7ef88d"
 
 [[package]]
 name = "crate-two"
-version = "0.1.0"
+version = "0.2.0"
 source = "sparse+https://cargo.cloudsmith.io/embark/deny/"
-checksum = "d506c511495d1a0ded8cf08599097406a64afdf5b120281f628aa297ce1a0815"
+checksum = "9d84962ff0107e9c8161ea0b5c9bfc9d21862b4f82b9cf5083872a7c6c16d17f"
 
 [[package]]
 name = "non-crates-io-registry"

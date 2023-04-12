@@ -179,7 +179,7 @@ pub(crate) fn url_to_local_dir(url: &str) -> Result<(String, String), Error> {
         canonical.pop();
     }
 
-    if canonical.ends_with(".git") {
+    if host == "github.com" && canonical.ends_with(".git") {
         canonical.truncate(canonical.len() - 4);
     }
 
