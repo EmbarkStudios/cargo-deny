@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.13.8"
+version = "0.13.9"
 dependencies = [
  "anyhow",
  "askalono",

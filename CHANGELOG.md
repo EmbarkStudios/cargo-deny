@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.13.9] - 2023-04-12
 ### Fixed
 - [PR#506](https://github.com/EmbarkStudios/cargo-deny/pull/506) replaced `atty` (unmaintained) with `is-terminal`. Thanks [@tottoto](https://github.com/tottoto)!
 - [PR#511](https://github.com/EmbarkStudios/cargo-deny/pull/511) resolved [#494](https://github.com/EmbarkStudios/cargo-deny/issues/494), [#507](https://github.com/EmbarkStudios/cargo-deny/issues/507), and [#510](https://github.com/EmbarkStudios/cargo-deny/issues/510) by fixing up how and when urls are normalized.
@@ -435,7 +436,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...HEAD
+[0.13.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...0.13.9
 [0.13.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.7...0.13.8
 [0.13.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.6...0.13.7
 [0.13.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.5...0.13.6
