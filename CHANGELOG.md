@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#506](https://github.com/EmbarkStudios/cargo-deny/pull/506) replaced `atty` (unmaintained) with `is-terminal`. Thanks [@tottoto](https://github.com/tottoto)!
+- [PR#511](https://github.com/EmbarkStudios/cargo-deny/pull/511) resolved [#494](https://github.com/EmbarkStudios/cargo-deny/issues/494), [#507](https://github.com/EmbarkStudios/cargo-deny/issues/507), and [#510](https://github.com/EmbarkStudios/cargo-deny/issues/510) by fixing up how and when urls are normalized.
+- [PR#512](https://github.com/EmbarkStudios/cargo-deny/pull/512) resolved [#509](https://github.com/EmbarkStudios/cargo-deny/issues/509) by fixing casing of the root configuration keys.
+- [PR#513](https://github.com/EmbarkStudios/cargo-deny/pull/513) resolved [#508](https://github.com/EmbarkStudios/cargo-deny/issues/508) by correctly using the crates.io sparse index when checking for yanked crates if specified by the user, as well as falling back to the regular git index if the sparse index is not present.
+
 ## [0.13.8] - 2023-04-06
 ### Added
 - [PR#504](https://github.com/EmbarkStudios/cargo-deny/pull/504) (though really [PR#365](https://github.com/EmbarkStudios/cargo-deny/pull/365)) resolved [#350](https://github.com/EmbarkStudios/cargo-deny/issues/350) by adding the `deny-multiple-versions` field to `bans.deny` entries, allowing specific crates to deny multiple versions while allowing/warning on them more generally. Thanks [@leops](https://github.com/leops)!
