@@ -4,6 +4,7 @@ unknown-git = "deny"
 required-git-spec = "tag"
 allow-registry = [
     "https://sekretz.com/registry/index",
+    "sparse+https://fake.sparse.com",
 ]
 allow-git = [
     "https://notgithub.com/orgname/reponame.git",

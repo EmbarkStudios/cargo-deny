@@ -112,18 +112,37 @@ impl cfg::UnvalidatedConfig for Config {
             self.allow_registry.len() + self.allow_git.len() + self.private.len(),
         );
 
-        for (aurl, exact, normalize) in self
+        for (aurl, exact, is_git) in self
             .allow_registry
             .into_iter()
             .map(|u| (u, true, false))
             .chain(self.allow_git.into_iter().map(|u| (u, true, true)))
             .chain(self.private.into_iter().map(|u| (u, false, false)))
         {
-            match url::Url::parse(aurl.as_ref()) {
+            let astr = aurl.as_ref();
+            let mut skip = 0;
+
+            if let Some(start_scheme) = astr.find("://") {
+                if let Some(i) = astr[..start_scheme].find('+') {
+                    diags.push(
+                        Diagnostic::warning()
+                            .with_message("scheme modifiers are unnecessary")
+                            .with_labels(vec![Label::primary(
+                                cfg_file,
+                                aurl.span.start..aurl.span.start + start_scheme,
+                            )]),
+                    );
+
+                    skip = i + 1;
+                }
+            }
+
+            match url::Url::parse(&astr[skip..]) {
                 Ok(mut url) => {
-                    if normalize {
+                    if is_git {
                         crate::normalize_git_url(&mut url);
                     }
+
                     allowed_sources.push(UrlSource {
                         url: UrlSpan {
                             value: url,
@@ -210,9 +229,13 @@ mod test {
 
         let mut diags = Vec::new();
         let validated = cd.config.sources.validate(cd.id, &mut diags);
-        assert!(diags.is_empty());
 
-        assert!(diags.is_empty());
+        let diags: Vec<_> = diags
+            .into_iter()
+            .map(|d| crate::diag::diag_to_json(d.into(), &cd._files, None))
+            .collect();
+
+        insta::assert_json_snapshot!(diags);
 
         assert_eq!(validated.file_id, cd.id);
         assert_eq!(validated.unknown_registry, LintLevel::Allow);
@@ -223,6 +246,10 @@ mod test {
                 url: url::Url::parse("https://sekretz.com/registry/index")
                     .unwrap()
                     .fake(),
+                exact: true,
+            },
+            UrlSource {
+                url: url::Url::parse("https://fake.sparse.com").unwrap().fake(),
                 exact: true,
             },
             UrlSource {

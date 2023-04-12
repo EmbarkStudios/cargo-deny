@@ -1,0 +1,21 @@
+---
+source: src/sources/cfg.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "labels": [
+        {
+          "column": 5,
+          "line": 7,
+          "message": "",
+          "span": "sparse+http"
+        }
+      ],
+      "message": "scheme modifiers are unnecessary",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]
