@@ -134,7 +134,7 @@ fn verify_yanked(name: &str, dbs: &advisories::DbSet, krates: &Krates) {
 #[test]
 fn detects_yanked() {
     let TestCtx { dbs, krates } = load();
-    verify_yanked(func_name!(), &dbs, &krates);
+    verify_yanked("detects_yanked", &dbs, &krates);
 }
 
 /// We screw around with disk here, only run this if you really want to
@@ -167,7 +167,7 @@ fn detects_yanked_sparse() {
         .unwrap()
         .join("registry/index/github.com-1ecc6299db9ec823");
     std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
-    verify_yanked(func_name!(), &dbs, &krates);
+    verify_yanked("detects_yanked_sparse", &dbs, &krates);
 }
 
 /// Again, screwing around on disk, don't run this test unless you really want to
