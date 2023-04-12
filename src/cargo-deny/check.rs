@@ -113,6 +113,7 @@ pub struct Args {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 struct Config {
     advisories: Option<advisories::cfg::Config>,
     bans: Option<bans::cfg::Config>,
