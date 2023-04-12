@@ -639,8 +639,54 @@ pub(super) struct Indices<'k> {
 }
 
 impl<'k> Indices<'k> {
-    pub(super) fn load(krates: &'k Krates) -> Self {
+    pub(super) fn load(krates: &'k Krates, crates_io_git_fallback: bool) -> Self {
         let mut indices = Vec::<(&crate::Source, Option<Index>)>::new();
+
+        // As of Rust 1.68, the sparse index is stable, but not the default and
+        // must be manually enabled by users via .config/cargo.toml or env. This
+        // doesn't actually change the source for crates.io packages, so we detect
+        // if it's being used by checking the manifest paths
+        if let Some(ksrc) = krates.krates().find_map(|k| {
+            k.source.as_ref().filter(|_s| {
+                k.is_crates_io()
+                    && k.manifest_path
+                        .as_str()
+                        .contains("index.crates.io-6f17d22bba15001f")
+            })
+        }) {
+            // SparseIndex::from_url doesn't fail if the sparse index doesn't
+            // actually exist on disk :p
+            let index = match crates_index::SparseIndex::from_url(crate::CRATES_IO_SPARSE)
+                .and_then(|index| index.index_config().map(|_| index))
+            {
+                Ok(index) => Some(Index::Http(index)),
+                Err(err) => {
+                    log::error!(
+                        "failed to load crates.io sparse index{}: {err}",
+                        if crates_io_git_fallback {
+                            ", falling back to git registry"
+                        } else {
+                            ""
+                        }
+                    );
+
+                    if crates_io_git_fallback && krates.krates().any(|k| k.is_crates_io()) {
+                        match crates_index::Index::new_cargo_default() {
+                            Ok(i) => Some(Index::Git(i)),
+                            Err(err) => {
+                                log::warn!("failed to load crates.io git index: {err}");
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            indices.push((ksrc, index));
+        }
+
         for (krate, source) in krates
             .krates()
             .filter_map(|k| k.source.as_ref().map(|s| (k, s)))

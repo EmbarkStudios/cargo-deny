@@ -115,35 +115,104 @@ fn downgrades_lint_levels() {
     insta::assert_json_snapshot!(downgraded);
 }
 
+fn verify_yanked(name: &str, dbs: &advisories::DbSet, krates: &Krates) {
+    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(krates, func_name!(), cfg, |ctx, _, tx| {
+            advisories::check(ctx, dbs, Option::<advisories::NoneReporter>::None, tx);
+        });
+
+    let diags: Vec<_> = diags
+        .into_iter()
+        .filter(|v| field_eq!(v, "/fields/message", "detected yanked crate"))
+        .collect();
+
+    insta::assert_json_snapshot!(name, diags);
+}
+
 #[test]
 fn detects_yanked() {
-    // This crate has been yanked for ages so no need to do a refresh of the registry
-    // {
-    //     let mut index = crates_index::Index::new_cargo_default().unwrap();
-    //     index.update().unwrap();
-    // }
-
     let TestCtx { dbs, krates } = load();
+    verify_yanked("detects_yanked", &dbs, &krates);
+}
 
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+/// We screw around with disk here, only run this if you really want to
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn detects_yanked_sparse() {
+    let dbs = {
+        advisories::DbSet::load(
+            Some("tests/advisory-db"),
+            vec![],
+            advisories::Fetch::Disallow,
+        )
+        .unwrap()
+    };
+
+    let mut mdc = krates::Cmd::new();
+    mdc.manifest_path("examples/06_advisories/Cargo.toml");
+
+    let mut cmd: krates::cm::MetadataCommand = mdc.into();
+
+    // Force enable sparse registries
+    cmd.env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "sparse");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let registry_root = home::cargo_home()
+        .unwrap()
+        .join("registry/index/github.com-1ecc6299db9ec823");
+    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
+    verify_yanked("detects_yanked_sparse", &dbs, &krates);
+}
+
+/// Again, screwing around on disk, don't run this test unless you really want to
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn warns_on_index_failures() {
+    let dbs = {
+        advisories::DbSet::load(
+            Some("tests/advisory-db"),
+            vec![],
+            advisories::Fetch::Disallow,
+        )
+        .unwrap()
+    };
+
+    let mut mdc = krates::Cmd::new();
+    mdc.manifest_path("examples/06_advisories/Cargo.toml");
+
+    let mut cmd: krates::cm::MetadataCommand = mdc.into();
+
+    // Force enable sparse registries
+    cmd.env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "sparse");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let cfg = tu::Config::new("yanked = 'deny'\ncrates-io-git-fallback = false\nunmaintained = 'allow'\nvulnerability = 'allow'");
+    let registry_root = home::cargo_home().unwrap().join("registry/index");
+    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
         });
 
-    let yanked = ["spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"];
-
-    for yanked in &yanked {
-        assert!(
-            diags.iter().any(|v| {
-                field_eq!(v, "/fields/severity", "error")
-                    && field_eq!(v, "/fields/message", "detected yanked crate")
-                    && field_eq!(v, "/fields/labels/0/span", yanked)
-            }),
-            "failed to find yanked diagnostic for '{yanked}'"
-        );
-    }
+    // This is the number of crates sourced to crates.io
+    assert_eq!(
+        diags
+            .into_iter()
+            .filter(|v| { field_eq!(v, "/fields/message", "unable to check for yanked crates") })
+            .count(),
+        193
+    );
 }
 
 #[test]
