@@ -121,7 +121,9 @@ impl cfg::UnvalidatedConfig for Config {
         {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    crate::normalize_git_url(&mut url);
+                    if aurl.as_ref().starts_with("git+") {
+                        crate::normalize_git_url(&mut url);
+                    }
                     allowed_sources.push(UrlSource {
                         url: UrlSpan {
                             value: url,
@@ -216,30 +218,31 @@ mod test {
         assert_eq!(validated.unknown_registry, LintLevel::Allow);
         assert_eq!(validated.unknown_git, LintLevel::Deny);
 
+        let expected = [
+            UrlSource {
+                url: url::Url::parse("https://sekretz.com/registry/index")
+                    .unwrap()
+                    .fake(),
+                exact: true,
+            },
+            UrlSource {
+                url: url::Url::parse("https://notgithub.com/orgname/reponame.git")
+                    .unwrap()
+                    .fake(),
+                exact: true,
+            },
+            UrlSource {
+                url: url::Url::parse("https://internal-host/repos")
+                    .unwrap()
+                    .fake(),
+                exact: false,
+            },
+        ];
+
         assert_eq!(
-            validated.allowed_sources,
-            vec![
-                UrlSource {
-                    url: url::Url::parse("https://sekretz.com/registry/index")
-                        .unwrap()
-                        .fake(),
-                    exact: true,
-                },
-                UrlSource {
-                    url: url::Url::parse("https://notgithub.com/orgname/reponame")
-                        .unwrap()
-                        .fake(),
-                    exact: true,
-                },
-                UrlSource {
-                    url: url::Url::parse("https://internal-host/repos")
-                        .unwrap()
-                        .fake(),
-                    exact: false,
-                },
-            ],
-            "{:#?}",
-            validated.allowed_sources
+            validated.allowed_sources, expected,
+            "{:#?} != {:#?}",
+            validated.allowed_sources, expected
         );
 
         // Obviously order could change here, but for now just hardcode it

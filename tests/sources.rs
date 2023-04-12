@@ -77,6 +77,46 @@ fn allows_bitbucket_org() {
 }
 
 #[test]
+fn allows_registry_index_git() {
+    let cfg = "unknown-registry = 'deny'
+    allow-registry = [
+        'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git'
+    ]
+    ";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn allows_registry_index_sparse() {
+    let cfg = "unknown-registry = 'deny'
+    allow-registry = [
+        'https://cargo.cloudsmith.io/embark/deny/'
+    ]
+    ";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn allows_registry_index_sparse_or_git() {
+    let cfg = "unknown-registry = 'deny'
+allow-registry = [
+    'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git',
+    'https://cargo.cloudsmith.io/embark/deny/',
+]
+";
+
+    let diags = src_check(func_name!(), KrateGather::new("non-crates-io"), cfg);
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
 fn validates_git_source_specs() {
     use sources::GitSpec;
 

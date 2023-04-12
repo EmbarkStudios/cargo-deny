@@ -1,0 +1,82 @@
+---
+source: tests/sources.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "allowed-source",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "crate-one",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "non-crates-io-registry",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 1,
+          "message": "source",
+          "span": "registry+https://dl.cloudsmith.io/public/embark/deny/cargo/index.git"
+        },
+        {
+          "column": 5,
+          "line": 3,
+          "message": "source allowance",
+          "span": "'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git'"
+        }
+      ],
+      "message": "'registry' source explicitly allowed",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "allowed-source",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "crate-two",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "non-crates-io-registry",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 2,
+          "message": "source",
+          "span": "sparse+https://cargo.cloudsmith.io/embark/deny/"
+        },
+        {
+          "column": 5,
+          "line": 4,
+          "message": "source allowance",
+          "span": "'https://cargo.cloudsmith.io/embark/deny/'"
+        }
+      ],
+      "message": "'registry' source explicitly allowed",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  }
+]

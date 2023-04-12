@@ -1,0 +1,8 @@
+[package]
+name = "non-crates-io-registry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+from-git = { package = "crate-one", registry = "embark-deny-git" }
+from-sparse = { package = "crate-two", registry = "embark-deny-sparse" }
