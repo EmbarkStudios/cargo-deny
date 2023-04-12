@@ -112,16 +112,16 @@ impl cfg::UnvalidatedConfig for Config {
             self.allow_registry.len() + self.allow_git.len() + self.private.len(),
         );
 
-        for (aurl, exact) in self
+        for (aurl, exact, normalize) in self
             .allow_registry
             .into_iter()
-            .map(|u| (u, true))
-            .chain(self.allow_git.into_iter().map(|u| (u, true)))
-            .chain(self.private.into_iter().map(|u| (u, false)))
+            .map(|u| (u, true, false))
+            .chain(self.allow_git.into_iter().map(|u| (u, true, true)))
+            .chain(self.private.into_iter().map(|u| (u, false, false)))
         {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    if aurl.as_ref().starts_with("git+") {
+                    if normalize {
                         crate::normalize_git_url(&mut url);
                     }
                     allowed_sources.push(UrlSource {
@@ -226,7 +226,7 @@ mod test {
                 exact: true,
             },
             UrlSource {
-                url: url::Url::parse("https://notgithub.com/orgname/reponame.git")
+                url: url::Url::parse("https://notgithub.com/orgname/reponame")
                     .unwrap()
                     .fake(),
                 exact: true,

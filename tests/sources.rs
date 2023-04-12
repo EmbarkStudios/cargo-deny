@@ -29,7 +29,7 @@ fn fails_unknown_git() {
 fn allows_git() {
     let cfg = "unknown-git = 'deny'
     allow-git = [
-        'https://gitlab.com/amethyst-engine/amethyst',
+        'https://gitlab.com/amethyst-engine/amethyst/',
         'https://github.com/EmbarkStudios/krates',
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
