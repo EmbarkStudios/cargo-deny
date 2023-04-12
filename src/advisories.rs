@@ -43,7 +43,7 @@ pub fn check<R, S>(
     let (report, yanked) = rayon::join(
         || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
         || {
-            let indices = Indices::load(ctx.krates);
+            let indices = Indices::load(ctx.krates, ctx.cfg.crates_io_git_fallback);
 
             let yanked: Vec<_> = ctx
                 .krates

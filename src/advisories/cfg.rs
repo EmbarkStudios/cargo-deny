@@ -45,8 +45,11 @@ pub struct Config {
     /// Vulnerabilities with explicit CVSS info which have a severity below
     /// this threshold will be ignored.
     pub severity_threshold: Option<advisory::Severity>,
-    /// use the git executable to fetch advisory database
+    /// Use the git executable to fetch advisory database
     pub git_fetch_with_cli: Option<bool>,
+    /// If this is specified we fallback to retrieving the crates.io git index
+    /// if we are unable to open the crates.io sparse index
+    pub crates_io_git_fallback: Option<bool>,
 }
 
 impl Default for Config {
@@ -63,6 +66,7 @@ impl Default for Config {
             notice: LintLevel::Warn,
             severity_threshold: None,
             git_fetch_with_cli: None,
+            crates_io_git_fallback: None,
         }
     }
 }
@@ -144,6 +148,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             notice: self.notice,
             severity_threshold: self.severity_threshold,
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
+            crates_io_git_fallback: self.crates_io_git_fallback.unwrap_or(true),
         }
     }
 }
@@ -162,6 +167,7 @@ pub struct ValidConfig {
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
     pub git_fetch_with_cli: bool,
+    pub crates_io_git_fallback: bool,
 }
 
 #[cfg(test)]

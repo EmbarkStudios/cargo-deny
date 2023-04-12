@@ -196,7 +196,7 @@ fn warns_on_index_failures() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+    let cfg = tu::Config::new("yanked = 'deny'\ncrates-io-git-fallback = false\nunmaintained = 'allow'\nvulnerability = 'allow'");
     let registry_root = home::cargo_home().unwrap().join("registry/index");
     std::fs::remove_dir_all(&registry_root).expect("failed to nuke registry");
 
