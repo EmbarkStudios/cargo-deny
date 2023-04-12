@@ -182,20 +182,35 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         pack
     }
 
-    pub(crate) fn diag_for_index_failure<D: std::fmt::Display>(&self, error: D) -> Pack {
-        (
-            Check::Advisories,
+    pub(crate) fn diag_for_index_failure<D: std::fmt::Display>(
+        &self,
+        krate: &crate::Krate,
+        krate_index: krates::NodeId,
+        error: D,
+    ) -> Pack {
+        let mut labels = vec![self.krate_spans.label_for_index(
+            krate_index.index(),
+            "crate whose registry we failed to query",
+        )];
+
+        // Don't show the config location if it's the default, since it just points
+        // to the beginning and confuses users
+        if !self.cfg.yanked.span.is_empty() {
+            labels.push(
+                Label::primary(self.cfg.file_id, self.cfg.yanked.span.clone())
+                    .with_message("lint level defined here"),
+            )
+        }
+
+        let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
+        pack.push(
             Diagnostic::new(Severity::Warning)
                 .with_message("unable to check for yanked crates")
                 .with_code(Code::IndexFailure)
-                .with_labels(vec![Label::primary(
-                    self.cfg.file_id,
-                    self.cfg.yanked.span.clone(),
-                )
-                .with_message("lint level defined here")])
+                .with_labels(labels)
                 .with_notes(vec![error.to_string()]),
-        )
-            .into()
+        );
+        pack
     }
 
     pub(crate) fn diag_for_advisory_not_encountered(

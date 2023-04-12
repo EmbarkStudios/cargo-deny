@@ -83,12 +83,13 @@ pub fn check<R, S>(
     }
 
     for (krate, status) in yanked {
+        let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
+
         if let Some(e) = status {
             if ctx.cfg.yanked.value != LintLevel::Allow {
-                sink.push(ctx.diag_for_index_failure(e));
+                sink.push(ctx.diag_for_index_failure(krate, ind, e));
             }
         } else {
-            let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
             sink.push(ctx.diag_for_yanked(krate, ind));
         }
     }
