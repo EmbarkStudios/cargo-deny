@@ -1,16 +1,45 @@
 
 # cargo-vet imports lock
 
-[[audits.embark.audits.anyhow]]
-who = "Johan Andersson <opensource@embark-studios.com>"
-criteria = "safe-to-deploy"
-version = "1.0.58"
+[[publisher.core-foundation]]
+version = "0.9.3"
+when = "2022-02-07"
+user-id = 5946
+user-login = "jrmuizel"
+user-name = "Jeff Muizelaar"
+
+[[publisher.core-foundation-sys]]
+version = "0.8.4"
+when = "2023-04-03"
+user-id = 5946
+user-login = "jrmuizel"
+user-name = "Jeff Muizelaar"
+
+[[publisher.unicode-normalization]]
+version = "0.1.22"
+when = "2022-09-16"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
+
+[[publisher.unicode-width]]
+version = "0.1.10"
+when = "2022-09-13"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
+
+[[publisher.unicode-xid]]
+version = "0.2.4"
+when = "2022-09-15"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
 
 [[audits.embark.audits.anyhow]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
-delta = "1.0.58 -> 1.0.66"
-notes = "New unsafe usage, looks sane. Expert maintainer"
+version = "1.0.58"
 
 [[audits.embark.audits.strum]]
 who = "Johan Andersson <opensource@embark-studios.com>"
@@ -23,6 +52,51 @@ who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "0.1.0"
 notes = "Inspected it and is a tiny crate with single safe macro"
+
+[[audits.firefox.wildcard-audits.core-foundation]]
+who = "Bobby Holley <bobbyholley@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 5946
+start = "2019-03-29"
+end = "2023-05-04"
+notes = "I've reviewed every source contribution that was neither authored nor reviewed by Mozilla."
+
+[[audits.firefox.wildcard-audits.core-foundation-sys]]
+who = "Bobby Holley <bobbyholley@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 5946
+start = "2020-10-14"
+end = "2023-05-04"
+notes = "I've reviewed every source contribution that was neither authored nor reviewed by Mozilla."
+
+[[audits.firefox.wildcard-audits.unicode-normalization]]
+who = "Manish Goregaokar <manishsmail@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 1139
+start = "2019-11-06"
+end = "2024-05-03"
+notes = "All code written or reviewed by Manish"
+
+[[audits.firefox.wildcard-audits.unicode-width]]
+who = "Manish Goregaokar <manishsmail@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 1139
+start = "2019-12-05"
+end = "2024-05-03"
+notes = "All code written or reviewed by Manish"
+
+[[audits.firefox.wildcard-audits.unicode-xid]]
+who = "Manish Goregaokar <manishsmail@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 1139
+start = "2019-07-25"
+end = "2024-05-03"
+notes = "All code written or reviewed by Manish"
+
+[[audits.firefox.audits.aho-corasick]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.7.18 -> 0.7.20"
 
 [[audits.firefox.audits.anyhow]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -40,51 +114,81 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.61 -> 1.0.62"
 
+[[audits.firefox.audits.anyhow]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.62 -> 1.0.68"
+
+[[audits.firefox.audits.anyhow]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.68 -> 1.0.69"
+
 [[audits.firefox.audits.autocfg]]
 who = "Josh Stone <jistone@redhat.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "All code written or reviewed by Josh Stone."
 
+[[audits.firefox.audits.base64]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.13.1"
+
+[[audits.firefox.audits.block-buffer]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.10.2 -> 0.10.3"
+
 [[audits.firefox.audits.bytes]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.1.0 -> 1.2.1"
+delta = "1.2.1 -> 1.3.0"
 
-[[audits.firefox.audits.camino]]
+[[audits.firefox.audits.bytes]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.9 -> 1.1.1"
-
-[[audits.firefox.audits.clap_lex]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.2.0 -> 0.2.2"
-
-[[audits.firefox.audits.clap_lex]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.2.2 -> 0.2.4"
-
-[[audits.firefox.audits.crossbeam-channel]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.5.4 -> 0.5.6"
-
-[[audits.firefox.audits.crossbeam-deque]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.8.1 -> 0.8.2"
+delta = "1.3.0 -> 1.4.0"
 
 [[audits.firefox.audits.crossbeam-epoch]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.9.8 -> 0.9.10"
 
+[[audits.firefox.audits.crossbeam-epoch]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.9.10 -> 0.9.13"
+
+[[audits.firefox.audits.crossbeam-epoch]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.9.13 -> 0.9.14"
+
+[[audits.firefox.audits.crossbeam-queue]]
+who = "Matthew Gregan <kinetik@flim.org>"
+criteria = "safe-to-deploy"
+version = "0.3.8"
+
 [[audits.firefox.audits.crossbeam-utils]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.8.8 -> 0.8.11"
+
+[[audits.firefox.audits.crossbeam-utils]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.8.11 -> 0.8.14"
+
+[[audits.firefox.audits.crypto-common]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.1.3 -> 0.1.6"
+
+[[audits.firefox.audits.digest]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.10.3 -> 0.10.6"
 
 [[audits.firefox.audits.either]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -96,10 +200,25 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.7.0 -> 1.8.0"
 
-[[audits.firefox.audits.fastrand]]
+[[audits.firefox.audits.either]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.7.0 -> 1.8.0"
+delta = "1.8.0 -> 1.8.1"
+
+[[audits.firefox.audits.env_logger]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.9.3"
+
+[[audits.firefox.audits.env_logger]]
+who = "Nicolas Silva <nical@fastmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.3 -> 0.10.0"
+
+[[audits.firefox.audits.flate2]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.24 -> 1.0.25"
 
 [[audits.firefox.audits.fnv]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
@@ -110,13 +229,43 @@ notes = "Simple hasher implementation with no unsafe code."
 [[audits.firefox.audits.fs-err]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "2.7.0 -> 2.8.1"
+delta = "2.8.1 -> 2.9.0"
+
+[[audits.firefox.audits.generic-array]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.14.5 -> 0.14.6"
+
+[[audits.firefox.audits.getrandom]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.2.6 -> 0.2.7"
+
+[[audits.firefox.audits.getrandom]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.2.7 -> 0.2.8"
+
+[[audits.firefox.audits.glob]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.0 -> 0.3.1"
 
 [[audits.firefox.audits.hashbrown]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 version = "0.12.3"
 notes = "This version is used in rust's libstd, so effectively we're already trusting it"
+
+[[audits.firefox.audits.heck]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.4.1"
+
+[[audits.firefox.audits.hermit-abi]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.1.19 -> 0.2.6"
 
 [[audits.firefox.audits.hex]]
 who = "Simon Friedberger <simon@mozilla.com>"
@@ -126,17 +275,12 @@ version = "0.4.3"
 [[audits.firefox.audits.indexmap]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.8.2 -> 1.9.1"
+delta = "1.9.1 -> 1.9.2"
 
 [[audits.firefox.audits.itoa]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.2 -> 1.0.3"
-
-[[audits.firefox.audits.libc]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.2.126 -> 0.2.132"
+delta = "1.0.3 -> 1.0.5"
 
 [[audits.firefox.audits.linked-hash-map]]
 who = "Aria Beingessner <a.beingessner@gmail.com>"
@@ -154,26 +298,41 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 version = "0.4.17"
 
+[[audits.firefox.audits.memoffset]]
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.5 -> 0.7.1"
+
+[[audits.firefox.audits.miniz_oxide]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.5.3 -> 0.6.2"
+
 [[audits.firefox.audits.num-traits]]
 who = "Josh Stone <jistone@redhat.com>"
 criteria = "safe-to-deploy"
 version = "0.2.15"
 notes = "All code written or reviewed by Josh Stone."
 
+[[audits.firefox.audits.num_cpus]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.13.1 -> 1.14.0"
+
+[[audits.firefox.audits.num_cpus]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.14.0 -> 1.15.0"
+
 [[audits.firefox.audits.once_cell]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.12.0 -> 1.13.1"
+delta = "1.16.0 -> 1.17.1"
 
-[[audits.firefox.audits.os_str_bytes]]
+[[audits.firefox.audits.pkg-config]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "6.1.0 -> 6.3.0"
-
-[[audits.firefox.audits.paste]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "1.0.7 -> 1.0.8"
+delta = "0.3.25 -> 0.3.26"
 
 [[audits.firefox.audits.proc-macro2]]
 who = "Nika Layzell <nika@thelayzells.com>"
@@ -209,6 +368,16 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.39 -> 1.0.43"
 
+[[audits.firefox.audits.proc-macro2]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.43 -> 1.0.49"
+
+[[audits.firefox.audits.proc-macro2]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.49 -> 1.0.51"
+
 [[audits.firefox.audits.quote]]
 who = "Nika Layzell <nika@thelayzells.com>"
 criteria = "safe-to-deploy"
@@ -229,18 +398,10 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.18 -> 1.0.21"
 
-[[audits.firefox.audits.radium]]
-who = "Nika Layzell <nika@thelayzells.com>"
+[[audits.firefox.audits.quote]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-version = "0.5.3"
-notes = """
-I am no longer the primary maintainer of `radium`, however I have audited the
-code to ensure it is still correct. The implementation contains no `unsafe`
-logic, and will not abstract away `Sync` trait bounds.
-
-The core logic is very simple, and acts as an abstraction trait for `Cell<T>`
-and `AtomicT`.
-"""
+delta = "1.0.21 -> 1.0.23"
 
 [[audits.firefox.audits.rayon]]
 who = "Josh Stone <jistone@redhat.com>"
@@ -248,26 +409,41 @@ criteria = "safe-to-deploy"
 version = "1.5.3"
 notes = "All code written or reviewed by Josh Stone or Niko Matsakis."
 
+[[audits.firefox.audits.rayon]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.5.3 -> 1.6.1"
+
 [[audits.firefox.audits.rayon-core]]
 who = "Josh Stone <jistone@redhat.com>"
 criteria = "safe-to-deploy"
 version = "1.9.3"
 notes = "All code written or reviewed by Josh Stone or Niko Matsakis."
 
-[[audits.firefox.audits.redox_syscall]]
+[[audits.firefox.audits.rayon-core]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "0.2.13 -> 0.2.16"
+delta = "1.9.3 -> 1.10.1"
+
+[[audits.firefox.audits.rayon-core]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.10.1 -> 1.10.2"
 
 [[audits.firefox.audits.regex]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.5.6 -> 1.6.0"
+delta = "1.6.0 -> 1.7.0"
+
+[[audits.firefox.audits.regex]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.7.0 -> 1.7.1"
 
 [[audits.firefox.audits.regex-syntax]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "0.6.26 -> 0.6.27"
+delta = "0.6.27 -> 0.6.28"
 
 [[audits.firefox.audits.rustc-hash]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
@@ -275,38 +451,27 @@ criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "Straightforward crate with no unsafe code, does what it says on the tin."
 
-[[audits.firefox.audits.rustversion]]
-who = "Bobby Holley <bobbyholley@gmail.com>"
-criteria = "safe-to-deploy"
-version = "1.0.9"
-notes = """
-This crate has a build-time component and procedural macro logic, which I looked
-at enough to convince myself it wasn't going to do anything dramatically wrong.
-I don't think logic bugs in the version parsing etc can realistically introduce
-a security vulnerability.
-"""
-
 [[audits.firefox.audits.ryu]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.10 -> 1.0.11"
-
-[[audits.firefox.audits.semver]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "1.0.9 -> 1.0.10"
-
-[[audits.firefox.audits.semver]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "1.0.10 -> 1.0.13"
+delta = "1.0.11 -> 1.0.12"
 
 [[audits.firefox.audits.serde]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.137 -> 1.0.143"
+delta = "1.0.143 -> 1.0.144"
 
 [[audits.firefox.audits.serde]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.144 -> 1.0.151"
+
+[[audits.firefox.audits.serde]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.151 -> 1.0.152"
+
+[[audits.firefox.audits.serde_derive]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.143 -> 1.0.144"
@@ -314,99 +479,258 @@ delta = "1.0.143 -> 1.0.144"
 [[audits.firefox.audits.serde_derive]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.137 -> 1.0.143"
+delta = "1.0.144 -> 1.0.151"
 
 [[audits.firefox.audits.serde_derive]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.143 -> 1.0.144"
+delta = "1.0.151 -> 1.0.152"
 
 [[audits.firefox.audits.serde_json]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.81 -> 1.0.83"
+delta = "1.0.85 -> 1.0.91"
 
 [[audits.firefox.audits.serde_json]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.83 -> 1.0.85"
+delta = "1.0.91 -> 1.0.93"
 
-[[audits.firefox.audits.smallvec]]
+[[audits.firefox.audits.sha2]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.8.0 -> 1.9.0"
+delta = "0.10.2 -> 0.10.6"
 
-[[audits.firefox.audits.syn]]
+[[audits.firefox.audits.termcolor]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.96 -> 1.0.99"
+delta = "1.1.3 -> 1.2.0"
 
 [[audits.firefox.audits.thiserror]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.31 -> 1.0.32"
+delta = "1.0.32 -> 1.0.38"
 
 [[audits.firefox.audits.thiserror-impl]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.31 -> 1.0.32"
+delta = "1.0.32 -> 1.0.38"
 
-[[audits.firefox.audits.unicode-ident]]
+[[audits.firefox.audits.toml]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.0 -> 1.0.1"
+delta = "0.5.9 -> 0.5.10"
 
-[[audits.firefox.audits.unicode-ident]]
+[[audits.firefox.audits.toml]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "1.0.1 -> 1.0.3"
+delta = "0.5.10 -> 0.5.11"
 
-[[audits.firefox.audits.unicode-normalization]]
+[[audits.firefox.audits.typenum]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "1.15.0 -> 1.16.0"
+
+[[audits.google.audits.console]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-run"
+version = "0.15.5"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.fastrand]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "1.9.0"
+notes = """
+`does-not-implement-crypto` is certified because this crate explicitly says
+that the RNG here is not cryptographically secure.
+"""
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.version_check]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "0.9.4"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.isrg.audits.block-buffer]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
+[[audits.isrg.audits.either]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+version = "1.6.1"
+
+[[audits.isrg.audits.fiat-crypto]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.1.17"
+notes = """
+This crate does not contain any unsafe code, and does not use any items from
+the standard library or other crates, aside from operations backed by
+`std::ops`. All paths with array indexing use integer literals for indexes, so
+there are no panics due to indexes out of bounds (as rustc would catch an
+out-of-bounds literal index). I did not check whether arithmetic overflows
+could cause a panic, and I am relying on the Coq code having satisfied the
+necessary preconditions to ensure panics due to overflows are unreachable.
+"""
+
+[[audits.isrg.audits.fiat-crypto]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "0.1.17 -> 0.1.18"
+
+[[audits.isrg.audits.fiat-crypto]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "0.1.18 -> 0.1.19"
+notes = """
+This release renames many items and adds a new module. The code in the new
+module is entirely composed of arithmetic and array accesses.
+"""
+
+[[audits.isrg.audits.fiat-crypto]]
+who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "0.1.19 -> 0.1.20"
-notes = "I am the author of most of these changes upstream, and prepared the release myself, at which point I looked at the other changes since 0.1.19."
 
-[[audits.firefox.audits.unicode-normalization]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
+[[audits.isrg.audits.once_cell]]
+who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
-delta = "0.1.20 -> 0.1.21"
-
-[[audits.wasmtime.audits.anyhow]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-delta = "1.0.62 -> 1.0.66"
+delta = "1.15.0 -> 1.16.0"
 notes = """
-This update looks to be related to minor fixes and mostly integrating with a
-nightly feature in the standard library for backtrace integration. No undue
-`unsafe` is added and nothing unsurprising for the `anyhow` crate is happening
-here.
+Changes to unsafe code in src/lib.rs, src/impl_std.rs, and src/imp_pl.rs are
+functionally equivalent, and call unwrap_unchecked() on already-initialized
+Options. The new implementation based on critical_section appears to be sound.
 """
 
-[[audits.wasmtime.audits.arrayvec]]
-who = "Nick Fitzgerald <fitzgen@gmail.com>"
+[[audits.isrg.audits.proc-macro2]]
+who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
-version = "0.7.2"
-notes = """
-Well documented invariants, good assertions for those invariants in unsafe code,
-and tested with MIRI to boot. LGTM.
-"""
+delta = "1.0.52 -> 1.0.54"
 
-[[audits.wasmtime.audits.atty]]
-who = "Alex Crichton <alex@alexcrichton.com>"
+[[audits.isrg.audits.rayon]]
+who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
-version = "0.2.14"
-notes = """
-Contains only unsafe code for what this crate's purpose is and only accesses
-the environment's terminal information when asked. Does its stated purpose and
-no more.
-"""
+delta = "1.6.1 -> 1.7.0"
 
-[[audits.wasmtime.audits.cc]]
-who = "Alex Crichton <alex@alexcrichton.com>"
+[[audits.isrg.audits.rayon-core]]
+who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
-version = "1.0.73"
-notes = "I am the author of this crate."
+delta = "1.10.2 -> 1.11.0"
+
+[[audits.isrg.audits.serde]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.152 -> 1.0.153"
+
+[[audits.isrg.audits.serde]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.153 -> 1.0.154"
+
+[[audits.isrg.audits.serde]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.154 -> 1.0.155"
+
+[[audits.isrg.audits.serde]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.156 -> 1.0.159"
+
+[[audits.isrg.audits.serde_derive]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.152 -> 1.0.153"
+
+[[audits.isrg.audits.serde_derive]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.153 -> 1.0.154"
+
+[[audits.isrg.audits.serde_derive]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.154 -> 1.0.155"
+
+[[audits.isrg.audits.serde_derive]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.156 -> 1.0.159"
+
+[[audits.isrg.audits.serde_json]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.93 -> 1.0.94"
+
+[[audits.isrg.audits.serde_json]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.94 -> 1.0.95"
+
+[[audits.isrg.audits.syn]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.104 -> 2.0.11"
+
+[[audits.isrg.audits.thiserror]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.38 -> 1.0.39"
+
+[[audits.isrg.audits.thiserror]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.39 -> 1.0.40"
+
+[[audits.isrg.audits.thiserror-impl]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.38 -> 1.0.39"
+
+[[audits.isrg.audits.thiserror-impl]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "1.0.39 -> 1.0.40"
+
+[[audits.mozilla.audits.crossbeam-channel]]
+who = "Jan-Erik Rediger <jrediger@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.5.7 -> 0.5.8"
+notes = "Reviewed the fix, previous versions indeed had were able to trigger a race condition"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.lazy_static]]
+who = "Nika Layzell <nika@thelayzells.com>"
+criteria = "safe-to-deploy"
+version = "1.4.0"
+notes = "I have read over the macros, and audited the unsafe code."
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.wasmtime.audits.block-buffer]]
+who = "Benjamin Bouvier <public@benj.me>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.2"
+
+[[audits.wasmtime.audits.camino]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "1.1.4"
+
+[[audits.wasmtime.audits.cargo-platform]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.2"
+notes = "no build, no ambient capabilities, no unsafe"
+
+[[audits.wasmtime.audits.cargo_metadata]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.15.3"
+notes = "no build, no unsafe, inputs to cargo command are reasonably sanitized"
 
 [[audits.wasmtime.audits.cfg-if]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -414,8 +738,573 @@ criteria = "safe-to-deploy"
 version = "1.0.0"
 notes = "I am the author of this crate."
 
+[[audits.wasmtime.audits.codespan-reporting]]
+who = "Jamey Sharp <jsharp@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.11.1"
+notes = "This library uses `forbid(unsafe_code)` and has no filesystem or network I/O."
+
+[[audits.wasmtime.audits.crypto-common]]
+who = "Benjamin Bouvier <public@benj.me>"
+criteria = "safe-to-deploy"
+version = "0.1.3"
+
+[[audits.wasmtime.audits.digest]]
+who = "Benjamin Bouvier <public@benj.me>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.3"
+
+[[audits.wasmtime.audits.errno]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+notes = "This crate uses libc and windows-sys APIs to get and set the raw OS error value."
+
+[[audits.wasmtime.audits.foreign-types]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.2"
+notes = "This crate defined a macro-rules which creates wrappers working with FFI types. The implementation of this crate appears to be safe, but each use of this macro would need to be vetted for correctness as well."
+
+[[audits.wasmtime.audits.foreign-types-shared]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+
+[[audits.wasmtime.audits.form_urlencoded]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "1.1.0"
+notes = """
+This is a small crate for working with url-encoded forms which doesn't have any
+more than what it says on the tin. Contains one `unsafe` block related to
+performance around utf-8 validation which is fairly easy to verify as correct.
+"""
+
 [[audits.wasmtime.audits.heck]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "0.4.0"
 notes = "Contains `forbid_unsafe` and only uses `std::fmt` from the standard library. Otherwise only contains string manipulation."
+
+[[audits.wasmtime.audits.idna]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+notes = """
+This is a crate without unsafe code or usage of the standard library. The large
+size of this crate comes from the large generated unicode tables file. This
+crate is broadly used throughout the ecosystem and does not contain anything
+suspicious.
+"""
+
+[[audits.wasmtime.audits.memoffset]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.7.1 -> 0.8.0"
+notes = "This was a small update to the crate which has to do with Rust language features and compiler versions, no substantial changes."
+
+[[audits.wasmtime.audits.openssl-probe]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.1.5"
+notes = "IO is only checking for the existence of paths in the filesystem"
+
+[[audits.wasmtime.audits.percent-encoding]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "2.2.0"
+notes = """
+This crate is a single-file crate that does what it says on the tin. There are
+a few `unsafe` blocks related to utf-8 validation which are locally verifiable
+as correct and otherwise this crate is good to go.
+"""
+
+[[audits.wasmtime.audits.pkg-config]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.3.25"
+notes = "This crate shells out to the pkg-config executable, but it appears to sanitize inputs reasonably."
+
+[[audits.wasmtime.audits.semver]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "1.0.17"
+notes = "plenty of unsafe pointer and vec tricks, but in well-structured and commented code that appears to be correct"
+
+[[audits.wasmtime.audits.sha2]]
+who = "Benjamin Bouvier <public@benj.me>"
+criteria = "safe-to-deploy"
+delta = "0.9.9 -> 0.10.2"
+notes = "This upgrade is mostly a code refactor, as far as I can tell. No new uses of unsafe nor any new ambient capabilities usage."
+
+[[audits.wasmtime.audits.tempfile]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "3.3.0 -> 3.5.0"
+
+[[audits.wasmtime.audits.tinyvec]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "1.6.0"
+notes = """
+This crate, while it implements collections, does so without `std::*` APIs and
+without `unsafe`. Skimming the crate everything looks reasonable and what one
+would expect from idiomatic safe collections in Rust.
+"""
+
+[[audits.wasmtime.audits.unicode-ident]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "1.0.8"
+
+[[audits.wasmtime.audits.url]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "2.3.1"
+notes = """
+This crate contains no `unsafe` code and otherwise doesn't use any functionality
+it's not supposed to from `std` or such. This crate is the defacto standard for
+URL parsing in the Rust community with widespread usage to battle-test, harden,
+and suss out bugs. I've historically reviewed this crate in the past and it
+is similar to what it once was back then. Skimming over the crate there is
+nothing suspicious and it's everything you'd expect a Rust URL parser to be.
+"""
+
+[[audits.wasmtime.audits.vcpkg]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.2.15"
+notes = "no build.rs, no macros, no unsafe. It reads the filesystem and makes copies of DLLs into OUT_DIR."
+
+[[audits.wasmtime.audits.walkdir]]
+who = "Andrew Brown <andrew.brown@intel.com>"
+criteria = "safe-to-deploy"
+delta = "2.3.2 -> 2.3.3"
+notes = "No significant changes: minor refactoring and removes the need to use `winapi`."
+
+[[audits.wasmtime.audits.windows-sys]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows-sys]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.45.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows-targets]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+version = "0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. Additionally, this particular crate is empty and just collects a bunch of dependencies, which are not exported, so I don't understand why it exists at all."
+
+[[audits.wasmtime.audits.windows_aarch64_gnullvm]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_aarch64_gnullvm]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_aarch64_msvc]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_aarch64_msvc]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_i686_gnu]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_i686_gnu]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_i686_msvc]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_i686_msvc]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_x86_64_gnu]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_x86_64_gnu]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_x86_64_gnullvm]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_x86_64_gnullvm]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.wasmtime.audits.windows_x86_64_msvc]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+version = "0.42.0"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves."
+
+[[audits.wasmtime.audits.windows_x86_64_msvc]]
+who = "Pat Hickey <phickey@fastly.com>"
+criteria = "safe-to-deploy"
+delta = "0.42.0 -> 0.42.1"
+notes = "This is a Windows API bindings library maintained by Microsoft themselves. The diff is just adding license files."
+
+[[audits.zcash.audits.anyhow]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.0.69 -> 1.0.70"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.block-buffer]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.10.3 -> 0.10.4"
+notes = "Adds panics to prevent a block size of zero from causing unsoundness."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.cpufeatures]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "0.2.2 -> 0.2.5"
+notes = "Unsafe changes just introduce `#[inline(never)]` wrappers."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.cpufeatures]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.5 -> 0.2.6"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.crossbeam-channel]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.5.6 -> 0.5.7"
+notes = "Fixes wrapping overflows for large timeouts."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.crossbeam-deque]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.8.2 -> 0.8.3"
+notes = "No new code."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.crossbeam-utils]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.8.14 -> 0.8.15"
+notes = """
+- Fixes a wrapping overflow for large timeouts.
+- Marks some BPF and Sony Vita targets as not having atomics.
+"""
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.ff]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.12.1"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.ff]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.12.1 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.generic-array]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.14.6 -> 0.14.7"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.group]]
+who = "Kris Nuttycombe <kris@nutty.land>"
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.12.1"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.group]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.12.1 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.indexmap]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.9.2 -> 1.9.3"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.itoa]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.1 -> 1.0.3"
+notes = "Update makes no changes to code."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.itoa]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.5 -> 1.0.6"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.proc-macro2]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.51 -> 1.0.52"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.proc-macro2]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.54 -> 1.0.56"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.quote]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.23 -> 1.0.26"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.regex]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.7.1 -> 1.7.3"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.regex-syntax]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.28 -> 0.6.29"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.ryu]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.12 -> 1.0.13"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.serde]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.136 -> 1.0.143"
+notes = "Bumps serde-derive and adds some constructors."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.serde]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.155 -> 1.0.156"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.serde_derive]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.136 -> 1.0.143"
+notes = "Bumps syn, inverts some build flags."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.serde_derive]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.155 -> 1.0.156"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.syn]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.0.102 -> 1.0.104"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.syn]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.102 -> 1.0.107"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.syn]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "1.0.107 -> 1.0.109"
+notes = "Fixes string literal parsing to only skip specified whitespace characters."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.syn]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "2.0.11 -> 2.0.13"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.thiserror]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.30 -> 1.0.32"
+notes = "Bumps thiserror-impl, no code changes."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.thiserror-impl]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.0.30 -> 1.0.32"
+notes = "Only change is to refine an error message."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.thread_local]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "1.1.4 -> 1.1.7"
+notes = """
+New `unsafe` usage:
+- An extra `deallocate_bucket`, to replace a `Mutex::lock` with a `compare_exchange`.
+- Setting and getting a `#[thread_local] static mut Option<Thread>` on nightly.
+"""
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.time-macros]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.2.7 -> 0.2.8"
+notes = """
+- Only new `unsafe` code takes a `NonZeroU16` at proc-macro evaluation time and hard-codes
+  its contents into a `NonZeroU16::new_unchecked` constructor, which is safe.
+- Bumps MSRV to 1.63.
+"""
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.tinyvec_macros]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.1"
+notes = "Adds `#![forbid(unsafe_code)]` and license files."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.toml_datetime]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+version = "0.5.1"
+notes = "Crate has `#![forbid(unsafe_code)]`, no `unwrap / expect / panic`, no ambient capabilities."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.toml_datetime]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.5.1 -> 0.6.1"
+notes = "Fixes a bug in parsing negative minutes in datetime string offsets."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.toml_edit]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.19.7 -> 0.19.8"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows-targets]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_aarch64_gnullvm]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_aarch64_msvc]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_i686_gnu]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_i686_msvc]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_x86_64_gnu]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_x86_64_gnullvm]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows_x86_64_msvc]]
+who = "Jack Grigg <jack@electriccoin.co>"
+criteria = "safe-to-deploy"
+delta = "0.42.1 -> 0.42.2"
+notes = "This is an opaque Windows API bindings library maintained by Microsoft."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.wyz]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+delta = "0.5.0 -> 0.5.1"
+notes = "Only change to unsafe code is to extract a drop impl into a method. I note however that most of the changes in the published 0.5.1 are not present in the v0.5.1 tag on the GitHub repository."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.zeroize]]
+who = "Daira Hopwood <daira@jacaranda.org>"
+criteria = "safe-to-deploy"
+delta = "1.4.3 -> 1.5.7"
+notes = "The zeroize_c_string unit test has UB, but that's very unlikely to cause a problem in practice."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.zeroize]]
+who = "Sean Bowe <ewillbefull@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.5.7 -> 1.6.0"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
