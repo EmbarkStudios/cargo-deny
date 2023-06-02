@@ -41,17 +41,47 @@ who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "1.0.58"
 
+[[audits.embark.audits.epaint]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+violation = "<0.20.0"
+notes = "Specified crate license does not include licenses of embedded fonts if using default features or the `default_fonts` feature. Tracked in: https://github.com/emilk/egui/issues/2321"
+
 [[audits.embark.audits.strum]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "0.24.1"
 notes = "Tiny layer on top of the proc macro crate, found no unsafe or system usage"
 
+[[audits.embark.audits.tap]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+version = "1.0.1"
+notes = "No unsafe usage or ambient capabilities"
+
+[[audits.embark.audits.thiserror]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+version = "1.0.40"
+notes = "Wrapper over implementation crate, found no unsafe or ambient capabilities used"
+
+[[audits.embark.audits.thiserror-impl]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+version = "1.0.40"
+notes = "Found no unsafe or ambient capabilities used"
+
 [[audits.embark.audits.tinyvec_macros]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 version = "0.1.0"
 notes = "Inspected it and is a tiny crate with single safe macro"
+
+[[audits.embark.audits.yaml-rust]]
+who = "Johan Andersson <opensource@embark-studios.com>"
+criteria = "safe-to-deploy"
+version = "0.4.5"
+notes = "No unsafe usage or ambient capabilities"
 
 [[audits.firefox.wildcard-audits.core-foundation]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
@@ -245,11 +275,6 @@ delta = "0.2.6 -> 0.2.7"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.2.7 -> 0.2.8"
-
-[[audits.firefox.audits.glob]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.3.1"
 
 [[audits.firefox.audits.hashbrown]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -506,16 +531,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.1.3 -> 1.2.0"
 
-[[audits.firefox.audits.thiserror]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "1.0.32 -> 1.0.38"
-
-[[audits.firefox.audits.thiserror-impl]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
-criteria = "safe-to-deploy"
-delta = "1.0.32 -> 1.0.38"
-
 [[audits.firefox.audits.toml]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -545,6 +560,12 @@ notes = """
 `does-not-implement-crypto` is certified because this crate explicitly says
 that the RNG here is not cryptographically secure.
 """
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.glob]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "0.3.1"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
 
 [[audits.google.audits.version_check]]
@@ -675,26 +696,6 @@ delta = "1.0.94 -> 1.0.95"
 who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
 delta = "1.0.104 -> 2.0.11"
-
-[[audits.isrg.audits.thiserror]]
-who = "Brandon Pitman <bran@bran.land>"
-criteria = "safe-to-deploy"
-delta = "1.0.38 -> 1.0.39"
-
-[[audits.isrg.audits.thiserror]]
-who = "Brandon Pitman <bran@bran.land>"
-criteria = "safe-to-deploy"
-delta = "1.0.39 -> 1.0.40"
-
-[[audits.isrg.audits.thiserror-impl]]
-who = "Brandon Pitman <bran@bran.land>"
-criteria = "safe-to-deploy"
-delta = "1.0.38 -> 1.0.39"
-
-[[audits.isrg.audits.thiserror-impl]]
-who = "Brandon Pitman <bran@bran.land>"
-criteria = "safe-to-deploy"
-delta = "1.0.39 -> 1.0.40"
 
 [[audits.mozilla.audits.crossbeam-channel]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"
@@ -1169,20 +1170,6 @@ aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/suppl
 who = "Jack Grigg <jack@electriccoin.co>"
 criteria = "safe-to-deploy"
 delta = "2.0.11 -> 2.0.13"
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.thiserror]]
-who = "Jack Grigg <jack@z.cash>"
-criteria = "safe-to-deploy"
-delta = "1.0.30 -> 1.0.32"
-notes = "Bumps thiserror-impl, no code changes."
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.thiserror-impl]]
-who = "Jack Grigg <jack@z.cash>"
-criteria = "safe-to-deploy"
-delta = "1.0.30 -> 1.0.32"
-notes = "Only change is to refine an error message."
 aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
 
 [[audits.zcash.audits.thread_local]]
