@@ -17,25 +17,25 @@ ignore = [
     # rmp-serde used by askalono for the cache files, these are always utf-8 so
     # the advisory is not relevant
     "RUSTSEC-2022-0092",
-    # This is kind of relevant since cargo-deny can do git operations via SSH
-    # from cargo, but cargo needs to update before we can
-    "RUSTSEC-2023-0003",
+    # remove_dir_all, this isn't really relevant as you should not be running
+    # cargo-deny in priveleged mode
+    "RUSTSEC-2023-0018",
 ]
 
 [bans]
 multiple-versions = "deny"
 deny = []
 skip = [
-    # cargo depends on two versions of these crates
-    { name = "hex", version = "=0.3.2" },
-    # cargo-lock uses this older version
-    { name = "toml", version = "=0.5.11" },
+    # cargo -> ignore -> globset
+    { name = "aho-corasick", version = "=0.7.20" },
+    # strum_macros + maybe-async
+    { name = "syn", version = "=1.0.109" },
+    # indexmap + imara-diff
+    { name = "hashbrown", version = "=0.12.3" },
 ]
 skip-tree = [
     # Sigh
-    { name = "windows-sys", version = "=0.42" },
-    # cargo uses an old version
-    { name = "toml_edit", version = "=0.15" },
+    { name = "windows-sys", version = "<=0.45" },
 ]
 
 [sources]
@@ -51,10 +51,8 @@ allow-osi-fsf-free = "neither"
 copyleft = "deny"
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
-allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0"]
-
+allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0", "BSD-3-Clause"]
 exceptions = [
     { allow = ["Zlib"], name = "tinyvec" },
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
-    { allow = ["BSD-3-Clause"], name = "subtle" },
 ]
