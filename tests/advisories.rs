@@ -11,6 +11,17 @@ struct TestCtx {
 }
 
 fn load() -> TestCtx {
+    let mut cargo = std::process::Command::new("cargo");
+    cargo.args([
+        "fetch",
+        "--manifest-path",
+        "examples/06_advisories/Cargo.toml",
+    ]);
+    assert!(
+        cargo.status().expect("failed to run cargo fetch").success(),
+        "failed to fetch crates"
+    );
+
     let md: krates::cm::Metadata = serde_json::from_str(
         &std::fs::read_to_string("tests/test_data/advisories/06_advisories.json").unwrap(),
     )
@@ -154,10 +165,7 @@ fn detects_yanked_sparse() {
     let mut mdc = krates::Cmd::new();
     mdc.manifest_path("examples/06_advisories/Cargo.toml");
 
-    let mut cmd: krates::cm::MetadataCommand = mdc.into();
-
-    // Force enable sparse registries
-    cmd.env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "sparse");
+    let cmd: krates::cm::MetadataCommand = mdc.into();
 
     let krates: Krates = krates::Builder::new()
         .build(cmd, krates::NoneFilter)
@@ -187,11 +195,7 @@ fn warns_on_index_failures() {
     let mut mdc = krates::Cmd::new();
     mdc.manifest_path("examples/06_advisories/Cargo.toml");
 
-    let mut cmd: krates::cm::MetadataCommand = mdc.into();
-
-    // Force enable sparse registries
-    cmd.env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "sparse");
-
+    let cmd: krates::cm::MetadataCommand = mdc.into();
     let krates: Krates = krates::Builder::new()
         .build(cmd, krates::NoneFilter)
         .unwrap();
