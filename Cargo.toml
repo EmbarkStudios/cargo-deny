@@ -65,7 +65,7 @@ crates-index = { version = "0.19", default-features = false, features = [
 crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
-# We directly interact with git when doing index operations eg during fix
+# We clone/fetch advisory databases
 git2 = "0.17"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"

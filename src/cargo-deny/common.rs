@@ -62,6 +62,9 @@ pub struct KrateContext {
     pub frozen: bool,
     pub locked: bool,
     pub offline: bool,
+    /// If true, allows using the crates.io git index, otherwise the sparse index
+    /// is assumed to be the only index
+    pub allow_git_index: bool,
 }
 
 impl KrateContext {
@@ -123,7 +126,8 @@ impl KrateContext {
         log::info!("gathering crates for {}", self.manifest_path.display());
         let start = std::time::Instant::now();
 
-        let metadata = get_metadata(MetadataOptions {
+        log::debug!("gathering crate metadata");
+        let metadata = Self::get_metadata(MetadataOptions {
             no_default_features: self.no_default_features,
             all_features: self.all_features,
             features: self.features,
@@ -132,6 +136,10 @@ impl KrateContext {
             locked: self.locked,
             offline: self.offline,
         })?;
+        log::debug!(
+            "gathered crate metadata in {}ms",
+            start.elapsed().as_millis()
+        );
 
         use krates::{Builder, DepKind};
 
@@ -164,6 +172,54 @@ impl KrateContext {
             );
         }
 
+        let allow_git_index = if !self.allow_git_index {
+            match std::env::var("CARGO_REGISTRIES_CRATES_IO_PROTOCOL")
+                .as_deref()
+                .ok()
+            {
+                Some("sparse") => false,
+                Some("git") => true,
+                _ => {
+                    #[cfg(not(feature = "standalone"))]
+                    {
+                        // Check the cargo version to detect if the sparse registry is enabled by default
+                        let mut cargo = std::process::Command::new(
+                            std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()),
+                        );
+                        cargo.arg("-V");
+                        cargo.stdout(std::process::Stdio::piped());
+                        let output = cargo
+                            .output()
+                            .context("failed to run cargo to detect version information")?;
+
+                        anyhow::ensure!(
+                            output.status.success(),
+                            "failed to get version information from cargo"
+                        );
+
+                        let vinfo = String::from_utf8(output.stdout)
+                            .context("cargo version output was not utf-8")?;
+                        let semver = vinfo
+                            .split(' ')
+                            .nth(1)
+                            .context("unable to get semver from cargo output")?;
+                        let semver: semver::Version =
+                            semver.parse().context("unable to parse semver")?;
+
+                        semver < semver::Version::new(1, 70, 0)
+                    }
+                    #[cfg(feature = "standalone")]
+                    {
+                        false
+                    }
+                }
+            }
+        } else {
+            self.allow_git_index
+        };
+
+        gb.allow_git_index(allow_git_index);
+
         let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
             let name = filtered.name;
             let vers = filtered.version;
@@ -185,6 +241,82 @@ impl KrateContext {
 
         Ok(graph?)
     }
+
+    #[cfg(not(feature = "standalone"))]
+    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+        let mut mdc = krates::Cmd::new();
+
+        if opts.no_default_features {
+            mdc.no_default_features();
+        }
+
+        if opts.all_features {
+            mdc.all_features();
+        }
+
+        mdc.features(opts.features)
+            .manifest_path(opts.manifest_path)
+            .lock_opts(krates::LockOptions {
+                frozen: opts.frozen,
+                locked: opts.locked,
+                offline: opts.offline,
+            });
+
+        let mdc: krates::cm::MetadataCommand = mdc.into();
+        Ok(mdc.exec()?)
+    }
+
+    #[cfg(feature = "standalone")]
+    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+        use cargo::{core, ops, util};
+
+        let mut config = util::Config::default()?;
+
+        config.configure(
+            0,
+            true,
+            None,
+            opts.frozen,
+            opts.locked,
+            opts.offline,
+            &None,
+            &[],
+            &[],
+        )?;
+
+        let mut manifest_path = opts.manifest_path;
+
+        // Cargo doesn't like non-absolute paths
+        if !manifest_path.is_absolute() {
+            manifest_path = std::env::current_dir()
+                .context("unable to determine current directory")?
+                .join(manifest_path);
+        }
+
+        let features = std::rc::Rc::new(
+            opts.features
+                .into_iter()
+                .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
+                .collect(),
+        );
+
+        let ws = core::Workspace::new(&manifest_path, &config)?;
+        let options = ops::OutputMetadataOptions {
+            cli_features: core::resolver::features::CliFeatures {
+                features,
+                all_features: opts.all_features,
+                uses_default_features: !opts.no_default_features,
+            },
+            no_deps: false,
+            version: 1,
+            filter_platforms: vec![],
+        };
+
+        let md = ops::output_metadata(&ws, &options)?;
+        let md_value = serde_json::to_value(md)?;
+
+        Ok(serde_json::from_value(md_value)?)
+    }
 }
 
 struct MetadataOptions {
@@ -196,80 +328,6 @@ struct MetadataOptions {
     locked: bool,
     offline: bool,
 }
-
-#[cfg(not(feature = "standalone"))]
-fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
-    let mut mdc = krates::Cmd::new();
-
-    if opts.no_default_features {
-        mdc.no_default_features();
-    }
-
-    if opts.all_features {
-        mdc.all_features();
-    }
-
-    mdc.features(opts.features)
-        .manifest_path(opts.manifest_path)
-        .lock_opts(krates::LockOptions {
-            frozen: opts.frozen,
-            locked: opts.locked,
-            offline: opts.offline,
-        });
-
-    let mdc: krates::cm::MetadataCommand = mdc.into();
-    Ok(mdc.exec()?)
-}
-
-#[cfg(feature = "standalone")]
-fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
-    use anyhow::Context;
-    use cargo::{core, ops, util};
-
-    let mut config = util::Config::default()?;
-
-    config.configure(
-        0,
-        true,
-        None,
-        opts.frozen,
-        opts.locked,
-        opts.offline,
-        &None,
-        &[],
-        &[],
-    )?;
-
-    let mut manifest_path = opts.manifest_path;
-
-    // Cargo doesn't like non-absolute paths
-    if !manifest_path.is_absolute() {
-        manifest_path = std::env::current_dir()
-            .context("unable to determine current directory")?
-            .join(manifest_path);
-    }
-
-    let features = std::rc::Rc::new(
-        opts.features
-            .into_iter()
-            .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
-            .collect(),
-    );
-
-    let ws = core::Workspace::new(&manifest_path, &config)?;
-    let options = ops::OutputMetadataOptions {
-        cli_features: core::resolver::features::CliFeatures {
-            features,
-            all_features: opts.all_features,
-            uses_default_features: !opts.no_default_features,
-        },
-        no_deps: false,
-        version: 1,
-        filter_platforms: vec![],
-    };
-
-    let md = ops::output_metadata(&ws, &options)?;
-    let md_value = serde_json::to_value(md)?;
 
 #[cfg(not(feature = "standalone"))]
 fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {

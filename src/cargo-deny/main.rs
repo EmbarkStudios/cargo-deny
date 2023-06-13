@@ -43,7 +43,7 @@ pub enum Color {
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
     s.parse::<log::LevelFilter>()
-        .with_context(|| format!("failed to parse level '{}'", s))
+        .with_context(|| format!("failed to parse level '{s}'"))
 }
 
 #[derive(Parser)]
@@ -89,6 +89,9 @@ pub(crate) struct GraphContext {
     /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
     #[clap(long, action)]
     pub(crate) offline: bool,
+    /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
+    /// only if using a cargo < 1.70.0 without the sparse protocol enabled
+    pub(crate) allow_git_index: bool,
 }
 
 /// Lints your project's crate graph
@@ -291,6 +294,7 @@ fn real_main() -> Result<(), Error> {
         frozen: args.ctx.frozen,
         locked: args.ctx.locked,
         offline: args.ctx.offline,
+        allow_git_index: args.ctx.allow_git_index,
     };
 
     let log_ctx = crate::common::LogContext {
