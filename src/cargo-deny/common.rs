@@ -1,3 +1,5 @@
+#[cfg(not(feature = "standalone"))]
+use anyhow::Context as _;
 use cargo_deny::{
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
@@ -98,6 +100,19 @@ impl KrateContext {
 
             None
         }
+    }
+
+    #[inline]
+    pub fn fetch_krates(&self) -> anyhow::Result<()> {
+        fetch(MetadataOptions {
+            no_default_features: false,
+            all_features: false,
+            features: Vec::new(),
+            manifest_path: self.manifest_path.clone(),
+            frozen: self.frozen,
+            locked: self.locked,
+            offline: self.offline,
+        })
     }
 
     pub fn gather_krates(
@@ -256,7 +271,71 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
     let md = ops::output_metadata(&ws, &options)?;
     let md_value = serde_json::to_value(md)?;
 
-    Ok(serde_json::from_value(md_value)?)
+#[cfg(not(feature = "standalone"))]
+fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
+    use anyhow::Context as _;
+    let mut cargo =
+        std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()));
+
+    cargo.arg("fetch");
+    cargo.arg("--manifest-path");
+    cargo.arg(&opts.manifest_path);
+    if opts.frozen {
+        cargo.arg("--frozen");
+    }
+
+    if opts.locked {
+        cargo.arg("--locked");
+    }
+
+    if opts.offline {
+        cargo.arg("--offline");
+    }
+
+    cargo.stderr(std::process::Stdio::piped());
+    let output = cargo.output().context("failed to run cargo")?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!(String::from_utf8(output.stderr).context("non-utf8 error output")?);
+    }
+}
+
+#[cfg(feature = "standalone")]
+fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
+    use anyhow::Context;
+    use cargo::{core, ops, util};
+
+    let mut config = util::Config::default()?;
+
+    config.configure(
+        0,
+        true,
+        None,
+        opts.frozen,
+        opts.locked,
+        opts.offline,
+        &None,
+        &[],
+        &[],
+    )?;
+
+    let mut manifest_path = opts.manifest_path;
+
+    // Cargo doesn't like non-absolute paths
+    if !manifest_path.is_absolute() {
+        manifest_path = std::env::current_dir()
+            .context("unable to determine current directory")?
+            .join(manifest_path);
+    }
+
+    let ws = core::Workspace::new(&manifest_path, &config)?;
+    let options = ops::FetchOptions {
+        config: &config,
+        targets: Vec::new(),
+    };
+    ops::fetch(&ws, &options)?;
+    Ok(())
 }
 
 pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {

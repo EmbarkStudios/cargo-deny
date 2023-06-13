@@ -368,6 +368,16 @@ pub(crate) fn cmd(
 
     rayon::scope(|s| {
         s.spawn(|_s| {
+            // Always run a fetch first in a separate step so that the user can
+            // see what parts are actually taking time
+            let start = std::time::Instant::now();
+            log::info!("fetching crates for {}", krate_ctx.manifest_path.display());
+            if let Err(err) = krate_ctx.fetch_krates() {
+                log::error!("failed to fetch crates: {err:#}");
+            } else {
+                log::info!("fetched crates in {:?}", start.elapsed());
+            }
+
             let gathered = krate_ctx.gather_krates(targets, exclude);
 
             if let Ok(krates) = &gathered {

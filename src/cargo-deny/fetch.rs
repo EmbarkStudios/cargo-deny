@@ -123,18 +123,9 @@ pub fn cmd(
 
         if fetch_index {
             s.spawn(|_| {
-                log::info!("fetching crates.io index...");
-                index = Some(match crates_index::Index::new_cargo_default() {
-                    Ok(mut index) => match index.update() {
-                        Ok(_) => Ok(index),
-                        Err(err) => Err(anyhow::anyhow!(
-                            "opened crates.io index but failed to fetch updates: {}",
-                            err
-                        )),
-                    },
-                    Err(err) => Err(anyhow::anyhow!("failed to open crates.io index: {}", err)),
-                });
-                log::info!("fetched crates.io index");
+                log::info!("fetching crates");
+                index = Some(ctx.fetch_krates());
+                log::info!("fetched crates");
             });
         }
 
