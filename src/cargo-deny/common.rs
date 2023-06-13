@@ -1,4 +1,3 @@
-#[cfg(not(feature = "standalone"))]
 use anyhow::Context as _;
 use cargo_deny::{
     diag::{self, FileId, Files, Severity},
@@ -173,45 +172,40 @@ impl KrateContext {
         }
 
         let allow_git_index = if !self.allow_git_index {
-            match std::env::var("CARGO_REGISTRIES_CRATES_IO_PROTOCOL")
-                .as_deref()
-                .ok()
-            {
-                Some("sparse") => false,
-                Some("git") => true,
-                _ => {
-                    #[cfg(not(feature = "standalone"))]
-                    {
-                        // Check the cargo version to detect if the sparse registry is enabled by default
-                        let mut cargo = std::process::Command::new(
-                            std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()),
-                        );
-                        cargo.arg("-V");
-                        cargo.stdout(std::process::Stdio::piped());
-                        let output = cargo
-                            .output()
-                            .context("failed to run cargo to detect version information")?;
+            match (
+                std::env::var("CARGO_REGISTRIES_CRATES_IO_PROTOCOL")
+                    .as_deref()
+                    .ok(),
+                cfg!(feature = "standalone"),
+            ) {
+                (Some("sparse"), _) | (_, true) => false,
+                (Some("git"), _) => true,
+                (_, false) => {
+                    // Check the cargo version to detect if the sparse registry is enabled by default
+                    let mut cargo = std::process::Command::new(
+                        std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()),
+                    );
+                    cargo.arg("-V");
+                    cargo.stdout(std::process::Stdio::piped());
+                    let output = cargo
+                        .output()
+                        .context("failed to run cargo to detect version information")?;
 
-                        anyhow::ensure!(
-                            output.status.success(),
-                            "failed to get version information from cargo"
-                        );
+                    anyhow::ensure!(
+                        output.status.success(),
+                        "failed to get version information from cargo"
+                    );
 
-                        let vinfo = String::from_utf8(output.stdout)
-                            .context("cargo version output was not utf-8")?;
-                        let semver = vinfo
-                            .split(' ')
-                            .nth(1)
-                            .context("unable to get semver from cargo output")?;
-                        let semver: semver::Version =
-                            semver.parse().context("unable to parse semver")?;
+                    let vinfo = String::from_utf8(output.stdout)
+                        .context("cargo version output was not utf-8")?;
+                    let semver = vinfo
+                        .split(' ')
+                        .nth(1)
+                        .context("unable to get semver from cargo output")?;
+                    let semver: semver::Version =
+                        semver.parse().context("unable to parse semver")?;
 
-                        semver < semver::Version::new(1, 70, 0)
-                    }
-                    #[cfg(feature = "standalone")]
-                    {
-                        false
-                    }
+                    semver < semver::Version::new(1, 70, 0)
                 }
             }
         } else {
