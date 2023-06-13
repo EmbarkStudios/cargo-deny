@@ -91,6 +91,7 @@ pub(crate) struct GraphContext {
     pub(crate) offline: bool,
     /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
     /// only if using a cargo < 1.70.0 without the sparse protocol enabled
+    #[clap(long, action)]
     pub(crate) allow_git_index: bool,
 }
 
