@@ -1,10 +1,8 @@
 use super::cfg::{FileSource, ValidClarification, ValidConfig};
 use crate::{
     diag::{FileId, Files, Label},
-    Krate,
+    Krate, Path, PathBuf,
 };
-use anyhow::Error;
-use krates::{Utf8Path, Utf8PathBuf};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::{fmt, sync::Arc};
@@ -34,12 +32,12 @@ impl fmt::Debug for FileSource {
     }
 }
 
-fn find_license_files(dir: &Utf8Path) -> Result<Vec<Utf8PathBuf>, std::io::Error> {
+fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
     let entries = std::fs::read_dir(dir)?;
     Ok(entries
         .filter_map(|e| {
             e.ok().and_then(|e| {
-                let p = match Utf8PathBuf::from_path_buf(e.path()) {
+                let p = match PathBuf::from_path_buf(e.path()) {
                     Ok(pb) => pb,
                     Err(e) => {
                         log::warn!("{} contains invalid utf-8, skipping", e.display());
@@ -57,7 +55,7 @@ fn find_license_files(dir: &Utf8Path) -> Result<Vec<Utf8PathBuf>, std::io::Error
         .collect())
 }
 
-fn get_file_source(path: Utf8PathBuf) -> PackFile {
+fn get_file_source(path: PathBuf) -> PackFile {
     use std::io::BufRead;
 
     // Normalize on plain newlines to handle terrible Windows conventions
@@ -111,7 +109,7 @@ enum PackFileData {
 }
 
 struct PackFile {
-    path: Utf8PathBuf,
+    path: PathBuf,
     data: PackFileData,
 }
 
@@ -385,9 +383,10 @@ pub struct LicenseStore {
 }
 
 impl LicenseStore {
-    pub fn from_cache() -> Result<Self, Error> {
-        let store = askalono::Store::from_cache(LICENSE_CACHE)
-            .map_err(|e| anyhow::anyhow!("failed to load license store: {}", e))?;
+    pub fn from_cache() -> anyhow::Result<Self> {
+        use anyhow::Context as _;
+        let store =
+            askalono::Store::from_cache(LICENSE_CACHE).context("failed to load license store")?;
 
         Ok(Self { store })
     }
@@ -461,7 +460,7 @@ impl Gatherer {
             .optimize(false)
             .max_passes(1);
 
-        let files_lock = std::sync::Arc::new(std::sync::RwLock::new(files));
+        let files_lock = std::sync::Arc::new(parking_lot::RwLock::new(files));
 
         // Retrieve the license expression we'll use to evaluate the user's overall
         // constraints with.
@@ -503,7 +502,7 @@ impl Gatherer {
 
                 let mut get_span = |key: &'static str| -> (FileId, std::ops::Range<usize>) {
                     if let Some(id) = synth_id {
-                        let l = files_lock.read().unwrap();
+                        let l = files_lock.read();
                         (synth_id.unwrap(), get_toml_span(key, l.source(id)))
                     } else {
                         // Synthesize a minimal Cargo.toml for reporting diagnostics
@@ -516,7 +515,7 @@ impl Gatherer {
                         );
 
                         {
-                            let mut fl = files_lock.write().unwrap();
+                            let mut fl = files_lock.write();
                             synth_id = Some(fl.add(krate.id.repr.clone(), synth_manifest));
                             (
                                 synth_id.unwrap(),
@@ -677,7 +676,7 @@ impl Gatherer {
                             // Push our synthesized license files toml content to the end of
                             // the other synthesized toml then fixup all of our spans
                             let expr_offset = {
-                                let mut fl = files_lock.write().unwrap();
+                                let mut fl = files_lock.write();
 
                                 let (new_source, offset) = {
                                     let source = fl.source(id);
@@ -720,7 +719,7 @@ impl Gatherer {
                             // Push our synthesized license files toml content to the end of
                             // the other synthesized toml then fixup all of our spans
                             let old_end = {
-                                let mut fl = files_lock.write().unwrap();
+                                let mut fl = files_lock.write();
 
                                 let (new_source, old_end) = {
                                     let source = fl.source(id);
@@ -770,7 +769,7 @@ impl Gatherer {
 mod test {
     #[test]
     fn normalizes_line_endings() {
-        let pf = super::get_file_source(krates::Utf8PathBuf::from("./tests/LICENSE-RING"));
+        let pf = super::get_file_source(crate::PathBuf::from("./tests/LICENSE-RING"));
 
         let expected = {
             let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();

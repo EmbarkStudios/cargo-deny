@@ -15,9 +15,10 @@ pub mod sources;
 #[doc(hidden)]
 pub mod test_utils;
 
+pub use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
-pub use krates::{DepKind, Kid, Utf8PathBuf};
+pub use krates::{DepKind, Kid};
 
 const CRATES_IO_SPARSE: &str = "sparse+https://index.crates.io/";
 const CRATES_IO_GIT: &str = "registry+https://github.com/rust-lang/crates.io-index";
@@ -193,9 +194,9 @@ pub struct Krate {
     pub authors: Vec<String>,
     pub repository: Option<String>,
     pub description: Option<String>,
-    pub manifest_path: Utf8PathBuf,
+    pub manifest_path: PathBuf,
     pub license: Option<String>,
-    pub license_file: Option<Utf8PathBuf>,
+    pub license_file: Option<PathBuf>,
     pub deps: Vec<cm::Dependency>,
     pub features: HashMap<String, Vec<String>>,
     pub targets: Vec<cm::Target>,
@@ -219,7 +220,7 @@ impl Default for Krate {
             license_file: None,
             targets: Vec::new(),
             features: HashMap::new(),
-            manifest_path: Utf8PathBuf::new(),
+            manifest_path: PathBuf::new(),
             repository: None,
             publish: None,
         }
@@ -466,6 +467,14 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
     }
 
     spec
+}
+
+/// Helper function to convert a std `PathBuf` to a camino one
+#[inline]
+#[allow(clippy::disallowed_types)]
+pub fn utf8path(pb: std::path::PathBuf) -> anyhow::Result<PathBuf> {
+    use anyhow::Context;
+    PathBuf::try_from(pb).context("non-utf8 path")
 }
 
 #[cfg(test)]

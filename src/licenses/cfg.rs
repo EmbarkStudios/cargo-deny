@@ -23,11 +23,10 @@
 
 use crate::{
     diag::{Diagnostic, FileId, Label},
-    LintLevel, Spanned,
+    LintLevel, PathBuf, Spanned,
 };
 use semver::VersionReq;
 use serde::Deserialize;
-use std::path::PathBuf;
 
 const fn confidence_threshold() -> f32 {
     0.8

@@ -1,9 +1,9 @@
 #![allow(clippy::exit)]
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context as _, Error};
+use cargo_deny::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 use is_terminal::IsTerminal as _;
-use std::path::PathBuf;
 
 mod check;
 mod common;
@@ -251,38 +251,38 @@ fn real_main() -> Result<(), Error> {
         let cwd =
             std::env::current_dir().context("unable to determine current working directory")?;
 
-        if !cwd.exists() {
-            bail!("current working directory {} was not found", cwd.display());
-        }
+        anyhow::ensure!(
+            cwd.exists(),
+            "current working directory {} was not found",
+            cwd.display()
+        );
 
-        if !cwd.is_dir() {
-            bail!(
-                "current working directory {} is not a directory",
-                cwd.display()
-            );
-        }
+        anyhow::ensure!(
+            cwd.is_dir(),
+            "current working directory {} is not a directory",
+            cwd.display()
+        );
 
         let man_path = cwd.join("Cargo.toml");
 
-        if !man_path.exists() {
-            bail!(
-                "the directory {} doesn't contain a Cargo.toml file",
-                cwd.display()
-            );
-        }
+        anyhow::ensure!(
+            man_path.exists(),
+            "the directory {} doesn't contain a Cargo.toml file",
+            cwd.display()
+        );
 
-        man_path
+        man_path.try_into().context("non-utf8 path")?
     };
 
-    if manifest_path.file_name() != Some(std::ffi::OsStr::new("Cargo.toml"))
-        || !manifest_path.is_file()
-    {
-        bail!("--manifest-path must point to a Cargo.toml file");
-    }
+    anyhow::ensure!(
+        manifest_path.file_name() == Some("Cargo.toml") && manifest_path.is_file(),
+        "--manifest-path must point to a Cargo.toml file"
+    );
 
-    if !manifest_path.exists() {
-        bail!("unable to find cargo manifest {}", manifest_path.display());
-    }
+    anyhow::ensure!(
+        manifest_path.exists(),
+        "unable to find cargo manifest {manifest_path}"
+    );
 
     let krate_ctx = common::KrateContext {
         manifest_path,

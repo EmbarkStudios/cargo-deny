@@ -2,8 +2,8 @@ use anyhow::{Context, Error};
 use cargo_deny::{
     advisories,
     diag::{Diagnostic, Files},
+    PathBuf,
 };
-use std::path::PathBuf;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum FetchSource {
@@ -43,15 +43,13 @@ impl ValidConfig {
 
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path).with_context(|| {
-                    format!("failed to read config from {}", cfg_path.display())
-                })?,
+                std::fs::read_to_string(&cfg_path)
+                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
                 cfg_path,
             ),
             Some(cfg_path) => {
                 log::warn!(
-                    "config path '{}' doesn't exist, falling back to default config",
-                    cfg_path.display()
+                    "config path '{cfg_path}' doesn't exist, falling back to default config"
                 );
                 (String::new(), cfg_path)
             }
@@ -61,11 +59,10 @@ impl ValidConfig {
             }
         };
 
-        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
-            format!("failed to deserialize config from '{}'", cfg_path.display())
-        })?;
+        let cfg: Config = toml::from_str(&cfg_contents)
+            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
 
-        log::info!("using config from {}", cfg_path.display());
+        log::info!("using config from {cfg_path}");
 
         let id = files.add(&cfg_path, cfg_contents);
 
@@ -91,10 +88,7 @@ impl ValidConfig {
         print(diags);
 
         if has_errors {
-            anyhow::bail!(
-                "failed to validate configuration file {}",
-                cfg_path.display()
-            );
+            anyhow::bail!("failed to validate configuration file {cfg_path}");
         } else {
             Ok(Self { advisories })
         }

@@ -103,14 +103,14 @@ fn duplicate_graphs() {
     let krates = KrateGather::new("duplicates").gather();
     let cfg = "multiple-versions = 'deny'".into();
 
-    let dup_graphs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let dup_graphs = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
 
     let duped_graphs = dup_graphs.clone();
     gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx| {
         bans::check(
             ctx,
             Some(Box::new(move |dg| {
-                duped_graphs.lock().unwrap().push(dg);
+                duped_graphs.lock().push(dg);
                 Ok(())
             })),
             cs,
@@ -118,7 +118,7 @@ fn duplicate_graphs() {
         );
     });
 
-    insta::assert_debug_snapshot!(dup_graphs.lock().unwrap());
+    insta::assert_debug_snapshot!(dup_graphs.lock());
 }
 
 /// Ensures that we can allow duplicates generally, but deny them for specific

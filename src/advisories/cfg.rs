@@ -1,10 +1,9 @@
 use crate::{
     diag::{Diagnostic, FileId, Label},
-    LintLevel, Spanned,
+    LintLevel, PathBuf, Spanned,
 };
 use rustsec::advisory;
 use serde::Deserialize;
-use std::path::PathBuf;
 use url::Url;
 
 #[allow(clippy::reversed_empty_ranges)]
@@ -17,8 +16,6 @@ fn yanked() -> Spanned<LintLevel> {
 pub struct Config {
     /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
     pub db_path: Option<PathBuf>,
-    /// URL to the advisory database's git repo (default: https://github.com/RustSec/advisory-db)
-    pub db_url: Option<Spanned<String>>,
     /// List of urls to git repositories of different advisory databases.
     #[serde(default)]
     pub db_urls: Vec<Spanned<String>>,
@@ -45,18 +42,18 @@ pub struct Config {
     /// Vulnerabilities with explicit CVSS info which have a severity below
     /// this threshold will be ignored.
     pub severity_threshold: Option<advisory::Severity>,
-    /// Use the git executable to fetch advisory database
+    /// Use the git executable to fetch advisory database rather than gitoxide
     pub git_fetch_with_cli: Option<bool>,
-    /// If this is specified we fallback to retrieving the crates.io git index
-    /// if we are unable to open the crates.io sparse index
-    pub crates_io_git_fallback: Option<bool>,
+    /// If set to true, <https://index.crates.io> is not used to check for yanked
+    /// crates
+    #[serde(default)]
+    pub disable_crates_io_yank_checking: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             db_path: None,
-            db_url: None,
             db_urls: Vec::new(),
             ignore: Vec::new(),
             vulnerability: LintLevel::Deny,
@@ -66,7 +63,7 @@ impl Default for Config {
             notice: LintLevel::Warn,
             severity_threshold: None,
             git_fetch_with_cli: None,
-            crates_io_git_fallback: None,
+            disable_crates_io_yank_checking: false,
         }
     }
 }
@@ -89,21 +86,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 }
             })
             .collect();
-
-        if let Some(db_url) = self.db_url {
-            diags.push(
-                Diagnostic::warning()
-                    .with_message("'db_url' is deprecated, use 'db_urls' instead")
-                    .with_labels(vec![Label::primary(cfg_file, db_url.span.clone())]),
-            );
-
-            match crate::cfg::parse_url(cfg_file, db_url) {
-                Ok(url) => db_urls.push(url),
-                Err(diag) => {
-                    diags.push(diag);
-                }
-            }
-        }
 
         db_urls.sort();
 
@@ -148,7 +130,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             notice: self.notice,
             severity_threshold: self.severity_threshold,
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
-            crates_io_git_fallback: self.crates_io_git_fallback.unwrap_or(true),
+            disable_crates_io_yank_checking: self.disable_crates_io_yank_checking,
         }
     }
 }
@@ -167,14 +149,13 @@ pub struct ValidConfig {
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
     pub git_fetch_with_cli: bool,
-    pub crates_io_git_fallback: bool,
+    pub disable_crates_io_yank_checking: bool,
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::cfg::{test::*, Fake, UnvalidatedConfig};
-    use std::borrow::Cow;
 
     #[test]
     fn deserializes_advisories_cfg() {
@@ -198,8 +179,8 @@ mod test {
         assert!(validated
             .db_path
             .iter()
-            .map(|dp| dp.to_string_lossy())
-            .eq(vec![Cow::Borrowed("~/.cargo/advisory-dbs")]));
+            .map(|dp| dp.as_str())
+            .eq(vec!["~/.cargo/advisory-dbs"]));
         assert!(validated.db_urls.iter().eq(vec![&Url::parse(
             "https://github.com/RustSec/advisory-db"
         )

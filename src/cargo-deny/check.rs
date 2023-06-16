@@ -5,12 +5,12 @@ use cargo_deny::{
     diag::{
         CargoSpans, Diagnostic, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity,
     },
-    licenses, sources, CheckCtx,
+    licenses, sources, CheckCtx, PathBuf,
 };
 use is_terminal::IsTerminal as _;
 use log::error;
 use serde::Deserialize;
-use std::{path::PathBuf, time::Instant};
+use std::time::Instant;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum WhichCheck {
@@ -155,15 +155,13 @@ impl ValidConfig {
 
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path).with_context(|| {
-                    format!("failed to read config from {}", cfg_path.display())
-                })?,
+                std::fs::read_to_string(&cfg_path)
+                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
                 cfg_path,
             ),
             Some(cfg_path) => {
                 log::warn!(
-                    "config path '{}' doesn't exist, falling back to default config",
-                    cfg_path.display()
+                    "config path '{cfg_path}' doesn't exist, falling back to default config"
                 );
                 (String::new(), cfg_path)
             }
@@ -173,11 +171,10 @@ impl ValidConfig {
             }
         };
 
-        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
-            format!("failed to deserialize config from '{}'", cfg_path.display())
-        })?;
+        let cfg: Config = toml::from_str(&cfg_contents)
+            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
 
-        log::info!("using config from {}", cfg_path.display());
+        log::info!("using config from {cfg_path}");
 
         let id = files.add(&cfg_path, cfg_contents);
 
@@ -237,10 +234,7 @@ impl ValidConfig {
         // While we could continue in the face of configuration errors, the user
         // may end up with unexpected results, so just abort so they can fix them
         if has_errors {
-            anyhow::bail!(
-                "failed to validate configuration file {}",
-                cfg_path.display()
-            );
+            anyhow::bail!("failed to validate configuration file {cfg_path}");
         } else {
             Ok(valid_cfg)
         }
@@ -371,7 +365,7 @@ pub(crate) fn cmd(
             // Always run a fetch first in a separate step so that the user can
             // see what parts are actually taking time
             let start = std::time::Instant::now();
-            log::info!("fetching crates for {}", krate_ctx.manifest_path.display());
+            log::info!("fetching crates for {}", krate_ctx.manifest_path);
             if let Err(err) = krate_ctx.fetch_krates() {
                 log::error!("failed to fetch crates: {err:#}");
             } else {
@@ -543,10 +537,7 @@ pub(crate) fn cmd(
                         Ok(())
                     }),
                     Err(err) => {
-                        error!(
-                            "unable to create directory '{}': {err}",
-                            output_dir.display()
-                        );
+                        error!("unable to create directory '{output_dir}': {err}");
 
                         Box::new(move |dup_graph: bans::DupGraph| {
                             anyhow::bail!(

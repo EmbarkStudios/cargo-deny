@@ -208,8 +208,10 @@ pub(crate) fn parse_url(
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::diag::{FileId, Files};
-    use std::path::PathBuf;
+    use crate::{
+        diag::{FileId, Files},
+        PathBuf,
+    };
 
     pub(crate) struct ConfigData<T> {
         pub(crate) config: T,

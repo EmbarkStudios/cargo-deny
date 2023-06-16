@@ -96,7 +96,7 @@ impl From<UnmatchedLicenseException> for Diag {
 }
 
 pub(crate) struct MissingClarificationFile<'a> {
-    pub(crate) expected: &'a crate::cfg::Spanned<std::path::PathBuf>,
+    pub(crate) expected: &'a crate::cfg::Spanned<crate::PathBuf>,
     pub(crate) cfg_file_id: crate::diag::FileId,
 }
 

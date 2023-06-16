@@ -21,7 +21,7 @@ impl<'k> KrateGather<'k> {
     }
 
     pub fn gather(self) -> crate::Krates {
-        let mut project_dir = std::path::PathBuf::from("./tests/test_data");
+        let mut project_dir = crate::PathBuf::from("./tests/test_data");
         project_dir.push(self.name);
 
         let mut cmd = krates::Cmd::new();

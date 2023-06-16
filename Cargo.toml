@@ -28,11 +28,7 @@ path = "src/cargo-deny/main.rs"
 default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
-vendored-openssl = [
-  "cargo?/vendored-openssl",
-  "crates-index/vendored-openssl",
-  "git2/vendored-openssl",
-]
+vendored-openssl = ["cargo?/vendored-openssl", "git2/vendored-openssl"]
 vendored-libgit2 = ["cargo?/vendored-libgit2", "git2/vendored-libgit2"]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
@@ -50,6 +46,8 @@ askalono = "0.4"
 is-terminal = "0.4.6"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
+# Much nicer paths
+camino = "1.1"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
@@ -57,10 +55,6 @@ clap = { version = "4.0", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
-# Fetching and reading of crates.io (or other indices)
-crates-index = { version = "0.19", default-features = false, features = [
-  "parallel",
-] }
 # Brrrrr
 crossbeam = "0.8"
 # Logging utilities
@@ -73,6 +67,8 @@ home = "0.5"
 krates = { version = "0.13", features = ["prefer-index", "targets"] }
 # Log macros
 log = "0.4"
+# Nicer sync primitives
+parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.4"
 # Used for interacting with advisory databases
