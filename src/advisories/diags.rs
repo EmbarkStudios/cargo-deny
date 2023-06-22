@@ -126,7 +126,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 notes.push("Solution: No safe upgrade is available!".to_owned());
             } else {
                 notes.push(format!(
-                    "Solution: Upgrade to {}",
+                    "Solution: Upgrade to {} (try `cargo update`)",
                     versions
                         .patched()
                         .iter()
