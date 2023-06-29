@@ -53,7 +53,8 @@ pub struct Config {
     #[serde(default)]
     pub disable_yank_checking: bool,
     /// The maximum duration, in RFC3339 format, that an advisory database is
-    /// allowed to not have been updated. Defaults to 90 days.
+    /// allowed to not have been updated. This only applies when fetching advisory
+    /// databases has been disabled. Defaults to 90 days.
     ///
     /// Note that if fractional units are used in the format string they must
     /// use the '.' separator instead of ',' which is used by some locales and
@@ -202,7 +203,6 @@ pub struct ValidConfig {
 /// ```
 fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
     use anyhow::Context as _;
-    use time::Duration;
 
     let mut value = value
         .strip_prefix("P")
@@ -211,17 +211,18 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
     // The units that are allowed in the format, in the exact order they must be
     // in, ie it is invalid to specify a unit that is lower in this order than
     // one that has already been parsed
-    const UNITS: &[char] = &['D', 'M', 'Y', 'H', 'M', 'S', 'W'];
-    const UNITS_TO_SECONDS: &[f64] = &[
-        24. * 60. * 60.,
-        // We calculate the length of the month by just getting the mean of all the months, and use 28.25 for February
-        30.43 * 24. * 60. * 60.,
+    const UNITS: &[(char, f64)] = &[
+        ('D', 24. * 60. * 60.),
+        // We calculate the length of the month by just getting the mean of all
+        // the months, and use 28.25 for February
+        ('M', 30.43 * 24. * 60. * 60.),
         // Years we just use the standard 365 days and ignore leap years
-        365. * 24. * 60. * 60.,
-        60. * 60.,
+        ('Y', 365. * 24. * 60. * 60.),
+        ('H', 60. * 60.),
+        ('M', 60.),
         // Since time only supports whole seconds + nanoseconds we calculate seconds separately from the rest
-        0.,
-        7. * 24. * 60. * 60.,
+        ('S', 1.),
+        ('W', 7. * 24. * 60. * 60.),
     ];
 
     // Validate the string only contains valid characters to simplify the rest
@@ -231,57 +232,122 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
             anyhow::bail!("'{c}' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead");
         }
 
-        if c != '.' && c != 'T' && !c.is_ascii_digit() && !UNITS.contains(&c) {
+        if c != '.' && c != 'T' && !c.is_ascii_digit() && !UNITS.iter().any(|(uc, _)| c == *uc) {
             anyhow::bail!("'{c}' is not valid in the RFC-3339 duration format");
         }
     }
 
-    let mut duration = Duration::default();
+    #[derive(Copy, Clone, PartialEq, PartialOrd)]
+    enum Unit {
+        Empty,
+        Day,
+        Month,
+        Year,
+        Time,
+        Hour,
+        Minute,
+        Second,
+        Week,
+    }
+
+    impl Unit {
+        #[inline]
+        fn from(c: char, is_time: bool) -> Self {
+            match c {
+                'D' => Self::Day,
+                'T' => Self::Time,
+                'H' => Self::Hour,
+                'M' => {
+                    if is_time {
+                        Self::Minute
+                    } else {
+                        Self::Month
+                    }
+                }
+                'S' => Self::Second,
+                'Y' => Self::Year,
+                'W' => Self::Week,
+                other => unreachable!("'{other}' should be impossible"),
+            }
+        }
+    }
+
+    let mut seconds = 0;
+    let mut nanoseconds = 0;
 
     // The format requires that the units are in a specific order, but each
     // unit is optional
-    let mut cur_unit = 0;
+    let mut last_unit = Unit::Empty;
+    let mut last_unitc = '_';
+    let mut supplied_units = 0;
+    // According to the spec, the T is required before any hour/minute/second units
+    // are allowed
+    let mut is_time = false;
 
     while !value.is_empty() {
         let unit_index = value
             .find(|c: char| c.is_ascii_uppercase())
             .context("unit not specified")?;
 
-        let unit = value.as_bytes()[unit_index] as char;
-        if unit == 'T' {
+        let unitc = value.as_bytes()[unit_index] as char;
+        let unit = Unit::from(unitc, is_time);
+
+        anyhow::ensure!(
+            unit > last_unit,
+            "unit '{unitc}' cannot follow '{last_unitc}'"
+        );
+
+        if unit == Unit::Time {
             anyhow::ensure!(
                 unit_index == 0,
                 "unit not specified for value '{}'",
                 &value[..unit_index]
             );
-            cur_unit = 3; // 'H'
+            is_time = true;
         } else {
-            anyhow::ensure!(unit_index != 0, "value not specified for {unit}");
-            let unit_order = UNITS.iter().position(|c| *c == unit).unwrap();
-            anyhow::ensure!(
-                unit_order >= cur_unit,
-                "unit '{unit}' was specified after '{}' which is not allowed",
-                UNITS[cur_unit]
-            );
-            cur_unit = unit_order;
+            anyhow::ensure!(unit_index != 0, "value not specified for '{unitc}'");
 
             let uvs = &value[..unit_index];
             let unit_value: f64 = uvs
                 .parse()
                 .with_context(|| "failed to parse value '{uvs}' for unit '{unit}'")?;
 
-            duration += Duration::checked_seconds_f64(if unit != 'S' {
-                unit_value * UNITS_TO_SECONDS[unit_index]
-            } else {
-                unit_value
-            })
-            .with_context(|| format!("invalid value for unit '{unit}'"))?;
+            supplied_units += 1;
+
+            anyhow::ensure!(
+                !matches!(unit, Unit::Hour | Unit::Minute | Unit::Second) || is_time,
+                "'{unitc}' must be preceded with 'T'"
+            );
+
+            'block: {
+                let index = match unit {
+                    Unit::Second => {
+                        let dur = time::Duration::seconds_f64(unit_value);
+                        seconds += dur.whole_seconds();
+                        nanoseconds = dur.subsec_nanoseconds();
+                        break 'block;
+                    }
+                    Unit::Hour => 3,
+                    Unit::Day => 0,
+                    Unit::Minute => 4,
+                    Unit::Week => 6,
+                    Unit::Month => 1,
+                    Unit::Year => 2,
+                    _ => unreachable!(),
+                };
+
+                seconds += dbg!(unit_value * UNITS[index].1).floor() as i64;
+            }
         }
 
+        last_unitc = unitc;
+        last_unit = unit;
         value = &value[unit_index + 1..];
     }
 
-    Ok(duration)
+    anyhow::ensure!(supplied_units > 0, "must supply at least one time unit");
+
+    Ok(time::Duration::new(seconds, nanoseconds))
 }
 
 #[cfg(test)]
