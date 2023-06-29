@@ -1,5 +1,5 @@
 pub mod cfg;
-mod diags;
+pub(crate) mod diags;
 mod helpers;
 
 use crate::{diag, LintLevel};
@@ -47,13 +47,6 @@ pub fn check<R, S>(
         || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
         || {
             if let Some(indices) = indices {
-            } else {
-            }
-            if ctx.cfg.disable_yank_checking {
-                return Ok(Vec::new());
-            }
-
-            helpers::index::Indices::load(ctx.krates).map(|indices| {
                 let yanked: Vec<_> = ctx
                     .krates
                     .krates()
@@ -70,7 +63,9 @@ pub fn check<R, S>(
                     .collect();
 
                 yanked
-            })
+            } else {
+                Vec::new()
+            }
         },
     );
 
@@ -92,22 +87,15 @@ pub fn check<R, S>(
         sink.push(diag);
     }
 
-    match yanked {
-        Ok(yanked) => {
-            for (krate, status) in yanked {
-                let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
+    for (krate, status) in yanked {
+        let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
 
-                if let Some(e) = status {
-                    if ctx.cfg.yanked.value != LintLevel::Allow {
-                        sink.push(ctx.diag_for_index_failure(krate, ind, e));
-                    }
-                } else {
-                    sink.push(ctx.diag_for_yanked(krate, ind));
-                }
+        if let Some(e) = status {
+            if ctx.cfg.yanked.value != LintLevel::Allow {
+                sink.push(ctx.diag_for_index_failure(krate, ind, e));
             }
-        }
-        Err(err) => {
-            sink.push(ctx.diag_for_index_load_failure(err));
+        } else {
+            sink.push(ctx.diag_for_yanked(krate, ind));
         }
     }
 

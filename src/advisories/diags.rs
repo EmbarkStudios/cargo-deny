@@ -214,7 +214,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         pack
     }
 
-    pub(crate) fn diag_for_index_load_failure(&self, error: impl std::fmt::Display) -> Pack {
+    pub fn diag_for_index_load_failure(&self, error: impl std::fmt::Display) -> Pack {
         (
             Check::Advisories,
             Diagnostic::new(Severity::Error)

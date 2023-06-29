@@ -48,7 +48,7 @@ const fn lint_deny() -> LintLevel {
     LintLevel::Deny
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SourceKind {
     /// crates.io, the boolean indicates whether it is a sparse index
     CratesIo(bool),
@@ -61,38 +61,74 @@ pub enum SourceKind {
 }
 
 /// Wrapper around the original source url
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Source {
     pub kind: SourceKind,
     url: Option<url::Url>,
 }
 
+/// The directory name under which crates sourced from the crates.io sparse
+/// registry are placed
+const CRATES_IO_SPARSE_DIR: &str = "index.crates.io-6f17d22bba15001f";
+
 impl Source {
-    fn from_metadata(urls: String) -> anyhow::Result<Self> {
-        if urls == tame_index::CRATES_IO_INDEX {
-            return Ok(Self {
-                kind: SourceKind::CratesIo(false),
-                url: None,
-            });
-        } else if urls == tame_index::CRATES_IO_HTTP_INDEX {
-            return Ok(Self {
-                kind: SourceKind::CratesIo(true),
-                url: None,
-            });
+    pub fn crates_io(is_sparse: bool) -> Self {
+        Self {
+            kind: SourceKind::CratesIo(is_sparse),
+            url: None,
         }
+    }
 
+    /// Parses the source url to get its kind
+    ///
+    /// Note that the path is the path to the manifest of the package. This is
+    /// used to determine if the crates.io registry is git or sparse, as, currently,
+    /// cargo always uses the git registry+ url for crates.io, even if it uses the
+    /// sparse registry.
+    ///
+    /// This method therefore assumes that the crates sources are laid out in the
+    /// canonical cargo structure, though it can be rooted somewhere other than
+    /// `CARGO_HOME`
+    fn from_metadata(urls: String, manifest_path: &Path) -> anyhow::Result<Self> {
         use anyhow::Context as _;
-        let index = urls.find('+').context("url is not a valid crate source")?;
-        let mut url = Url::parse(&urls[index + 1..]).context("failed to parse url")?;
 
-        let kind = match &urls[..index] {
-            "sparse" => SourceKind::Sparse,
-            "registry" => SourceKind::Registry,
+        let (kind, url_str) = urls
+            .split_once('+')
+            .with_context(|| format!("'{urls}' is not a valid crate source"))?;
+
+        let (kind, url) = match kind {
+            "sparse" => {
+                // This code won't ever be hit in current cargo, but could in the future
+                if urls == tame_index::CRATES_IO_HTTP_INDEX {
+                    return Ok(Self::crates_io(true));
+                }
+
+                (SourceKind::Sparse, None)
+            }
+            "registry" => {
+                if url_str == tame_index::CRATES_IO_INDEX {
+                    // registry/src/index.crates.io-6f17d22bba15001f/crate-version/Cargo.toml
+                    let is_sparse = manifest_path
+                        .ancestors()
+                        .nth(2)
+                        .map_or(false, |dir| dir == CRATES_IO_SPARSE_DIR);
+                    return Ok(Self::crates_io(is_sparse));
+                }
+
+                (SourceKind::Registry, None)
+            }
             "git" => {
+                let mut url = Url::parse(url_str).context("failed to parse url")?;
                 let spec = normalize_git_url(&mut url);
-                SourceKind::Git(spec)
+                (SourceKind::Git(spec), Some(url))
             }
             unknown => anyhow::bail!("unknown source spec '{unknown}' for url {urls}"),
+        };
+
+        let url = if let Some(url) = url {
+            url
+        } else {
+            Url::parse(url_str).context("failed to parse url")?
         };
 
         Ok(Self {
@@ -163,11 +199,9 @@ impl fmt::Display for Source {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.kind, self.url.as_ref()) {
-            (SourceKind::CratesIo(is_sparse), None) => f.write_str(if is_sparse {
-                tame_index::CRATES_IO_HTTP_INDEX
-            } else {
-                tame_index::CRATES_IO_INDEX
-            }),
+            (SourceKind::CratesIo(_), None) => {
+                write!(f, "registry+{}", tame_index::CRATES_IO_INDEX)
+            }
             (SourceKind::Git(_), Some(url)) => {
                 write!(f, "git+{url}")
             }
@@ -245,10 +279,12 @@ impl PartialEq for Krate {
 impl Eq for Krate {}
 
 impl krates::KrateDetails for Krate {
+    #[inline]
     fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline]
     fn version(&self) -> &semver::Version {
         &self.version
     }
@@ -259,7 +295,7 @@ impl From<cm::Package> for Krate {
         let source = pkg.source.and_then(|src| {
             let url = src.to_string();
 
-            Source::from_metadata(url)
+            Source::from_metadata(url, &pkg.manifest_path)
                 .map_err(|err| {
                     log::warn!(
                         "unable to parse source url for {}:{}: {err}",
@@ -482,29 +518,61 @@ mod test {
 
     #[test]
     fn parses_sources() {
+        let empty_dir = super::Path::new("");
         let crates_io_git = Source::from_metadata(
-            "registry+https://github.com/rust-lang/crates.io-index".to_owned(),
+            format!("registry+{}", tame_index::CRATES_IO_INDEX),
+            empty_dir,
         )
         .unwrap();
         let crates_io_sparse =
-            Source::from_metadata("sparse+https://index.crates.io/".to_owned()).unwrap();
-
-        assert!(crates_io_git.is_registry() && crates_io_sparse.is_registry());
-        assert!(crates_io_git.is_crates_io() && crates_io_sparse.is_crates_io());
+            Source::from_metadata(tame_index::CRATES_IO_HTTP_INDEX.to_owned(), empty_dir).unwrap();
+        let crates_io_sparse_but_git = Source::from_metadata(
+            format!("registry+{}", tame_index::CRATES_IO_INDEX),
+            super::Path::new(&format!(
+                "registry/src/{}/cargo-deny-0.69.0/Cargo.toml",
+                super::CRATES_IO_SPARSE_DIR
+            )),
+        )
+        .unwrap();
 
         assert!(
-            Source::from_metadata("registry+https://my-own-my-precious.com/".to_owned())
+            crates_io_git.is_registry()
+                && crates_io_sparse.is_registry()
+                && crates_io_sparse_but_git.is_registry()
+        );
+        assert!(
+            crates_io_git.is_crates_io()
+                && crates_io_sparse.is_crates_io()
+                && crates_io_sparse_but_git.is_crates_io()
+        );
+
+        assert!(Source::from_metadata(
+            "registry+https://my-own-my-precious.com/".to_owned(),
+            empty_dir
+        )
+        .unwrap()
+        .is_registry());
+        assert!(
+            Source::from_metadata("sparse+https://my-registry.rs/".to_owned(), empty_dir)
                 .unwrap()
                 .is_registry()
         );
-        assert!(
-            Source::from_metadata("sparse+https://my-registry.rs/".to_owned())
-                .unwrap()
-                .is_registry()
-        );
 
-        let src = Source::from_metadata("git+https://github.com/EmbarkStudios/wasmtime?branch=v6.0.1-profiler#84b8cacceacb585ef53774c3790b2372ba080067".to_owned()).unwrap();
+        let src = Source::from_metadata("git+https://github.com/EmbarkStudios/wasmtime?branch=v6.0.1-profiler#84b8cacceacb585ef53774c3790b2372ba080067".to_owned(), empty_dir).unwrap();
 
         assert!(src.is_git());
+    }
+
+    /// Sanity checks that the crates.io sparse registry still uses the same
+    /// local directory. Really this should be doing a cargo invocation, but
+    /// meh, we depend on tame-index to stay up to date
+    #[test]
+    fn validate_crates_io_sparse_dir_name() {
+        assert_eq!(
+            tame_index::utils::url_to_local_dir(tame_index::CRATES_IO_HTTP_INDEX)
+                .unwrap()
+                .dir_name,
+            super::CRATES_IO_SPARSE_DIR
+        );
     }
 }

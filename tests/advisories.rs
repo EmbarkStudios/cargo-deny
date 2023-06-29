@@ -39,7 +39,7 @@ fn load() -> TestCtx {
         advisories::DbSet::load(
             Some("tests/advisory-db"),
             vec![],
-            advisories::Fetch::Disallow,
+            advisories::Fetch::Disallow(time::Duration::days(100)),
         )
         .unwrap()
     };
@@ -71,7 +71,13 @@ fn detects_vulnerabilities() {
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                None,
+                tx,
+            );
         });
 
     let diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
@@ -87,7 +93,13 @@ fn detects_unmaintained() {
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                None,
+                tx,
+            );
         });
 
     let unmaintained_diag = find_by_code(&diags, "RUSTSEC-2016-0004").unwrap();
@@ -102,7 +114,13 @@ fn detects_unsound() {
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                None,
+                tx,
+            );
         });
 
     let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
@@ -119,7 +137,13 @@ fn downgrades_lint_levels() {
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                None,
+                tx,
+            );
         });
 
     let downgraded = [
@@ -130,12 +154,50 @@ fn downgrades_lint_levels() {
     insta::assert_json_snapshot!(downgraded);
 }
 
-fn verify_yanked(name: &str, dbs: &advisories::DbSet, krates: &Krates) {
+/// Validates we can detect yanked crates from sparse, git, and
+/// non crates.io registries
+#[test]
+fn detects_yanked() {
+    // This crate has really light dependencies that _should_ still exercise
+    // the yank checking without taking more than a couple of seconds to download
+    // even though we always do it in a fresh temporary directory
+    let td = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap();
+    let cargo_home = td.path();
+
+    let mut cmd = krates::Cmd::new();
+
+    // Note we need to set the current directory as cargo has a bug/design flaw
+    // where .cargo/config.toml is only searched from the current working directory
+    // not the location of the root manifest. which is....really annoying
+    cmd.current_dir("examples/12_yank_check")
+        .lock_opts(krates::LockOptions {
+            frozen: false,
+            locked: true,
+            offline: false,
+        });
+
+    let mut cmd: krates::cm::MetadataCommand = cmd.into();
+    cmd.env("CARGO_HOME", cargo_home);
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
+
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
+    let dbs = advisories::DbSet { dbs: Vec::new() };
+
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, dbs, Option::<advisories::NoneReporter>::None, tx);
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                Some(indices),
+                tx,
+            );
         });
 
     let diags: Vec<_> = diags
@@ -143,71 +205,36 @@ fn verify_yanked(name: &str, dbs: &advisories::DbSet, krates: &Krates) {
         .filter(|v| field_eq!(v, "/fields/message", "detected yanked crate"))
         .collect();
 
-    insta::assert_json_snapshot!(name, diags);
+    insta::assert_json_snapshot!(diags);
 }
 
 #[test]
-fn detects_yanked() {
-    let TestCtx { dbs, krates } = load();
-    verify_yanked("detects_yanked", &dbs, &krates);
-}
-
-#[test]
-fn detects_yanked_sparse() {
-    let dbs = {
-        advisories::DbSet::load(
-            Some("tests/advisory-db"),
-            vec![],
-            advisories::Fetch::Disallow,
-        )
-        .unwrap()
-    };
-
-    let mut mdc = krates::Cmd::new();
-    mdc.manifest_path("examples/06_advisories/Cargo.toml");
-
-    let cmd: krates::cm::MetadataCommand = mdc.into();
-
-    let krates: Krates = krates::Builder::new()
-        .build(cmd, krates::NoneFilter)
-        .unwrap();
-
-    let registry_root = home::cargo_home()
-        .unwrap()
-        .join("registry/index/github.com-1ecc6299db9ec823");
-    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
-    verify_yanked("detects_yanked_sparse", &dbs, &krates);
-}
-
-/// Again, screwing around on disk, don't run this test unless you really want to
-#[cfg(target_os = "linux")]
-#[test]
-#[ignore]
 fn warns_on_index_failures() {
-    let dbs = {
-        advisories::DbSet::load(
-            Some("tests/advisory-db"),
-            vec![],
-            advisories::Fetch::Disallow,
-        )
-        .unwrap()
+    let TestCtx { dbs, krates } = load();
+
+    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+
+    let source = cargo_deny::Source::crates_io(true);
+
+    let indices = advisories::Indices {
+        indices: vec![(
+            &source,
+            Err(tame_index::Error::NonUtf8Path(
+                "this path is valid but we pretend it is non-utf8".into(),
+            )),
+        )],
+        cache: Default::default(),
     };
-
-    let mut mdc = krates::Cmd::new();
-    mdc.manifest_path("examples/06_advisories/Cargo.toml");
-
-    let cmd: krates::cm::MetadataCommand = mdc.into();
-    let krates: Krates = krates::Builder::new()
-        .build(cmd, krates::NoneFilter)
-        .unwrap();
-
-    let cfg = tu::Config::new("yanked = 'deny'\ncrates-io-git-fallback = false\nunmaintained = 'allow'\nvulnerability = 'allow'");
-    let registry_root = home::cargo_home().unwrap().join("registry/index");
-    std::fs::remove_dir_all(registry_root).expect("failed to nuke registry");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                Some(indices),
+                tx,
+            );
         });
 
     // This is the number of crates sourced to crates.io
@@ -230,7 +257,13 @@ fn warns_on_ignored_and_withdrawn() {
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
-            advisories::check(ctx, &dbs, Option::<advisories::NoneReporter>::None, tx);
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                None,
+                tx,
+            );
         });
 
     insta::assert_json_snapshot!(diags

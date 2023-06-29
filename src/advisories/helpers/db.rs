@@ -20,7 +20,7 @@ pub enum Fetch {
 ///
 /// [`Database`]: https://docs.rs/rustsec/0.25.0/rustsec/database/struct.Database.html
 pub struct DbSet {
-    dbs: Vec<(Url, Database)>,
+    pub dbs: Vec<(Url, Database)>,
 }
 
 impl DbSet {
@@ -680,15 +680,7 @@ mod test {
             let url = Url::parse("https://github.com/RustSec/advisory-db").unwrap();
             assert_eq!(
                 url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("github.com-2f857891b7f43c59")
-            );
-        }
-
-        {
-            let url = Url::parse("https://github.com/RustSec/advisory-db").unwrap();
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("github.com-2f857891b7f43c59")
+                root_path.join("github.com-a946fc29ac602819")
             );
         }
 

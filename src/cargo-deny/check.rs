@@ -391,7 +391,7 @@ pub(crate) fn cmd(
                         .map(|us| us.as_ref().clone())
                         .collect(),
                     if args.disable_fetch {
-                        advisories::Fetch::Disallow
+                        advisories::Fetch::Disallow(advisories.maximum_db_staleness)
                     } else if advisories.git_fetch_with_cli {
                         advisories::Fetch::AllowWithGitCli
                     } else {
@@ -595,7 +595,7 @@ pub(crate) fn cmd(
         }
 
         if let Some(dbset) = advisory_db_set {
-            let advisories_sink = ErrorSink {
+            let mut advisories_sink = ErrorSink {
                 overrides,
                 channel: tx,
             };
@@ -609,6 +609,38 @@ pub(crate) fn cmd(
             };
 
             s.spawn(move |_| {
+                // We need to have all the crates when opening indices, so can't
+                // load them at the same time as the dbset, but meh, this should
+                // be very fast since we only load from cache, in parallel
+                let indices = if !ctx.cfg.disable_yank_checking {
+                    // If we can't find the cargo home directory, we won't be able
+                    // to load the cargo indices. We _could_ actually do a fetch
+                    // into a temporary directory instead, but this almost certainly
+                    // means that something is wrong
+                    match tame_index::utils::cargo_home() {
+                        Ok(cargo_home) => {
+                            log::info!("loading index metadata for crates...");
+                            let start = Instant::now();
+
+                            let indices = advisories::Indices::load(krates, cargo_home);
+
+                            log::info!(
+                                "cached index metadata loaded in {}ms",
+                                start.elapsed().as_millis()
+                            );
+                            Some(indices)
+                        }
+                        Err(err) => {
+                            advisories_sink.push(ctx.diag_for_index_load_failure(format!(
+                                "unable to find cargo home directory: {err:#}"
+                            )));
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
@@ -620,7 +652,7 @@ pub(crate) fn cmd(
                     None
                 };
 
-                advisories::check(ctx, &dbset, audit_reporter, advisories_sink);
+                advisories::check(ctx, &dbset, audit_reporter, indices, advisories_sink);
 
                 log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });

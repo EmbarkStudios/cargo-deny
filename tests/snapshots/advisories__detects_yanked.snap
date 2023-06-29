@@ -9,13 +9,13 @@ expression: diags
       "graphs": [
         {
           "Krate": {
-            "name": "ammonia",
-            "version": "0.7.0"
+            "name": "crate-two",
+            "version": "0.1.0"
           },
           "parents": [
             {
               "Krate": {
-                "name": "advisories",
+                "name": "yank-check",
                 "version": "0.1.0"
               }
             }
@@ -25,81 +25,9 @@ expression: diags
       "labels": [
         {
           "column": 1,
-          "line": 4,
+          "line": 2,
           "message": "yanked version",
-          "span": "ammonia 0.7.0 registry+https://github.com/rust-lang/crates.io-index"
-        }
-      ],
-      "message": "detected yanked crate",
-      "severity": "error"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "yanked",
-      "graphs": [
-        {
-          "Krate": {
-            "name": "ammonia",
-            "version": "1.2.0"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "name": "artifact_serde",
-                "version": "0.3.1"
-              },
-              "parents": [
-                {
-                  "Krate": {
-                    "name": "advisories",
-                    "version": "0.1.0"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 1,
-          "line": 5,
-          "message": "yanked version",
-          "span": "ammonia 1.2.0 registry+https://github.com/rust-lang/crates.io-index"
-        }
-      ],
-      "message": "detected yanked crate",
-      "severity": "error"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "yanked",
-      "graphs": [
-        {
-          "Krate": {
-            "name": "spdx",
-            "version": "0.3.1"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "name": "advisories",
-                "version": "0.1.0"
-              }
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 1,
-          "line": 154,
-          "message": "yanked version",
-          "span": "spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"
+          "span": "crate-two 0.1.0 registry+https://github.com/EmbarkStudios/cargo-test-index"
         }
       ],
       "message": "detected yanked crate",
