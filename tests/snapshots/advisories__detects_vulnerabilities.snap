@@ -6,7 +6,8 @@ expression: diag
   "fields": {
     "advisory": {
       "aliases": [
-        "CVE-2019-15542"
+        "CVE-2019-15542",
+        "GHSA-5hp8-35wj-m525"
       ],
       "categories": [],
       "collection": "crates",

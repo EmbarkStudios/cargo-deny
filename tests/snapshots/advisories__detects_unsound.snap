@@ -6,8 +6,10 @@ expression: unsound_diag
   "fields": {
     "advisory": {
       "aliases": [
+        "CVE-2019-25010",
         "CVE-2020-25575",
-        "CVE-2019-25010"
+        "GHSA-jq66-xh47-j9f3",
+        "GHSA-r98r-j25q-rmpr"
       ],
       "categories": [],
       "collection": "crates",
