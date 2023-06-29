@@ -28,7 +28,6 @@ dependencies = [
  "failure",
  "lettre",
  "libusb",
- "spdx",
  "trust-dns-resolver",
 ]
 
@@ -1376,17 +1375,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "spdx"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d3449a25089fd6f99b089e62c385d5d4adeaf3defedc35a67d540e7df44c5fb"
-dependencies = [
- "lazy_static 1.4.0",
- "regex",
- "smallvec",
 ]
 
 [[package]]
