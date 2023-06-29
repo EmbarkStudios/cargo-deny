@@ -12,7 +12,7 @@ const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
 pub enum Fetch {
     Allow,
     AllowWithGitCli,
-    Disallow,
+    Disallow(time::Duration),
 }
 
 /// A collection of [`Database`]s that is used to query advisories
@@ -87,8 +87,8 @@ impl DbSet {
 
 /// Convert an advisory url to a directory underneath a specified root
 fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
-    let (ident, _) = super::url_to_local_dir(url.as_str())?;
-    db_path.push(ident);
+    let local_dir = tame_index::utils::url_to_local_dir(url.as_str())?;
+    db_path.push(local_dir.dir_name);
 
     Ok(db_path)
 }
@@ -108,13 +108,70 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<
             fetch_via_cli(db_url.as_str(), &db_path)
                 .with_context(|| format!("failed to fetch advisory database {db_url} with cli"))?;
         }
-        Fetch::Disallow => {
+        Fetch::Disallow(_) => {
             debug!("Opening advisory database at '{db_path}'");
         }
     }
 
-    // Verify that the repository is actually valid
-    git2::Repository::open(&db_path).context("failed to open advisory database")?;
+    // Verify that the repository is actually valid and that it is fresh
+    let repo = gix::open(&db_path).context("failed to open advisory database")?;
+
+    // Ensure that the upstream repository hasn't gone stale, ie, they've
+    // configured cargo-deny to not fetch the remote database(s), but they've
+    // failed to update the database manually
+    if let Fetch::Disallow(max_staleness) = fetch {
+        let file_timestamp = |name: &str| -> anyhow::Result<time::OffsetDateTime> {
+            let path = repo.path().join(name);
+            let attr = std::fs::metadata(&path)
+                .with_context(|| format!("failed to get '{name}' metadata"))?;
+            Ok(attr
+                .modified()
+                .with_context(|| format!("failed to get '{name}' modification time"))?
+                .into())
+        };
+
+        let commit_timestamp = || -> anyhow::Result<time::OffsetDateTime> {
+            let commit = repo.head_commit().context("failed to get HEAD commit")?;
+            let time = commit.time().context("failed to get HEAD commit time")?;
+
+            // Copy what gix does, unfortunately it's not public
+            // <https://github.com/Byron/gitoxide/blob/5af2cf368dcd05fe4dffbd675cffe6bafec127e7/gix-date/src/time/format.rs#L83C1-L87>
+
+            let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds as i64)
+                .context("unix timestamp for HEAD was out of range")?
+                .to_offset(
+                    time::UtcOffset::from_whole_seconds(time.offset)
+                        .context("timestamp offset for HEAD was out of range")?,
+                );
+
+            Ok(ts)
+        };
+
+        let timestamp = match file_timestamp("FETCH_HEAD") {
+            Ok(ts) => ts,
+            Err(fh_err) => {
+                // If we can't get the mod time of the FETCH_HEAD file, fallback
+                // to getting the timestamp of the head commit. However, this
+                // is not as good as FETCH_HEAD mod time since a database could
+                // have been fetched within the time window, but the HEAD at that
+                // time was out of the time window
+                match commit_timestamp() {
+                    Ok(ts) => ts,
+                    Err(hc_err) => {
+                        return Err(hc_err).context(fh_err);
+                    }
+                }
+            }
+        };
+
+        anyhow::ensure!(
+            timestamp
+                > time::OffsetDateTime::now_utc()
+                    .checked_sub(max_staleness)
+                    .context("unable to compute oldest allowable update timestamp")?,
+            "repository is stale (last update: {timestamp})"
+        );
+    }
 
     debug!("loading advisory database from {db_path}");
 
@@ -123,6 +180,210 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<
     debug!("finished loading advisory database from {db_path}");
 
     res
+}
+
+/// Perform a fetch + checkout of the latest remote HEAD -> local HEAD
+///
+/// Note this function is a bit involved as, either I'm dumb and can't figure out
+/// how to do it, or else gix has support for updating HEAD and checking it out
+/// when doing a clone, but if you are performing a fetch on an existing repo
+/// ...you have to do that all yourself, which is pretty tedious
+fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
+    const DIR: gix::remote::Direction = gix::remote::Direction::Fetch;
+
+    // In a normal case there will be only one remote, called origin, but try
+    // and be robust about it
+    let mut remote = repo
+        .head()
+        .context("failed to get HEAD")?
+        .into_remote(DIR)
+        .map(|r| r.context("failed to get remote for HEAD"))
+        .or_else(|| {
+            repo.find_default_remote(DIR)
+                .map(|r| r.context("failed to find default remote"))
+        })
+        .context("failed to find appropriate remote to fetch from")??;
+
+    let remote_head = format!(
+        "refs/remotes/{}/HEAD",
+        remote
+            .name()
+            .map(|s| s.as_bstr())
+            .context("remote name hasn't been persisted to disk")?
+    );
+
+    remote
+        .replace_refspecs(Some(format!("HEAD:{remote_head}").as_str()), DIR)
+        .expect("valid statically known refspec");
+
+    // Perform the actual fetch
+    let fetch_response: gix::remote::fetch::Outcome = remote
+        .connect(DIR)?
+        .prepare_fetch(&mut gix::progress::Discard, Default::default())
+        .context("failed to prepare fetch")?
+        .receive(
+            &mut gix::progress::Discard,
+            &std::sync::atomic::AtomicBool::default(),
+        )
+        .context("failed to fetch")?;
+
+    // Find the commit id of the remote's HEAD
+    let (remote_head_id, remote_ref_target) = fetch_response
+        .ref_map
+        .mappings
+        .iter()
+        .find_map(|mapping| {
+            let gix::remote::fetch::Source::Ref(rref) = &mapping.remote else { return None; };
+
+            if mapping.local.as_deref()? != remote_head.as_bytes() {
+                return None;
+            }
+
+            let gix::protocol::handshake::Ref::Symbolic {
+            full_ref_name,
+            object,
+            target,
+        } = rref else { return None; };
+
+            (full_ref_name == "HEAD").then(|| (*object, target.clone()))
+        })
+        .context("failed to locate remote HEAD")?;
+
+    use gix::refs::{transaction as tx, Target};
+
+    // In all (hopefully?) cases HEAD is a symbolic reference to
+    // refs/heads/<branch> which is a peeled commit id, if that's the case
+    // we update it to the new commit id, otherwise we just set HEAD
+    // directly
+    use gix::head::Kind;
+    let edit = match repo.head()?.kind {
+        Kind::Symbolic(sref) => {
+            // Update our local HEAD to the remote HEAD
+            if let Target::Symbolic(name) = sref.target {
+                Some(tx::RefEdit {
+                    change: tx::Change::Update {
+                        log: tx::LogChange {
+                            mode: tx::RefLog::AndReference,
+                            force_create_reflog: false,
+                            message: "".into(),
+                        },
+                        expected: tx::PreviousValue::MustExist,
+                        new: gix::refs::Target::Peeled(remote_head_id),
+                    },
+                    name,
+                    deref: true,
+                })
+            } else {
+                None
+            }
+        }
+        Kind::Unborn(_) | Kind::Detached { .. } => None,
+    };
+
+    let edit = edit.unwrap_or_else(|| tx::RefEdit {
+        change: tx::Change::Update {
+            log: tx::LogChange {
+                mode: tx::RefLog::AndReference,
+                force_create_reflog: false,
+                message: "".into(),
+            },
+            expected: tx::PreviousValue::Any,
+            new: gix::refs::Target::Peeled(remote_head_id),
+        },
+        name: "HEAD".try_into().unwrap(),
+        deref: true,
+    });
+
+    repo.edit_reference(edit).context("failed to update HEAD")?;
+
+    // Sanity check that the local HEAD points to the same commit
+    // as the remote HEAD
+    anyhow::ensure!(
+        remote_head_id == repo.head_commit()?.id,
+        "failed to update HEAD to remote HEAD"
+    );
+
+    use gix::prelude::FindExt;
+
+    // Now that we've updated HEAD, do the actual checkout
+    let workdir = repo
+        .work_dir()
+        .context("unable to checkout, repository is bare")?;
+    let root_tree = repo
+        .head()?
+        .peel_to_id_in_place()
+        .transpose()?
+        .context("unable to peel HEAD")?
+        .object()
+        .context("HEAD commit not downloaded from remote")?
+        .peel_to_tree()
+        .context("unable to peel HEAD to tree")?
+        .id;
+
+    let index = gix::index::State::from_tree(&root_tree, |oid, buf| {
+        repo.objects.find_tree_iter(oid, buf).ok()
+    })
+    .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
+    let mut index = gix::index::File::from_state(index, repo.index_path());
+
+    let opts = gix::worktree::checkout::Options {
+        destination_is_initially_empty: false,
+        overwrite_existing: true,
+        ..Default::default()
+    };
+
+    gix::worktree::checkout(
+        &mut index,
+        workdir,
+        {
+            let objects = repo.objects.clone().into_arc()?;
+            move |oid, buf| objects.find_blob(oid, buf)
+        },
+        &mut gix::progress::Discard,
+        &mut gix::progress::Discard,
+        &std::sync::atomic::AtomicBool::default(),
+        opts,
+    )
+    .context("failed to checkout")?;
+
+    index
+        .write(Default::default())
+        .context("failed to write index")?;
+
+    // Now that we've checked out everything write FETCH_HEAD
+    //
+    // The format of FETCH_HEAD is a bit different from other refs, and
+    // we don't write it the same as git does, as it includes the tips
+    // of _all_ active remote branches, and we don't care about anything
+    // except the branch with HEAD
+    //
+    // <commit_oid>\t\tbranch '<name>' of '<remote>'
+    let fetch_head_path = repo.path().join("FETCH_HEAD");
+
+    let remote_head = remote_head_id.to_hex();
+    // At least for the official rustsec repo, the default branch is 'main', so
+    // we default to that if the target is invalid utf8 or empty
+    let remote_ref_target = String::try_from(remote_ref_target).ok();
+    let remote_branch_name = remote_ref_target
+        .as_deref()
+        .and_then(|s| s.rsplit('/').next())
+        .unwrap_or("main");
+
+    // This _should_ be impossible if we got here...
+    let remote_url: String = remote
+        .url(DIR)
+        .context("fetch url is not available for remote")?
+        .to_bstring()
+        .try_into()
+        .context("remote url is not valid utf-8")?;
+
+    std::fs::write(
+        &fetch_head_path,
+        format!("{remote_head}\t\tbranch '{remote_branch_name}' of {remote_url}"),
+    )
+    .with_context(|| format!("failed to write {fetch_head_path:?}"))?;
+
+    Ok(())
 }
 
 fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
@@ -143,103 +404,41 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         }
     }
 
-    // Avoid libgit2 errors in the case the directory exists but is
-    // otherwise empty.
-    //
+    // Avoid errors in the case the directory exists but is otherwise empty.
     // See: https://github.com/RustSec/cargo-audit/issues/32
     if db_path.is_dir() && std::fs::read_dir(db_path)?.next().is_none() {
         std::fs::remove_dir(db_path)?;
     }
 
-    /// Ref for the `main` branch in the local repository
-    const LOCAL_REF: &str = "refs/heads/main";
+    let (mut repo, cloned) = gix::open(&db_path)
+        .map(|repo| (repo, false))
+        .or_else(|err| {
+            if matches!(err, gix::open::Error::NotARepository { .. }) {
+                let (checkout, _out) = gix::prepare_clone(url.as_str(), &db_path)
+                    .context("failed to prepare clone")?
+                    .fetch_then_checkout(
+                        gix::progress::Discard,
+                        &std::sync::atomic::AtomicBool::default(),
+                    )
+                    .context("failed to fetch")?;
 
-    /// Ref for the `main` branch in the remote repository
-    const REMOTE_REF: &str = "refs/remotes/origin/main";
+                Ok((checkout.persist(), true))
+            } else {
+                Err(err).context("unable to open repository")
+            }
+        })
+        .with_context(|| format!("failed to open git repository at '{db_path}'"))?;
 
-    let git_config = git2::Config::new()?;
-
-    with_authentication(url.as_str(), &git_config, |f| {
-        let mut callbacks = git2::RemoteCallbacks::new();
-        callbacks.credentials(f);
-
-        let mut proxy_opts = git2::ProxyOptions::new();
-        proxy_opts.auto();
-
-        let mut fetch_opts = git2::FetchOptions::new();
-        fetch_opts.remote_callbacks(callbacks);
-        fetch_opts.proxy_options(proxy_opts);
-
-        if db_path.exists() {
-            let repo = git2::Repository::open(db_path)?;
-            let refspec = format!("{LOCAL_REF}:{REMOTE_REF}");
-
-            // Fetch remote packfiles and update tips
-            let mut remote = repo.remote_anonymous(url.as_str())?;
-            remote.fetch(&[refspec.as_str()], Some(&mut fetch_opts), None)?;
-
-            // Get the current remote tip (as an updated local reference)
-            let remote_main_ref = repo.find_reference(REMOTE_REF)?;
-            let remote_target = remote_main_ref.target().unwrap();
-
-            // Set the local main ref to match the remote
-            match repo.find_reference(LOCAL_REF) {
-                Ok(mut local_main_ref) => {
-                    local_main_ref.set_target(
-                        remote_target,
-                        &format!("moving `main` to {REMOTE_REF}: {remote_target}"),
-                    )?;
-                }
-                Err(e) if e.code() == git2::ErrorCode::NotFound => {
-                    anyhow::bail!("unable to find reference '{LOCAL_REF}'");
-                }
-                Err(e) => {
-                    return Err(e.into());
-                }
-            };
-        } else {
-            git2::build::RepoBuilder::new()
-                .fetch_options(fetch_opts)
-                .clone(url.as_str(), db_path.as_std_path())?;
-        }
-
-        Ok(())
-    })?;
-
-    let repo = git2::Repository::open(db_path).context("failed to open repository")?;
-
-    // Retrieve the HEAD commit
-    let head = repo.head()?;
-
-    let oid = head
-        .target()
-        .with_context(|| format!("no ref target for '{db_path}'"))?;
-
-    let commit_object = repo.find_object(oid, Some(git2::ObjectType::Commit))?;
-    let commit = commit_object
-        .as_commit()
-        .context("HEAD OID was not a reference to a commit")?;
-
-    // Reset the state of the repository to the latest commit
-    repo.reset(&commit_object, git2::ResetType::Hard, None)?;
-
-    let timestamp = time::OffsetDateTime::from_unix_timestamp(commit.time().seconds())
-        .context("commit timestamp is invalid")?;
-
-    // 90 days
-    const MINIMUM_FRESHNESS: time::Duration = time::Duration::seconds(90 * 24 * 60 * 60);
-
-    // Ensure that the upstream repository hasn't gone stale, ie, they've
-    // configured cargo-deny to not fetch the remote database(s), but they've
-    // failed to update the databases manuallly
-    anyhow::ensure!(
-        timestamp
-            > time::OffsetDateTime::now_utc()
-                .checked_sub(MINIMUM_FRESHNESS)
-                .expect("this should never happen"),
-        "repository is stale (last commit: {})",
-        timestamp
-    );
+    // If we didn't open a fresh repo we need to peform a fetch ourselves, and
+    // do the work of updating the HEAD to point at the latest remote HEAD, which
+    // gix doesn't currently do.
+    //
+    // Gix also doesn't write the FETCH_HEAD, which we rely on for staleness
+    // checking, so we write it ourselves to keep identical logic between gix
+    // and git/git2
+    if !cloned {
+        fetch_and_checkout(&mut repo)?;
+    }
 
     Ok(())
 }
@@ -304,222 +503,6 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-/// Prepare the authentication callbacks for cloning a git repository.
-///
-/// The main purpose of this function is to construct the "authentication
-/// callback" which is used to clone a repository. This callback will attempt to
-/// find the right authentication on the system (without user input) and will
-/// guide libgit2 in doing so.
-///
-/// The callback is provided `allowed` types of credentials, and we try to do as
-/// much as possible based on that:
-///
-/// * Prioritize SSH keys from the local ssh agent as they're likely the most
-///   reliable. The username here is prioritized from the credential
-///   callback, then from whatever is configured in git itself, and finally
-///   we fall back to the generic user of `git`.
-///
-/// * If a username/password is allowed, then we fallback to git2-rs's
-///   implementation of the credential helper. This is what is configured
-///   with `credential.helper` in git, and is the interface for the macOS
-///   keychain, for example.
-///
-/// * After the above two have failed, we just kinda grapple attempting to
-///   return *something*.
-///
-/// If any form of authentication fails, libgit2 will repeatedly ask us for
-/// credentials until we give it a reason to not do so. To ensure we don't
-/// just sit here looping forever we keep track of authentications we've
-/// attempted and we don't try the same ones again.
-pub fn with_authentication<T, F>(url: &str, cfg: &git2::Config, mut f: F) -> anyhow::Result<T>
-where
-    F: FnMut(&mut git2::Credentials<'_>) -> anyhow::Result<T>,
-{
-    let mut cred_helper = git2::CredentialHelper::new(url);
-    cred_helper.config(cfg);
-
-    let mut ssh_username_requested = false;
-    let mut cred_helper_bad = None;
-    let mut ssh_agent_attempts = Vec::new();
-    let mut any_attempts = false;
-    let mut tried_sshkey = false;
-
-    let mut res = f(&mut |url, username, allowed| {
-        any_attempts = true;
-        // libgit2's "USERNAME" authentication actually means that it's just
-        // asking us for a username to keep going. This is currently only really
-        // used for SSH authentication and isn't really an authentication type.
-        // The logic currently looks like:
-        //
-        //      let user = ...;
-        //      if (user.is_null())
-        //          user = callback(USERNAME, null, ...);
-        //
-        //      callback(SSH_KEY, user, ...)
-        //
-        // So if we're being called here then we know that (a) we're using ssh
-        // authentication and (b) no username was specified in the URL that
-        // we're trying to clone. We need to guess an appropriate username here,
-        // but that may involve a few attempts. Unfortunately we can't switch
-        // usernames during one authentication session with libgit2, so to
-        // handle this we bail out of this authentication session after setting
-        // the flag `ssh_username_requested`, and then we handle this below.
-        if allowed.contains(git2::CredentialType::USERNAME) {
-            debug_assert!(username.is_none());
-            ssh_username_requested = true;
-            return Err(git2::Error::from_str("gonna try usernames later"));
-        }
-
-        // An "SSH_KEY" authentication indicates that we need some sort of SSH
-        // authentication. This can currently either come from the ssh-agent
-        // process or from a raw in-memory SSH key. Cargo only supports using
-        // ssh-agent currently.
-        //
-        // If we get called with this then the only way that should be possible
-        // is if a username is specified in the URL itself (e.g., `username` is
-        // Some), hence the unwrap() here. We try custom usernames down below.
-        if allowed.contains(git2::CredentialType::SSH_KEY) && !tried_sshkey {
-            // If ssh-agent authentication fails, libgit2 will keep
-            // calling this callback asking for other authentication
-            // methods to try. Make sure we only try ssh-agent once,
-            // to avoid looping forever.
-            tried_sshkey = true;
-            let username = username.unwrap();
-            debug_assert!(!ssh_username_requested);
-            ssh_agent_attempts.push(username.to_string());
-            return git2::Cred::ssh_key_from_agent(username);
-        }
-
-        // Sometimes libgit2 will ask for a username/password in plaintext. This
-        // is where Cargo would have an interactive prompt if we supported it,
-        // but we currently don't! Right now the only way we support fetching a
-        // plaintext password is through the `credential.helper` support, so
-        // fetch that here.
-        //
-        // If ssh-agent authentication fails, libgit2 will keep calling this
-        // callback asking for other authentication methods to try. Check
-        // cred_helper_bad to make sure we only try the git credential helper
-        // once, to avoid looping forever.
-        if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) && cred_helper_bad.is_none()
-        {
-            let r = git2::Cred::credential_helper(cfg, url, username);
-            cred_helper_bad = Some(r.is_err());
-            return r;
-        }
-
-        // I'm... not sure what the DEFAULT kind of authentication is, but seems
-        // easy to support?
-        if allowed.contains(git2::CredentialType::DEFAULT) {
-            return git2::Cred::default();
-        }
-
-        // Whelp, we tried our best
-        Err(git2::Error::from_str("no authentication available"))
-    });
-
-    // Ok, so if it looks like we're going to be doing ssh authentication, we
-    // want to try a few different usernames as one wasn't specified in the URL
-    // for us to use. In order, we'll try:
-    //
-    // * A credential helper's username for this URL, if available.
-    // * This account's username.
-    // * "git"
-    //
-    // We have to restart the authentication session each time (due to
-    // constraints in libssh2 I guess? maybe this is inherent to ssh?), so we
-    // call our callback, `f`, in a loop here.
-    if ssh_username_requested {
-        debug_assert!(res.is_err());
-        let mut attempts = vec!["git".to_owned()];
-        if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
-            attempts.push(s);
-        }
-        if let Some(s) = &cred_helper.username {
-            attempts.push(s.clone());
-        }
-
-        while let Some(s) = attempts.pop() {
-            // We should get `USERNAME` first, where we just return our attempt,
-            // and then after that we should get `SSH_KEY`. If the first attempt
-            // fails we'll get called again, but we don't have another option so
-            // we bail out.
-            let mut attempts = 0;
-            res = f(&mut |_url, username, allowed| {
-                if allowed.contains(git2::CredentialType::USERNAME) {
-                    return git2::Cred::username(&s);
-                }
-                if allowed.contains(git2::CredentialType::SSH_KEY) {
-                    debug_assert_eq!(Some(&s[..]), username);
-                    attempts += 1;
-                    if attempts == 1 {
-                        ssh_agent_attempts.push(s.clone());
-                        return git2::Cred::ssh_key_from_agent(&s);
-                    }
-                }
-                Err(git2::Error::from_str("no authentication available"))
-            });
-
-            // If we made two attempts then that means:
-            //
-            // 1. A username was requested, we returned `s`.
-            // 2. An ssh key was requested, we returned to look up `s` in the
-            //    ssh agent.
-            // 3. For whatever reason that lookup failed, so we were asked again
-            //    for another mode of authentication.
-            //
-            // Essentially, if `attempts == 2` then in theory the only error was
-            // that this username failed to authenticate (e.g., no other network
-            // errors happened). Otherwise something else is funny so we bail
-            // out.
-            if attempts != 2 {
-                break;
-            }
-        }
-    }
-
-    if res.is_ok() || !any_attempts {
-        return res.map_err(From::from);
-    }
-
-    // In the case of an authentication failure (where we tried something) then
-    // we try to give a more helpful error message about precisely what we
-    // tried.
-    let res = res.map_err(|_e| {
-        let mut msg = "failed to authenticate when downloading repository".to_owned();
-        if !ssh_agent_attempts.is_empty() {
-            let names = ssh_agent_attempts
-                .iter()
-                .map(|s| format!("`{s}`"))
-                .collect::<Vec<_>>()
-                .join(", ");
-
-            use std::fmt::Write;
-            let _ = write!(
-                &mut msg,
-                "\nattempted ssh-agent authentication, but none of the usernames {names} succeeded",
-            );
-        }
-        if let Some(failed_cred_helper) = cred_helper_bad {
-            if failed_cred_helper {
-                msg.push_str(
-                    "\nattempted to find username/password via \
-                     git's `credential.helper` support, but failed",
-                );
-            } else {
-                msg.push_str(
-                    "\nattempted to find username/password via \
-                     `credential.helper`, but maybe the found \
-                     credentials were incorrect",
-                );
-            }
-        }
-
-        anyhow::anyhow!(msg)
-    })?;
-
-    Ok(res)
 }
 
 pub use rustsec::{Warning, WarningKind};

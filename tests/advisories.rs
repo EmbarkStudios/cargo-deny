@@ -152,10 +152,7 @@ fn detects_yanked() {
     verify_yanked("detects_yanked", &dbs, &krates);
 }
 
-/// We screw around with disk here, only run this if you really want to
-#[cfg(target_os = "linux")]
 #[test]
-#[ignore]
 fn detects_yanked_sparse() {
     let dbs = {
         advisories::DbSet::load(

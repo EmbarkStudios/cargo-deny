@@ -4,7 +4,10 @@ mod helpers;
 
 use crate::{diag, LintLevel};
 pub use diags::Code;
-pub use helpers::db::{DbSet, Fetch, Report};
+pub use helpers::{
+    db::{DbSet, Fetch, Report},
+    index::Indices,
+};
 
 pub trait AuditReporter {
     fn report(&mut self, report: serde_json::Value);
@@ -31,6 +34,7 @@ pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     audit_compatible_reporter: Option<R>,
+    indices: Option<Indices<'_>>,
     sink: S,
 ) where
     R: AuditReporter,
@@ -42,41 +46,31 @@ pub fn check<R, S>(
     let (report, yanked) = rayon::join(
         || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
         || {
-            // let allow_crates_io_git_index = if let Some(allow) = ctx.cfg.crates_io_git_fallback {
-            //     allow
-            // } else {
-            //     // If we can't detect whether to allow the git index, assume
-            //     // false, which means that checking yanked crates will fail for
-            //     // old cargo's, but that should not be a problem as the version
-            //     // should be detectable on normal installs
-            //     // match crate::allow_crates_io_git_index() {
-            //     //     Ok(allow) => allow,
-            //     //     Err(err) => {
-            //     //         log::error!("unable to detect cargo version, falling back to assuming crates.io sparse HTTP index: {err:#}");
-            //     //         true
-            //     //     }
-            //     // }
-            //     unreachable!();
-            // };
-            // assert!(!allow_crates_io_git_index);
-            // //let indices = Indices::load(ctx.krates, ctx.cfg.disable_crates_io_yank_checking);
+            if let Some(indices) = indices {
+            } else {
+            }
+            if ctx.cfg.disable_yank_checking {
+                return Ok(Vec::new());
+            }
 
-            // let yanked: Vec<_> = ctx
-            //     .krates
-            //     .krates()
-            //     .filter_map(|package| match indices.is_yanked(package) {
-            //         Ok(is_yanked) => {
-            //             if is_yanked {
-            //                 Some((package, None))
-            //             } else {
-            //                 None
-            //             }
-            //         }
-            //         Err(err) => Some((package, Some(err))),
-            //     })
-            //     .collect();
+            helpers::index::Indices::load(ctx.krates).map(|indices| {
+                let yanked: Vec<_> = ctx
+                    .krates
+                    .krates()
+                    .filter_map(|package| match indices.is_yanked(package) {
+                        Ok(is_yanked) => {
+                            if is_yanked {
+                                Some((package, None))
+                            } else {
+                                None
+                            }
+                        }
+                        Err(err) => Some((package, Some(err))),
+                    })
+                    .collect();
 
-            // yanked
+                yanked
+            })
         },
     );
 
@@ -98,17 +92,24 @@ pub fn check<R, S>(
         sink.push(diag);
     }
 
-    // for (krate, status) in yanked {
-    //     let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
+    match yanked {
+        Ok(yanked) => {
+            for (krate, status) in yanked {
+                let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else { log::warn!("failed to locate node id for '{krate}'"); continue };
 
-    //     if let Some(e) = status {
-    //         if ctx.cfg.yanked.value != LintLevel::Allow {
-    //             sink.push(ctx.diag_for_index_failure(krate, ind, e));
-    //         }
-    //     } else {
-    //         sink.push(ctx.diag_for_yanked(krate, ind));
-    //     }
-    // }
+                if let Some(e) = status {
+                    if ctx.cfg.yanked.value != LintLevel::Allow {
+                        sink.push(ctx.diag_for_index_failure(krate, ind, e));
+                    }
+                } else {
+                    sink.push(ctx.diag_for_yanked(krate, ind));
+                }
+            }
+        }
+        Err(err) => {
+            sink.push(ctx.diag_for_index_load_failure(err));
+        }
+    }
 
     // Check for advisory identifers that were set to be ignored, but
     // are not actually in any database.

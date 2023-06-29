@@ -19,7 +19,7 @@ pub struct Spanned<T> {
 
 impl<T> Spanned<T> {
     #[inline]
-    pub(crate) fn new(value: T, span: std::ops::Range<usize>) -> Self {
+    pub(crate) const fn new(value: T, span: std::ops::Range<usize>) -> Self {
         Self { value, span }
     }
 

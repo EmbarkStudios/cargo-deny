@@ -86,7 +86,10 @@ pub(crate) struct GraphContext {
     /// Require Cargo.lock is up to date
     #[clap(long, action)]
     pub(crate) locked: bool,
-    /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
+    /// Run without accessing the network.
+    ///
+    /// If used with the `check` subcommand, this disables advisory database
+    /// fetching
     #[clap(long, action)]
     pub(crate) offline: bool,
     /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled

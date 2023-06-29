@@ -20,9 +20,6 @@ pub use cfg::{Spanned, UnvalidatedConfig};
 use krates::cm;
 pub use krates::{DepKind, Kid};
 
-const CRATES_IO_SPARSE: &str = "sparse+https://index.crates.io/";
-const CRATES_IO_GIT: &str = "registry+https://github.com/rust-lang/crates.io-index";
-
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
 #[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy, Debug, Default)]
@@ -72,12 +69,12 @@ pub struct Source {
 
 impl Source {
     fn from_metadata(urls: String) -> anyhow::Result<Self> {
-        if urls == CRATES_IO_GIT {
+        if urls == tame_index::CRATES_IO_INDEX {
             return Ok(Self {
                 kind: SourceKind::CratesIo(false),
                 url: None,
             });
-        } else if urls == CRATES_IO_SPARSE {
+        } else if urls == tame_index::CRATES_IO_HTTP_INDEX {
             return Ok(Self {
                 kind: SourceKind::CratesIo(true),
                 url: None,
@@ -167,9 +164,9 @@ impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.kind, self.url.as_ref()) {
             (SourceKind::CratesIo(is_sparse), None) => f.write_str(if is_sparse {
-                CRATES_IO_SPARSE
+                tame_index::CRATES_IO_HTTP_INDEX
             } else {
-                CRATES_IO_GIT
+                tame_index::CRATES_IO_INDEX
             }),
             (SourceKind::Git(_), Some(url)) => {
                 write!(f, "git+{url}")
@@ -326,8 +323,10 @@ impl Krate {
 
         // It's irrelevant if it's sparse or not
         if src.is_crates_io() {
-            return url.as_str().ends_with(&CRATES_IO_SPARSE[8..])
-                || url.as_str().ends_with(&CRATES_IO_GIT[10..]);
+            return url
+                .as_str()
+                .ends_with(&tame_index::CRATES_IO_HTTP_INDEX[8..])
+                || url.as_str().ends_with(&tame_index::CRATES_IO_INDEX[10..]);
         }
 
         let Some(kurl) = &src.url else { return false; };

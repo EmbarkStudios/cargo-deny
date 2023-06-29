@@ -7,8 +7,13 @@ use serde::Deserialize;
 use url::Url;
 
 #[allow(clippy::reversed_empty_ranges)]
-fn yanked() -> Spanned<LintLevel> {
+const fn yanked() -> Spanned<LintLevel> {
     Spanned::new(LintLevel::Warn, 0..0)
+}
+
+#[allow(clippy::reversed_empty_ranges)]
+fn ninety_days() -> Spanned<String> {
+    Spanned::new("P90D".to_owned(), 0..0)
 }
 
 #[derive(Deserialize)]
@@ -44,10 +49,17 @@ pub struct Config {
     pub severity_threshold: Option<advisory::Severity>,
     /// Use the git executable to fetch advisory database rather than gitoxide
     pub git_fetch_with_cli: Option<bool>,
-    /// If set to true, <https://index.crates.io> is not used to check for yanked
-    /// crates
+    /// If set to true, the local crates indices are not checked for yanked crates
     #[serde(default)]
-    pub disable_crates_io_yank_checking: bool,
+    pub disable_yank_checking: bool,
+    /// The maximum duration, in RFC3339 format, that an advisory database is
+    /// allowed to not have been updated. Defaults to 90 days.
+    ///
+    /// Note that if fractional units are used in the format string they must
+    /// use the '.' separator instead of ',' which is used by some locales and
+    /// supported in the RFC3339 format, but not by this implementation
+    #[serde(default = "ninety_days")]
+    pub maximum_db_staleness: Spanned<String>,
 }
 
 impl Default for Config {
@@ -63,7 +75,8 @@ impl Default for Config {
             notice: LintLevel::Warn,
             severity_threshold: None,
             git_fetch_with_cli: None,
-            disable_crates_io_yank_checking: false,
+            disable_yank_checking: false,
+            maximum_db_staleness: ninety_days(),
         }
     }
 }
@@ -118,6 +131,23 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
+        let maximum_db_staleness = match parse_rfc3339_duration(&self.maximum_db_staleness.value) {
+            Ok(mds) => mds,
+            Err(err) => {
+                diags.push(
+                    Diagnostic::error()
+                        .with_message("failed to parse RFC3339 duration")
+                        .with_labels(vec![Label::secondary(
+                            cfg_file,
+                            self.maximum_db_staleness.span.clone(),
+                        )])
+                        .with_notes(vec![err.to_string()]),
+                );
+                // Use the 90 days default as a fallback
+                time::Duration::seconds_f64(90. * 24. * 60. * 60. * 60.)
+            }
+        };
+
         ValidConfig {
             file_id: cfg_file,
             db_path: self.db_path,
@@ -130,7 +160,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
             notice: self.notice,
             severity_threshold: self.severity_threshold,
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
-            disable_crates_io_yank_checking: self.disable_crates_io_yank_checking,
+            disable_yank_checking: self.disable_yank_checking,
+            maximum_db_staleness,
         }
     }
 }
@@ -149,12 +180,113 @@ pub struct ValidConfig {
     pub notice: LintLevel,
     pub severity_threshold: Option<advisory::Severity>,
     pub git_fetch_with_cli: bool,
-    pub disable_crates_io_yank_checking: bool,
+    pub disable_yank_checking: bool,
+    pub maximum_db_staleness: time::Duration,
+}
+
+/// We need to implement this ourselves since time doesn't support it
+/// <https://github.com/time-rs/time/issues/571>
+///
+/// ```text
+/// dur-second        = 1*DIGIT "S"
+/// dur-minute        = 1*DIGIT "M" [dur-second]
+/// dur-hour          = 1*DIGIT "H" [dur-minute]
+/// dur-time          = "T" (dur-hour / dur-minute / dur-second)
+/// dur-day           = 1*DIGIT "D"
+/// dur-week          = 1*DIGIT "W"
+/// dur-month         = 1*DIGIT "M" [dur-day]
+/// dur-year          = 1*DIGIT "Y" [dur-month]
+/// dur-date          = (dur-day / dur-month / dur-year) [dur-time]
+///
+/// duration          = "P" (dur-date / dur-time / dur-week)
+/// ```
+fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
+    use anyhow::Context as _;
+    use time::Duration;
+
+    let mut value = value
+        .strip_prefix("P")
+        .context("duration requires 'P' prefix")?;
+
+    // The units that are allowed in the format, in the exact order they must be
+    // in, ie it is invalid to specify a unit that is lower in this order than
+    // one that has already been parsed
+    const UNITS: &[char] = &['D', 'M', 'Y', 'H', 'M', 'S', 'W'];
+    const UNITS_TO_SECONDS: &[f64] = &[
+        24. * 60. * 60.,
+        // We calculate the length of the month by just getting the mean of all the months, and use 28.25 for February
+        30.43 * 24. * 60. * 60.,
+        // Years we just use the standard 365 days and ignore leap years
+        365. * 24. * 60. * 60.,
+        60. * 60.,
+        // Since time only supports whole seconds + nanoseconds we calculate seconds separately from the rest
+        0.,
+        7. * 24. * 60. * 60.,
+    ];
+
+    // Validate the string only contains valid characters to simplify the rest
+    // of the function
+    for c in value.chars() {
+        if c == ',' {
+            anyhow::bail!("'{c}' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead");
+        }
+
+        if c != '.' && c != 'T' && !c.is_ascii_digit() && !UNITS.contains(&c) {
+            anyhow::bail!("'{c}' is not valid in the RFC-3339 duration format");
+        }
+    }
+
+    let mut duration = Duration::default();
+
+    // The format requires that the units are in a specific order, but each
+    // unit is optional
+    let mut cur_unit = 0;
+
+    while !value.is_empty() {
+        let unit_index = value
+            .find(|c: char| c.is_ascii_uppercase())
+            .context("unit not specified")?;
+
+        let unit = value.as_bytes()[unit_index] as char;
+        if unit == 'T' {
+            anyhow::ensure!(
+                unit_index == 0,
+                "unit not specified for value '{}'",
+                &value[..unit_index]
+            );
+            cur_unit = 3; // 'H'
+        } else {
+            anyhow::ensure!(unit_index != 0, "value not specified for {unit}");
+            let unit_order = UNITS.iter().position(|c| *c == unit).unwrap();
+            anyhow::ensure!(
+                unit_order >= cur_unit,
+                "unit '{unit}' was specified after '{}' which is not allowed",
+                UNITS[cur_unit]
+            );
+            cur_unit = unit_order;
+
+            let uvs = &value[..unit_index];
+            let unit_value: f64 = uvs
+                .parse()
+                .with_context(|| "failed to parse value '{uvs}' for unit '{unit}'")?;
+
+            duration += Duration::checked_seconds_f64(if unit != 'S' {
+                unit_value * UNITS_TO_SECONDS[unit_index]
+            } else {
+                unit_value
+            })
+            .with_context(|| format!("invalid value for unit '{unit}'"))?;
+        }
+
+        value = &value[unit_index + 1..];
+    }
+
+    Ok(duration)
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::{parse_rfc3339_duration as dur_parse, *};
     use crate::cfg::{test::*, Fake, UnvalidatedConfig};
 
     #[test]
@@ -201,5 +333,80 @@ mod test {
             validated.severity_threshold,
             Some(rustsec::advisory::Severity::Medium)
         );
+    }
+
+    /// Validates we reject invalid formats, or at least ones we don't support
+    #[test]
+    fn rejects_invalid_formats() {
+        // Format requires 'P' at the beginning
+        assert!(dur_parse("no-P").is_err());
+        // Empty duration, must specify at least _one_ unit
+        assert!(dur_parse("P").is_err());
+        // Empty duration, must specify at least _one_ unit
+        assert!(dur_parse("PT").is_err());
+        // Number without unit specified
+        assert!(dur_parse("P1H3").is_err());
+        // Unit without number specified
+        assert!(dur_parse("PT1HM").is_err());
+        // Units in an invalid order
+        assert!(dur_parse("PT1M3H").is_err());
+        assert!(dur_parse("P3Y1M").is_err());
+        assert!(dur_parse("P2W1Y").is_err());
+        // Time units must be preceded by T
+        assert!(dur_parse("P5H").is_err());
+        assert!(dur_parse("P5S").is_err());
+        // We don't accept ',' as a decimal separator even though it is allowed in the spec
+        assert!(dur_parse("P1,5S").is_err());
+    }
+
+    /// Validates we can parse many durations.
+    ///
+    /// Note the values were copied from <https://ijmacd.github.io/rfc3339-iso8601/>
+    /// but at least according to the grammar in the RFC...many were actually invalid :p
+    #[test]
+    fn parses_valid_durations() {
+        const DAY: f64 = 24. * 60. * 60.;
+        const MONTH: f64 = 30.43 * DAY;
+        const TABLE: &[(&str, f64)] = &[
+            ("P1Y", 365. * DAY),
+            ("P1.5Y", 365. * 1.5 * DAY),
+            ("P1M", MONTH),
+            ("P2W", 7. * 2. * DAY),
+            ("P3D", 3. * DAY),
+            ("PT4H", 4. * 60. * 60.),
+            ("PT2M", 2. * 60.),
+            ("PT8S", 8.),
+            ("PT8.5S", 8.5),
+            ("P3M1Y", 3. * MONTH + 365. * DAY),
+            ("P5D1Y", 5. * DAY + 365. * DAY),
+            ("P3D4M1Y", 3. * DAY + 4. * MONTH + 365. * DAY),
+            (
+                "P2D3M1YT3H2M1S",
+                2. * DAY + 3. * MONTH + 365. * DAY + 3. * 60. * 60. + 2. * 60. + 1.,
+            ),
+            ("P2DT4H", 2. * DAY + 4. * 60. + 60.),
+            ("P2MT0.5M", 2. * MONTH + 0.5 * 60.),
+            ("P5DT1.6M", 5. * DAY + 60. * 1.6),
+            ("P1.5W", 7. * 1.5 * DAY),
+            ("P2DT3.002S", 2. * DAY + 3.002),
+            ("P2DT3.02003S", 2. * DAY + 3.02003),
+            ("P2DT4H3M2.6S", 2. * DAY + 4. * 60. * 60. + 3. * 60. + 2.6),
+            ("PT3H2M1.1S", 3. * 60. * 60. + 2. * 60. + 1.1),
+        ];
+
+        for (dur, secs) in TABLE {
+            match dur_parse(dur) {
+                Ok(parsed) => {
+                    assert_eq!(
+                        parsed,
+                        time::Duration::seconds_f64(*secs),
+                        "unexpected duration for '{dur}'"
+                    );
+                }
+                Err(err) => {
+                    panic!("failed to parse '{dur}': {err:#}");
+                }
+            }
+        }
     }
 }

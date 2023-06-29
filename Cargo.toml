@@ -25,15 +25,15 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
-default = ["vendored-openssl", "vendored-libgit2"]
+#default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
-vendored-openssl = ["cargo?/vendored-openssl", "git2/vendored-openssl"]
-vendored-libgit2 = ["cargo?/vendored-libgit2", "git2/vendored-libgit2"]
+#vendored-openssl = ["cargo?/vendored-openssl", "git2/vendored-openssl"]
+#vendored-libgit2 = ["cargo?/vendored-libgit2", "git2/vendored-libgit2"]
 # Allows embedding cargo as a library so that we can run in minimal (eg container)
 # environments that don't need to have cargo/rust installed on them for cargo-deny
 # to still function
-standalone = ["cargo"]
+#standalone = ["cargo"]
 
 [dependencies]
 # Output coloring
@@ -49,7 +49,7 @@ bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
 camino = "1.1"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
-cargo = { version = "0.71", optional = true }
+#cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
 clap = { version = "4.0", features = ["derive", "env"] }
 # Used for diagnostic reporting
@@ -59,8 +59,6 @@ codespan-reporting = "0.11"
 crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
-# We clone/fetch advisory databases
-git2 = "0.17"
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
@@ -83,7 +81,9 @@ smallvec = "1.9"
 # Used for parsing and checking SPDX license expressions
 spdx = "0.10"
 # Lazy
-strum = { version = "0.24", features = ["derive"] }
+strum = { version = "0.25", features = ["derive"] }
+# Index retrieval and querying
+tame-index = { path = "../tame-index", features = ["git", "sparse"] }
 # Timestamp emission
 time = { version = "0.3", default-features = false, features = [
   "formatting",
@@ -95,6 +95,16 @@ toml = "0.7"
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
 url = "2.1"
+
+# We clone/fetch advisory databases
+[dependencies.gix]
+version = "0.47"
+default-features = false
+features = [
+  "blocking-http-transport-reqwest-rust-tls",
+  "blocking-network-client",
+  "max-performance-safe",
+]
 
 [dev-dependencies]
 # Snapshot testing
