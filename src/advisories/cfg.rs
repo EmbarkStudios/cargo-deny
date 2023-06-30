@@ -205,7 +205,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
     use anyhow::Context as _;
 
     let mut value = value
-        .strip_prefix("P")
+        .strip_prefix('P')
         .context("duration requires 'P' prefix")?;
 
     // The units that are allowed in the format, in the exact order they must be
@@ -218,9 +218,9 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
         ('M', 30.43 * 24. * 60. * 60.),
         // Years we just use the standard 365 days and ignore leap years
         ('Y', 365. * 24. * 60. * 60.),
+        ('W', 7. * 24. * 60. * 60.),
         ('H', 60. * 60.),
         ('M', 60.),
-        // Since time only supports whole seconds + nanoseconds we calculate seconds separately from the rest
         ('S', 1.),
         ('W', 7. * 24. * 60. * 60.),
     ];
@@ -272,8 +272,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
         }
     }
 
-    let mut seconds = 0;
-    let mut nanoseconds = 0;
+    let mut duration = time::Duration::new(0, 0);
 
     // The format requires that the units are in a specific order, but each
     // unit is optional
@@ -319,25 +318,15 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
                 "'{unitc}' must be preceded with 'T'"
             );
 
-            'block: {
-                let index = match unit {
-                    Unit::Second => {
-                        let dur = time::Duration::seconds_f64(unit_value);
-                        seconds += dur.whole_seconds();
-                        nanoseconds = dur.subsec_nanoseconds();
-                        break 'block;
-                    }
-                    Unit::Hour => 3,
-                    Unit::Day => 0,
-                    Unit::Minute => 4,
-                    Unit::Week => 6,
-                    Unit::Month => 1,
-                    Unit::Year => 2,
-                    _ => unreachable!(),
-                };
+            // This would be nicer if 'M' couldn't mean both months and minutes :p
+            let block = if is_time { &UNITS[4..] } else { &UNITS[..4] };
+            let unit_to_seconds = block
+                .iter()
+                .find_map(|(c, uts)| (*c == unitc).then_some(*uts))
+                .unwrap();
 
-                seconds += dbg!(unit_value * UNITS[index].1).floor() as i64;
-            }
+            duration += time::Duration::checked_seconds_f64(unit_value * unit_to_seconds)
+                .with_context(|| format!("value '{unit_value}' for '{unitc}' is out of range"))?;
         }
 
         last_unitc = unitc;
@@ -347,7 +336,8 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
 
     anyhow::ensure!(supplied_units > 0, "must supply at least one time unit");
 
-    Ok(time::Duration::new(seconds, nanoseconds))
+    Ok(duration)
+    //Ok(time::Duration::new(seconds, nanoseconds))
 }
 
 #[cfg(test)]
@@ -403,26 +393,24 @@ mod test {
 
     /// Validates we reject invalid formats, or at least ones we don't support
     #[test]
-    fn rejects_invalid_formats() {
-        // Format requires 'P' at the beginning
-        assert!(dur_parse("no-P").is_err());
-        // Empty duration, must specify at least _one_ unit
-        assert!(dur_parse("P").is_err());
-        // Empty duration, must specify at least _one_ unit
-        assert!(dur_parse("PT").is_err());
-        // Number without unit specified
-        assert!(dur_parse("P1H3").is_err());
-        // Unit without number specified
-        assert!(dur_parse("PT1HM").is_err());
-        // Units in an invalid order
-        assert!(dur_parse("PT1M3H").is_err());
-        assert!(dur_parse("P3Y1M").is_err());
-        assert!(dur_parse("P2W1Y").is_err());
-        // Time units must be preceded by T
-        assert!(dur_parse("P5H").is_err());
-        assert!(dur_parse("P5S").is_err());
-        // We don't accept ',' as a decimal separator even though it is allowed in the spec
-        assert!(dur_parse("P1,5S").is_err());
+    fn rejects_invalid_durations() {
+        const FAILURES: &[&str] = &[
+            "no-P", // Format requires 'P' at the beginning
+            "P", "PT", // Empty duration, must specify at least _one_ unit
+            "P1H3", "P2TH3", // Number without unit specified
+            "PT1HM", // Unit without number specified
+            "PT1M3H", "P3Y1M", "P2W1Y", "PT2W1H", // Units in an invalid order
+            "P5H", "P5S", // Time units must be preceded by T
+            // We don't accept ',' as a decimal separator even though it is allowed in the spec
+            "PT1,5S",
+        ];
+
+        let failures: String = FAILURES
+            .iter()
+            .map(|bad| format!("{:?}\n", dur_parse(bad)))
+            .collect();
+
+        insta::assert_snapshot!(failures);
     }
 
     /// Validates we can parse many durations.
@@ -450,10 +438,11 @@ mod test {
                 "P2D3M1YT3H2M1S",
                 2. * DAY + 3. * MONTH + 365. * DAY + 3. * 60. * 60. + 2. * 60. + 1.,
             ),
-            ("P2DT4H", 2. * DAY + 4. * 60. + 60.),
+            ("P2DT4H", 2. * DAY + 4. * 60. * 60.),
             ("P2MT0.5M", 2. * MONTH + 0.5 * 60.),
             ("P5DT1.6M", 5. * DAY + 60. * 1.6),
             ("P1.5W", 7. * 1.5 * DAY),
+            ("P3D1.5W", 3. * DAY + 7. * 1.5 * DAY),
             ("P2DT3.002S", 2. * DAY + 3.002),
             ("P2DT3.02003S", 2. * DAY + 3.02003),
             ("P2DT4H3M2.6S", 2. * DAY + 4. * 60. * 60. + 3. * 60. + 2.6),
