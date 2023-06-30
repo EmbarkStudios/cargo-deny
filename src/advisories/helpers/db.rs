@@ -122,7 +122,7 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<
     if let Fetch::Disallow(max_staleness) = fetch {
         let file_timestamp = |name: &str| -> anyhow::Result<time::OffsetDateTime> {
             let path = repo.path().join(name);
-            let attr = std::fs::metadata(&path)
+            let attr = std::fs::metadata(path)
                 .with_context(|| format!("failed to get '{name}' metadata"))?;
             Ok(attr
                 .modified()
@@ -410,11 +410,11 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         std::fs::remove_dir(db_path)?;
     }
 
-    let (mut repo, cloned) = gix::open(&db_path)
+    let (mut repo, cloned) = gix::open(db_path)
         .map(|repo| (repo, false))
         .or_else(|err| {
             if matches!(err, gix::open::Error::NotARepository { .. }) {
-                let (checkout, _out) = gix::prepare_clone(url.as_str(), &db_path)
+                let (checkout, _out) = gix::prepare_clone(url.as_str(), db_path)
                     .context("failed to prepare clone")?
                     .fetch_then_checkout(
                         gix::progress::Discard,

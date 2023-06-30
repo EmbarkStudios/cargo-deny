@@ -37,11 +37,9 @@ impl<'k> Indices<'k> {
                         .map(ComboIndexCache::Sparse)
                 }
                 (SourceKind::CratesIo(false) | SourceKind::Registry, url) => {
-                    let url = url
-                        .map(|u| u.as_str())
-                        .unwrap_or(tame_index::CRATES_IO_INDEX);
+                    let url = url.map_or(tame_index::CRATES_IO_INDEX, |u| u.as_str());
 
-                    index::GitIndex::with_path(cargo_home.clone(), &url).map(ComboIndexCache::Git)
+                    index::GitIndex::with_path(cargo_home.clone(), url).map(ComboIndexCache::Git)
                 }
                 _ => unreachable!("source {source:?} is a registry, but not git nor sparse?"),
             };
