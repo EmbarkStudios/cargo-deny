@@ -79,7 +79,9 @@ Options:
           Require Cargo.lock is up to date
 
       --offline
-          Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching
+          Run without accessing the network.
+          
+          If used with the `check` subcommand, this disables advisory database fetching
 
       --allow-git-index
           If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled only if using a cargo < 1.70.0 without the sparse protocol enabled
