@@ -15,7 +15,7 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["examples/", ".github/", "tests"]
-rust-version = "1.65.0"
+rust-version = "1.70.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -42,8 +42,6 @@ nu-ansi-term = "0.48"
 anyhow = "1.0"
 # Used for detecting the license type of a file
 askalono = "0.4"
-# Used to detect if an output stream is a TTY to control default coloring
-is-terminal = "0.4.6"
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths

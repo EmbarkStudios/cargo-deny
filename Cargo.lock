@@ -239,7 +239,6 @@ dependencies = [
  "gix",
  "home",
  "insta",
- "is-terminal",
  "krates",
  "log",
  "nu-ansi-term",

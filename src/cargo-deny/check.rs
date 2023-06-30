@@ -7,7 +7,6 @@ use cargo_deny::{
     },
     licenses, sources, CheckCtx, PathBuf,
 };
-use is_terminal::IsTerminal as _;
 use log::error;
 use serde::Deserialize;
 use std::time::Instant;
@@ -476,11 +475,7 @@ pub(crate) fn cmd(
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;
 
     let colorize = log_ctx.format == crate::Format::Human
-        && match log_ctx.color {
-            crate::Color::Auto => std::io::stderr().is_terminal(),
-            crate::Color::Always => true,
-            crate::Color::Never => false,
-        };
+        && crate::common::should_colorize(log_ctx.color, std::io::stderr());
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks

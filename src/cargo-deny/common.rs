@@ -3,7 +3,6 @@ use cargo_deny::{
     licenses::LicenseStore,
     PathBuf,
 };
-use is_terminal::IsTerminal;
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
@@ -353,6 +352,7 @@ fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[inline]
 pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
     match log_level {
         log::LevelFilter::Off => None,
@@ -366,7 +366,7 @@ pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
 use codespan_reporting::term::{self, termcolor::ColorChoice};
 use std::io::Write;
 
-fn color_to_choice(color: crate::Color, stream: impl IsTerminal) -> ColorChoice {
+fn color_to_choice(color: crate::Color, stream: impl std::io::IsTerminal) -> ColorChoice {
     match color {
         crate::Color::Auto => {
             // The termcolor crate doesn't check the stream to see if it's a TTY
@@ -379,6 +379,15 @@ fn color_to_choice(color: crate::Color, stream: impl IsTerminal) -> ColorChoice 
         }
         crate::Color::Always => ColorChoice::Always,
         crate::Color::Never => ColorChoice::Never,
+    }
+}
+
+#[inline]
+pub fn should_colorize(color: crate::Color, stream: impl std::io::IsTerminal) -> bool {
+    match color {
+        crate::Color::Auto => stream.is_terminal(),
+        crate::Color::Always => true,
+        crate::Color::Never => false,
     }
 }
 

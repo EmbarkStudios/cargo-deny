@@ -3,7 +3,6 @@
 use anyhow::{Context as _, Error};
 use cargo_deny::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
-use is_terminal::IsTerminal as _;
 
 mod check;
 mod common;
@@ -238,11 +237,7 @@ fn real_main() -> Result<(), Error> {
 
     let log_level = args.log_level;
 
-    let color = match args.color {
-        Color::Auto => std::io::stderr().is_terminal(),
-        Color::Always => true,
-        Color::Never => false,
-    };
+    let color = crate::common::should_colorize(args.color, std::io::stderr());
 
     setup_logger(log_level, args.format, color)?;
 

@@ -1,6 +1,5 @@
 use anyhow::{Context, Error};
 use cargo_deny::{diag::Files, licenses, Kid, PathBuf};
-use is_terminal::IsTerminal as _;
 use nu_ansi_term::Color;
 use serde::Serialize;
 
@@ -241,11 +240,7 @@ pub fn cmd(
     match args.format {
         OutputFormat::Human => {
             let mut output = String::with_capacity(4 * 1024);
-            let color = match log_ctx.color {
-                crate::Color::Always => true,
-                crate::Color::Never => false,
-                crate::Color::Auto => std::io::stdout().is_terminal(),
-            };
+            let color = crate::common::should_colorize(log_ctx.color, std::io::stdout());
 
             match args.layout {
                 Layout::License => {
