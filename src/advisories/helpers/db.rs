@@ -2,6 +2,7 @@ use crate::{utf8path, Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
 pub use rustsec::{advisory::Id, Database, Lockfile, Vulnerability};
+use std::fmt;
 use url::Url;
 
 // The default, official, rustsec advisory database
@@ -15,12 +16,31 @@ pub enum Fetch {
     Disallow(time::Duration),
 }
 
+pub struct AdvisoryDb {
+    /// Remote url of the database
+    pub url: Url,
+    /// The deserialized collection of advisories
+    pub db: Database,
+    /// The path to the backing repository
+    pub path: PathBuf,
+}
+
+impl fmt::Debug for AdvisoryDb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AdvisoryDb")
+            .field("url", &self.url)
+            .field("path", &self.path)
+            .finish()
+    }
+}
+
 /// A collection of [`Database`]s that is used to query advisories
 /// in many different databases.
 ///
 /// [`Database`]: https://docs.rs/rustsec/0.25.0/rustsec/database/struct.Database.html
+#[derive(Debug)]
 pub struct DbSet {
-    pub dbs: Vec<(Url, Database)>,
+    pub dbs: Vec<AdvisoryDb>,
 }
 
 impl DbSet {
@@ -66,7 +86,7 @@ impl DbSet {
         use rayon::prelude::*;
         let mut dbs = Vec::with_capacity(urls.len());
         urls.into_par_iter()
-            .map(|url| load_db(&url, root_db_path.clone(), fetch).map(|db| (url, db)))
+            .map(|url| load_db(url, root_db_path.clone(), fetch))
             .collect_into_vec(&mut dbs);
 
         Ok(Self {
@@ -75,13 +95,13 @@ impl DbSet {
     }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &(Url, Database)> {
+    pub fn iter(&self) -> impl Iterator<Item = &AdvisoryDb> {
         self.dbs.iter()
     }
 
     #[inline]
     pub fn has_advisory(&self, id: &Id) -> bool {
-        self.dbs.iter().any(|db| db.1.get(id).is_some())
+        self.dbs.iter().any(|adb| adb.db.get(id).is_some())
     }
 }
 
@@ -93,7 +113,8 @@ fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
     Ok(db_path)
 }
 
-fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Database> {
+fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<AdvisoryDb> {
+    let db_url = &url;
     let db_path = url_to_db_path(root_db_path, db_url)?;
 
     match fetch {
@@ -179,7 +200,11 @@ fn load_db(db_url: &Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<
 
     debug!("finished loading advisory database from {db_path}");
 
-    res
+    res.map(|db| AdvisoryDb {
+        url,
+        db,
+        path: db_path,
+    })
 }
 
 /// Perform a fetch + checkout of the latest remote HEAD -> local HEAD
@@ -538,9 +563,10 @@ impl<'db, 'k> Report<'db, 'k> {
         let mut advisories = Vec::new();
         use rayon::prelude::{ParallelBridge, ParallelIterator};
 
-        for (url, db) in advisory_dbs.iter() {
+        for advisory_db in advisory_dbs.iter() {
             // Ugh, db exposes advisories as a slice iter which rayon doesn't have an impl for :(
-            let mut db_advisories: Vec<_> = db
+            let mut db_advisories: Vec<_> = advisory_db
+                .db
                 .iter()
                 .par_bridge()
                 .filter(|advisory| {
@@ -652,7 +678,10 @@ impl<'db, 'k> Report<'db, 'k> {
                 match serde_json::to_value(&rep) {
                     Ok(val) => serialized_reports.push(val),
                     Err(err) => {
-                        log::error!("Failed to serialize report for database '{url}': {err}");
+                        log::error!(
+                            "Failed to serialize report for database '{}': {err}",
+                            advisory_db.url
+                        );
                     }
                 }
             }

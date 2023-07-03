@@ -63,6 +63,7 @@ fn find_by_code<'a>(
     })
 }
 
+/// Validates we emit diagnostics when a vulnerability advisory is detected
 #[test]
 fn detects_vulnerabilities() {
     let TestCtx { dbs, krates } = load();
@@ -85,6 +86,7 @@ fn detects_vulnerabilities() {
     insta::assert_json_snapshot!(diag);
 }
 
+/// Validates we emit diagnostics when an unmaintained advisory is detected
 #[test]
 fn detects_unmaintained() {
     let TestCtx { dbs, krates } = load();
@@ -106,6 +108,7 @@ fn detects_unmaintained() {
     insta::assert_json_snapshot!(unmaintained_diag);
 }
 
+/// Validates we emit diagnostics when an unsound advisory is detected
 #[test]
 fn detects_unsound() {
     let TestCtx { dbs, krates } = load();
@@ -127,6 +130,8 @@ fn detects_unsound() {
     insta::assert_json_snapshot!(unsound_diag);
 }
 
+/// Validates that advisories that are ignored still have diagnostics emitted for
+/// them, but with 'note' severity
 #[test]
 fn downgrades_lint_levels() {
     let TestCtx { dbs, krates } = load();
@@ -161,7 +166,7 @@ fn detects_yanked() {
     // This crate has really light dependencies that _should_ still exercise
     // the yank checking without taking more than a couple of seconds to download
     // even though we always do it in a fresh temporary directory
-    let td = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap();
+    let td = temp_dir();
     let cargo_home = td.path();
 
     let mut cmd = krates::Cmd::new();
@@ -208,6 +213,8 @@ fn detects_yanked() {
     insta::assert_json_snapshot!(diags);
 }
 
+/// Validates that if we fail to load 1 or more indices, all the crates sourced
+/// to that index will emit an diagnostic that they can't be checked
 #[test]
 fn warns_on_index_failures() {
     let TestCtx { dbs, krates } = load();
@@ -247,6 +254,8 @@ fn warns_on_index_failures() {
     );
 }
 
+/// Validates that we emit a warning if a crate in the graph _does_ match an
+/// advisory, however that advisory has been withdrawn <https://github.com/rustsec/advisory-db/pull/942>
 #[test]
 fn warns_on_ignored_and_withdrawn() {
     let TestCtx { dbs, krates } = load();
@@ -271,3 +280,88 @@ fn warns_on_ignored_and_withdrawn() {
         .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
         .unwrap());
 }
+
+#[inline]
+fn temp_dir() -> tempfile::TempDir {
+    tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap()
+}
+
+#[inline]
+fn to_path(td: &tempfile::TempDir) -> Option<&cargo_deny::Path> {
+    Some(cargo_deny::Path::from_path(td.path()).unwrap())
+}
+
+/// Validates that stale advisory databases result in an error
+#[test]
+fn fails_on_stale_advisory_database() {
+    assert!(advisories::DbSet::load(
+        Some("tests/advisory-db"),
+        vec![],
+        advisories::Fetch::Disallow(time::Duration::seconds(0)),
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("repository is stale"));
+}
+
+use advisories::Fetch;
+
+const TEST_DB_URL: &str = "https://github.com/EmbarkStudios/test-advisory-db";
+const TEST_DB_PATH: &str = "tests/advisory-db/github.com-c373669cccc50ac0";
+
+/// Expected HEAD without fetch
+const EXPECTED_ONE: &str = "72e94e6549af16bfbbfcb137d3dfbf253fe059fa";
+const EXPECTED_ONE_ID: &str = "BOOP-2023-0001";
+/// Expected remote HEAD for <https://github.com/EmbarkStudios/test-advisory-db>
+const EXPECTED_TWO: &str = "72e94e6549af16bfbbfcb137d3dfbf253fe059fa";
+const EXPECTED_TWO_ID: &str = "BOOP-2023-0002";
+
+fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
+    let mut db_set =
+        advisories::DbSet::load(to_path(&td), vec![TEST_DB_URL.parse().unwrap()], f).unwrap();
+
+    db_set.dbs.pop().unwrap()
+}
+
+fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[&str]) {
+    let repo = gix::open(&adb.path).expect("failed to open repo");
+    assert_eq!(repo.head_commit().unwrap().id.to_hex().to_string(), rev);
+
+    for id in ids {
+        dbg!(&adb.db)
+            .get(&id.parse().unwrap())
+            .expect("unable to find id");
+    }
+
+    let fhp = adb.path.join(".git/FETCH_HEAD");
+    let md = std::fs::metadata(&fhp).expect("failed to get FETCH_HEAD md");
+    let mt = md.modified().expect("failed to get FETCH_HEAD modtime");
+
+    assert!(mt.elapsed().unwrap() < std::time::Duration::from_secs(10));
+}
+
+/// Validates we can clone an advisory database with gix
+#[test]
+fn clones_with_gix() {
+    let td = temp_dir();
+    let db = do_open(&td, Fetch::Allow);
+
+    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID]);
+}
+
+/// Validates we can clone an advisory database with git
+#[test]
+fn clones_with_git() {
+    let td = temp_dir();
+    let db = do_open(&td, Fetch::AllowWithGitCli);
+
+    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID]);
+}
+
+/// Validates we can fetch advisory db updates with gix
+#[test]
+fn fetches_with_gix() {}
+
+/// Validates we can fetch advisory db updates with git
+#[test]
+fn fetches_with_git() {}

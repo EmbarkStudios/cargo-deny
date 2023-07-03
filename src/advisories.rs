@@ -5,7 +5,7 @@ mod helpers;
 use crate::{diag, LintLevel};
 pub use diags::Code;
 pub use helpers::{
-    db::{DbSet, Fetch, Report},
+    db::{AdvisoryDb, DbSet, Fetch, Id, Report},
     index::Indices,
 };
 
