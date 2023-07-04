@@ -308,12 +308,14 @@ use advisories::Fetch;
 
 const TEST_DB_URL: &str = "https://github.com/EmbarkStudios/test-advisory-db";
 const TEST_DB_PATH: &str = "tests/advisory-db/github.com-c373669cccc50ac0";
+const GIT_PATH: &str = "github.com-c373669cccc50ac0/.git";
+const GIT_SUB_PATH: &str = ".git/modules/tests/advisory-db/github.com-c373669cccc50ac0";
 
 /// Expected HEAD without fetch
-const EXPECTED_ONE: &str = "72e94e6549af16bfbbfcb137d3dfbf253fe059fa";
+const EXPECTED_ONE: &str = "8da123e33153c58ad1bb56c4edbb6afb6847302e";
 const EXPECTED_ONE_ID: &str = "BOOP-2023-0001";
 /// Expected remote HEAD for <https://github.com/EmbarkStudios/test-advisory-db>
-const EXPECTED_TWO: &str = "72e94e6549af16bfbbfcb137d3dfbf253fe059fa";
+const EXPECTED_TWO: &str = "1f44d565d81692a44b8c7af8a80f587e19757f8c";
 const EXPECTED_TWO_ID: &str = "BOOP-2023-0002";
 
 fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
@@ -328,16 +330,12 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[&str]) {
     assert_eq!(repo.head_commit().unwrap().id.to_hex().to_string(), rev);
 
     for id in ids {
-        dbg!(&adb.db)
-            .get(&id.parse().unwrap())
-            .expect("unable to find id");
+        adb.db.get(&id.parse().unwrap()).expect("unable to find id");
     }
 
-    let fhp = adb.path.join(".git/FETCH_HEAD");
-    let md = std::fs::metadata(&fhp).expect("failed to get FETCH_HEAD md");
-    let mt = md.modified().expect("failed to get FETCH_HEAD modtime");
-
-    assert!(mt.elapsed().unwrap() < std::time::Duration::from_secs(10));
+    assert!(
+        (time::OffsetDateTime::now_utc() - adb.fetch_time) < std::time::Duration::from_secs(10)
+    );
 }
 
 /// Validates we can clone an advisory database with gix
@@ -346,7 +344,7 @@ fn clones_with_gix() {
     let td = temp_dir();
     let db = do_open(&td, Fetch::Allow);
 
-    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID]);
+    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
 }
 
 /// Validates we can clone an advisory database with git
@@ -355,13 +353,46 @@ fn clones_with_git() {
     let td = temp_dir();
     let db = do_open(&td, Fetch::AllowWithGitCli);
 
-    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID]);
+    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
+}
+
+fn validate_fetch(fetch: Fetch) {
+    let td = temp_dir();
+    fs_extra::copy_items(
+        &[TEST_DB_PATH],
+        td.path(),
+        &fs_extra::dir::CopyOptions::default(),
+    )
+    .expect("failed to copy");
+
+    let git_path = td.path().join(GIT_PATH);
+
+    std::fs::remove_file(&git_path).expect("failed to delete");
+    fs_extra::copy_items(
+        &[GIT_SUB_PATH],
+        &git_path,
+        &fs_extra::dir::CopyOptions {
+            copy_inside: true,
+            ..Default::default()
+        },
+    )
+    .expect("failed to copy");
+
+    let db = do_open(&td, Fetch::Disallow(time::Duration::days(10000)));
+    validate(&db, EXPECTED_ONE, &[EXPECTED_ONE_ID]);
+
+    let db = do_open(&td, fetch);
+    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
 }
 
 /// Validates we can fetch advisory db updates with gix
 #[test]
-fn fetches_with_gix() {}
+fn fetches_with_gix() {
+    validate_fetch(Fetch::Allow);
+}
 
 /// Validates we can fetch advisory db updates with git
 #[test]
-fn fetches_with_git() {}
+fn fetches_with_git() {
+    validate_fetch(Fetch::AllowWithGitCli);
+}

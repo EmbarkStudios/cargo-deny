@@ -105,6 +105,8 @@ features = [
 ]
 
 [dev-dependencies]
+# Folder copying
+fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.21", features = ["json"] }
 # We use this for creating fake crate directories for crawling license files on disk

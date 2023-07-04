@@ -337,7 +337,6 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
     anyhow::ensure!(supplied_units > 0, "must supply at least one time unit");
 
     Ok(duration)
-    //Ok(time::Duration::new(seconds, nanoseconds))
 }
 
 #[cfg(test)]

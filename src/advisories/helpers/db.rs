@@ -23,6 +23,8 @@ pub struct AdvisoryDb {
     pub db: Database,
     /// The path to the backing repository
     pub path: PathBuf,
+    /// The time of the last fetch of the db
+    pub fetch_time: time::OffsetDateTime,
 }
 
 impl fmt::Debug for AdvisoryDb {
@@ -137,60 +139,18 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     // Verify that the repository is actually valid and that it is fresh
     let repo = gix::open(&db_path).context("failed to open advisory database")?;
 
+    let fetch_time = get_fetch_time(&repo)?;
+
     // Ensure that the upstream repository hasn't gone stale, ie, they've
     // configured cargo-deny to not fetch the remote database(s), but they've
     // failed to update the database manually
     if let Fetch::Disallow(max_staleness) = fetch {
-        let file_timestamp = |name: &str| -> anyhow::Result<time::OffsetDateTime> {
-            let path = repo.path().join(name);
-            let attr = std::fs::metadata(path)
-                .with_context(|| format!("failed to get '{name}' metadata"))?;
-            Ok(attr
-                .modified()
-                .with_context(|| format!("failed to get '{name}' modification time"))?
-                .into())
-        };
-
-        let commit_timestamp = || -> anyhow::Result<time::OffsetDateTime> {
-            let commit = repo.head_commit().context("failed to get HEAD commit")?;
-            let time = commit.time().context("failed to get HEAD commit time")?;
-
-            // Copy what gix does, unfortunately it's not public
-            // <https://github.com/Byron/gitoxide/blob/5af2cf368dcd05fe4dffbd675cffe6bafec127e7/gix-date/src/time/format.rs#L83C1-L87>
-
-            let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds as i64)
-                .context("unix timestamp for HEAD was out of range")?
-                .to_offset(
-                    time::UtcOffset::from_whole_seconds(time.offset)
-                        .context("timestamp offset for HEAD was out of range")?,
-                );
-
-            Ok(ts)
-        };
-
-        let timestamp = match file_timestamp("FETCH_HEAD") {
-            Ok(ts) => ts,
-            Err(fh_err) => {
-                // If we can't get the mod time of the FETCH_HEAD file, fallback
-                // to getting the timestamp of the head commit. However, this
-                // is not as good as FETCH_HEAD mod time since a database could
-                // have been fetched within the time window, but the HEAD at that
-                // time was out of the time window
-                match commit_timestamp() {
-                    Ok(ts) => ts,
-                    Err(hc_err) => {
-                        return Err(hc_err).context(fh_err);
-                    }
-                }
-            }
-        };
-
         anyhow::ensure!(
-            timestamp
+            fetch_time
                 > time::OffsetDateTime::now_utc()
                     .checked_sub(max_staleness)
                     .context("unable to compute oldest allowable update timestamp")?,
-            "repository is stale (last update: {timestamp})"
+            "repository is stale (last update: {fetch_time})"
         );
     }
 
@@ -204,7 +164,116 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
         url,
         db,
         path: db_path,
+        fetch_time,
     })
+}
+
+const DIR: gix::remote::Direction = gix::remote::Direction::Fetch;
+
+fn get_fetch_time(repo: &gix::Repository) -> anyhow::Result<time::OffsetDateTime> {
+    let file_timestamp = |name: &str| -> anyhow::Result<time::OffsetDateTime> {
+        let path = repo.path().join(name);
+        let attr =
+            std::fs::metadata(path).with_context(|| format!("failed to get '{name}' metadata"))?;
+        Ok(attr
+            .modified()
+            .with_context(|| format!("failed to get '{name}' modification time"))?
+            .into())
+    };
+
+    let commit_timestamp = || -> anyhow::Result<time::OffsetDateTime> {
+        let commit = repo.head_commit().context("failed to get HEAD commit")?;
+        let time = commit.time().context("failed to get HEAD commit time")?;
+
+        // Copy what gix does, unfortunately it's not public
+        // <https://github.com/Byron/gitoxide/blob/5af2cf368dcd05fe4dffbd675cffe6bafec127e7/gix-date/src/time/format.rs#L83C1-L87>
+
+        let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds as i64)
+            .context("unix timestamp for HEAD was out of range")?
+            .to_offset(
+                time::UtcOffset::from_whole_seconds(time.offset)
+                    .context("timestamp offset for HEAD was out of range")?,
+            );
+
+        Ok(ts)
+    };
+
+    let timestamp = match file_timestamp("FETCH_HEAD") {
+        Ok(ts) => ts,
+        Err(fh_err) => {
+            // If we can't get the mod time of the FETCH_HEAD file, fallback
+            // to getting the timestamp of the head commit. However, this
+            // is not as good as FETCH_HEAD mod time since a database could
+            // have been fetched within the time window, but the HEAD at that
+            // time was out of the time window
+            //
+            // However, to mitigate this problem, we use the HEAD time if it is
+            // newer than the commit time, as a fresh clone with git will NOT
+            // have the FETCH_HEAD, but the fresh clone will have just written
+            // HEAD and thus can be used as a fallback, but still defer to head
+            // if something weird has happened
+            match commit_timestamp() {
+                Ok(commit_ts) => {
+                    let file_head_ts =
+                        file_timestamp("HEAD").unwrap_or(time::OffsetDateTime::UNIX_EPOCH);
+                    std::cmp::max(commit_ts, file_head_ts)
+                }
+                Err(hc_err) => {
+                    return Err(hc_err).context(fh_err);
+                }
+            }
+        }
+    };
+
+    Ok(timestamp)
+}
+
+fn get_remote_head(
+    repo: &gix::Repository,
+    fetch_response: &gix::remote::fetch::Outcome,
+) -> anyhow::Result<(gix::ObjectId, gix::bstr::BString)> {
+    let remote = repo
+        .head()
+        .context("failed to get HEAD")?
+        .into_remote(DIR)
+        .map(|r| r.context("failed to get remote for HEAD"))
+        .or_else(|| {
+            repo.find_default_remote(DIR)
+                .map(|r| r.context("failed to find default remote"))
+        })
+        .context("failed to find appropriate remote to fetch from")??;
+
+    let remote_head = format!(
+        "refs/remotes/{}/HEAD",
+        remote
+            .name()
+            .map(|s| s.as_bstr())
+            .context("remote name hasn't been persisted to disk")?
+    );
+
+    // Find the commit id of the remote's HEAD
+    let (remote_head_id, remote_ref_target) = fetch_response
+        .ref_map
+        .mappings
+        .iter()
+        .find_map(|mapping| {
+            let gix::remote::fetch::Source::Ref(rref) = &mapping.remote else { return None; };
+
+            if mapping.local.as_deref()? != remote_head.as_bytes() {
+                return None;
+            }
+
+            let gix::protocol::handshake::Ref::Symbolic {
+            full_ref_name,
+            object,
+            target,
+        } = rref else { return None; };
+
+            (full_ref_name == "HEAD").then(|| (*object, target.clone()))
+        })
+        .context("failed to locate remote HEAD")?;
+
+    Ok((remote_head_id, remote_ref_target))
 }
 
 /// Perform a fetch + checkout of the latest remote HEAD -> local HEAD
@@ -214,8 +283,6 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
 /// when doing a clone, but if you are performing a fetch on an existing repo
 /// ...you have to do that all yourself, which is pretty tedious
 fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
-    const DIR: gix::remote::Direction = gix::remote::Direction::Fetch;
-
     // In a normal case there will be only one remote, called origin, but try
     // and be robust about it
     let mut remote = repo
@@ -252,29 +319,8 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         )
         .context("failed to fetch")?;
 
-    // Find the commit id of the remote's HEAD
-    let (remote_head_id, remote_ref_target) = fetch_response
-        .ref_map
-        .mappings
-        .iter()
-        .find_map(|mapping| {
-            let gix::remote::fetch::Source::Ref(rref) = &mapping.remote else { return None; };
-
-            if mapping.local.as_deref()? != remote_head.as_bytes() {
-                return None;
-            }
-
-            let gix::protocol::handshake::Ref::Symbolic {
-            full_ref_name,
-            object,
-            target,
-        } = rref else { return None; };
-
-            (full_ref_name == "HEAD").then(|| (*object, target.clone()))
-        })
-        .context("failed to locate remote HEAD")?;
-
     use gix::refs::{transaction as tx, Target};
+    let (remote_head_id, _remote_ref_target) = get_remote_head(&repo, &fetch_response)?;
 
     // In all (hopefully?) cases HEAD is a symbolic reference to
     // refs/heads/<branch> which is a peeled commit id, if that's the case
@@ -376,14 +422,24 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("failed to write index")?;
 
     // Now that we've checked out everything write FETCH_HEAD
-    //
-    // The format of FETCH_HEAD is a bit different from other refs, and
-    // we don't write it the same as git does, as it includes the tips
-    // of _all_ active remote branches, and we don't care about anything
-    // except the branch with HEAD
-    //
-    // <commit_oid>\t\tbranch '<name>' of '<remote>'
+    write_fetch_head(&repo, &fetch_response)?;
+
+    Ok(())
+}
+
+/// The format of FETCH_HEAD is a bit different from other refs, and
+/// we don't write it the same as git does, as it includes the tips
+/// of _all_ active remote branches, and we don't care about anything
+/// except the branch with HEAD
+///
+/// <commit_oid>\t\tbranch '<name>' of '<remote>'
+fn write_fetch_head(
+    repo: &gix::Repository,
+    fetch: &gix::remote::fetch::Outcome,
+) -> anyhow::Result<()> {
     let fetch_head_path = repo.path().join("FETCH_HEAD");
+
+    let (remote_head_id, remote_ref_target) = get_remote_head(repo, fetch)?;
 
     let remote_head = remote_head_id.to_hex();
     // At least for the official rustsec repo, the default branch is 'main', so
@@ -393,6 +449,17 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .as_deref()
         .and_then(|s| s.rsplit('/').next())
         .unwrap_or("main");
+
+    let remote = repo
+        .head()
+        .context("failed to get HEAD")?
+        .into_remote(DIR)
+        .map(|r| r.context("failed to get remote for HEAD"))
+        .or_else(|| {
+            repo.find_default_remote(DIR)
+                .map(|r| r.context("failed to find default remote"))
+        })
+        .context("failed to find appropriate remote to fetch from")??;
 
     // This _should_ be impossible if we got here...
     let remote_url: String = remote
@@ -439,7 +506,7 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         .map(|repo| (repo, false))
         .or_else(|err| {
             if matches!(err, gix::open::Error::NotARepository { .. }) {
-                let (checkout, _out) = gix::prepare_clone(url.as_str(), db_path)
+                let (mut checkout, out) = gix::prepare_clone(url.as_str(), db_path)
                     .context("failed to prepare clone")?
                     .fetch_then_checkout(
                         gix::progress::Discard,
@@ -447,7 +514,17 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
                     )
                     .context("failed to fetch")?;
 
-                Ok((checkout.persist(), true))
+                let repo = checkout
+                    .main_worktree(
+                        gix::progress::Discard,
+                        &std::sync::atomic::AtomicBool::default(),
+                    )
+                    .context("failed to checkout")?
+                    .0;
+
+                write_fetch_head(&repo, &out)?;
+
+                Ok((repo, true))
             } else {
                 Err(err).context("unable to open repository")
             }
@@ -514,10 +591,16 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
 
         // pull latest changes
         let mut cmd = Command::new("git");
-        cmd.arg("pull").current_dir(db_path);
+        cmd.arg("fetch").current_dir(db_path);
 
-        capture(cmd).context("failed to pull latest changes")?;
-        log::debug!("pulled {url}");
+        capture(cmd).context("failed to fetch latest changes")?;
+        log::debug!("fetched {url}");
+
+        let mut cmd = Command::new("git");
+        cmd.args(["reset", "--hard", "FETCH_HEAD"])
+            .current_dir(db_path);
+
+        capture(cmd).context("failed to reset to FETCH_HEAD")?;
     } else {
         // clone repository
         let mut cmd = Command::new("git");
