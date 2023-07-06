@@ -108,10 +108,10 @@ impl Source {
             "registry" => {
                 if url_str == tame_index::CRATES_IO_INDEX {
                     // registry/src/index.crates.io-6f17d22bba15001f/crate-version/Cargo.toml
-                    let is_sparse = manifest_path
-                        .ancestors()
-                        .nth(2)
-                        .map_or(false, |dir| dir == CRATES_IO_SPARSE_DIR);
+                    let is_sparse = manifest_path.ancestors().nth(2).map_or(false, |dir| {
+                        dir.file_name()
+                            .map_or(false, |dir_name| dir_name == CRATES_IO_SPARSE_DIR)
+                    });
                     return Ok(Self::crates_io(is_sparse));
                 }
 

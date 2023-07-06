@@ -81,7 +81,7 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.25", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { path = "../tame-index", features = ["git", "sparse"] }
+tame-index = { version = "0.1", features = ["git", "sparse"] }
 # Timestamp emission
 time = { version = "0.3", default-features = false, features = [
   "formatting",
@@ -96,7 +96,7 @@ url = "2.1"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.47"
+version = "0.48"
 default-features = false
 features = [
   "blocking-http-transport-reqwest-rust-tls",

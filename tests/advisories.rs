@@ -320,7 +320,7 @@ const EXPECTED_TWO_ID: &str = "BOOP-2023-0002";
 
 fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
     let mut db_set =
-        advisories::DbSet::load(to_path(&td), vec![TEST_DB_URL.parse().unwrap()], f).unwrap();
+        advisories::DbSet::load(to_path(td), vec![TEST_DB_URL.parse().unwrap()], f).unwrap();
 
     db_set.dbs.pop().unwrap()
 }

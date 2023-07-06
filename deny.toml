@@ -17,9 +17,6 @@ ignore = [
     # rmp-serde used by askalono for the cache files, these are always utf-8 so
     # the advisory is not relevant
     "RUSTSEC-2022-0092",
-    # remove_dir_all, this isn't really relevant as you should not be running
-    # cargo-deny in priveleged mode
-    "RUSTSEC-2023-0018",
 ]
 
 [bans]
@@ -51,7 +48,13 @@ allow-osi-fsf-free = "neither"
 copyleft = "deny"
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
-allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "MPL-2.0", "BSD-3-Clause"]
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MPL-2.0",
+    "BSD-3-Clause",
+]
 exceptions = [
     { allow = ["Zlib"], name = "tinyvec" },
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },

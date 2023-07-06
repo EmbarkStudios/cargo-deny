@@ -188,7 +188,7 @@ fn get_fetch_time(repo: &gix::Repository) -> anyhow::Result<time::OffsetDateTime
         // Copy what gix does, unfortunately it's not public
         // <https://github.com/Byron/gitoxide/blob/5af2cf368dcd05fe4dffbd675cffe6bafec127e7/gix-date/src/time/format.rs#L83C1-L87>
 
-        let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds as i64)
+        let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds)
             .context("unix timestamp for HEAD was out of range")?
             .to_offset(
                 time::UtcOffset::from_whole_seconds(time.offset)
@@ -320,7 +320,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("failed to fetch")?;
 
     use gix::refs::{transaction as tx, Target};
-    let (remote_head_id, _remote_ref_target) = get_remote_head(&repo, &fetch_response)?;
+    let (remote_head_id, _remote_ref_target) = get_remote_head(repo, &fetch_response)?;
 
     // In all (hopefully?) cases HEAD is a symbolic reference to
     // refs/heads/<branch> which is a peeled commit id, if that's the case
@@ -422,17 +422,17 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("failed to write index")?;
 
     // Now that we've checked out everything write FETCH_HEAD
-    write_fetch_head(&repo, &fetch_response)?;
+    write_fetch_head(repo, &fetch_response)?;
 
     Ok(())
 }
 
-/// The format of FETCH_HEAD is a bit different from other refs, and
+/// The format of `FETCH_HEAD` is a bit different from other refs, and
 /// we don't write it the same as git does, as it includes the tips
 /// of _all_ active remote branches, and we don't care about anything
 /// except the branch with HEAD
 ///
-/// <commit_oid>\t\tbranch '<name>' of '<remote>'
+/// `<commit_oid>\t\tbranch '<name>' of '<remote>'`
 fn write_fetch_head(
     repo: &gix::Repository,
     fetch: &gix::remote::fetch::Outcome,
@@ -498,6 +498,7 @@ fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
 
     // Avoid errors in the case the directory exists but is otherwise empty.
     // See: https://github.com/RustSec/cargo-audit/issues/32
+    // (not sure if this is needed with gix)
     if db_path.is_dir() && std::fs::read_dir(db_path)?.next().is_none() {
         std::fs::remove_dir(db_path)?;
     }
