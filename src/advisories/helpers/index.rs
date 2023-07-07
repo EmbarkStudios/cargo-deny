@@ -1,10 +1,10 @@
 use crate::{Krate, Krates, Source};
 use anyhow::Context as _;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use std::{borrow::Cow, collections::BTreeMap};
+use std::{borrow::Cow, collections::BTreeMap, path::is_separator};
 use tame_index::{
     index::{self, ComboIndexCache},
-    Error,
+    Error, IndexLocation, IndexUrl,
 };
 
 pub struct Indices<'k> {
@@ -24,26 +24,21 @@ impl<'k> Indices<'k> {
                 continue;
             }
 
-            use crate::SourceKind;
-            let index = match (source.kind, source.url()) {
-                (SourceKind::CratesIo(true) | SourceKind::Sparse, url) => {
-                    let surl = if let Some(url) = url {
-                        Cow::Owned(format!("sparse+{url}"))
+            let index_url = match source {
+                Source::CratesIo(is_sparse) => {
+                    if *is_sparse {
+                        IndexUrl::CratesIoSparse
                     } else {
-                        Cow::Borrowed(tame_index::CRATES_IO_HTTP_INDEX)
-                    };
-
-                    index::SparseIndex::with_path(cargo_home.clone(), &surl)
-                        .map(ComboIndexCache::Sparse)
+                        IndexUrl::CratesIoGit
+                    }
                 }
-                (SourceKind::CratesIo(false) | SourceKind::Registry, url) => {
-                    let url = url.map_or(tame_index::CRATES_IO_INDEX, |u| u.as_str());
-
-                    index::GitIndex::with_path(cargo_home.clone(), url).map(ComboIndexCache::Git)
-                }
-                _ => unreachable!("source {source:?} is a registry, but not git nor sparse?"),
+                Source::Sparse(url) | Source::Registry(url) => IndexUrl::NonCratesIo(url.as_str()),
+                Source::Git { .. } => unreachable!(),
             };
 
+            let index = ComboIndexCache::new(
+                IndexLocation::new(index_url).with_root(Some(cargo_home.clone())),
+            );
             indices.push((source, index));
         }
 
