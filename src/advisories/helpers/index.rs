@@ -1,11 +1,8 @@
 use crate::{Krate, Krates, Source};
 use anyhow::Context as _;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use std::{borrow::Cow, collections::BTreeMap, path::is_separator};
-use tame_index::{
-    index::{self, ComboIndexCache},
-    Error, IndexLocation, IndexUrl,
-};
+use std::{borrow::Cow, collections::BTreeMap};
+use tame_index::{index::ComboIndexCache, Error, IndexLocation, IndexUrl};
 
 pub struct Indices<'k> {
     pub indices: Vec<(&'k Source, Result<ComboIndexCache, Error>)>,

@@ -367,7 +367,6 @@ fn validate_fetch(fetch: Fetch) {
 
     let git_path = td.path().join(GIT_PATH);
 
-    std::fs::remove_file(&git_path).expect("failed to delete");
     fs_extra::copy_items(
         &[GIT_SUB_PATH],
         &git_path,

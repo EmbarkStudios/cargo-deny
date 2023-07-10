@@ -142,11 +142,6 @@ impl Source {
         matches!(self, Self::CratesIo(_))
     }
 
-    // #[inline]
-    // pub fn url(&self) -> Option<&Url> {
-    //     self.url.as_ref()
-    // }
-
     #[inline]
     pub fn to_rustsec(&self) -> rustsec::package::SourceId {
         use rustsec::package::SourceId;
@@ -159,7 +154,7 @@ impl Source {
                 // id other than this method
                 SourceId::from_url(sparse.as_str()).unwrap()
             }
-            _ => unreachable!(),
+            Self::Git { .. } => unreachable!(),
         }
     }
 
@@ -337,7 +332,7 @@ impl Krate {
         let Some(src) = &self.source else { return false };
 
         let kurl = match src {
-            Source::CratesIo(is_sparse) => {
+            Source::CratesIo(_is_sparse) => {
                 // It's irrelevant if it's sparse or not for crates.io, they're the same
                 // index, just different protocols/kinds
                 return url
