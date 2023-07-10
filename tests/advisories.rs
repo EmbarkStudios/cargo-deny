@@ -396,6 +396,27 @@ fn validate_fetch(fetch: Fetch) {
     )
     .expect("failed to copy");
 
+    // We need to overwrite the config file in the git directory, otherwise
+    // mutations will actually affect the working tree rather than the actual
+    // temp location we've copied the submodule into
+    std::fs::write(
+        git_path.join("config"),
+        r#"
+    [core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+[remote "origin"]
+        url = https://github.com/EmbarkStudios/test-advisory-db
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+        remote = origin
+        merge = refs/heads/main
+"#,
+    )
+    .expect("failed to write config");
+
     let db = do_open(&td, Fetch::Disallow(time::Duration::days(10000)));
     validate(&db, EXPECTED_ONE, &[(EXPECTED_ONE_ID, EXPECTED_ONE_DATE)]);
 

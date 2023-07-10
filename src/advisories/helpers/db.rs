@@ -559,7 +559,7 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
         anyhow::bail!("invalid directory: {db_path}");
     }
 
-    fn capture(mut cmd: Command) -> anyhow::Result<String> {
+    let capture = |mut cmd: Command| -> anyhow::Result<String> {
         cmd.stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
 
@@ -576,32 +576,31 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
             String::from_utf8(output.stderr)
                 .map_err(|_err| anyhow::anyhow!("git command failed and gave non-utf8 output"))
         }
-    }
+    };
+
+    let run = |args: &[&str]| {
+        let mut cmd = Command::new("git");
+        cmd.arg("-C").arg(db_path);
+        cmd.args(args);
+
+        capture(cmd)
+    };
 
     if db_path.exists() {
         // make sure db_path is clean
-        let mut cmd = Command::new("git");
-        cmd.arg("reset").arg("--hard").current_dir(db_path);
-
         // We don't fail if we can't reset since it _may_ still be possible to
         // clone
-        match capture(cmd) {
+        match run(&["reset", "--hard"]) {
             Ok(_reset) => log::debug!("reset {url}"),
             Err(err) => log::error!("failed to reset {url}: {err}"),
         }
 
         // pull latest changes
-        let mut cmd = Command::new("git");
-        cmd.arg("fetch").current_dir(db_path);
-
-        capture(cmd).context("failed to fetch latest changes")?;
+        run(&["fetch"]).context("failed to fetch latest changes")?;
         log::debug!("fetched {url}");
 
-        let mut cmd = Command::new("git");
-        cmd.args(["reset", "--hard", "FETCH_HEAD"])
-            .current_dir(db_path);
-
-        capture(cmd).context("failed to reset to FETCH_HEAD")?;
+        // reset to the remote HEAD
+        run(&["reset", "--hard", "FETCH_HEAD"]).context("failed to reset to FETCH_HEAD")?;
     } else {
         // clone repository
         let mut cmd = Command::new("git");

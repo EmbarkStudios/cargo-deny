@@ -340,27 +340,7 @@ impl Krate {
                     .ends_with(&tame_index::CRATES_IO_HTTP_INDEX[8..])
                     || url.as_str().ends_with(&tame_index::CRATES_IO_INDEX[10..]);
             }
-            Source::Sparse(surl) => {
-                if !url.scheme().starts_with("sparse+http") {
-                    return false;
-                }
-
-                surl
-            }
-            Source::Registry(surl) => {
-                if !url.scheme().starts_with("registry+http") {
-                    return false;
-                }
-
-                surl
-            }
-            Source::Git { url: surl, .. } => {
-                if !url.scheme().starts_with("git+") {
-                    return false;
-                }
-
-                surl
-            }
+            Source::Sparse(surl) | Source::Registry(surl) | Source::Git { url: surl, .. } => surl,
         };
 
         kurl.host() == url.host() && (exact && kurl.path() == url.path())
