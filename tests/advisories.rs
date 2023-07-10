@@ -312,11 +312,13 @@ const GIT_PATH: &str = "github.com-c373669cccc50ac0/.git";
 const GIT_SUB_PATH: &str = ".git/modules/tests/advisory-db/github.com-c373669cccc50ac0";
 
 /// Expected HEAD without fetch
-const EXPECTED_ONE: &str = "8da123e33153c58ad1bb56c4edbb6afb6847302e";
+const EXPECTED_ONE: &str = "1f44d565d81692a44b8c7af8a80f587e19757f8c";
 const EXPECTED_ONE_ID: &str = "BOOP-2023-0001";
+const EXPECTED_ONE_DATE: &str = "2023-06-30";
 /// Expected remote HEAD for <https://github.com/EmbarkStudios/test-advisory-db>
-const EXPECTED_TWO: &str = "1f44d565d81692a44b8c7af8a80f587e19757f8c";
+const EXPECTED_TWO: &str = "c84d73b086cc762f6a2b8ed794d47171a52781a3";
 const EXPECTED_TWO_ID: &str = "BOOP-2023-0002";
+const EXPECTED_TWO_DATE: &str = "2023-07-10";
 
 fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
     let mut db_set =
@@ -325,12 +327,13 @@ fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
     db_set.dbs.pop().unwrap()
 }
 
-fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[&str]) {
+fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
     let repo = gix::open(&adb.path).expect("failed to open repo");
     assert_eq!(repo.head_commit().unwrap().id.to_hex().to_string(), rev);
 
-    for id in ids {
-        adb.db.get(&id.parse().unwrap()).expect("unable to find id");
+    for (id, date) in ids {
+        let adv = adb.db.get(&id.parse().unwrap()).expect("unable to find id");
+        assert_eq!(adv.date().as_str(), *date);
     }
 
     assert!(
@@ -344,7 +347,14 @@ fn clones_with_gix() {
     let td = temp_dir();
     let db = do_open(&td, Fetch::Allow);
 
-    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
+    validate(
+        &db,
+        EXPECTED_TWO,
+        &[
+            (EXPECTED_ONE_ID, EXPECTED_ONE_DATE),
+            (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
+        ],
+    );
 }
 
 /// Validates we can clone an advisory database with git
@@ -353,11 +363,19 @@ fn clones_with_git() {
     let td = temp_dir();
     let db = do_open(&td, Fetch::AllowWithGitCli);
 
-    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
+    validate(
+        &db,
+        EXPECTED_TWO,
+        &[
+            (EXPECTED_ONE_ID, EXPECTED_ONE_DATE),
+            (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
+        ],
+    );
 }
 
 fn validate_fetch(fetch: Fetch) {
     let td = temp_dir();
+
     fs_extra::copy_items(
         &[TEST_DB_PATH],
         td.path(),
@@ -366,6 +384,7 @@ fn validate_fetch(fetch: Fetch) {
     .expect("failed to copy");
 
     let git_path = td.path().join(GIT_PATH);
+    std::fs::remove_file(&git_path).expect("unable to remove .git file");
 
     fs_extra::copy_items(
         &[GIT_SUB_PATH],
@@ -378,10 +397,17 @@ fn validate_fetch(fetch: Fetch) {
     .expect("failed to copy");
 
     let db = do_open(&td, Fetch::Disallow(time::Duration::days(10000)));
-    validate(&db, EXPECTED_ONE, &[EXPECTED_ONE_ID]);
+    validate(&db, EXPECTED_ONE, &[(EXPECTED_ONE_ID, EXPECTED_ONE_DATE)]);
 
     let db = do_open(&td, fetch);
-    validate(&db, EXPECTED_TWO, &[EXPECTED_ONE_ID, EXPECTED_TWO_ID]);
+    validate(
+        &db,
+        EXPECTED_TWO,
+        &[
+            (EXPECTED_ONE_ID, EXPECTED_ONE_DATE),
+            (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
+        ],
+    );
 }
 
 /// Validates we can fetch advisory db updates with gix

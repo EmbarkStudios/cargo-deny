@@ -122,7 +122,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     match fetch {
         Fetch::Allow => {
             debug!("Fetching advisory database from '{db_url}'");
-            fetch_via_git(db_url, &db_path)
+            fetch_via_gix(db_url, &db_path)
                 .with_context(|| format!("failed to fetch advisory database {db_url}"))?;
         }
         Fetch::AllowWithGitCli => {
@@ -478,7 +478,7 @@ fn write_fetch_head(
     Ok(())
 }
 
-fn fetch_via_git(url: &Url, db_path: &Path) -> anyhow::Result<()> {
+fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
     anyhow::ensure!(
         url.scheme() == "https" || url.scheme() == "ssh",
         "expected '{}' to be an `https` or `ssh` url",
