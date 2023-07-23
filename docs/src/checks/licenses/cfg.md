@@ -133,6 +133,8 @@ Determines what happens when licenses aren't explicitly allowed or denied, but *
 
 * `both` - The license is accepted if it is both OSI approved and FSF Free
 * `either` - The license is accepted if it is either OSI approved or FSF Free
+* `osi` - The license is accepted if it is OSI approved
+* `fsf` - The license is accepted if it is FSF Free
 * `osi-only` - The license is accepted if it is OSI approved and not FSF Free
 * `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
 * `neither` (default) - No special consideration is given the license

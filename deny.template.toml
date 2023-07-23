@@ -117,8 +117,10 @@ copyleft = "warn"
 # Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
 # * both - The license will be approved if it is both OSI-approved *AND* FSF
 # * either - The license will be approved if it is either OSI-approved *OR* FSF
-# * osi-only - The license will be approved if is OSI-approved *AND NOT* FSF
-# * fsf-only - The license will be approved if is FSF *AND NOT* OSI-approved
+# * osi - The license will be approved if it is OSI approved
+# * fsf - The license will be approved if it is FSF Free
+# * osi-only - The license will be approved if it is OSI-approved *AND NOT* FSF
+# * fsf-only - The license will be approved if it is FSF *AND NOT* OSI-approved
 # * neither - This predicate is ignored and the default lint level is used
 allow-osi-fsf-free = "neither"
 # Lint level used when no other predicates are matched

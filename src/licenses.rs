@@ -151,6 +151,18 @@ fn evaluate_expression(
                         allow!(IsBothFreeAndOsi);
                     }
                 }
+                BlanketAgreement::Osi => {
+                    if id.is_osi_approved() {
+                        allow!(IsOsiApproved);
+                    }
+                }
+                BlanketAgreement::Fsf => {
+                    if id.is_fsf_free_libre() {
+                        allow!(IsFsfFree);
+                    } else {
+                        deny!(IsFsfFree);
+                    }
+                }
                 BlanketAgreement::OsiOnly => {
                     if id.is_osi_approved() {
                         if id.is_fsf_free_libre() {
