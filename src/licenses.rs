@@ -159,8 +159,6 @@ fn evaluate_expression(
                 BlanketAgreement::Fsf => {
                     if id.is_fsf_free_libre() {
                         allow!(IsFsfFree);
-                    } else {
-                        deny!(IsFsfFree);
                     }
                 }
                 BlanketAgreement::OsiOnly => {
