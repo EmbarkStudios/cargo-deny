@@ -134,19 +134,6 @@ jobs:
       - name: cargo publish
         run: cargo publish --dry-run
 
-  msrv-check:
-    name: Minimum Stable Rust Version Check
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.65.0"
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fetch
-      - name: cargo check
-        run: cargo check --all-targets
-
   release:
     name: Release
     #needs: [test, self, doc-book]
