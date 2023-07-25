@@ -1,0 +1,2341 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "bumpalo",
+            "version": "3.11.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "js-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "ring",
+                                        "version": "0.16.20"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "rustls-webpki",
+                                            "version": "0.100.1"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "license-clarification",
+                                                "version": "0.1.0"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cc",
+            "version": "1.0.75"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cfg-if",
+            "version": "1.0.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "log",
+                "version": "0.4.17"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-backend",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro-support",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen-macro",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "wasm-bindgen",
+                                "version": "0.2.87"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "js-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "web-sys",
+                                        "version": "0.3.64"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "ring",
+                                            "version": "0.16.20"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "rustls-webpki",
+                                                "version": "0.100.1"
+                                              },
+                                              "parents": [
+                                                {
+                                                  "Krate": {
+                                                    "name": "license-clarification",
+                                                    "version": "0.1.0"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "js-sys",
+            "version": "0.3.64"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "web-sys",
+                "version": "0.3.64"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "ring",
+                    "version": "0.16.20"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rustls-webpki",
+                        "version": "0.100.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "license-clarification",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libc",
+            "version": "0.2.137"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "license-clarification",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "log",
+            "version": "0.4.17"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "js-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "ring",
+                                        "version": "0.16.20"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "rustls-webpki",
+                                            "version": "0.100.1"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "license-clarification",
+                                                "version": "0.1.0"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "once_cell",
+            "version": "1.16.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "js-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "ring",
+                                        "version": "0.16.20"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "rustls-webpki",
+                                            "version": "0.100.1"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "license-clarification",
+                                                "version": "0.1.0"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "proc-macro2",
+            "version": "1.0.66"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "quote",
+                "version": "1.0.32"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "syn",
+                    "version": "2.0.27"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-backend",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen-macro-support",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "wasm-bindgen-macro",
+                                "version": "0.2.87"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "wasm-bindgen",
+                                    "version": "0.2.87"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "js-sys",
+                                        "version": "0.3.64"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "web-sys",
+                                            "version": "0.3.64"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "ring",
+                                                "version": "0.16.20"
+                                              },
+                                              "parents": [
+                                                {
+                                                  "Krate": {
+                                                    "name": "rustls-webpki",
+                                                    "version": "0.100.1"
+                                                  },
+                                                  "parents": [
+                                                    {
+                                                      "Krate": {
+                                                        "name": "license-clarification",
+                                                        "version": "0.1.0"
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Krate": {
+                                        "name": "web-sys",
+                                        "version": "0.3.64"
+                                      },
+                                      "repeat": true
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro-support",
+                        "version": "0.2.87"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-backend",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "syn",
+                "version": "2.0.27"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro-support",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "quote",
+            "version": "1.0.32"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "syn",
+                "version": "2.0.27"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-backend",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro-support",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen-macro",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "wasm-bindgen",
+                                "version": "0.2.87"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "js-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "web-sys",
+                                        "version": "0.3.64"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "ring",
+                                            "version": "0.16.20"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "rustls-webpki",
+                                                "version": "0.100.1"
+                                              },
+                                              "parents": [
+                                                {
+                                                  "Krate": {
+                                                    "name": "license-clarification",
+                                                    "version": "0.1.0"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "repeat": true
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro-support",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "rustls-webpki",
+                "version": "0.100.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "license-clarification",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 15,
+          "line": 18,
+          "message": "license expression retrieved via user override",
+          "span": "ISC AND MIT AND OpenSSL"
+        },
+        {
+          "column": 15,
+          "line": 18,
+          "message": "accepted: license is explicitly allowed",
+          "span": "ISC"
+        },
+        {
+          "column": 23,
+          "line": 18,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 31,
+          "line": 18,
+          "message": "accepted: license is explicitly allowed via an exception",
+          "span": "OpenSSL"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "rustls-webpki",
+            "version": "0.100.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "license-clarification",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression was not specified",
+          "span": ""
+        },
+        {
+          "column": 15,
+          "line": 5,
+          "message": "license expression retrieved via LICENSE, third-party/chromium/LICENSE",
+          "span": "ISC AND BSD-3-Clause"
+        },
+        {
+          "column": 15,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "ISC"
+        },
+        {
+          "column": 23,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed via an exception",
+          "span": "BSD-3-Clause"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spin",
+            "version": "0.5.2"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "syn",
+            "version": "2.0.27"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "js-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "ring",
+                                        "version": "0.16.20"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "rustls-webpki",
+                                            "version": "0.100.1"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "license-clarification",
+                                                "version": "0.1.0"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro-support",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "unicode-ident",
+            "version": "1.0.5"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "proc-macro2",
+                "version": "1.0.66"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "quote",
+                    "version": "1.0.32"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "syn",
+                        "version": "2.0.27"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen-backend",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "wasm-bindgen-macro-support",
+                                "version": "0.2.87"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "wasm-bindgen-macro",
+                                    "version": "0.2.87"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "wasm-bindgen",
+                                        "version": "0.2.87"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "js-sys",
+                                            "version": "0.3.64"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "web-sys",
+                                                "version": "0.3.64"
+                                              },
+                                              "parents": [
+                                                {
+                                                  "Krate": {
+                                                    "name": "ring",
+                                                    "version": "0.16.20"
+                                                  },
+                                                  "parents": [
+                                                    {
+                                                      "Krate": {
+                                                        "name": "rustls-webpki",
+                                                        "version": "0.100.1"
+                                                      },
+                                                      "parents": [
+                                                        {
+                                                          "Krate": {
+                                                            "name": "license-clarification",
+                                                            "version": "0.1.0"
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "Krate": {
+                                            "name": "web-sys",
+                                            "version": "0.3.64"
+                                          },
+                                          "repeat": true
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen-macro-support",
+                            "version": "0.2.87"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-backend",
+                        "version": "0.2.87"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "repeat": true
+                    },
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro-support",
+                        "version": "0.2.87"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "syn",
+                    "version": "2.0.27"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-backend",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                },
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "syn",
+                "version": "2.0.27"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "(MIT OR Apache-2.0) AND Unicode-DFS-2016"
+        },
+        {
+          "column": 13,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 20,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 36,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed via an exception",
+          "span": "Unicode-DFS-2016"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "untrusted",
+            "version": "0.7.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "rustls-webpki",
+                "version": "0.100.1"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "ISC"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "ISC"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasm-bindgen",
+            "version": "0.2.87"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "js-sys",
+                "version": "0.3.64"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "web-sys",
+                    "version": "0.3.64"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "ring",
+                        "version": "0.16.20"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "rustls-webpki",
+                            "version": "0.100.1"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "license-clarification",
+                                "version": "0.1.0"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "web-sys",
+                "version": "0.3.64"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasm-bindgen-backend",
+            "version": "0.2.87"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro-support",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "js-sys",
+                            "version": "0.3.64"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "ring",
+                                    "version": "0.16.20"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "rustls-webpki",
+                                        "version": "0.100.1"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "license-clarification",
+                                            "version": "0.1.0"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "name": "web-sys",
+                            "version": "0.3.64"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasm-bindgen-macro",
+            "version": "0.2.87"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "js-sys",
+                    "version": "0.3.64"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "web-sys",
+                        "version": "0.3.64"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "ring",
+                            "version": "0.16.20"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "rustls-webpki",
+                                "version": "0.100.1"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "license-clarification",
+                                    "version": "0.1.0"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "web-sys",
+                    "version": "0.3.64"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasm-bindgen-macro-support",
+            "version": "0.2.87"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "js-sys",
+                        "version": "0.3.64"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "web-sys",
+                            "version": "0.3.64"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "ring",
+                                "version": "0.16.20"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "rustls-webpki",
+                                    "version": "0.100.1"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "license-clarification",
+                                        "version": "0.1.0"
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "web-sys",
+                        "version": "0.3.64"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasm-bindgen-shared",
+            "version": "0.2.87"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "wasm-bindgen-backend",
+                "version": "0.2.87"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "wasm-bindgen-macro-support",
+                    "version": "0.2.87"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wasm-bindgen-macro",
+                        "version": "0.2.87"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "wasm-bindgen",
+                            "version": "0.2.87"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "name": "js-sys",
+                                "version": "0.3.64"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "web-sys",
+                                    "version": "0.3.64"
+                                  },
+                                  "parents": [
+                                    {
+                                      "Krate": {
+                                        "name": "ring",
+                                        "version": "0.16.20"
+                                      },
+                                      "parents": [
+                                        {
+                                          "Krate": {
+                                            "name": "rustls-webpki",
+                                            "version": "0.100.1"
+                                          },
+                                          "parents": [
+                                            {
+                                              "Krate": {
+                                                "name": "license-clarification",
+                                                "version": "0.1.0"
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "web-sys",
+                                "version": "0.3.64"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "wasm-bindgen-macro-support",
+                "version": "0.2.87"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "web-sys",
+            "version": "0.3.64"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "winapi",
+            "version": "0.3.9"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "winapi-i686-pc-windows-gnu",
+            "version": "0.4.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "winapi",
+                "version": "0.3.9"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "ring",
+                    "version": "0.16.20"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rustls-webpki",
+                        "version": "0.100.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "license-clarification",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "winapi-x86_64-pc-windows-gnu",
+            "version": "0.4.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "winapi",
+                "version": "0.3.9"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "ring",
+                    "version": "0.16.20"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rustls-webpki",
+                        "version": "0.100.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "license-clarification",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression retrieved via Cargo.toml `license`",
+          "span": "MIT OR Apache-2.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 19,
+          "line": 4,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]
