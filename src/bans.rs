@@ -523,7 +523,7 @@ pub fn check(
                                 // determine if the feature is covered by an allowed
                                 // parent feature
                                 fn has_feature(
-                                    map: &std::collections::HashMap<String, Vec<String>>,
+                                    map: &std::collections::BTreeMap<String, Vec<String>>,
                                     parent: &str,
                                     feature: &str,
                                 ) -> bool {

@@ -37,7 +37,7 @@ path = "src/cargo-deny/main.rs"
 
 [dependencies]
 # Output coloring
-nu-ansi-term = "0.48"
+nu-ansi-term = "0.49"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
@@ -96,7 +96,7 @@ url = "2.1"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.48"
+version = "0.50"
 default-features = false
 features = [
   "blocking-http-transport-reqwest-rust-tls",
@@ -109,6 +109,7 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.21", features = ["json"] }
+tame-index = { version = "0.1", features = ["local-builder"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 

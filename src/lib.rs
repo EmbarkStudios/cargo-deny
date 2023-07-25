@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 pub use semver::Version;
-use std::{cmp, collections::HashMap, fmt};
+use std::{cmp, collections::BTreeMap, fmt};
 use url::Url;
 
 pub mod advisories;
@@ -203,7 +203,7 @@ pub struct Krate {
     pub license: Option<String>,
     pub license_file: Option<PathBuf>,
     pub deps: Vec<cm::Dependency>,
-    pub features: HashMap<String, Vec<String>>,
+    pub features: BTreeMap<String, Vec<String>>,
     pub targets: Vec<cm::Target>,
     pub publish: Option<Vec<String>>,
 }
@@ -224,7 +224,7 @@ impl Default for Krate {
             license: None,
             license_file: None,
             targets: Vec::new(),
-            features: HashMap::new(),
+            features: BTreeMap::new(),
             manifest_path: PathBuf::new(),
             repository: None,
             publish: None,

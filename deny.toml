@@ -23,12 +23,18 @@ ignore = [
 multiple-versions = "deny"
 deny = []
 skip = [
-    # cargo -> ignore -> globset
-    { name = "aho-corasick", version = "=0.7.20" },
-    # strum_macros + maybe-async
-    { name = "syn", version = "=1.0.109" },
     # indexmap + imara-diff
     { name = "hashbrown", version = "=0.12.3" },
+    # trust-dns-proto uses an old version
+    { name = "idna", version = "=0.2.3" },
+    # petgraph + h2 use an old version
+    { name = "indexmap", version = "=1.9.3" },
+    # hyper/tokio uses an old version
+    { name = "socket2", version = "=0.4.9" },
+    # strum_macros + maybe-async
+    { name = "syn", version = "=1.0.109" },
+    # reqwest uses an old version
+    { name = "winreg", version = "=0.10.1" },
 ]
 skip-tree = [
     # Sigh
@@ -39,8 +45,8 @@ skip-tree = [
 unknown-registry = "deny"
 unknown-git = "deny"
 
-[sources.allow-org]
-github = ["EmbarkStudios"]
+# [sources.allow-org]
+# github = ["EmbarkStudios"]
 
 [licenses]
 unlicensed = "deny"
@@ -54,8 +60,34 @@ allow = [
     "MIT",
     "MPL-2.0",
     "BSD-3-Clause",
+    "ISC",
 ]
 exceptions = [
     { allow = ["Zlib"], name = "tinyvec" },
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
+    { allow = ["OpenSSL"], name = "ring" },
 ]
+
+# Sigh
+[[licenses.clarify]]
+name = "ring"
+# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
+# https://spdx.org/licenses/OpenSSL.html
+# ISC - Both BoringSSL and ring use this for their new files
+# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
+# license, for third_party/fiat, which, unlike other third_party directories, is
+# compiled into non-test libraries, is included below."
+# OpenSSL - Obviously
+expression = "ISC AND MIT AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[[licenses.clarify]]
+name = "webpki"
+expression = "ISC"
+license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
+
+# Actually "ISC-style"
+[[licenses.clarify]]
+name = "rustls-webpki"
+expression = "ISC"
+license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
