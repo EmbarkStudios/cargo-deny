@@ -365,6 +365,22 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         deref: true,
     });
 
+    // We're updating the reflog which requires a committer be set, which might
+    // not be the case, particular in a CI environment, but also would default
+    // the the git config for the current directory/global, which on a normal
+    // user machine would show the user was the one who updated the database which
+    // is kind of misleading, so we just override the config for this operation
+    let repo = {
+        let mut config = repo.config_snapshot_mut();
+        config
+            .set_raw_value("committer", None, "name", "cargo-deny")
+            .context("failed to set committer.name")?;
+        // config
+        //     .set_raw_value("committer", None, "email", "tests@integration.se").context("failed to set committer.email");5
+
+        config.commit_auto_rollback().unwrap()
+    };
+
     repo.edit_reference(edit).context("failed to update HEAD")?;
 
     // Sanity check that the local HEAD points to the same commit
@@ -422,7 +438,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("failed to write index")?;
 
     // Now that we've checked out everything write FETCH_HEAD
-    write_fetch_head(repo, &fetch_response)?;
+    write_fetch_head(&repo, &fetch_response)?;
 
     Ok(())
 }
