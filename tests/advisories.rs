@@ -521,7 +521,7 @@ fn crates_io_source_replacement() {
                 .iter()
                 .find(|iv| iv.version == ip.version)
                 .unwrap();
-            let vk = local::ValidKrate::download(&client, &config, &iv).unwrap();
+            let vk = local::ValidKrate::download(&client, &config, iv).unwrap();
 
             lrb.insert(&ip.ik, &[vk]).unwrap();
         });

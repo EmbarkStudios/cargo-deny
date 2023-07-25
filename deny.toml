@@ -21,7 +21,14 @@ ignore = [
 
 [bans]
 multiple-versions = "deny"
-deny = []
+deny = [
+    # We use gix
+    { name = "git2" },
+    # NEVER AGAIN
+    { name = "openssl" },
+    { name = "openssl-sys" },
+    { name = "libssh2-sys" },
+]
 skip = [
     # indexmap + imara-diff
     { name = "hashbrown", version = "=0.12.3" },
