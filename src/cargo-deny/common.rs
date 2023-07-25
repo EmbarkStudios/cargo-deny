@@ -169,7 +169,21 @@ impl KrateContext {
             );
         }
 
-        //gb.allow_git_index(self.allow_git_index || cargo_deny::allow_crates_io_git_index()?);
+        // crates have been encountered whose metadata disagrees with the index
+        // so we use the index to fix the features in the graph
+        // <https://github.com/EmbarkStudios/krates/issues/46>
+        let gb = gb.with_crates_io_index(
+            // This is IMO, wrong, but follows the same behavior as cargo, which
+            // is to use the current working directory to find .cargo/config.toml
+            // files, rather than being based off of the manifest path etc, but
+            // this _should_ be the least surprising option
+            None,
+            // This is only really supplied in tests to isolate them from one another
+            None,
+            // When deciding the default of crates.io, we need to know the version
+            // of cargo, in this case it's up to the environment
+            None,
+        )?;
 
         let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
             let name = filtered.name;

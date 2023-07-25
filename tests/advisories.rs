@@ -442,3 +442,170 @@ fn fetches_with_gix() {
 fn fetches_with_git() {
     validate_fetch(Fetch::AllowWithGitCli);
 }
+
+/// Validates that we can detect source replacement and can still perform yank
+/// checking
+#[test]
+fn crates_io_source_replacement() {
+    use rayon::prelude::*;
+
+    // Create a local registry in a temp dir that we use a source replacement
+    // for crates.io
+    let lrd = temp_dir();
+    {
+        use tame_index::index::{local, reqwest};
+
+        let sparse = tame_index::index::RemoteSparseIndex::new(
+            tame_index::SparseIndex::new(tame_index::IndexLocation::new(
+                tame_index::IndexUrl::CratesIoSparse,
+            ))
+            .unwrap(),
+            reqwest::blocking::Client::new(),
+        );
+
+        // Use a separate even more temporary cargo home for the gathering of the
+        // crates we want to write to the temp local registry, so that we don't
+        // pollute the cargo home used in the actual test
+        let temp_cargo_home = temp_dir();
+
+        let mut cmd = krates::Cmd::new();
+
+        // Note we need to set the current directory as cargo has a bug/design flaw
+        // where .cargo/config.toml is only searched from the current working directory
+        // not the location of the root manifest. which is....really annoying
+        cmd.current_dir("examples/12_yank_check")
+            .lock_opts(krates::LockOptions {
+                frozen: false,
+                locked: true,
+                offline: false,
+            });
+
+        let mut cmd: krates::cm::MetadataCommand = cmd.into();
+        cmd.env("CARGO_HOME", temp_cargo_home.path());
+
+        let krates: Krates = krates::Builder::new()
+            .build(cmd, krates::NoneFilter)
+            .unwrap();
+
+        struct IndexPkg {
+            ik: tame_index::IndexKrate,
+            version: semver::Version,
+        }
+
+        let index_krates: Vec<_> = krates
+            .krates()
+            .filter_map(|k| {
+                if k.source.as_ref().map_or(true, |s| !s.is_crates_io()) {
+                    return None;
+                }
+                Some(IndexPkg {
+                    ik: sparse
+                        .cached_krate(k.name.as_str().try_into().unwrap())
+                        .unwrap()
+                        .unwrap(),
+                    version: k.version.clone(),
+                })
+            })
+            .collect();
+
+        let client =
+            local::builder::Client::build(reqwest::blocking::ClientBuilder::new()).unwrap();
+
+        let lrb = local::LocalRegistryBuilder::create(to_path(&lrd).unwrap().to_owned()).unwrap();
+        let config = sparse.index.index_config().unwrap();
+
+        index_krates.into_par_iter().for_each(|ip| {
+            let iv = ip
+                .ik
+                .versions
+                .iter()
+                .find(|iv| iv.version == ip.version)
+                .unwrap();
+            let vk = local::ValidKrate::download(&client, &config, &iv).unwrap();
+
+            lrb.insert(&ip.ik, &[vk]).unwrap();
+        });
+
+        let _lr = lrb.finalize(true).unwrap();
+    }
+
+    // Copy the package to a new temp dir so that we can mutate the config.toml
+    // to use our new local registry
+    let pkg_dir = temp_dir();
+    {
+        fs_extra::copy_items(
+            &["examples/12_yank_check"],
+            pkg_dir.path(),
+            &Default::default(),
+        )
+        .expect("failed to copy");
+
+        let config_path = pkg_dir.path().join("12_yank_check/.cargo/config.toml");
+        let mut cfg =
+            std::fs::read_to_string(&config_path).expect("failed to read .cargo/config.toml");
+
+        cfg.push_str("\n[source.temp-local-registry]\n");
+        use std::fmt::Write;
+        writeln!(&mut cfg, "local-registry = \"{}\"", to_path(&lrd).unwrap()).unwrap();
+
+        cfg.push_str("\n[source.crates-io]\n");
+        cfg.push_str("replace-with = \"temp-local-registry\"");
+
+        std::fs::write(config_path, cfg).expect("failed to write .cargo/config.toml");
+    }
+
+    // This crate has really light dependencies that _should_ still exercise
+    // the yank checking without taking more than a couple of seconds to download
+    // even though we always do it in a fresh temporary directory
+    let td = temp_dir();
+    let cargo_home = td.path();
+
+    let mut cmd = krates::Cmd::new();
+
+    // Note we need to set the current directory as cargo has a bug/design flaw
+    // where .cargo/config.toml is only searched from the current working directory
+    // not the location of the root manifest. which is....really annoying
+    cmd.current_dir(pkg_dir.path().join("12_yank_check"))
+        .lock_opts(krates::LockOptions {
+            frozen: false,
+            locked: true,
+            offline: false,
+        });
+
+    let mut cmd: krates::cm::MetadataCommand = cmd.into();
+    cmd.env("CARGO_HOME", cargo_home);
+
+    let krates: Krates = krates::Builder::new()
+        .with_crates_io_index(
+            Some(to_path(&pkg_dir).unwrap().join("12_yank_check")),
+            Some(cargo_home.to_owned().try_into().unwrap()),
+            None,
+        )
+        .unwrap()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
+
+    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+
+    let dbs = advisories::DbSet { dbs: Vec::new() };
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                Some(indices),
+                tx,
+            );
+        });
+
+    let diags: Vec<_> = diags
+        .into_iter()
+        .filter(|v| field_eq!(v, "/fields/message", "detected yanked crate"))
+        .collect();
+
+    insta::assert_json_snapshot!(diags);
+}

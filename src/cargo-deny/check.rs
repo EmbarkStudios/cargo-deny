@@ -416,7 +416,7 @@ pub(crate) fn cmd(
 
     let (krate_spans, cargo_spans) = krate_spans
         .map(|(spans, contents, raw_cargo_spans)| {
-            let id = files.add(krates.lock_path(), contents);
+            let id = files.add(krates.workspace_root().join("Cargo.lock"), contents);
 
             let mut cargo_spans = CargoSpans::new();
             for (key, val) in raw_cargo_spans {

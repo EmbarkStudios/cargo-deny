@@ -22,20 +22,19 @@ impl<'k> Indices<'k> {
             }
 
             let index_url = match source {
-                Source::CratesIo(is_sparse) => {
-                    if *is_sparse {
-                        IndexUrl::CratesIoSparse
-                    } else {
-                        IndexUrl::CratesIoGit
-                    }
-                }
-                Source::Sparse(url) | Source::Registry(url) => IndexUrl::NonCratesIo(url.as_str()),
+                Source::CratesIo(_is_sparse) => IndexUrl::crates_io(
+                    Some(krates.workspace_root().to_owned()),
+                    Some(&cargo_home),
+                    None,
+                ),
+                Source::Sparse(url) | Source::Registry(url) => Ok(url.as_str().into()),
                 Source::Git { .. } => unreachable!(),
             };
 
-            let index = ComboIndexCache::new(
-                IndexLocation::new(index_url).with_root(Some(cargo_home.clone())),
-            );
+            let index = index_url.and_then(|iu| {
+                ComboIndexCache::new(IndexLocation::new(iu).with_root(Some(cargo_home.clone())))
+            });
+
             indices.push((source, index));
         }
 
