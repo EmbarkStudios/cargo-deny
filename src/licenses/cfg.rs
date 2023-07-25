@@ -42,6 +42,10 @@ pub enum BlanketAgreement {
     Both,
     /// The license can be be either OSI Approved or FSF/Free Libre
     Either,
+    /// The license must be OSI Approved
+    Osi,
+    /// The license must be FSF/Free
+    Fsf,
     /// The license must be OSI Approved but not FSF/Free Libre
     OsiOnly,
     /// The license must be FSF/Free Libre but not OSI Approved
@@ -390,7 +394,7 @@ mod test {
         assert_eq!(validated.copyleft, LintLevel::Deny);
         assert_eq!(validated.unused_allowed_license, LintLevel::Warn);
         assert_eq!(validated.default, LintLevel::Warn);
-        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
+        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Osi);
         assert_eq!(
             validated.allowed,
             vec![
