@@ -1765,7 +1765,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.13.1"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce26ee40ae43555ff346b9807d4c85e86d8e39c26e19da2d9894829f073b341a"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",
@@ -2599,7 +2601,9 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.1.0"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc228c36e24e0e5d03623ebc2dc2a66b45f7b840dd53429d92fd632c157d7ee3"
 dependencies = [
  "bytes",
  "camino",
