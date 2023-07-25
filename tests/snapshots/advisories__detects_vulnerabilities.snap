@@ -59,7 +59,7 @@ expression: diag
       "Advisory: https://rustsec.org/advisories/RUSTSEC-2019-0001",
       "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
       "Announcement: https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
-      "Solution: Upgrade to >=2.1.0"
+      "Solution: Upgrade to >=2.1.0 (try `cargo update`)"
     ],
     "severity": "error"
   },
