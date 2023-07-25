@@ -15,11 +15,7 @@ fn iter_clarifications<'a>(
     krate: &'a Krate,
 ) -> impl Iterator<Item = &'a ValidClarification> {
     all.iter().filter(move |vc| {
-        if vc.name == krate.name {
-            return crate::match_req(&krate.version, vc.version.as_ref());
-        }
-
-        false
+        vc.name == krate.name && crate::match_req(&krate.version, vc.version.as_ref())
     })
 }
 
@@ -45,8 +41,12 @@ fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
                     }
                 };
 
-                if p.is_file() && p.file_name().map_or(false, |f| f.starts_with("LICENSE")) {
-                    Some(p)
+                if p.is_file()
+                    && p.file_name().map_or(false, |f| {
+                        f.starts_with("LICENSE") || f.starts_with("COPYING")
+                    })
+                {
+                    Some(p.strip_prefix(dir).unwrap().to_owned())
                 } else {
                     None
                 }
@@ -55,12 +55,12 @@ fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
         .collect())
 }
 
-fn get_file_source(path: PathBuf) -> PackFile {
+fn get_file_source(root: &Path, path: PathBuf) -> PackFile {
     use std::io::BufRead;
 
     // Normalize on plain newlines to handle terrible Windows conventions
     let content = {
-        let file = match std::fs::File::open(&path) {
+        let file = match std::fs::File::open(root.join(&path)) {
             Ok(f) => f,
             Err(e) => {
                 return PackFile {
@@ -114,8 +114,6 @@ struct PackFile {
 }
 
 enum MismatchReason<'a> {
-    /// The specified file was not found when gathering license files
-    FileNotFound,
     /// Encountered an I/O error trying to read the file contents
     Error(&'a std::io::Error),
     /// The hash of the license file doesn't match the expected hash
@@ -123,7 +121,10 @@ enum MismatchReason<'a> {
 }
 
 struct LicensePack {
+    /// The license files discovered or clarified, relative to root
     license_files: Vec<PackFile>,
+    /// The krate's source root
+    root: PathBuf,
     err: Option<std::io::Error>,
 }
 
@@ -136,13 +137,14 @@ struct GatheredExpr {
 
 impl LicensePack {
     fn read(krate: &Krate) -> Self {
-        let root_path = krate.manifest_path.parent().unwrap();
+        let root = krate.manifest_path.parent().unwrap();
 
-        let mut lic_paths = match find_license_files(root_path) {
+        let mut lic_paths = match find_license_files(root) {
             Ok(paths) => paths,
             Err(e) => {
                 return Self {
                     license_files: Vec::new(),
+                    root: root.to_owned(),
                     err: Some(e),
                 }
             }
@@ -152,49 +154,52 @@ impl LicensePack {
         // already found in the root directory
         if let Some(lf) = &krate.license_file {
             if !lic_paths.iter().any(|l| l.ends_with(lf)) {
-                // The `krate.license_file` is relative to the crate, while files found with
-                // `find_license_files()` are absolute. We prepend the directory of the current
-                // crate, to make sure all license file paths will be absolute.
-                let absolute_lf = krate.manifest_path.parent().unwrap().join(lf);
-                lic_paths.push(absolute_lf);
+                lic_paths.push(lf.clone());
             }
         }
 
-        let mut license_files: Vec<_> = lic_paths.into_iter().map(get_file_source).collect();
+        let mut license_files: Vec<_> = lic_paths
+            .into_iter()
+            .map(|path| get_file_source(root, path))
+            .collect();
 
         license_files.sort_by(|a, b| a.path.cmp(&b.path));
 
         Self {
             license_files,
+            root: root.to_owned(),
             err: None,
         }
     }
 
-    fn license_files_match(&self, expected: &FileSource) -> Result<(), MismatchReason<'_>> {
-        let err = match self
+    fn insert_clarification(&mut self, clarified: &FileSource) -> Result<(), MismatchReason<'_>> {
+        let index = match self
             .license_files
-            .iter()
-            .find(|lf| lf.path.ends_with(&expected.path.value))
+            .binary_search_by(|lf| lf.path.cmp(&clarified.path.value))
         {
-            Some(lf) => match &lf.data {
-                PackFileData::Bad(e) => MismatchReason::Error(e),
-                PackFileData::Good(file_data) => {
-                    if file_data.hash != expected.hash {
-                        MismatchReason::HashDiffers
-                    } else {
-                        return Ok(());
-                    }
-                }
-            },
-            None => MismatchReason::FileNotFound,
+            Ok(i) => i,
+            Err(i) => {
+                let lf = get_file_source(&self.root, clarified.path.value.clone());
+
+                self.license_files.insert(i, lf);
+                i
+            }
         };
 
-        Err(err)
+        match &self.license_files[index].data {
+            PackFileData::Bad(e) => Err(MismatchReason::Error(e)),
+            PackFileData::Good(file_data) => {
+                if file_data.hash != clarified.hash {
+                    Err(MismatchReason::HashDiffers)
+                } else {
+                    Ok(())
+                }
+            }
+        }
     }
 
     fn get_expression(
         &self,
-        krate: &Krate,
         file: FileId,
         strat: &askalono::ScanStrategy<'_>,
         confidence: f32,
@@ -218,13 +223,11 @@ impl LicensePack {
         let mut failures = Vec::new();
         synth_toml.push_str("license-files = [\n");
 
-        let root_path = krate.manifest_path.parent().unwrap();
-
         for lic_contents in &self.license_files {
             write!(
                 synth_toml,
                 "    {{ path = \"{}\", ",
-                lic_contents.path.strip_prefix(root_path).unwrap(),
+                self.root.join(&lic_contents.path)
             )
             .unwrap();
 
@@ -246,9 +249,7 @@ impl LicensePack {
                                         }
 
                                         expr.push_str(id.name);
-                                        sources.push(
-                                            lic_contents.path.file_name().unwrap().to_owned(),
-                                        );
+                                        sources.push(lic_contents.path.as_str().to_owned());
                                     } else {
                                         write!(synth_toml, "score = {:.2}", lic_match.score)
                                             .unwrap();
@@ -530,28 +531,30 @@ impl Gatherer {
                 // 1
                 if let Some(cfg) = cfg {
                     for clarification in iter_clarifications(&cfg.clarifications, krate) {
-                        let lp = if let Some(lp) = &license_pack {
+                        let lp = if let Some(lp) = &mut license_pack {
                             lp
                         } else {
                             license_pack = Some(LicensePack::read(krate));
-                            license_pack.as_ref().unwrap()
+                            license_pack.as_mut().unwrap()
                         };
 
                         // Check to see if the clarification provided exactly matches
                         // the set of detected licenses, if they do, we use the clarification's
                         // license expression as the license requirements for this crate
                         let clarifications_match = clarification.license_files.iter().all(|clf| {
-                            match lp.license_files_match(clf) {
+                            match lp.insert_clarification(clf) {
                                 Ok(_) => true,
                                 Err(reason) => {
-                                    if let MismatchReason::FileNotFound = reason {
-                                        labels.push(
-                                            super::diags::MissingClarificationFile {
-                                                expected: &clf.path,
-                                                cfg_file_id: cfg.file_id,
-                                            }
-                                            .into(),
-                                        );
+                                    if let MismatchReason::Error(err) = reason {
+                                        if err.kind() == std::io::ErrorKind::NotFound {
+                                            labels.push(
+                                                super::diags::MissingClarificationFile {
+                                                    expected: &clf.path,
+                                                    cfg_file_id: cfg.file_id,
+                                                }
+                                                .into(),
+                                            );
+                                        }
                                     }
 
                                     false
@@ -666,7 +669,7 @@ impl Gatherer {
                 if !license_pack.license_files.is_empty() {
                     let (id, _) = get_span("license");
 
-                    match license_pack.get_expression(krate, id, &strategy, threshold) {
+                    match license_pack.get_expression(id, &strategy, threshold) {
                         Ok(GatheredExpr {
                             synthesized_toml,
                             failures,
@@ -769,7 +772,10 @@ impl Gatherer {
 mod test {
     #[test]
     fn normalizes_line_endings() {
-        let pf = super::get_file_source(crate::PathBuf::from("./tests/LICENSE-RING"));
+        let pf = super::get_file_source(
+            crate::Path::new("./tests/"),
+            crate::PathBuf::from("LICENSE-RING"),
+        );
 
         let expected = {
             let text = std::fs::read_to_string("./tests/LICENSE-RING").unwrap();
