@@ -394,7 +394,7 @@ mod test {
         assert_eq!(validated.copyleft, LintLevel::Deny);
         assert_eq!(validated.unused_allowed_license, LintLevel::Warn);
         assert_eq!(validated.default, LintLevel::Warn);
-        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Osi);
+        assert_eq!(validated.allow_osi_fsf_free, BlanketAgreement::Both);
         assert_eq!(
             validated.allowed,
             vec![
