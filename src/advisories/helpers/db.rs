@@ -375,10 +375,15 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         config
             .set_raw_value("committer", None, "name", "cargo-deny")
             .context("failed to set committer.name")?;
-        // config
-        //     .set_raw_value("committer", None, "email", "tests@integration.se").context("failed to set committer.email");5
+        // Note we _have_ to set the email as well, but luckily gix does not actually
+        // validate if it's a proper email or not :)
+        config
+            .set_raw_value("committer", None, "email", "")
+            .context("failed to set committer.email")?;
 
-        config.commit_auto_rollback().unwrap()
+        config
+            .commit_auto_rollback()
+            .context("failed to create auto rollback")?
     };
 
     repo.edit_reference(edit).context("failed to update HEAD")?;
