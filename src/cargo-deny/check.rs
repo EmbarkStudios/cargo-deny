@@ -5,12 +5,11 @@ use cargo_deny::{
     diag::{
         CargoSpans, Diagnostic, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity,
     },
-    licenses, sources, CheckCtx,
+    licenses, sources, CheckCtx, PathBuf,
 };
-use is_terminal::IsTerminal as _;
 use log::error;
 use serde::Deserialize;
-use std::{path::PathBuf, time::Instant};
+use std::time::Instant;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum WhichCheck {
@@ -155,15 +154,13 @@ impl ValidConfig {
 
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path).with_context(|| {
-                    format!("failed to read config from {}", cfg_path.display())
-                })?,
+                std::fs::read_to_string(&cfg_path)
+                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
                 cfg_path,
             ),
             Some(cfg_path) => {
                 log::warn!(
-                    "config path '{}' doesn't exist, falling back to default config",
-                    cfg_path.display()
+                    "config path '{cfg_path}' doesn't exist, falling back to default config"
                 );
                 (String::new(), cfg_path)
             }
@@ -173,11 +170,10 @@ impl ValidConfig {
             }
         };
 
-        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
-            format!("failed to deserialize config from '{}'", cfg_path.display())
-        })?;
+        let cfg: Config = toml::from_str(&cfg_contents)
+            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
 
-        log::info!("using config from {}", cfg_path.display());
+        log::info!("using config from {cfg_path}");
 
         let id = files.add(&cfg_path, cfg_contents);
 
@@ -237,10 +233,7 @@ impl ValidConfig {
         // While we could continue in the face of configuration errors, the user
         // may end up with unexpected results, so just abort so they can fix them
         if has_errors {
-            anyhow::bail!(
-                "failed to validate configuration file {}",
-                cfg_path.display()
-            );
+            anyhow::bail!("failed to validate configuration file {cfg_path}");
         } else {
             Ok(valid_cfg)
         }
@@ -368,6 +361,16 @@ pub(crate) fn cmd(
 
     rayon::scope(|s| {
         s.spawn(|_s| {
+            // Always run a fetch first in a separate step so that the user can
+            // see what parts are actually taking time
+            let start = std::time::Instant::now();
+            log::info!("fetching crates for {}", krate_ctx.manifest_path);
+            if let Err(err) = krate_ctx.fetch_krates() {
+                log::error!("failed to fetch crates: {err:#}");
+            } else {
+                log::info!("fetched crates in {:?}", start.elapsed());
+            }
+
             let gathered = krate_ctx.gather_krates(targets, exclude);
 
             if let Ok(krates) = &gathered {
@@ -387,7 +390,7 @@ pub(crate) fn cmd(
                         .map(|us| us.as_ref().clone())
                         .collect(),
                     if args.disable_fetch {
-                        advisories::Fetch::Disallow
+                        advisories::Fetch::Disallow(advisories.maximum_db_staleness)
                     } else if advisories.git_fetch_with_cli {
                         advisories::Fetch::AllowWithGitCli
                     } else {
@@ -413,7 +416,7 @@ pub(crate) fn cmd(
 
     let (krate_spans, cargo_spans) = krate_spans
         .map(|(spans, contents, raw_cargo_spans)| {
-            let id = files.add(krates.lock_path(), contents);
+            let id = files.add(krates.workspace_root().join("Cargo.lock"), contents);
 
             let mut cargo_spans = CargoSpans::new();
             for (key, val) in raw_cargo_spans {
@@ -472,11 +475,7 @@ pub(crate) fn cmd(
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;
 
     let colorize = log_ctx.format == crate::Format::Human
-        && match log_ctx.color {
-            crate::Color::Auto => std::io::stderr().is_terminal(),
-            crate::Color::Always => true,
-            crate::Color::Never => false,
-        };
+        && crate::common::should_colorize(log_ctx.color, std::io::stderr());
 
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
@@ -533,10 +532,7 @@ pub(crate) fn cmd(
                         Ok(())
                     }),
                     Err(err) => {
-                        error!(
-                            "unable to create directory '{}': {err}",
-                            output_dir.display()
-                        );
+                        error!("unable to create directory '{output_dir}': {err}");
 
                         Box::new(move |dup_graph: bans::DupGraph| {
                             anyhow::bail!(
@@ -594,7 +590,7 @@ pub(crate) fn cmd(
         }
 
         if let Some(dbset) = advisory_db_set {
-            let advisories_sink = ErrorSink {
+            let mut advisories_sink = ErrorSink {
                 overrides,
                 channel: tx,
             };
@@ -608,6 +604,38 @@ pub(crate) fn cmd(
             };
 
             s.spawn(move |_| {
+                // We need to have all the crates when opening indices, so can't
+                // load them at the same time as the dbset, but meh, this should
+                // be very fast since we only load from cache, in parallel
+                let indices = if !ctx.cfg.disable_yank_checking {
+                    // If we can't find the cargo home directory, we won't be able
+                    // to load the cargo indices. We _could_ actually do a fetch
+                    // into a temporary directory instead, but this almost certainly
+                    // means that something is wrong
+                    match tame_index::utils::cargo_home() {
+                        Ok(cargo_home) => {
+                            log::info!("loading index metadata for crates...");
+                            let start = Instant::now();
+
+                            let indices = advisories::Indices::load(krates, cargo_home);
+
+                            log::info!(
+                                "cached index metadata loaded in {}ms",
+                                start.elapsed().as_millis()
+                            );
+                            Some(indices)
+                        }
+                        Err(err) => {
+                            advisories_sink.push(ctx.diag_for_index_load_failure(format!(
+                                "unable to find cargo home directory: {err:#}"
+                            )));
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
@@ -619,7 +647,7 @@ pub(crate) fn cmd(
                     None
                 };
 
-                advisories::check(ctx, &dbset, audit_reporter, advisories_sink);
+                advisories::check(ctx, &dbset, audit_reporter, indices, advisories_sink);
 
                 log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });

@@ -1,9 +1,7 @@
 use anyhow::{Context, Error};
-use cargo_deny::{diag::Files, licenses, Kid};
-use is_terminal::IsTerminal as _;
+use cargo_deny::{diag::Files, licenses, Kid, PathBuf};
 use nu_ansi_term::Color;
 use serde::Serialize;
-use std::path::PathBuf;
 
 #[derive(clap::ValueEnum, Copy, Clone, Debug)]
 pub enum Layout {
@@ -61,15 +59,13 @@ impl ValidConfig {
     ) -> Result<Self, Error> {
         let (cfg_contents, cfg_path) = match cfg_path {
             Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path).with_context(|| {
-                    format!("failed to read config from {}", cfg_path.display())
-                })?,
+                std::fs::read_to_string(&cfg_path)
+                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
                 cfg_path,
             ),
             Some(cfg_path) => {
                 log::warn!(
-                    "config path '{}' doesn't exist, falling back to default config",
-                    cfg_path.display()
+                    "config path '{cfg_path}' doesn't exist, falling back to default config"
                 );
 
                 return Ok(Self {
@@ -87,11 +83,10 @@ impl ValidConfig {
             }
         };
 
-        let cfg: Config = toml::from_str(&cfg_contents).with_context(|| {
-            format!("failed to deserialize config from '{}'", cfg_path.display())
-        })?;
+        let cfg: Config = toml::from_str(&cfg_contents)
+            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
 
-        log::info!("using config from {}", cfg_path.display());
+        log::info!("using config from {cfg_path}");
 
         let id = files.add(&cfg_path, cfg_contents);
 
@@ -126,10 +121,7 @@ impl ValidConfig {
             Err(diags) => {
                 print(diags);
 
-                anyhow::bail!(
-                    "failed to validate configuration file {}",
-                    cfg_path.display()
-                );
+                anyhow::bail!("failed to validate configuration file {cfg_path}");
             }
         }
     }
@@ -248,11 +240,7 @@ pub fn cmd(
     match args.format {
         OutputFormat::Human => {
             let mut output = String::with_capacity(4 * 1024);
-            let color = match log_ctx.color {
-                crate::Color::Always => true,
-                crate::Color::Never => false,
-                crate::Color::Auto => std::io::stdout().is_terminal(),
-            };
+            let color = crate::common::should_colorize(log_ctx.color, std::io::stdout());
 
             match args.layout {
                 Layout::License => {

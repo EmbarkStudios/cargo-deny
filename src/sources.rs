@@ -77,7 +77,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
             continue;
         };
 
-        // check if the source URL is list of allowed sources
+        // check if the source URL is in the list of allowed sources
         let diag: crate::diag::Diag = if let Some(ind) = ctx
             .cfg
             .allowed_sources
@@ -102,11 +102,10 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
                 },
             }
             .into()
-        } else if let Some((orgt, orgname)) = krate
-            .source
-            .as_ref()
-            .and_then(|s| s.url().and_then(get_org))
-        {
+        } else if let Some((orgt, orgname)) = krate.source.as_ref().and_then(|s| {
+            let crate::Source::Git { url, .. } = s else { return None; };
+            get_org(url)
+        }) {
             if let Some(ind) = ctx
                 .cfg
                 .allowed_orgs

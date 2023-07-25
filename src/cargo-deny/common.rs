@@ -1,9 +1,8 @@
 use cargo_deny::{
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
+    PathBuf,
 };
-use is_terminal::IsTerminal;
-use std::path::PathBuf;
 
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
@@ -33,7 +32,7 @@ pub(crate) fn load_targets(
         if let krates::Target::Unknown(_) = &filter {
             diagnostics.push(
                     Diagnostic::warning()
-                        .with_message(format!("unknown target `{}` specified", triple))
+                        .with_message(format!("unknown target `{triple}` specified"))
                         .with_labels(vec![
                     cargo_deny::diag::Label::primary(
                         id,
@@ -60,6 +59,9 @@ pub struct KrateContext {
     pub frozen: bool,
     pub locked: bool,
     pub offline: bool,
+    /// If true, allows using the crates.io git index, otherwise the sparse index
+    /// is assumed to be the only index
+    pub allow_git_index: bool,
 }
 
 impl KrateContext {
@@ -100,15 +102,29 @@ impl KrateContext {
         }
     }
 
+    #[inline]
+    pub fn fetch_krates(&self) -> anyhow::Result<()> {
+        fetch(MetadataOptions {
+            no_default_features: false,
+            all_features: false,
+            features: Vec::new(),
+            manifest_path: self.manifest_path.clone(),
+            frozen: self.frozen,
+            locked: self.locked,
+            offline: self.offline,
+        })
+    }
+
     pub fn gather_krates(
         self,
         cfg_targets: Vec<(krates::Target, Vec<String>)>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
-        log::info!("gathering crates for {}", self.manifest_path.display());
+        log::info!("gathering crates for {}", self.manifest_path);
         let start = std::time::Instant::now();
 
-        let metadata = get_metadata(MetadataOptions {
+        log::debug!("gathering crate metadata");
+        let metadata = Self::get_metadata(MetadataOptions {
             no_default_features: self.no_default_features,
             all_features: self.all_features,
             features: self.features,
@@ -117,6 +133,10 @@ impl KrateContext {
             locked: self.locked,
             offline: self.offline,
         })?;
+        log::debug!(
+            "gathered crate metadata in {}ms",
+            start.elapsed().as_millis()
+        );
 
         use krates::{Builder, DepKind};
 
@@ -149,6 +169,22 @@ impl KrateContext {
             );
         }
 
+        // crates have been encountered whose metadata disagrees with the index
+        // so we use the index to fix the features in the graph
+        // <https://github.com/EmbarkStudios/krates/issues/46>
+        let gb = gb.with_crates_io_index(
+            // This is IMO, wrong, but follows the same behavior as cargo, which
+            // is to use the current working directory to find .cargo/config.toml
+            // files, rather than being based off of the manifest path etc, but
+            // this _should_ be the least surprising option
+            None,
+            // This is only really supplied in tests to isolate them from one another
+            None,
+            // When deciding the default of crates.io, we need to know the version
+            // of cargo, in this case it's up to the environment
+            None,
+        )?;
+
         let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
             let name = filtered.name;
             let vers = filtered.version;
@@ -170,6 +206,85 @@ impl KrateContext {
 
         Ok(graph?)
     }
+
+    #[cfg(not(feature = "standalone"))]
+    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+        let mut mdc = krates::Cmd::new();
+
+        if opts.no_default_features {
+            mdc.no_default_features();
+        }
+
+        if opts.all_features {
+            mdc.all_features();
+        }
+
+        mdc.features(opts.features)
+            .manifest_path(opts.manifest_path)
+            .lock_opts(krates::LockOptions {
+                frozen: opts.frozen,
+                locked: opts.locked,
+                offline: opts.offline,
+            });
+
+        let mdc: krates::cm::MetadataCommand = mdc.into();
+        Ok(mdc.exec()?)
+    }
+
+    #[cfg(feature = "standalone")]
+    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+        use anyhow::Context as _;
+        use cargo::{core, ops, util};
+
+        let mut config = util::Config::default()?;
+
+        config.configure(
+            0,
+            true,
+            None,
+            opts.frozen,
+            opts.locked,
+            opts.offline,
+            &None,
+            &[],
+            &[],
+        )?;
+
+        let mut manifest_path = opts.manifest_path;
+
+        // Cargo doesn't like non-absolute paths
+        if !manifest_path.is_absolute() {
+            manifest_path = cargo_deny::utf8path(
+                std::env::current_dir()
+                    .context("unable to determine current directory")?
+                    .join(manifest_path),
+            )?;
+        }
+
+        let features = std::rc::Rc::new(
+            opts.features
+                .into_iter()
+                .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
+                .collect(),
+        );
+
+        let ws = core::Workspace::new(manifest_path.as_std_path(), &config)?;
+        let options = ops::OutputMetadataOptions {
+            cli_features: core::resolver::features::CliFeatures {
+                features,
+                all_features: opts.all_features,
+                uses_default_features: !opts.no_default_features,
+            },
+            no_deps: false,
+            version: 1,
+            filter_platforms: vec![],
+        };
+
+        let md = ops::output_metadata(&ws, &options)?;
+        let md_value = serde_json::to_value(md)?;
+
+        Ok(serde_json::from_value(md_value)?)
+    }
 }
 
 struct MetadataOptions {
@@ -183,31 +298,37 @@ struct MetadataOptions {
 }
 
 #[cfg(not(feature = "standalone"))]
-fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
-    let mut mdc = krates::Cmd::new();
+fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
+    use anyhow::Context as _;
+    let mut cargo =
+        std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()));
 
-    if opts.no_default_features {
-        mdc.no_default_features();
+    cargo.arg("fetch");
+    cargo.arg("--manifest-path");
+    cargo.arg(&opts.manifest_path);
+    if opts.frozen {
+        cargo.arg("--frozen");
     }
 
-    if opts.all_features {
-        mdc.all_features();
+    if opts.locked {
+        cargo.arg("--locked");
     }
 
-    mdc.features(opts.features)
-        .manifest_path(opts.manifest_path)
-        .lock_opts(krates::LockOptions {
-            frozen: opts.frozen,
-            locked: opts.locked,
-            offline: opts.offline,
-        });
+    if opts.offline {
+        cargo.arg("--offline");
+    }
 
-    let mdc: krates::cm::MetadataCommand = mdc.into();
-    Ok(mdc.exec()?)
+    cargo.stderr(std::process::Stdio::piped());
+    let output = cargo.output().context("failed to run cargo")?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!(String::from_utf8(output.stderr).context("non-utf8 error output")?);
+    }
 }
 
 #[cfg(feature = "standalone")]
-fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
     use anyhow::Context;
     use cargo::{core, ops, util};
 
@@ -229,36 +350,23 @@ fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::E
 
     // Cargo doesn't like non-absolute paths
     if !manifest_path.is_absolute() {
-        manifest_path = std::env::current_dir()
-            .context("unable to determine current directory")?
-            .join(manifest_path);
+        manifest_path = cargo_deny::utf8path(
+            std::env::current_dir()
+                .context("unable to determine current directory")?
+                .join(manifest_path),
+        )?;
     }
 
-    let features = std::rc::Rc::new(
-        opts.features
-            .into_iter()
-            .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
-            .collect(),
-    );
-
-    let ws = core::Workspace::new(&manifest_path, &config)?;
-    let options = ops::OutputMetadataOptions {
-        cli_features: core::resolver::features::CliFeatures {
-            features,
-            all_features: opts.all_features,
-            uses_default_features: !opts.no_default_features,
-        },
-        no_deps: false,
-        version: 1,
-        filter_platforms: vec![],
+    let ws = core::Workspace::new(manifest_path.as_std_path(), &config)?;
+    let options = ops::FetchOptions {
+        config: &config,
+        targets: Vec::new(),
     };
-
-    let md = ops::output_metadata(&ws, &options)?;
-    let md_value = serde_json::to_value(md)?;
-
-    Ok(serde_json::from_value(md_value)?)
+    ops::fetch(&ws, &options)?;
+    Ok(())
 }
 
+#[inline]
 pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
     match log_level {
         log::LevelFilter::Off => None,
@@ -272,7 +380,7 @@ pub fn log_level_to_severity(log_level: log::LevelFilter) -> Option<Severity> {
 use codespan_reporting::term::{self, termcolor::ColorChoice};
 use std::io::Write;
 
-fn color_to_choice(color: crate::Color, stream: impl IsTerminal) -> ColorChoice {
+fn color_to_choice(color: crate::Color, stream: impl std::io::IsTerminal) -> ColorChoice {
     match color {
         crate::Color::Auto => {
             // The termcolor crate doesn't check the stream to see if it's a TTY
@@ -285,6 +393,15 @@ fn color_to_choice(color: crate::Color, stream: impl IsTerminal) -> ColorChoice 
         }
         crate::Color::Always => ColorChoice::Always,
         crate::Color::Never => ColorChoice::Never,
+    }
+}
+
+#[inline]
+pub fn should_colorize(color: crate::Color, stream: impl std::io::IsTerminal) -> bool {
+    match color {
+        crate::Color::Auto => stream.is_terminal(),
+        crate::Color::Always => true,
+        crate::Color::Never => false,
     }
 }
 

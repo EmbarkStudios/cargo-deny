@@ -1,9 +1,8 @@
 #![allow(clippy::exit)]
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context as _, Error};
+use cargo_deny::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
-use is_terminal::IsTerminal as _;
-use std::path::PathBuf;
 
 mod check;
 mod common;
@@ -43,7 +42,7 @@ pub enum Color {
 
 fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
     s.parse::<log::LevelFilter>()
-        .with_context(|| format!("failed to parse level '{}'", s))
+        .with_context(|| format!("failed to parse level '{s}'"))
 }
 
 #[derive(Parser)]
@@ -86,9 +85,16 @@ pub(crate) struct GraphContext {
     /// Require Cargo.lock is up to date
     #[clap(long, action)]
     pub(crate) locked: bool,
-    /// Run without accessing the network. If used with the `check` subcommand, this also disables advisory database fetching.
+    /// Run without accessing the network.
+    ///
+    /// If used with the `check` subcommand, this disables advisory database
+    /// fetching
     #[clap(long, action)]
     pub(crate) offline: bool,
+    /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
+    /// only if using a cargo < 1.70.0 without the sparse protocol enabled
+    #[clap(long, action)]
+    pub(crate) allow_git_index: bool,
 }
 
 /// Lints your project's crate graph
@@ -231,11 +237,7 @@ fn real_main() -> Result<(), Error> {
 
     let log_level = args.log_level;
 
-    let color = match args.color {
-        Color::Auto => std::io::stderr().is_terminal(),
-        Color::Always => true,
-        Color::Never => false,
-    };
+    let color = crate::common::should_colorize(args.color, std::io::stderr());
 
     setup_logger(log_level, args.format, color)?;
 
@@ -247,38 +249,38 @@ fn real_main() -> Result<(), Error> {
         let cwd =
             std::env::current_dir().context("unable to determine current working directory")?;
 
-        if !cwd.exists() {
-            bail!("current working directory {} was not found", cwd.display());
-        }
+        anyhow::ensure!(
+            cwd.exists(),
+            "current working directory {} was not found",
+            cwd.display()
+        );
 
-        if !cwd.is_dir() {
-            bail!(
-                "current working directory {} is not a directory",
-                cwd.display()
-            );
-        }
+        anyhow::ensure!(
+            cwd.is_dir(),
+            "current working directory {} is not a directory",
+            cwd.display()
+        );
 
         let man_path = cwd.join("Cargo.toml");
 
-        if !man_path.exists() {
-            bail!(
-                "the directory {} doesn't contain a Cargo.toml file",
-                cwd.display()
-            );
-        }
+        anyhow::ensure!(
+            man_path.exists(),
+            "the directory {} doesn't contain a Cargo.toml file",
+            cwd.display()
+        );
 
-        man_path
+        man_path.try_into().context("non-utf8 path")?
     };
 
-    if manifest_path.file_name() != Some(std::ffi::OsStr::new("Cargo.toml"))
-        || !manifest_path.is_file()
-    {
-        bail!("--manifest-path must point to a Cargo.toml file");
-    }
+    anyhow::ensure!(
+        manifest_path.file_name() == Some("Cargo.toml") && manifest_path.is_file(),
+        "--manifest-path must point to a Cargo.toml file"
+    );
 
-    if !manifest_path.exists() {
-        bail!("unable to find cargo manifest {}", manifest_path.display());
-    }
+    anyhow::ensure!(
+        manifest_path.exists(),
+        "unable to find cargo manifest {manifest_path}"
+    );
 
     let krate_ctx = common::KrateContext {
         manifest_path,
@@ -291,6 +293,7 @@ fn real_main() -> Result<(), Error> {
         frozen: args.ctx.frozen,
         locked: args.ctx.locked,
         offline: args.ctx.offline,
+        allow_git_index: args.ctx.allow_git_index,
     };
 
     let log_ctx = crate::common::LogContext {

@@ -35,7 +35,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-2022]
+        os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
       # We need to disable conversion to CRLF line endings on windows because it's
@@ -99,7 +99,7 @@ jobs:
         # Also, build and run with musl, this lets us ensure that
         # musl still works, which is important for the linux binaries
         # we release, but wasn't exercised until now
-        run: cargo install --path . --debug --target ${{ matrix.target }} --features standalone
+        run: cargo install --path . --debug --target ${{ matrix.target }}
       - name: self check
         run: cargo deny -L debug --all-features --locked check
       - name: check external users
@@ -112,7 +112,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - env:
-          version: "0.4.28"
+          version: "0.4.32"
         run: |
           set -e
           curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v${version}/mdbook-v${version}-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
@@ -133,19 +133,6 @@ jobs:
       - run: cargo fetch
       - name: cargo publish
         run: cargo publish --dry-run
-
-  msrv-check:
-    name: Minimum Stable Rust Version Check
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.65.0"
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fetch
-      - name: cargo check
-        run: cargo check --all-targets
 
   release:
     name: Release

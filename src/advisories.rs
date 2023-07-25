@@ -1,11 +1,13 @@
 pub mod cfg;
-mod diags;
+pub(crate) mod diags;
 mod helpers;
 
 use crate::{diag, LintLevel};
 pub use diags::Code;
-use helpers::*;
-pub use helpers::{DbSet, Fetch, Report};
+pub use helpers::{
+    db::{AdvisoryDb, DbSet, Fetch, Id, Report},
+    index::Indices,
+};
 
 pub trait AuditReporter {
     fn report(&mut self, report: serde_json::Value);
@@ -32,6 +34,7 @@ pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     audit_compatible_reporter: Option<R>,
+    indices: Option<Indices<'_>>,
     sink: S,
 ) where
     R: AuditReporter,
@@ -43,24 +46,26 @@ pub fn check<R, S>(
     let (report, yanked) = rayon::join(
         || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
         || {
-            let indices = Indices::load(ctx.krates, ctx.cfg.crates_io_git_fallback);
-
-            let yanked: Vec<_> = ctx
-                .krates
-                .krates()
-                .filter_map(|package| match indices.is_yanked(package) {
-                    Ok(is_yanked) => {
-                        if is_yanked {
-                            Some((package, None))
-                        } else {
-                            None
+            if let Some(indices) = indices {
+                let yanked: Vec<_> = ctx
+                    .krates
+                    .krates()
+                    .filter_map(|package| match indices.is_yanked(package) {
+                        Ok(is_yanked) => {
+                            if is_yanked {
+                                Some((package, None))
+                            } else {
+                                None
+                            }
                         }
-                    }
-                    Err(err) => Some((package, Some(err))),
-                })
-                .collect();
+                        Err(err) => Some((package, Some(err))),
+                    })
+                    .collect();
 
-            yanked
+                yanked
+            } else {
+                Vec::new()
+            }
         },
     );
 

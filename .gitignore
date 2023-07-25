@@ -1,5 +1,6 @@
 /target
 **/*.rs.bk
-/examples/06_advisories/target
+/examples/**/target
+/tests/test_data/**/target
 scripts/check
 *.snap.new

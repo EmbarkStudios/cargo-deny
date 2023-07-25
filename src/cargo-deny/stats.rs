@@ -1,5 +1,4 @@
 use crate::Format;
-use is_terminal::IsTerminal as _;
 use nu_ansi_term::Color;
 use serde::Serialize;
 
@@ -46,11 +45,7 @@ pub(crate) fn print_stats(
         Format::Human => {
             let mut summary = String::new();
 
-            let color = match color {
-                crate::Color::Auto => std::io::stdout().is_terminal(),
-                crate::Color::Always => true,
-                crate::Color::Never => false,
-            };
+            let color = crate::common::should_colorize(color, std::io::stdout());
 
             // If we're using the default or higher log level, just emit
             // a single line, anything else gets a full table
@@ -61,7 +56,7 @@ pub(crate) fn print_stats(
             }
 
             if !summary.is_empty() {
-                print!("{}", summary);
+                print!("{summary}");
             }
         }
         Format::Json => {
@@ -86,7 +81,7 @@ fn write_min_stats(mut summary: &mut String, stats: &AllStats, color: bool) {
         use std::fmt::Write;
 
         if let Some(stats) = stats {
-            write!(&mut summary, "{} ", check).unwrap();
+            write!(&mut summary, "{check} ").unwrap();
 
             if color {
                 write!(
@@ -156,8 +151,7 @@ fn write_full_stats(summary: &mut String, stats: &AllStats, color: bool) {
                     summary,
                     "{:>column$}: {} errors, {} warnings, {} notes",
                     format!(
-                        "{} {}",
-                        check,
+                        "{check} {}",
                         if stats.errors > 0 {
                             Color::Red.paint("FAILED")
                         } else {
@@ -174,11 +168,7 @@ fn write_full_stats(summary: &mut String, stats: &AllStats, color: bool) {
                 writeln!(
                     summary,
                     "{:>column$}: {} errors, {} warnings, {} notes",
-                    format!(
-                        "{} {}",
-                        check,
-                        if stats.errors > 0 { "FAILED" } else { "ok" }
-                    ),
+                    format!("{check} {}", if stats.errors > 0 { "FAILED" } else { "ok" }),
                     stats.errors,
                     stats.warnings,
                     stats.notes + stats.helps,

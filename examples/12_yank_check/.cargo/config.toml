@@ -1,0 +1,3 @@
+[registries]
+embark-deny = { index = "https://github.com/EmbarkStudios/cargo-test-index" }
+embark-deny-sparse = { index = "sparse+https://cargo.cloudsmith.io/embark/deny/" }

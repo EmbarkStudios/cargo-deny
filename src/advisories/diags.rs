@@ -23,6 +23,7 @@ pub enum Code {
     Unsound,
     Yanked,
     IndexFailure,
+    IndexCacheLoadFailure,
     AdvisoryNotDetected,
     UnknownAdvisory,
 }
@@ -211,6 +212,17 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 .with_notes(vec![error.to_string()]),
         );
         pack
+    }
+
+    pub fn diag_for_index_load_failure(&self, error: impl std::fmt::Display) -> Pack {
+        (
+            Check::Advisories,
+            Diagnostic::new(Severity::Error)
+                .with_message("failed to load index cache")
+                .with_code(Code::IndexCacheLoadFailure)
+                .with_notes(vec![error.to_string()]),
+        )
+            .into()
     }
 
     pub(crate) fn diag_for_advisory_not_encountered(

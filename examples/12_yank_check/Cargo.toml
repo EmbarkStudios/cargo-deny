@@ -1,0 +1,16 @@
+[package]
+name = "yank-check"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# This crate has exactly one dependency and no transitive dependencies, we just
+# use it to have a crate from crates.io to test that it works in combination with
+# another registry
+spdx = "=0.3.1"
+
+# This version is yanked
+crate-two = { version = "=0.1.0", registry = "embark-deny" }
+# This one is not
+crate-one = { version = "=0.1.0", registry = "embark-deny-sparse" }

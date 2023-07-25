@@ -1,5 +1,6 @@
 use cargo_deny::{diag, field_eq, func_name, licenses, test_utils as tu, Krates};
-use std::sync::{Arc, Once};
+use parking_lot::Once;
+use std::sync::Arc;
 
 static mut STORE: Option<Arc<licenses::LicenseStore>> = None;
 static INIT: Once = Once::new();
