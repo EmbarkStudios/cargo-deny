@@ -99,7 +99,7 @@ jobs:
         # Also, build and run with musl, this lets us ensure that
         # musl still works, which is important for the linux binaries
         # we release, but wasn't exercised until now
-        run: cargo install --path . --debug --target ${{ matrix.target }} --features standalone
+        run: cargo install --path . --debug --target ${{ matrix.target }}
       - name: self check
         run: cargo deny -L debug --all-features --locked check
       - name: check external users
@@ -112,7 +112,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - env:
-          version: "0.4.28"
+          version: "0.4.32"
         run: |
           set -e
           curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v${version}/mdbook-v${version}-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
