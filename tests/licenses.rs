@@ -206,3 +206,81 @@ fn lax_fallback() {
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Ensures clarifications are supported, even for nested license files
+#[test]
+fn clarifications() {
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("examples/13_license_clarification/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let gatherer = licenses::Gatherer::default()
+        .with_store(store())
+        .with_confidence_threshold(0.8);
+
+    let mut files = codespan::Files::new();
+
+    let cfg: tu::Config<crate::licenses::cfg::Config> = tu::Config::new(
+        r#"
+allow = ["MIT", "Apache-2.0", "ISC"]
+private = { ignore = true }
+exceptions = [
+    { name = "ring", allow = [
+        "OpenSSL",
+    ] },
+    { name = "unicode-ident", allow = [
+        "Unicode-DFS-2016",
+    ] },
+    { name = "rustls-webpki", allow = [
+        "BSD-3-Clause",
+    ] },
+]
+
+[[clarify]]
+name = "ring"
+expression = "ISC AND MIT AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[[clarify]]
+name = "rustls-webpki"
+expression = "ISC AND BSD-3-Clause"
+license-files = [
+    { path = "LICENSE", hash = 0x001c7e6c },
+    { path = "third-party/chromium/LICENSE", hash = 0x001c7e6c },
+]
+"#,
+    );
+
+    let lic_cfg = {
+        let des: licenses::cfg::Config = toml::from_str(&cfg.config).unwrap();
+        let cfg_id = files.add("config.toml", cfg.config.clone());
+
+        let mut diags = Vec::new();
+        use cargo_deny::UnvalidatedConfig;
+        des.validate(cfg_id, &mut diags)
+    };
+
+    let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
+
+    let diags = tu::gather_diagnostics_with_files::<crate::licenses::cfg::Config, _, _>(
+        &krates,
+        "clarifications",
+        cfg,
+        files,
+        |ctx, _cs, tx| {
+            crate::licenses::check(
+                ctx,
+                summary,
+                diag::ErrorSink {
+                    overrides: None,
+                    channel: tx,
+                },
+            );
+        },
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
