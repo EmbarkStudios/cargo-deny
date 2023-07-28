@@ -453,7 +453,7 @@ fn crates_io_source_replacement() {
     // for crates.io
     let lrd = temp_dir();
     {
-        use tame_index::index::{local, reqwest};
+        use tame_index::{external::reqwest, index::local};
 
         let sparse = tame_index::index::RemoteSparseIndex::new(
             tame_index::SparseIndex::new(tame_index::IndexLocation::new(
