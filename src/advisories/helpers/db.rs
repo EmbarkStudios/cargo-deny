@@ -405,6 +405,17 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         std::fs::remove_dir(db_path)?;
     }
 
+    let _lock = gix::lock::Marker::acquire_to_hold_resource(
+        db_path.with_extension("cargo-deny"),
+        gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(
+            60 * 10, /* 10 minutes */
+        )),
+        Some(std::path::PathBuf::from_iter(Some(
+            std::path::Component::RootDir,
+        ))),
+    )
+    .context("failed to acquire lock")?;
+
     let open_or_clone_repo = || -> anyhow::Result<_> {
         let mut mapping = gix::sec::trust::Mapping::default();
         let open_with_complete_config =
@@ -420,17 +431,6 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
 
         mapping.reduced = open_with_complete_config.clone();
         mapping.full = open_with_complete_config.clone();
-
-        let _lock = gix::lock::Marker::acquire_to_hold_resource(
-            db_path.with_extension("cargo-deny"),
-            gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(
-                60 * 10, /* 10 minutes */
-            )),
-            Some(std::path::PathBuf::from_iter(Some(
-                std::path::Component::RootDir,
-            ))),
-        )
-        .context("failed to acquire lock")?;
 
         // Attempt to open the repository, if it fails for any reason,
         // attempt to perform a fresh clone instead
