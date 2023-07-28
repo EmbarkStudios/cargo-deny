@@ -207,7 +207,11 @@ fn detects_yanked() {
 
     let diags: Vec<_> = diags
         .into_iter()
-        .filter(|v| field_eq!(v, "/fields/message", "detected yanked crate"))
+        .filter(|v| {
+            v.pointer("/fields/message")
+                .and_then(|v| v.as_str())
+                .map_or(false, |v| v.starts_with("detected yanked crate"))
+        })
         .collect();
 
     insta::assert_json_snapshot!(diags);
@@ -604,7 +608,11 @@ fn crates_io_source_replacement() {
 
     let diags: Vec<_> = diags
         .into_iter()
-        .filter(|v| field_eq!(v, "/fields/message", "detected yanked crate"))
+        .filter(|v| {
+            v.pointer("/fields/message")
+                .and_then(|v| v.as_str())
+                .map_or(false, |v| v.starts_with("detected yanked crate"))
+        })
         .collect();
 
     insta::assert_json_snapshot!(diags);
