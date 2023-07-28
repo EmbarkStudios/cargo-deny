@@ -78,7 +78,7 @@ The threshold for security vulnerabilities to be turned into notes instead of wa
 
 ### The `git-fetch-with-cli` field (optional)
 
-Similar to cargo's [net.git-fetch-with-cli](https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli), this field allows you to opt-in to fetching advisory databases with the git CLI rather than using `git2`, for example if you are using SSH authentication.
+Similar to cargo's [net.git-fetch-with-cli](https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli), this field allows you to opt-in to fetching advisory databases with the git CLI rather than using `gix`.
 
-* `false` (default) - Fetches advisory databases via `git2`
+* `false` (default) - Fetches advisory databases via `gix`
 * `true` - Fetches advisory databases using `git`. Git must be installed and in `PATH`.

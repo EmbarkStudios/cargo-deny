@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#520] resolved [#522](https://github.com/EmbarkStudios/cargo-deny/issues/522) by completely removing all dependencies upon `git2` and `openssl`. This was done by transitioning from `git2` -> `gix` for all git operations, both directly in this crate, as well as replacing [`crates-index`](https://github.com/frewsxcv/rust-crates-index) with [`tame-index`](https://github.com/EmbarkStudios/tame-index).
+- [PR#520] bumped the MSRV from `1.65.0` -> `1.70.0`
+- [PR#523](https://github.com/EmbarkStudios/cargo-deny/pull/523) added "(try `cargo update -p <crate_name>`)" when an advisory is detected for a crate. Thanks [@Victor-N-Suadicani](https://github.com/Victor-N-Suadicani)!
+
+### Fixed
+- [PR#520] resolved [#361](https://github.com/EmbarkStudios/cargo-deny/issues/361) by printing output when a fetch is being performed to clarify what is taking time.
+- [PR#520] (possibly) resolved [#435](https://github.com/EmbarkStudios/cargo-deny/issues/435) by switching all git operations from `git2` to `gix`.
+- [PR#520] resolved [#439](https://github.com/EmbarkStudios/cargo-deny/issues/439) by using minimal refspecs for cloning and fetching all remote git repositories (indices or advisory databases) where only the remote HEAD is needed to update the local repository, regardless of the default remote branch pointed to by HEAD.
+- [PR#520] resolved [#446](https://github.com/EmbarkStudios/cargo-deny/issues/446) by ensuring (and testing) that crates from non-registry sources are not checked for advisories, eg. in the case that a local crate is named and versioned the same as a crate from crates.io that has an advisory that affects it.
+- [PR#520] resolved [#515](https://github.com/EmbarkStudios/cargo-deny/issues/515) by always opening the correct registry index based upon the environment.
+- [PR#531](https://github.com/EmbarkStudios/cargo-deny/pull/531) resolved [#210](https://github.com/EmbarkStudios/cargo-deny/issues/210) by adding `osi` and `fsf` options to `licenses.allow-osi-fsf-free`. Thanks [@zkxs](https://github.com/zkxs)!
+- [PR#533](https://github.com/EmbarkStudios/cargo-deny/pull/533) resolved [#521](https://github.com/EmbarkStudios/cargo-deny/issues/521) and [#524](https://github.com/EmbarkStudios/cargo-deny/issues/524) by allowing clarifications to add files that are used to verify the license information is up to date, rather than needing to match one of the license files that was discovered.
+- [PR#534](https://github.com/EmbarkStudios/cargo-deny/pull/534) resolved [#479](https://github.com/EmbarkStudios/cargo-deny/issues/479) by improving how advisory databases are cloned and/or fetched, notably each database now uses `gix`'s [file-based locking](https://docs.rs/gix-lock/7.0.2/gix_lock/struct.Marker.html#method.acquire_to_hold_resource) to ensure that only one process has mutable access to an advisory database repo at a time.
+
+### Removed
+- [PR#520] removed all features, notably `standalone`. This is due to cargo still being in transition from `git2` -> `gix` and having no way to compiled _without_ OpenSSL. Once cargo is a better state with regards to this we can add back that feature.
+
+[PR#520]: https://github.com/EmbarkStudios/cargo-deny/pull/520
+
 ## [0.13.9] - 2023-04-12
 ### Fixed
 - [PR#506](https://github.com/EmbarkStudios/cargo-deny/pull/506) replaced `atty` (unmaintained) with `is-terminal`. Thanks [@tottoto](https://github.com/tottoto)!
