@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.0] - 2023-07-28
 ### Changed
 - [PR#520] resolved [#522](https://github.com/EmbarkStudios/cargo-deny/issues/522) by completely removing all dependencies upon `git2` and `openssl`. This was done by transitioning from `git2` -> `gix` for all git operations, both directly in this crate, as well as replacing [`crates-index`](https://github.com/frewsxcv/rust-crates-index) with [`tame-index`](https://github.com/EmbarkStudios/tame-index).
 - [PR#520] bumped the MSRV from `1.65.0` -> `1.70.0`
@@ -456,7 +457,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...0.14.0
 [0.13.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...0.13.9
 [0.13.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.7...0.13.8
 [0.13.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.6...0.13.7
