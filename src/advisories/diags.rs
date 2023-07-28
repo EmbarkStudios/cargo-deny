@@ -127,14 +127,15 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 notes.push("Solution: No safe upgrade is available!".to_owned());
             } else {
                 notes.push(format!(
-                    "Solution: Upgrade to {} (try `cargo update`)",
+                    "Solution: Upgrade to {} (try `cargo update -p {}`)",
                     versions
                         .patched()
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<_>>()
                         .as_slice()
-                        .join(" OR ")
+                        .join(" OR "),
+                    krate.name,
                 ));
             }
         };
@@ -173,7 +174,10 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
         pack.push(
             Diagnostic::new(self.cfg.yanked.value.into())
-                .with_message("detected yanked crate")
+                .with_message(format!(
+                    "detected yanked crate (try `cargo update -p {}`)",
+                    krate.name
+                ))
                 .with_code(Code::Yanked)
                 .with_labels(vec![self
                     .krate_spans
