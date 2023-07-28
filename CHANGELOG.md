@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Changed
 - [PR#520] resolved [#522](https://github.com/EmbarkStudios/cargo-deny/issues/522) by completely removing all dependencies upon `git2` and `openssl`. This was done by transitioning from `git2` -> `gix` for all git operations, both directly in this crate, as well as replacing [`crates-index`](https://github.com/frewsxcv/rust-crates-index) with [`tame-index`](https://github.com/EmbarkStudios/tame-index).
+- [PR#520] bumped the MSRV from `1.65.0` -> `1.70.0`
 - [PR#523](https://github.com/EmbarkStudios/cargo-deny/pull/523) added "(try `cargo update -p <crate_name>`)" when an advisory is detected for a crate. Thanks [@Victor-N-Suadicani](https://github.com/Victor-N-Suadicani)!
 
 ### Fixed
