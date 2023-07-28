@@ -410,6 +410,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(
             60 * 10, /* 10 minutes */
         )),
+        #[allow(clippy::disallowed_types)]
         Some(std::path::PathBuf::from_iter(Some(
             std::path::Component::RootDir,
         ))),
@@ -449,7 +450,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
                     .map_or(false, |remote_url| remote_url.to_bstring() == url.as_str())
             })
         })
-        .or_else(|| gix::open_opts(&db_path, open_with_complete_config).ok());
+        .or_else(|| gix::open_opts(db_path, open_with_complete_config).ok());
 
         let res = if let Some(repo) = repo {
             (repo, None)
@@ -457,7 +458,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
             let mut progress = gix::progress::Discard;
             let should_interrupt = &gix::interrupt::IS_INTERRUPTED;
 
-            let (mut prep_checkout, out) = gix::prepare_clone(url.as_str(), &db_path)
+            let (mut prep_checkout, out) = gix::prepare_clone(url.as_str(), db_path)
                 .map_err(Box::new)?
                 .with_remote_name("origin")?
                 .configure_remote(|remote| Ok(remote.with_refspecs([REF_SPEC], DIR)?))
