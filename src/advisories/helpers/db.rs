@@ -387,7 +387,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         url
     );
 
-    // Ensure the parent directory chain is created, git2 won't do it for us
+    // Ensure the parent directory chain is created, gix might? do it for us
     {
         let parent = db_path
             .parent()
@@ -443,7 +443,6 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         .ok()
         .map(|repo| repo.to_thread_local())
         .filter(|repo| {
-            // The `cargo` standard registry clone has no configured origin (when created with `git2`).
             repo.find_remote("origin").map_or(false, |remote| {
                 remote
                     .url(DIR)
