@@ -30,7 +30,7 @@ expression: diags
           "span": "crate-two 0.1.0 registry+https://github.com/EmbarkStudios/cargo-test-index"
         }
       ],
-      "message": "detected yanked crate",
+      "message": "detected yanked crate (try `cargo update -p crate-two`)",
       "severity": "error"
     },
     "type": "diagnostic"
@@ -62,7 +62,7 @@ expression: diags
           "span": "spdx 0.3.1 registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "message": "detected yanked crate",
+      "message": "detected yanked crate (try `cargo update -p spdx`)",
       "severity": "error"
     },
     "type": "diagnostic"
