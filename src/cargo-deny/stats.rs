@@ -22,22 +22,13 @@ pub struct AllStats {
     pub sources: Option<Stats>,
 }
 
-impl AllStats {
-    pub fn total_errors(&self) -> u32 {
-        self.advisories.as_ref().map_or(0, |s| s.errors)
-            + self.bans.as_ref().map_or(0, |s| s.errors)
-            + self.licenses.as_ref().map_or(0, |s| s.errors)
-            + self.sources.as_ref().map_or(0, |s| s.errors)
-    }
-}
-
 pub(crate) fn print_stats(
     stats: AllStats,
     show_stats: bool,
     log_level: log::LevelFilter,
     format: Format,
     color: crate::Color,
-) {
+) -> Option<i32> {
     // In the case of human, we print to stdout, to distinguish it from the rest
     // of the output, but for JSON we still go to stderr since presumably computers
     // will be looking at that output and we don't want to confuse them
@@ -74,6 +65,24 @@ pub(crate) fn print_stats(
             let _ = el.write(b"\n");
         }
     }
+
+    stats_to_exit_code(stats)
+}
+
+/// Given stats for checks, returns an exit code that is a bitset of the checks
+/// that failed, or None if there were no errors
+fn stats_to_exit_code(stats: AllStats) -> Option<i32> {
+    let exit_code = [stats.advisories, stats.bans, stats.licenses, stats.sources]
+        .into_iter()
+        .enumerate()
+        .fold(0, |mut acc, (i, stats)| {
+            if stats.map_or(false, |s| s.errors > 0) {
+                acc |= 1 << i;
+            }
+            acc
+        });
+
+    (exit_code > 0).then_some(exit_code)
 }
 
 fn write_min_stats(mut summary: &mut String, stats: &AllStats, color: bool) {
@@ -183,4 +192,75 @@ fn write_full_stats(summary: &mut String, stats: &AllStats, color: bool) {
     print_stats("bans", stats.bans.as_ref());
     print_stats("licenses", stats.licenses.as_ref());
     print_stats("sources", stats.sources.as_ref());
+}
+
+#[cfg(test)]
+mod test {
+    use super::{stats_to_exit_code as ec, AllStats, Stats};
+
+    #[test]
+    fn exit_code() {
+        assert!(ec(AllStats::default()).is_none());
+        assert_eq!(
+            Some(1),
+            ec(AllStats {
+                advisories: Some(Stats {
+                    errors: 1,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            Some(2),
+            ec(AllStats {
+                bans: Some(Stats {
+                    errors: 2,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            Some(4),
+            ec(AllStats {
+                licenses: Some(Stats {
+                    errors: 4,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            Some(8),
+            ec(AllStats {
+                sources: Some(Stats {
+                    errors: 8,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            Some(1 | 2 | 4 | 8),
+            ec(AllStats {
+                advisories: Some(Stats {
+                    errors: 8,
+                    ..Default::default()
+                }),
+                bans: Some(Stats {
+                    errors: 4,
+                    ..Default::default()
+                }),
+                licenses: Some(Stats {
+                    errors: 2,
+                    ..Default::default()
+                }),
+                sources: Some(Stats {
+                    errors: 1,
+                    ..Default::default()
+                }),
+            })
+        );
+    }
 }
