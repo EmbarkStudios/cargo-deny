@@ -72,3 +72,14 @@ Show stats for all the checks, regardless of the log-level
 ### `-W, --warn <WARN>`
 
 Set lint warnings
+
+## Exit Codes
+
+As of [0.14.1](https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.14.1), the exit code for the check command is a bitset of the checks that were executed and had 1 or more errors.
+
+A script or program can use the following values to determine exactly which check failed.
+
+* `advisories` - `0x1`
+* `bans` - `0x2`
+* `licenses` - `0x4`
+* `sources` - `0x8`
