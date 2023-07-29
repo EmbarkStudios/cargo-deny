@@ -313,15 +313,13 @@ fn real_main() -> Result<(), Error> {
 
             let stats = check::cmd(log_ctx, cargs, krate_ctx)?;
 
-            let errors = stats.total_errors();
-
-            stats::print_stats(stats, show_stats, log_level, args.format, args.color);
-
-            if errors > 0 {
-                std::process::exit(1);
-            } else {
-                Ok(())
+            if let Some(exit_code) =
+                stats::print_stats(stats, show_stats, log_level, args.format, args.color)
+            {
+                std::process::exit(exit_code);
             }
+
+            Ok(())
         }
         Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
         Command::Init(iargs) => init::cmd(iargs, krate_ctx),
