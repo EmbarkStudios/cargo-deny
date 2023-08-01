@@ -1,32 +1,48 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve cargo-deny
 title: ''
 labels: bug
 assignees: ''
-
+body:
+  - type: textarea
+    id: describe
+    attributes:
+      label: Describe the bug
+      placeholder: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: To reproduce
+      placeholder: Steps to reproduce the bug
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: cargo-deny version
+      description: What version of cargo-deny did this bug occur in?
+      placeholder: cargo deny -V
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: What OS were you running cargo-deny on?
+      options:
+      - Linux
+      - MacOS
+      - Windows
+      - Other
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      placeholder: Additional context such as log output that you think might be helpful in diagnosis
+    validations:
+      required: false
 ---
-
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Device:**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
