@@ -1,4 +1,3 @@
----
 name: Bug report
 about: Create a report to help us improve cargo-deny
 title: ''
@@ -45,4 +44,3 @@ body:
       placeholder: Additional context such as log output that you think might be helpful in diagnosis
     validations:
       required: false
----
