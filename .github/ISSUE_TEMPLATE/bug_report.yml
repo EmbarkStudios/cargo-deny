@@ -1,8 +1,8 @@
 name: Bug report
-about: Create a report to help us improve cargo-deny
-title: ''
-labels: bug
-assignees: ''
+description: Create a report to help us improve cargo-deny
+title: 'Bug: '
+labels: ['bug']
+assignees: []
 body:
   - type: textarea
     id: describe
