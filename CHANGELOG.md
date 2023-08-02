@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#544](https://github.com/EmbarkStudios/cargo-deny/pull/544) updated dependencies, notably `tame-index 0.2.5` which fixed [this issue](https://github.com/EmbarkStudios/tame-index/issues/8)
+
+### Changed
+- [PR#538](https://github.com/EmbarkStudios/cargo-deny/pull/538) resolved [#483](https://github.com/EmbarkStudios/cargo-deny/issues/483) by emitting exit codes as a bitset of the individual checks that failed, allowing scripts to handle checks separately from a single run. This could affect users who check exactly for the exit code being 1, as that will now only be emitted if the `advisories`, but no other, check fails.
+
 ## [0.14.0] - 2023-07-28
 ### Changed
 - [PR#520] resolved [#522](https://github.com/EmbarkStudios/cargo-deny/issues/522) by completely removing all dependencies upon `git2` and `openssl`. This was done by transitioning from `git2` -> `gix` for all git operations, both directly in this crate, as well as replacing [`crates-index`](https://github.com/frewsxcv/rust-crates-index) with [`tame-index`](https://github.com/EmbarkStudios/tame-index).
