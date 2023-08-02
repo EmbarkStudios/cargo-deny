@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.1] - 2023-08-02
 ### Fixed
 - [PR#544](https://github.com/EmbarkStudios/cargo-deny/pull/544) updated dependencies, notably `tame-index 0.2.5` which fixed [this issue](https://github.com/EmbarkStudios/tame-index/issues/8)
 
@@ -463,7 +464,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.1...HEAD
+[0.14.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...0.14.0
 [0.13.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...0.13.9
 [0.13.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.7...0.13.8
