@@ -147,6 +147,7 @@ struct ValidConfig {
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
+        exceptions_cfg_path: Option<PathBuf>,
         files: &mut Files,
         log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
@@ -170,8 +171,43 @@ impl ValidConfig {
             }
         };
 
-        let cfg: Config = toml::from_str(&cfg_contents)
+        let mut cfg: Config = toml::from_str(&cfg_contents)
             .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
+
+        // Allow for project-local exceptions. Relevant in corporate environments.
+        // https://github.com/EmbarkStudios/cargo-deny/issues/541
+        //
+        // This isn't the cleanest, but cfg.licenses isn't mutable, so appending/extending the Vec
+        // isn't possible. Similarly, the various Config/ValidConfig structs don't derive from
+        // Copy/Clone, so cloning and updating isn't possible either.
+        //
+        // This is the most minimally invasive approach I could come up with.
+        if let Some(exceptions_cfg_path) = exceptions_cfg_path {
+            // TOML can't have unnamed arrays at the root.
+            #[derive(Deserialize)]
+            pub struct ExceptionsConfig {
+                pub exceptions: Vec<licenses::cfg::Exception>,
+            }
+
+            let content = std::fs::read_to_string(&exceptions_cfg_path)
+                .with_context(|| format!("failed to read config from {exceptions_cfg_path}"))?;
+
+            let ex_cfg: ExceptionsConfig = toml::from_str(&content).with_context(|| {
+                format!("failed to deserialize config from '{exceptions_cfg_path}'")
+            })?;
+
+            if cfg.licenses.is_some() {
+                let l = cfg.licenses.unwrap_or_default();
+
+                let exceptions = l
+                    .exceptions
+                    .into_iter()
+                    .chain(ex_cfg.exceptions.into_iter())
+                    .collect();
+
+                cfg.licenses = Some(licenses::Config { exceptions, ..l });
+            }
+        };
 
         log::info!("using config from {cfg_path}");
 
@@ -270,6 +306,7 @@ pub(crate) fn cmd(
         features,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
+        krate_ctx.get_local_exceptions_path(),
         &mut files,
         log_ctx,
     )?;
@@ -332,7 +369,7 @@ pub(crate) fn cmd(
                     match cl {
                         CodeOrLevel::Code(code) => {
                             if let Some(current) = code_overrides.get(code.as_str()) {
-                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overridden to '{current:?}'");
                             }
 
                             code_overrides.insert(code.as_str(), severity);
@@ -348,7 +385,7 @@ pub(crate) fn cmd(
                                     }
                                 })
                             {
-                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overridden to '{current:?}'");
                             }
 
                             level_overrides.push((ls, severity));
