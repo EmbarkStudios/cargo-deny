@@ -8,7 +8,7 @@ Precompiled binaries are provided for major platforms on a best-effort basis. Vi
 
 ## Installation on Arch Linux
 
-cargo-deny is available in the Arch Linux [community repository](https://archlinux.org/packages/community/x86_64/cargo-deny/), you can install it via [pacman](https://wiki.archlinux.org/title/Pacman) as shown below:
+cargo-deny is available in the Arch Linux [extra repository](https://archlinux.org/packages/extra/x86_64/cargo-deny/), you can install it via [pacman](https://wiki.archlinux.org/title/Pacman) as shown below:
 
 ```bash
 pacman -S cargo-deny
