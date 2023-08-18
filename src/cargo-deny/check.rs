@@ -61,13 +61,13 @@ impl std::str::FromStr for CodeOrLevel {
 #[derive(clap::Parser, Debug)]
 pub struct LintLevels {
     /// Set lint warnings
-    #[clap(long, short = 'W')]
+    #[arg(long, short = 'W')]
     warn: Vec<CodeOrLevel>,
     /// Set lint allowed
-    #[clap(long, short = 'A')]
+    #[arg(long, short = 'A')]
     allow: Vec<CodeOrLevel>,
     /// Set lint denied
-    #[clap(long, short = 'D')]
+    #[arg(long, short = 'D')]
     deny: Vec<CodeOrLevel>,
 }
 
@@ -76,38 +76,38 @@ pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to <cwd>/deny.toml if not specified
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub config: Option<PathBuf>,
     /// Path to graph_output root directory
     ///
     /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
     ///
     /// Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub graph: Option<PathBuf>,
     /// Hides the inclusion graph when printing out info for a crate
-    #[clap(long, action)]
+    #[arg(long)]
     pub hide_inclusion_graph: bool,
     /// Disable fetching of the advisory database
     ///
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub disable_fetch: bool,
     /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
     ///
     /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
-    #[clap(long, action)]
+    #[arg(long)]
     pub audit_compatible_output: bool,
     /// Show stats for all the checks, regardless of the log-level
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub show_stats: bool,
-    #[clap(flatten)]
+    #[command(flatten)]
     pub lint_levels: LintLevels,
     /// Specifies the depth at which feature edges are added in inclusion graphs
-    #[clap(long, conflicts_with = "hide_inclusion_graph")]
+    #[arg(long, conflicts_with = "hide_inclusion_graph")]
     pub feature_depth: Option<u32>,
     /// The check(s) to perform
-    #[clap(value_enum, action)]
+    #[arg(value_enum)]
     pub which: Vec<WhichCheck>,
 }
 
