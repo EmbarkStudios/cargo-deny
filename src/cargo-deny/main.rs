@@ -14,16 +14,16 @@ mod stats;
 #[derive(Subcommand, Debug)]
 enum Command {
     /// Checks a project's crate graph
-    #[clap(name = "check")]
+    #[command(name = "check")]
     Check(check::Args),
     /// Fetches remote data
-    #[clap(name = "fetch")]
+    #[command(name = "fetch")]
     Fetch(fetch::Args),
     /// Creates a cargo-deny config from a template
-    #[clap(name = "init")]
+    #[command(name = "init")]
     Init(init::Args),
     /// Outputs a listing of all licenses and the crates that use them
-    #[clap(name = "list")]
+    #[command(name = "list")]
     List(list::Args),
 }
 
@@ -46,63 +46,63 @@ fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
 }
 
 #[derive(Parser)]
-#[clap(rename_all = "kebab-case")]
+#[command(rename_all = "kebab-case")]
 pub(crate) struct GraphContext {
     /// The path of a Cargo.toml to use as the context for the operation.
     ///
     /// By default, the Cargo.toml in the current working directory is used.
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) manifest_path: Option<PathBuf>,
     /// If passed, all workspace packages are used as roots for the crate graph.
     ///
     /// Automatically assumed if the manifest path points to a virtual manifest.
     ///
     /// Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) workspace: bool,
     /// One or more crates to exclude from the crate graph that is used.
     ///
     /// NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) exclude: Vec<String>,
     /// One or more platforms to filter crates by
     ///
     /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub(crate) target: Vec<String>,
     /// Activate all available features
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) all_features: bool,
     /// Do not activate the `default` feature
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) no_default_features: bool,
     /// Space or comma separated list of features to activate
-    #[clap(long, use_value_delimiter = true, action)]
+    #[arg(long, value_delimiter = ',')]
     pub(crate) features: Vec<String>,
     /// Require Cargo.lock and cache are up to date
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) frozen: bool,
     /// Require Cargo.lock is up to date
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) locked: bool,
     /// Run without accessing the network.
     ///
     /// If used with the `check` subcommand, this disables advisory database
     /// fetching
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) offline: bool,
     /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
     /// only if using a cargo < 1.70.0 without the sparse protocol enabled
-    #[clap(long, action)]
+    #[arg(long)]
     pub(crate) allow_git_index: bool,
 }
 
 /// Lints your project's crate graph
 #[derive(Parser)]
-#[clap(author, version, about, long_about = None, rename_all = "kebab-case", max_term_width = 80)]
+#[command(author, version, about, long_about = None, rename_all = "kebab-case", max_term_width = 80)]
 struct Opts {
     /// The log level for messages
-    #[clap(
+    #[arg(
         short = 'L',
         long = "log-level",
         default_value = "warn",
@@ -121,15 +121,14 @@ Possible values:
 ")]
     log_level: log::LevelFilter,
     /// Specify the format of cargo-deny's output
-    #[clap(short, long, default_value = "human", value_enum, action)]
+    #[arg(short, long, default_value = "human", value_enum)]
     format: Format,
-    #[clap(
+    #[arg(
         short,
         long,
         default_value = "auto",
         value_enum,
-        env = "CARGO_TERM_COLOR",
-        action
+        env = "CARGO_TERM_COLOR"
     )]
     color: Color,
     #[clap(flatten)]

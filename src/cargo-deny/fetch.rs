@@ -17,10 +17,10 @@ pub struct Args {
     /// Path to the config to use
     ///
     /// Defaults to <cwd>/deny.toml if not specified
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     config: Option<PathBuf>,
     /// The sources to fetch
-    #[clap(value_enum, action)]
+    #[arg(value_enum)]
     sources: Vec<FetchSource>,
 }
 
