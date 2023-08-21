@@ -243,7 +243,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     {
         let mut config = repo.config_snapshot_mut();
         config
-            .set_raw_value("committer", None, "name", "tame-index")
+            .set_raw_value("committer", None, "name", "cargo-deny")
             .context("failed to set `committer.name`")?;
         // Note we _have_ to set the email as well, but luckily gix does not actually
         // validate if it's a proper email or not :)
