@@ -523,7 +523,7 @@ fn crates_io_source_replacement() {
                 .ik
                 .versions
                 .iter()
-                .find(|iv| iv.version == ip.version)
+                .find(|iv| iv.version.parse::<cargo_deny::Version>().unwrap() == ip.version)
                 .unwrap();
             let vk = local::ValidKrate::download(&client, &config, iv).unwrap();
 
