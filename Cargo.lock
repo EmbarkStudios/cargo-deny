@@ -270,6 +270,7 @@ dependencies = [
  "fern",
  "fs_extra",
  "gix",
+ "globset",
  "home",
  "insta",
  "krates",
@@ -290,6 +291,7 @@ dependencies = [
  "toml",
  "twox-hash",
  "url",
+ "walkdir",
 ]
 
 [[package]]
@@ -1489,6 +1491,19 @@ dependencies = [
  "gix-path",
  "io-close",
  "thiserror",
+]
+
+[[package]]
+name = "globset"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "759c97c1e17c55525b57192c06a267cda0ac5210b222d6b82189a2338fa1c13d"
+dependencies = [
+ "aho-corasick",
+ "bstr",
+ "fnv",
+ "log",
+ "regex",
 ]
 
 [[package]]
