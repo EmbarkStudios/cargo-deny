@@ -485,6 +485,62 @@ pub fn utf8path(pb: std::path::PathBuf) -> anyhow::Result<PathBuf> {
     PathBuf::try_from(pb).context("non-utf8 path")
 }
 
+/// Adds the crates.io index with the specified settings to the builder for
+/// feature resolution
+pub fn krates_with_index(
+    kb: &mut krates::Builder,
+    config_root: Option<PathBuf>,
+    cargo_home: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    use anyhow::Context as _;
+    let crates_io = tame_index::IndexUrl::crates_io(config_root, cargo_home.as_deref(), None)
+        .context("unable to determine crates.io url")?;
+
+    let index = tame_index::index::ComboIndexCache::new(
+        tame_index::IndexLocation::new(crates_io).with_root(cargo_home),
+    )
+    .context("unable to open local crates.io index")?;
+
+    let index_cache_build = move |krates: std::collections::BTreeSet<String>| {
+        let mut cache = std::collections::BTreeMap::new();
+        for name in krates {
+            let read = || -> Option<krates::index::IndexKrate> {
+                let name = name.as_str().try_into().ok()?;
+                let krate = index.cached_krate(name).ok()??;
+                let versions = krate
+                    .versions
+                    .into_iter()
+                    .filter_map(|kv| {
+                        // The index (currently) can have both features, and
+                        // features2, the features method gives us an iterator
+                        // over both
+                        kv.version.parse::<semver::Version>().ok().map(|version| {
+                            krates::index::IndexKrateVersion {
+                                version,
+                                features: kv
+                                    .features()
+                                    .map(|(k, v)| (k.clone(), v.clone()))
+                                    .collect(),
+                            }
+                        })
+                    })
+                    .collect();
+
+                Some(krates::index::IndexKrate { versions })
+            };
+
+            let krate = read();
+            cache.insert(name, krate);
+        }
+
+        cache
+    };
+
+    kb.with_crates_io_index(Box::new(index_cache_build));
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::Source;

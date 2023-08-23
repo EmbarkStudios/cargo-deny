@@ -353,13 +353,13 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
     let mut index = gix::index::File::from_state(index, repo.index_path());
 
-    let opts = gix::worktree::checkout::Options {
+    let opts = gix::worktree::state::checkout::Options {
         destination_is_initially_empty: false,
         overwrite_existing: true,
         ..Default::default()
     };
 
-    gix::worktree::checkout(
+    gix::worktree::state::checkout(
         &mut index,
         workdir,
         {

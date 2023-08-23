@@ -40,8 +40,6 @@ skip = [
     { name = "socket2", version = "=0.4.9" },
     # strum_macros + maybe-async
     { name = "syn", version = "=1.0.109" },
-    # reqwest uses an old version
-    { name = "winreg", version = "=0.10.1" },
 ]
 skip-tree = [
     # Sigh
@@ -70,9 +68,15 @@ allow = [
     "ISC",
 ]
 exceptions = [
-    { allow = ["Zlib"], name = "tinyvec" },
-    { allow = ["Unicode-DFS-2016"], name = "unicode-ident" },
-    { allow = ["OpenSSL"], name = "ring" },
+    { allow = [
+        "Zlib",
+    ], name = "tinyvec" },
+    { allow = [
+        "Unicode-DFS-2016",
+    ], name = "unicode-ident" },
+    { allow = [
+        "OpenSSL",
+    ], name = "ring" },
 ]
 
 # Sigh
