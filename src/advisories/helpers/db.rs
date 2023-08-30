@@ -405,8 +405,15 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         std::fs::remove_dir(db_path)?;
     }
 
+    let lock_path = db_path.with_extension("cargo-deny");
+
+    log::debug!(
+        "About to acquire gix lock {} (this could take 10 minutes)",
+        lock_path
+    );
+
     let _lock = gix::lock::Marker::acquire_to_hold_resource(
-        db_path.with_extension("cargo-deny"),
+        lock_path,
         gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(
             60 * 10, /* 10 minutes */
         )),
