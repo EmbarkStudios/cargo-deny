@@ -25,6 +25,10 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
+default = ["reqwest/rustls-tls-webpki-roots"]
+# Enables the use of OS native certificate store.
+native-certs = ["reqwest/rustls-tls-native-roots"]
+
 #default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
@@ -69,6 +73,9 @@ log = "0.4"
 parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.4"
+# HTTP client backing gix, we don't use it directly but need it here for configuration
+# due to ...reasons
+reqwest = { version = "0.11", default-features = false }
 # Used for interacting with advisory databases
 rustsec = { version = "0.27", default-features = false }
 # Parsing and checking of versions/version requirements
@@ -103,9 +110,10 @@ walkdir = "2.3"
 version = "0.52"
 default-features = false
 features = [
-  "blocking-http-transport-reqwest-rust-tls",
+  "blocking-http-transport-reqwest",
   "blocking-network-client",
   "max-performance-safe",
+  "reqwest-for-configuration-only",
 ]
 
 [dev-dependencies]
