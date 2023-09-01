@@ -15,6 +15,7 @@ expression: downgraded
         "id": "RUSTSEC-2016-0004",
         "informational": "unmaintained",
         "keywords": [],
+        "license": "CC0-1.0",
         "package": "libusb",
         "references": [],
         "related": [],
@@ -78,6 +79,7 @@ expression: downgraded
           "stack-overflow",
           "crash"
         ],
+        "license": "CC0-1.0",
         "package": "ammonia",
         "references": [],
         "related": [],

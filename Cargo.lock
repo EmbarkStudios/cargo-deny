@@ -2394,9 +2394,9 @@ dependencies = [
 
 [[package]]
 name = "rustsec"
-version = "0.27.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cabcfea780f9b2f75bc2eaae946621fa42cb18189f41cda4dee608ea73a9c397"
+checksum = "56be49e9eab7fae34ca7a0a37a22d7ace05a72b34e31d83e7f0080066017f276"
 dependencies = [
  "cargo-lock",
  "cvss",

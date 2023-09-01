@@ -14,6 +14,7 @@ expression: unmaintained_diag
       "id": "RUSTSEC-2016-0004",
       "informational": "unmaintained",
       "keywords": [],
+      "license": "CC0-1.0",
       "package": "libusb",
       "references": [],
       "related": [],

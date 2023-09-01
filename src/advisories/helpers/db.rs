@@ -669,6 +669,7 @@ impl<'db, 'k> Report<'db, 'k> {
                             package,
                             advisory: Some(advisory.metadata.clone()),
                             versions: Some(advisory.versions.clone()),
+                            affected: advisory.affected.clone(),
                         };
 
                         if let Some(v) = warnings.get_mut(&kind) {
