@@ -128,7 +128,9 @@ impl Source {
 
     #[inline]
     pub fn git_spec(&self) -> Option<GitSpec> {
-        let Self::Git { spec, .. } = self else { return None; };
+        let Self::Git { spec, .. } = self else {
+            return None;
+        };
         Some(*spec)
     }
 
@@ -160,12 +162,16 @@ impl Source {
 
     #[inline]
     pub fn matches_rustsec(&self, sid: Option<&rustsec::package::SourceId>) -> bool {
-        let Some(sid) = sid else { return self.is_crates_io(); };
+        let Some(sid) = sid else {
+            return self.is_crates_io();
+        };
         if !sid.is_remote_registry() {
             return false;
         }
 
-        let (Self::Registry(url) | Self::Sparse(url)) = self else { return false; };
+        let (Self::Registry(url) | Self::Sparse(url)) = self else {
+            return false;
+        };
         sid.url() == url
     }
 }
@@ -329,7 +335,9 @@ impl Krate {
     /// Determines if the specified url matches the source
     #[inline]
     pub(crate) fn matches_url(&self, url: &Url, exact: bool) -> bool {
-        let Some(src) = &self.source else { return false };
+        let Some(src) = &self.source else {
+            return false;
+        };
 
         let kurl = match src {
             Source::CratesIo(_is_sparse) => {

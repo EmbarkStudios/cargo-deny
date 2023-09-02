@@ -103,7 +103,9 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
             }
             .into()
         } else if let Some((orgt, orgname)) = krate.source.as_ref().and_then(|s| {
-            let crate::Source::Git { url, .. } = s else { return None; };
+            let crate::Source::Git { url, .. } = s else {
+                return None;
+            };
             get_org(url)
         }) {
             if let Some(ind) = ctx

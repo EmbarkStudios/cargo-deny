@@ -82,7 +82,9 @@ impl<'k> Indices<'k> {
 
         // Ignore non-registry crates when checking, as a crate sourced
         // locally or via git can have the same name as a registry package
-        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else { return Ok(false) };
+        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else {
+            return Ok(false);
+        };
 
         let cache_entry = self
             .cache
