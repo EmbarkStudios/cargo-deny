@@ -32,14 +32,14 @@ deny = [
 skip = [
     # indexmap + imara-diff
     { name = "hashbrown", version = "=0.12.3" },
-    # trust-dns-proto uses an old version
-    { name = "idna", version = "=0.2.3" },
     # petgraph + h2 use an old version
     { name = "indexmap", version = "=1.9.3" },
     # hyper/tokio uses an old version
     { name = "socket2", version = "=0.4.9" },
     # strum_macros + maybe-async
     { name = "syn", version = "=1.0.109" },
+    # security-framework uses an ooooold version
+    { name = "bitflags", version = "=1.3.2" },
 ]
 skip-tree = [
     # Sigh
