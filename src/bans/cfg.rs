@@ -555,7 +555,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             if !keep {
                                 diags.push(
                                     Diagnostic::error()
-                                        .with_message(format!("absolute paths are not allowed"))
+                                        .with_message("absolute paths are not allowed")
                                         .with_labels(vec![Label::primary(
                                             cfg_file,
                                             ae.path.span.clone(),
@@ -596,7 +596,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             })
         } else if let Some(allow_build_scripts) = self.allow_build_scripts {
             diags.push(Diagnostic::warning()
-                .with_message(format!("[bans.allow-build-scripts] has been deprecated in favor of [bans.build.allow-build-scripts], this will become an error in the future"))
+                .with_message("[bans.allow-build-scripts] has been deprecated in favor of [bans.build.allow-build-scripts], this will become an error in the future")
                 .with_labels(vec![
                     Label::primary(cfg_file, allow_build_scripts.span.clone())
                 ]));

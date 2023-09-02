@@ -1227,7 +1227,7 @@ fn validate_checksum(
     if digest != expected.0 {
         let mut hs = [0u8; 64];
         const CHARS: &[u8] = b"0123456789abcdef";
-        for (i, &byte) in digest.into_iter().enumerate() {
+        for (i, &byte) in digest.iter().enumerate() {
             let i = i * 2;
             hs[i] = CHARS[(byte >> 4) as usize];
             hs[i + 1] = CHARS[(byte & 0xf) as usize];
