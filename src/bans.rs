@@ -1085,7 +1085,7 @@ pub fn check_build(
 
                 // Save the most ambiguous/expensive check for last, does this look
                 // like a native executable or script without extension?
-                let diag: Diag = match check_is_executable(&path, !config.include_archives) {
+                let diag: Diag = match check_is_executable(path, !config.include_archives) {
                     Ok(None) => continue,
                     Ok(Some(exe_kind)) => diags::DetectedExecutable {
                         path: diags::HomePath { path, home },
