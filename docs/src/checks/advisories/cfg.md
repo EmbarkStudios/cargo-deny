@@ -111,5 +111,5 @@ Note that while the spec supports `,` as a decimal separator, for simplicity car
 
 One final note, there are 2 units available in the format that are not exact, namely, year 'Y' and month 'M'. It's not recommended to use either of them for that reason, but if you do they are calculated as follows.
 
-1 year = 365 days
-1 month = 30.43 days
+* 1 year = 365 days
+* 1 month = 30.43 days
