@@ -992,6 +992,17 @@ pub fn check_build(
             let mut matches = Vec::new();
             let is_git_src = krate.is_git_source();
 
+            let mut allow_hit: BitVec = BitVec::repeat(
+                false,
+                krate_config.map_or(0, |kc| kc.allow.as_ref().map_or(0, |kca| kca.len())),
+            );
+            let mut glob_hit: BitVec = BitVec::repeat(
+                false,
+                krate_config.map_or(0, |kc| {
+                    kc.allow_globs.as_ref().map_or(0, |ag| ag.patterns.len())
+                }),
+            );
+
             for entry in walkdir::WalkDir::new(root)
                 .sort_by_file_name()
                 .into_iter()
@@ -1041,7 +1052,10 @@ pub fn check_build(
                         aexes
                             .binary_search_by(|ae| ae.path.value.as_path().cmp(rel_path))
                             .ok()
-                            .map(|i| &aexes[i])
+                            .map(|i| {
+                                allow_hit.set(i, true);
+                                &aexes[i]
+                            })
                     });
 
                     if let Some(ae) = ae {
@@ -1056,10 +1070,14 @@ pub fn check_build(
 
                     // Check if the path matches an allowed glob pattern
                     if let Some(ag) = &kc.allow_globs {
-                        if let Some(matches) = ag.matches(&candidate, &mut matches) {
+                        if let Some(globs) = ag.matches(&candidate, &mut matches) {
+                            for &i in &matches {
+                                glob_hit.set(i, true);
+                            }
+
                             pack.push(diags::GlobAllowance {
                                 path: diags::HomePath { path, root, home },
-                                globs: matches,
+                                globs,
                                 file_id,
                             });
                             continue;
@@ -1075,10 +1093,10 @@ pub fn check_build(
                 }
 
                 // Check if the file matches a disallowed glob pattern
-                if let Some(matches) = config.script_extensions.matches(&candidate, &mut matches) {
+                if let Some(globs) = config.script_extensions.matches(&candidate, &mut matches) {
                     pack.push(diags::DisallowedByExtension {
                         path: diags::HomePath { path, root, home },
-                        globs: matches,
+                        globs,
                         file_id,
                     });
                     continue;
@@ -1102,6 +1120,40 @@ pub fn check_build(
                 };
 
                 pack.push(diag);
+            }
+
+            if let Some(ae) = krate_config.and_then(|kc| kc.allow.as_ref()) {
+                for ae in allow_hit
+                    .into_iter()
+                    .zip(ae.iter())
+                    .filter_map(|(hit, ae)| if !hit { Some(ae) } else { None })
+                {
+                    pack.push(diags::UnmatchedAllow {
+                        unmatched: ae,
+                        file_id,
+                    });
+                }
+            }
+
+            if let Some(vgs) = krate_config.and_then(|kc| kc.allow_globs.as_ref()) {
+                for gp in glob_hit
+                    .into_iter()
+                    .zip(vgs.patterns.iter())
+                    .filter_map(|(hit, gp)| {
+                        if !hit {
+                            if let cfg::GlobPattern::User(gp) = gp {
+                                return Some(gp);
+                            }
+                        }
+
+                        None
+                    })
+                {
+                    pack.push(diags::UnmatchedGlob {
+                        unmatched: gp,
+                        file_id,
+                    });
+                }
             }
 
             drop(tx);

@@ -222,3 +222,43 @@ allow = [
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Verifies unmatched configs emit diagnostics
+#[test]
+fn emits_unmatched_warnings() {
+    let mut diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "build-bans",
+            features: &["native"],
+            no_default_features: true,
+            targets: &["x86_64-unknown-linux-gnu"],
+            ..Default::default()
+        },
+        Config::new(
+            r#"
+[[build.allow-executables]]
+name = "this-crate-does-not-exist"
+
+[[build.allow-executables]]
+name = "prost-build"
+allow = [
+    { path = "third-party/protobuf/boop", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" },
+]
+allow-globs = [
+    "first-party/**",
+    "src/**.rs",
+    "second-party/you/*",
+]
+"#,
+        ),
+    );
+
+    diags.retain(|d| {
+        field_eq!(d, "/fields/code", "unmatched-allow")
+            || field_eq!(d, "/fields/code", "unmatched-glob")
+            || field_eq!(d, "/fields/code", "unmatched-build-config")
+    });
+
+    insta::assert_json_snapshot!(diags);
+}

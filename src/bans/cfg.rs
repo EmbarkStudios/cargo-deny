@@ -719,7 +719,7 @@ impl GlobsetBuilder {
 pub struct ValidGlobSet {
     set: globset::GlobSet,
     /// Patterns in the globset for lint output
-    patterns: Vec<GlobPattern>,
+    pub(crate) patterns: Vec<GlobPattern>,
 }
 
 impl Default for ValidGlobSet {

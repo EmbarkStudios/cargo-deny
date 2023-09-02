@@ -48,6 +48,8 @@ pub enum Code {
     UnableToCheckPath,
     FeaturesEnabled,
     UnmatchedBuildConfig,
+    UnmatchedAllow,
+    UnmatchedGlob,
 }
 
 impl From<Code> for String {
@@ -784,6 +786,39 @@ impl<'a> From<UnmatchedBuildConfig<'a>> for Diag {
                 ubc.unmatched.name.span.clone(),
             )
             .with_message("unmatched crate configuration")])
+            .into()
+    }
+}
+
+pub(crate) struct UnmatchedAllow<'a> {
+    pub(crate) unmatched: &'a super::cfg::AllowedExecutable,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedAllow<'a>> for Diag {
+    fn from(ua: UnmatchedAllow<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("allowed path was not encountered")
+            .with_code(Code::UnmatchedAllow)
+            .with_labels(vec![Label::primary(
+                ua.file_id,
+                ua.unmatched.path.span.clone(),
+            )])
+            .into()
+    }
+}
+
+pub(crate) struct UnmatchedGlob<'a> {
+    pub(crate) unmatched: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedGlob<'a>> for Diag {
+    fn from(ug: UnmatchedGlob<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("glob was not encountered")
+            .with_code(Code::UnmatchedGlob)
+            .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span.clone())])
             .into()
     }
 }
