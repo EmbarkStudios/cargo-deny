@@ -245,9 +245,9 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
     #[derive(Copy, Clone, PartialEq, PartialOrd)]
     enum Unit {
         Empty,
-        Day,
-        Month,
         Year,
+        Month,
+        Day,
         Time,
         Hour,
         Minute,
@@ -406,7 +406,7 @@ mod test {
             "P", "PT", // Empty duration, must specify at least _one_ unit
             "P1H3", "P2TH3", // Number without unit specified
             "PT1HM", // Unit without number specified
-            "PT1M3H", "P3Y1M", "P2W1Y", "PT2W1H", // Units in an invalid order
+            "PT1M3H", "P1M3Y", "P2W1Y", "PT2W1H", // Units in an invalid order
             "P5H", "P5S", // Time units must be preceded by T
             // We don't accept ',' as a decimal separator even though it is allowed in the spec
             "PT1,5S",
@@ -438,12 +438,12 @@ mod test {
             ("PT2M", 2. * 60.),
             ("PT8S", 8.),
             ("PT8.5S", 8.5),
-            ("P3M1Y", 3. * MONTH + 365. * DAY),
-            ("P5D1Y", 5. * DAY + 365. * DAY),
-            ("P3D4M1Y", 3. * DAY + 4. * MONTH + 365. * DAY),
+            ("P1Y3M", 365. * DAY + 3. * MONTH),
+            ("P1Y5D", 365. * DAY + 5. * DAY),
+            ("P1Y4M3D", 365. * DAY + 4. * MONTH + 3. * DAY),
             (
-                "P2D3M1YT3H2M1S",
-                2. * DAY + 3. * MONTH + 365. * DAY + 3. * 60. * 60. + 2. * 60. + 1.,
+                "P1Y3M2DT3H2M1S",
+                365. * DAY + 3. * MONTH + 2. * DAY + 3. * 60. * 60. + 2. * 60. + 1.,
             ),
             ("P2DT4H", 2. * DAY + 4. * 60. * 60.),
             ("P2MT0.5M", 2. * MONTH + 0.5 * 60.),
