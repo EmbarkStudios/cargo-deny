@@ -1,0 +1,181 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 71,
+          "line": 5,
+          "message": "checksum",
+          "span": "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-aarch_64'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 69,
+          "line": 7,
+          "message": "checksum",
+          "span": "151dfe76345298b055000c31376f925222ef3426d6b7892b8156421fdd3fd3c4"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-x86_64'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 68,
+          "line": 8,
+          "message": "checksum",
+          "span": "2363256459ab02d5abdda2db52e96879f9417102d14086fe852d97d0380b79ff"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-aarch64'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 67,
+          "line": 9,
+          "message": "checksum",
+          "span": "e7dff9c38bf0cbcf43f055b8269ea939d6b298f611de16481ba7d3e2eec0bc2f"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-x86_64'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 66,
+          "line": 10,
+          "message": "checksum",
+          "span": "62e803f7433799af63acf605f7fe19108d22d0c73e82a475b27d3ff0cfbf1990"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-win32.exe'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]

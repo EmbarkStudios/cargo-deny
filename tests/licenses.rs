@@ -43,7 +43,7 @@ pub fn gather_licenses_with_overrides(
 
         let mut diags = Vec::new();
         use cargo_deny::UnvalidatedConfig;
-        des.validate(cfg_id, &mut diags)
+        des.validate(cfg_id, &mut files, &mut diags)
     };
 
     let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
@@ -182,7 +182,7 @@ fn lax_fallback() {
 
         let mut diags = Vec::new();
         use cargo_deny::UnvalidatedConfig;
-        des.validate(cfg_id, &mut diags)
+        des.validate(cfg_id, &mut files, &mut diags)
     };
 
     let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
@@ -260,7 +260,7 @@ license-files = [
 
         let mut diags = Vec::new();
         use cargo_deny::UnvalidatedConfig;
-        des.validate(cfg_id, &mut diags)
+        des.validate(cfg_id, &mut files, &mut diags)
     };
 
     let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));

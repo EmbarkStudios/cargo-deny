@@ -197,7 +197,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
+    fn validate(
+        self,
+        cfg_file: FileId,
+        _files: &mut crate::diag::Files,
+        diags: &mut Vec<Diagnostic>,
+    ) -> Self::ValidCfg {
         use rayon::prelude::*;
 
         let mut ignore_sources = Vec::with_capacity(self.private.ignore_sources.len());
@@ -381,10 +386,13 @@ mod test {
             licenses: Config,
         }
 
-        let cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
+        let mut cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
 
         let mut diags = Vec::new();
-        let validated = cd.config.licenses.validate(cd.id, &mut diags);
+        let validated = cd
+            .config
+            .licenses
+            .validate(cd.id, &mut cd.files, &mut diags);
         assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);

@@ -1,0 +1,33 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "build-bans",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 22,
+          "line": 3,
+          "message": "",
+          "span": "'cs'"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/code/cargo-deny/tests/test_data/build-bans/src/ohno.cs'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

@@ -58,7 +58,7 @@ fn matches<'v>(arr: &'v [cfg::Skrate], details: &Krate) -> Option<Vec<ReqMatch<'
 struct SkipRoot {
     span: std::ops::Range<usize>,
     skip_crates: Vec<Kid>,
-    skip_hits: bitvec::vec::BitVec,
+    skip_hits: BitVec,
 }
 
 use bitvec::prelude::*;
@@ -344,15 +344,15 @@ pub fn check(
     };
 
     enum Sink<'k> {
-        Build(crossbeam::channel::Sender<(&'k Krate, Pack)>),
+        Build(crossbeam::channel::Sender<(usize, &'k Krate, Pack)>),
         NoBuild(diag::ErrorSink),
     }
 
     impl<'k> Sink<'k> {
         #[inline]
-        fn push(&mut self, krate: &'k Krate, pack: Pack) {
+        fn push(&mut self, index: usize, krate: &'k Krate, pack: Pack) {
             match self {
-                Self::Build(tx) => tx.send((krate, pack)).unwrap(),
+                Self::Build(tx) => tx.send((index, krate, pack)).unwrap(),
                 Self::NoBuild(sink) => {
                     if !pack.is_empty() {
                         sink.push(pack);
@@ -362,18 +362,17 @@ pub fn check(
         }
     }
 
-    let mut real_sink = sink.clone();
-
     let (mut tx, rx) = if let Some(bc) = build {
         let (tx, rx) = crossbeam::channel::unbounded();
 
-        (Sink::Build(tx), Some((bc, rx, sink)))
+        (Sink::Build(tx), Some((bc, rx)))
     } else {
-        (Sink::NoBuild(sink), None)
+        (Sink::NoBuild(sink.clone()), None)
     };
 
-    rayon::join(
+    let (_, build_packs) = rayon::join(
         || {
+            let last = ctx.krates.len() - 1;
             for (i, krate) in ctx.krates.krates().enumerate() {
                 let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
@@ -687,7 +686,7 @@ pub fn check(
                     }
                 } else if !tree_skipper.matches(krate, &mut pack) {
                     if multi_detector.name != krate.name {
-                        report_duplicates(&multi_detector, &mut real_sink);
+                        report_duplicates(&multi_detector, &mut sink);
 
                         multi_detector.name = &krate.name;
                         multi_detector.dupes.clear();
@@ -723,7 +722,7 @@ pub fn check(
                         }
 
                         if !wildcards.is_empty() {
-                            real_sink.push(diags::Wildcards {
+                            sink.push(diags::Wildcards {
                                 krate,
                                 severity,
                                 wildcards,
@@ -734,29 +733,79 @@ pub fn check(
                     }
                 }
 
-                tx.push(krate, pack);
+                if i == last {
+                    report_duplicates(&multi_detector, &mut sink);
+                }
+
+                tx.push(i, krate, pack);
             }
+
+            drop(tx);
         },
         || {
-            let Some((build_config, rx, sink)) = rx else { return; };
+            let Some((build_config, rx)) = rx else {
+                return None;
+            };
+
+            // Keep track of the individual crate configs so we can emit warnings
+            // if they're configured but not actually used
+            let bcv = parking_lot::Mutex::<BitVec>::new(BitVec::repeat(
+                false,
+                build_config.allow_executables.len(),
+            ));
+
+            let pq = parking_lot::Mutex::new(std::collections::BTreeMap::new());
             rayon::scope(|s| {
-                while let Ok((krate, mut pack)) = rx.recv() {
-                    let mut sink = sink.clone();
-                    let bc = &build_config;
+                let bc = &build_config;
+                let pq = &pq;
+                let bcv = &bcv;
+
+                while let Ok((index, krate, mut pack)) = rx.recv() {
                     s.spawn(move |_s| {
-                        check_build(bc, krate, ctx.krates, &mut pack);
+                        if let Some(bcc) =
+                            check_build(ctx.cfg.file_id, bc, krate, ctx.krates, &mut pack)
+                        {
+                            bcv.lock().set(bcc, true);
+                        }
 
                         if !pack.is_empty() {
-                            sink.push(pack);
+                            pq.lock().insert(index, pack);
                         }
                     });
                 }
             });
+
+            let unmatched_exe_configs = {
+                let mut pack = Pack::new(Check::Bans);
+
+                for ve in bcv
+                    .into_inner()
+                    .into_iter()
+                    .zip(build_config.allow_executables.into_iter())
+                    .filter_map(|(hit, ve)| if !hit { Some(ve) } else { None })
+                {
+                    pack.push(diags::UnmatchedBuildConfig {
+                        unmatched: &ve,
+                        file_id,
+                    });
+                }
+
+                pack
+            };
+
+            Some(
+                pq.into_inner()
+                    .into_values()
+                    .chain(Some(unmatched_exe_configs)),
+            )
         },
     );
 
-    let mut sink = real_sink;
-    report_duplicates(&multi_detector, &mut sink);
+    if let Some(bps) = build_packs {
+        for bp in bps {
+            sink.push(bp);
+        }
+    }
 
     let mut pack = Pack::new(Check::Bans);
 
@@ -777,7 +826,13 @@ pub fn check(
     sink.push(pack);
 }
 
-pub fn check_build(config: &ValidBuildConfig, krate: &Krate, krates: &Krates, pack: &mut Pack) {
+pub fn check_build(
+    file_id: FileId,
+    config: &ValidBuildConfig,
+    krate: &Krate,
+    krates: &Krates,
+    pack: &mut Pack,
+) -> Option<usize> {
     if let Some(allow_build_scripts) = &config.allow_build_scripts {
         let has_build_script = krate
             .targets
@@ -796,15 +851,20 @@ pub fn check_build(config: &ValidBuildConfig, krate: &Krate, krates: &Krates, pa
     }
 
     if config.executables == LintLevel::Allow {
-        return;
+        return None;
     }
 
-    fn needs_checking(krate: krates::NodeId, krates: &Krates) -> bool {
-        if krates[krate].targets.iter().any(|t| {
+    #[inline]
+    fn executes_at_buildtime(krate: &Krate) -> bool {
+        krate.targets.iter().any(|t| {
             t.kind
                 .iter()
                 .any(|k| *k == "custom-build" || *k == "proc-macro")
-        }) {
+        })
+    }
+
+    fn needs_checking(krate: krates::NodeId, krates: &Krates) -> bool {
+        if executes_at_buildtime(&krates[krate]) {
             return true;
         }
 
@@ -819,42 +879,370 @@ pub fn check_build(config: &ValidBuildConfig, krate: &Krate, krates: &Krates, pa
 
     // Check if the krate is either a proc-macro, has a build-script, OR is a dependency
     // of a crate that is/does
-    if !needs_checking(krates.nid_for_kid(&krate.id).unwrap(), krates) {
-        return;
+    if !config.include_workspace
+        && krates.workspace_members().any(|n| {
+            if let krates::Node::Krate { id, .. } = n {
+                id == &krate.id
+            } else {
+                false
+            }
+        })
+        || (!config.include_dependencies && !executes_at_buildtime(krate))
+        || (config.include_dependencies
+            && !needs_checking(krates.nid_for_kid(&krate.id).unwrap(), krates))
+    {
+        return None;
     }
 
-    let krate_config = config.allow_executables.as_ref().and_then(|ae| {
-        ae.iter().find_map(|ae| {
+    let (kc_index, krate_config) = config
+        .allow_executables
+        .iter()
+        .enumerate()
+        .find_map(|(i, ae)| {
             (ae.name.value == krate.name && crate::match_req(&krate.version, ae.version.as_ref()))
-                .then_some(ae)
+                .then_some((i, ae))
         })
-    });
+        .unzip();
+
+    // If the build script hashes to the same value and required features are not actually
+    // set on the crate, we can skip it
+    if let Some(kc) = krate_config {
+        if let Some((bsc, rf)) = kc.build_script.as_ref().zip(kc.required_features.as_ref()) {
+            if let Some(bsp) = krate
+                .targets
+                .iter()
+                .find_map(|t| (t.name == "build-script-build").then_some(&t.src_path))
+            {
+                match validate_file_checksum(bsp, &bsc.value) {
+                    Ok(_) => {
+                        pack.push(diags::ChecksumMatch {
+                            path: bsp,
+                            checksum: bsc,
+                            severity: None,
+                            file_id,
+                        });
+
+                        // Emit an error if the user specifies features that don't exist
+                        for rfeat in rf {
+                            if !krate.features.contains_key(&rfeat.value) {
+                                pack.push(diags::UnknownFeature {
+                                    krate,
+                                    feature: rfeat,
+                                    file_id,
+                                });
+                            }
+                        }
+
+                        let enabled = krates.get_enabled_features(&krate.id).unwrap();
+
+                        let enabled_features: Vec<_> =
+                            rf.iter().filter(|f| enabled.contains(&f.value)).collect();
+
+                        // If none of the required-features are present then we
+                        // can skip the rest of the check
+                        if enabled_features.is_empty() {
+                            return kc_index;
+                        }
+
+                        pack.push(diags::FeaturesEnabled {
+                            enabled_features,
+                            file_id,
+                        });
+                    }
+                    Err(err) => {
+                        pack.push(diags::ChecksumMismatch {
+                            path: bsp,
+                            checksum: bsc,
+                            severity: Some(Severity::Warning),
+                            error: format!("build script failed checksum: {err:#}"),
+                            file_id,
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     let parent = krate.manifest_path.parent().unwrap();
 
-    for entry in walkdir::WalkDir::new(parent) {
-        let Ok(entry) = entry else { continue; };
+    let (tx, rx) = crossbeam::channel::unbounded();
 
-        let path = match crate::PathBuf::from_path_buf(entry.into_path()) {
-            Ok(p) => p,
-            Err(path) => {
-                pack.push(
-                    crate::diag::Diagnostic::warning()
-                        .with_message(format!("path {path:?} is not utf-8, skipping")),
-                );
-                continue;
+    let (_, checksum_diags) = rayon::join(
+        || {
+            // Avoids doing a ton of heap allocations when doing globset matching
+            let mut matches = Vec::new();
+            let is_git_src = krate.is_git_source();
+
+            for entry in walkdir::WalkDir::new(parent)
+                .sort_by_file_name()
+                .into_iter()
+                .filter_entry(|entry| {
+                    // Skip git folders for git sources, they won't be present in
+                    // regular packages, and the example scripts in typical
+                    // clones are...not interesting
+                    !is_git_src
+                        || (entry.path().file_name() == Some(std::ffi::OsStr::new(".git"))
+                            && entry.path().parent() == Some(parent.as_std_path()))
+                })
+            {
+                let Ok(entry) = entry else {
+                    continue;
+                };
+
+                if entry.file_type().is_dir() {
+                    continue;
+                }
+
+                let path = match crate::PathBuf::from_path_buf(entry.into_path()) {
+                    Ok(p) => p,
+                    Err(path) => {
+                        pack.push(
+                            crate::diag::Diagnostic::warning()
+                                .with_message(format!("path {path:?} is not utf-8, skipping")),
+                        );
+                        continue;
+                    }
+                };
+
+                let Ok(rel_path) = path.strip_prefix(parent) else {
+                    pack.push(crate::diag::Diagnostic::error().with_message(format!(
+                        "path '{path}' is not relative to crate root '{parent}'"
+                    )));
+                    continue;
+                };
+
+                let candidate = globset::Candidate::new(rel_path);
+
+                if let Some(kc) = krate_config {
+                    // First just check if the file has been explicitly allowed without a
+                    // checksum so we don't even need to bother going more in depth
+                    let ae = kc.allow.as_ref().and_then(|aexes| {
+                        aexes
+                            .binary_search_by(|ae| ae.path.value.as_path().cmp(rel_path))
+                            .ok()
+                            .map(|i| &aexes[i])
+                    });
+
+                    if let Some(ae) = ae {
+                        if ae.checksum.is_none() {
+                            pack.push(diags::ExplicitPathAllowance {
+                                allowed: ae,
+                                file_id,
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Check if the path matches an allowed glob pattern
+                    if let Some(ag) = &kc.allow_globs {
+                        if let Some(matches) = ag.matches(&candidate, &mut matches) {
+                            pack.push(diags::GlobAllowance {
+                                path: rel_path,
+                                globs: matches,
+                                file_id,
+                            });
+                            continue;
+                        }
+                    }
+
+                    // If the file had a checksum specified, verify it still matches,
+                    // otherwise fail
+                    if let Some(checksum) = ae.as_ref().and_then(|ae| ae.checksum.as_ref()) {
+                        let _ = tx.send((path, checksum));
+                        continue;
+                    }
+                }
+
+                // Check if the file matches a disallowed glob pattern
+                if let Some(matches) = config.script_extensions.matches(&candidate, &mut matches) {
+                    pack.push(diags::DisallowedByExtension {
+                        path: &path,
+                        globs: matches,
+                        file_id,
+                    });
+                    continue;
+                }
+
+                // Save the most ambiguous/expensive check for last, does this look
+                // like a native executable or script without extension?
+                let diag: Diag = match check_is_executable(&path, !config.include_archives) {
+                    Ok(None) => continue,
+                    Ok(Some(exe_kind)) => diags::DetectedExecutable {
+                        path: &path,
+                        interpreted: config.interpreted,
+                        exe_kind,
+                    }
+                    .into(),
+                    Err(error) => diags::UnableToCheckPath { path: &path, error }.into(),
+                };
+
+                pack.push(diag);
             }
-        };
 
-        let Ok(rel_path) = path.strip_prefix(parent) else {
-            pack.push(
-                crate::diag::Diagnostic::error()
-                    .with_message(format!("path '{path}' is not relative to crate root '{parent}'")),
-            );
-            continue;
-        };
+            drop(tx);
+        },
+        || {
+            // Note that since we ship off the checksum validation to a threads the order is
+            // not guaranteed, so we just put them in a btreemap so they are consistently
+            // ordered and don't trigger test errors or cause confusing output for users
+            let checksum_diags = parking_lot::Mutex::new(std::collections::BTreeMap::new());
+            rayon::scope(|s| {
+                while let Ok((path, checksum)) = rx.recv() {
+                    s.spawn(|_s| {
+                        let path = path;
+                        if let Err(err) = validate_file_checksum(&path, &checksum.value) {
+                            let diag: Diag = diags::ChecksumMismatch {
+                                path: &path,
+                                checksum,
+                                severity: None,
+                                error: format!("{err:#}"),
+                                file_id,
+                            }
+                            .into();
 
-        // First just check if the file has been explicitly allowed without a
-        // checksum so we don't even need to bother checking it
+                            checksum_diags.lock().insert(path, diag);
+                        } else {
+                            let diag: Diag = diags::ChecksumMatch {
+                                path: &path,
+                                checksum,
+                                severity: None,
+                                file_id,
+                            }
+                            .into();
+
+                            checksum_diags.lock().insert(path, diag);
+                        }
+                    });
+                }
+            });
+
+            checksum_diags.into_inner().into_values()
+        },
+    );
+
+    for diag in checksum_diags {
+        pack.push(diag);
     }
+
+    kc_index
+}
+
+pub(crate) enum ExecutableKind {
+    Native(goblin::Hint),
+    Interpreted(String),
+}
+
+fn check_is_executable(
+    path: &crate::Path,
+    exclude_archives: bool,
+) -> anyhow::Result<Option<ExecutableKind>> {
+    use std::io::Read;
+
+    let mut file = std::fs::File::open(path)?;
+    let mut header = [0u8; 16];
+    let read = file.read(&mut header)?;
+    if read != header.len() {
+        return Ok(None);
+    }
+
+    match goblin::peek_bytes(&header)
+        .map_err(|err| anyhow::format_err!("failed to peek bytes: {err}"))?
+    {
+        // Archive objects/libraries are not great (generally) to have in
+        // crate packages, but they are not as easily
+        goblin::Hint::Archive if exclude_archives => Ok(None),
+        goblin::Hint::Unknown(_) => {
+            // Check for shebang scripts
+            if header[..2] != [0x23, 0x21] {
+                return Ok(None);
+            }
+
+            // If we have a shebang, look to see if we have the newline, otherwise we need to read more bytes
+            let mut hdr = [0u8; 256];
+            let header = if !header.iter().any(|b| *b == b'\n') {
+                hdr[..16].copy_from_slice(&header);
+                let read = file.read(&mut hdr[16..])?;
+                &hdr[..read + 16]
+            } else {
+                &header[..]
+            };
+
+            let parse = || {
+                let line_end = header.iter().position(|b| *b == b'\n')?;
+                let line = std::str::from_utf8(&header[..line_end]).ok()?;
+
+                // If it's a rust file, ignore it if the shebang is actually
+                // an inner attribute
+                if path.extension() == Some("rs") && line.starts_with("#![") {
+                    return None;
+                }
+
+                // Shebangs scripts can't have any spaces in the actual interpreter, but there
+                // can be an optional space between the shebang and the start of the interpreter
+                let mut items = line.split(' ');
+                let maybe_interpreter = items.next()?;
+                let interpreter = if maybe_interpreter.ends_with("#!") {
+                    items.next()?
+                } else {
+                    maybe_interpreter
+                };
+
+                // Handle (typically) /usr/bin/env being used as level of indirection
+                // to make running scripts more friendly to run on a variety
+                // of systems
+                if interpreter.ends_with("/env") {
+                    items.next()
+                } else if let Some((_, bin)) = interpreter.rsplit_once('/') {
+                    Some(bin)
+                } else {
+                    Some(interpreter)
+                }
+            };
+
+            Ok(parse().map(|s| ExecutableKind::Interpreted(s.to_owned())))
+        }
+        hint => Ok(Some(ExecutableKind::Native(hint))),
+    }
+}
+
+/// Validates the buffer matches the expected SHA-256 checksum
+fn validate_checksum(
+    mut stream: impl std::io::Read,
+    expected: &cfg::Checksum,
+) -> anyhow::Result<()> {
+    let digest = {
+        let mut dc = ring::digest::Context::new(&ring::digest::SHA256);
+        let mut chunk = [0; 8 * 1024];
+        loop {
+            let read = stream.read(&mut chunk)?;
+            if read == 0 {
+                break;
+            }
+            dc.update(&chunk[..read]);
+        }
+        dc.finish()
+    };
+
+    let digest = digest.as_ref();
+    if digest != expected.0 {
+        let mut hs = [0u8; 64];
+        const CHARS: &[u8] = b"0123456789abcdef";
+        for (i, &byte) in digest.into_iter().enumerate() {
+            let i = i * 2;
+            hs[i] = CHARS[(byte >> 4) as usize];
+            hs[i + 1] = CHARS[(byte & 0xf) as usize];
+        }
+
+        let digest = std::str::from_utf8(&hs).unwrap();
+        anyhow::bail!("checksum mismatch, calculated {digest}");
+    }
+
+    Ok(())
+}
+
+#[inline]
+fn validate_file_checksum(path: &crate::Path, expected: &cfg::Checksum) -> anyhow::Result<()> {
+    let file = std::fs::File::open(path)?;
+    validate_checksum(std::io::BufReader::new(file), expected)?;
+    Ok(())
 }

@@ -140,7 +140,7 @@ where
     }
 
     let mut cfg_diags = Vec::new();
-    let cfg = config.validate(cfg_id, &mut cfg_diags);
+    let cfg = config.validate(cfg_id, &mut files, &mut cfg_diags);
 
     if cfg_diags
         .iter()

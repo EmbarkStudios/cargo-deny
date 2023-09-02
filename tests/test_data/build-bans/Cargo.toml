@@ -1,0 +1,21 @@
+[package]
+name = "build-bans"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+native = ["dep:prost-build"]
+mixed = ["dep:ittapi-sys"]
+scripts = ["dep:ring"]
+curious = ["dep:serde"]
+
+[dependencies]
+# Versions <=0.3.3 have shell scripts in a .git folder, precompiled object files
+# in another
+ittapi-sys = { version = "=0.3.3", optional = true }
+# Versions <0.10 include native protoc binaries for windows/linux/macos
+prost-build = { version = "<0.10", optional = true }
+# Includes perl scripts
+ring = { version = "0.16.20", optional = true }
+# The shot heard around the world
+serde = { version = "=1.0.172", features = ["derive"], optional = true }

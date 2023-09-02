@@ -53,7 +53,7 @@ camino = "1.1"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
-clap = { version = "4.0", features = ["derive", "env"] }
+clap = { version = "4.3", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
@@ -63,6 +63,15 @@ crossbeam = "0.8"
 fern = "0.6"
 # Glob matching
 globset = "0.4"
+# Native executable detection
+goblin = { version = "0.7", default-features = false, features = [
+  "elf32",
+  "elf64",
+  "mach32",
+  "mach64",
+  "pe32",
+  "pe64",
+] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
@@ -76,6 +85,8 @@ rayon = "1.4"
 # HTTP client backing gix, we don't use it directly but need it here for configuration
 # due to ...reasons
 reqwest = { version = "0.11", default-features = false }
+# sha-256 hash calculation, already a dependency via rustls/etc
+ring = "0.16"
 # Used for interacting with advisory databases
 rustsec = { version = "0.28", default-features = false }
 # Parsing and checking of versions/version requirements

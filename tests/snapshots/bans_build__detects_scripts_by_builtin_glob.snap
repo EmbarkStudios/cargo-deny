@@ -1,0 +1,1231 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-armv4.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-armv8.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-x86.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/cipher_extra/asm/chacha20_poly1305_x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesni-x86.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesni-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesv8-armx.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/bsaes-armv7.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/vpaes-x86.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/vpaes-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/armv4-mont.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/armv8-mont.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86-mont.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86_64-mont.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86_64-mont5.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-armv4.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-armv8.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-x86.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/p256-x86_64-asm.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/aesni-gcm-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-armv4.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-x86.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghashv8-armx.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha256-armv4.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-armv4.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-armv8.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-x86_64.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/arm-xlate.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86_64-xlate.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86asm.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86gas.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "builtin",
+          "span": "*.pl"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86nasm.pl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "disallowed-by-extension",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 16,
+          "message": "builtin",
+          "span": "*.py"
+        }
+      ],
+      "message": "path disallowed by extension",
+      "notes": [
+        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/src/rsa/convert_nist_rsa_test_vectors.py'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

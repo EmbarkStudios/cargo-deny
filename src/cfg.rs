@@ -7,6 +7,7 @@ pub trait UnvalidatedConfig {
     fn validate(
         self,
         id: crate::diag::FileId,
+        files: &mut crate::diag::Files,
         diagnostics: &mut Vec<crate::diag::Diagnostic>,
     ) -> Self::ValidCfg;
 }
@@ -215,7 +216,7 @@ pub(crate) mod test {
 
     pub(crate) struct ConfigData<T> {
         pub(crate) config: T,
-        pub(crate) _files: Files,
+        pub(crate) files: Files,
         pub(crate) id: FileId,
     }
 
@@ -227,10 +228,6 @@ pub(crate) mod test {
         let mut files = Files::new();
         let id = files.add(&path, contents);
 
-        ConfigData {
-            config,
-            _files: files,
-            id,
-        }
+        ConfigData { config, files, id }
     }
 }

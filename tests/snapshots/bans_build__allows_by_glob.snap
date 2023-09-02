@@ -1,0 +1,1231 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/chacha/asm/chacha-armv4.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/chacha/asm/chacha-armv8.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/chacha/asm/chacha-x86.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/chacha/asm/chacha-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/cipher_extra/asm/chacha20_poly1305_x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/aesni-x86.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/aesni-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/aesv8-armx.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/bsaes-armv7.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/vpaes-x86.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/aes/asm/vpaes-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/bn/asm/armv4-mont.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/bn/asm/armv8-mont.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/bn/asm/x86-mont.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/bn/asm/x86_64-mont.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/bn/asm/x86_64-mont5.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-armv4.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-armv8.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-x86.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/ec/asm/p256-x86_64-asm.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/modes/asm/aesni-gcm-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/modes/asm/ghash-armv4.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/modes/asm/ghash-x86.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/modes/asm/ghash-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/modes/asm/ghashv8-armx.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/sha/asm/sha256-armv4.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/sha/asm/sha512-armv4.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/sha/asm/sha512-armv8.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/fipsmodule/sha/asm/sha512-x86_64.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/perlasm/arm-xlate.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/perlasm/x86_64-xlate.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/perlasm/x86asm.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/perlasm/x86gas.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 8,
+          "message": "",
+          "span": "crypto/**.pl"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'crypto/perlasm/x86nasm.pl'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "path-allowed-by-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 32,
+          "line": 8,
+          "message": "",
+          "span": "src/rsa/convert_nist_rsa_test_vectors.py"
+        }
+      ],
+      "message": "file allowed by glob",
+      "notes": [
+        "path = 'src/rsa/convert_nist_rsa_test_vectors.py'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]
