@@ -1,5 +1,7 @@
+use std::fmt;
+
 use crate::{
-    bans::KrateId,
+    bans::{cfg, KrateId},
     diag::{
         CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
     },
@@ -36,6 +38,16 @@ pub enum Code {
     FeatureBanned,
     UnknownFeature,
     DefaultFeatureEnabled,
+    PathAllowed,
+    PathAllowedByGlob,
+    ChecksumMatch,
+    ChecksumMismatch,
+    DisallowedByExtension,
+    DetectedExecutable,
+    DetectedExecutableScript,
+    UnableToCheckPath,
+    FeaturesEnabled,
+    UnmatchedBuildConfig,
 }
 
 impl From<Code> for String {
@@ -478,5 +490,300 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
             extra: None,
             with_features: true,
         }
+    }
+}
+
+pub(crate) struct HomePath<'a> {
+    pub(crate) path: &'a crate::Path,
+    pub(crate) root: &'a crate::Path,
+    pub(crate) home: Option<&'a crate::Path>,
+}
+
+impl<'a> fmt::Display for HomePath<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(rel_path) = self.home.and_then(|home| self.path.strip_prefix(home).ok()) {
+            f.write_str("$CARGO_HOME/")?;
+            f.write_str(rel_path.as_str())
+        } else if let Ok(rel_path) = self.path.strip_prefix(self.root) {
+            f.write_str("$crate/")?;
+            f.write_str(rel_path.as_str())
+        } else {
+            f.write_str(self.path.as_str())
+        }
+    }
+}
+
+pub(crate) struct ExplicitPathAllowance<'a> {
+    pub(crate) allowed: &'a cfg::AllowedExecutable,
+    pub(crate) file_id: FileId,
+}
+
+impl From<ExplicitPathAllowance<'_>> for Diag {
+    fn from(pa: ExplicitPathAllowance<'_>) -> Diag {
+        let mut labels =
+            vec![Label::primary(pa.file_id, pa.allowed.path.span.clone())
+                .with_message("allowed path")];
+
+        labels.extend(pa.allowed.checksum.as_ref().map(|chk| {
+            Label::secondary(pa.file_id, chk.span.clone()).with_message("matched checksum")
+        }));
+        let diag = Diagnostic::new(Severity::Help)
+            .with_message("file explicitly allowed")
+            .with_code(Code::PathAllowed)
+            .with_labels(labels);
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+#[inline]
+fn globs_to_labels(file_id: FileId, globs: Vec<&cfg::GlobPattern>) -> Vec<Label> {
+    globs
+        .into_iter()
+        .map(|gp| match gp {
+            cfg::GlobPattern::Builtin((glob, id)) => {
+                Label::secondary(*id, glob.span.clone()).with_message("builtin")
+            }
+            cfg::GlobPattern::User(glob) => Label::secondary(file_id, glob.span.clone()),
+        })
+        .collect()
+}
+
+pub(crate) struct GlobAllowance<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) globs: Vec<&'a cfg::GlobPattern>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<GlobAllowance<'_>> for Diag {
+    fn from(pa: GlobAllowance<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Help)
+            .with_message("file allowed by glob")
+            .with_notes(vec![format!("path = '{}'", pa.path)])
+            .with_code(Code::PathAllowedByGlob)
+            .with_labels(globs_to_labels(pa.file_id, pa.globs));
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct ChecksumMatch<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) checksum: &'a Spanned<super::cfg::Checksum>,
+    pub(crate) severity: Option<Severity>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<ChecksumMatch<'_>> for Diag {
+    fn from(cm: ChecksumMatch<'_>) -> Diag {
+        let diag = Diagnostic::new(cm.severity.unwrap_or(Severity::Help))
+            .with_message("file checksum matched")
+            .with_notes(vec![format!("path = '{}'", cm.path)])
+            .with_code(Code::ChecksumMatch)
+            .with_labels(vec![
+                Label::primary(cm.file_id, cm.checksum.span.clone()).with_message("checksum")
+            ]);
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct ChecksumMismatch<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) checksum: &'a Spanned<super::cfg::Checksum>,
+    pub(crate) severity: Option<Severity>,
+    pub(crate) error: String,
+    pub(crate) file_id: FileId,
+}
+
+impl From<ChecksumMismatch<'_>> for Diag {
+    fn from(cm: ChecksumMismatch<'_>) -> Diag {
+        let mut notes = vec![format!("path = '{}'", cm.path)];
+        notes.extend(
+            format!("error = {:#}", cm.error)
+                .lines()
+                .map(|l| l.to_owned()),
+        );
+
+        let diag = Diagnostic::new(cm.severity.unwrap_or(Severity::Error))
+            .with_message("file did not match the expected checksum")
+            .with_notes(notes)
+            .with_code(Code::ChecksumMismatch)
+            .with_labels(vec![Label::primary(cm.file_id, cm.checksum.span.clone())
+                .with_message("expected checksum")]);
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct DisallowedByExtension<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) globs: Vec<&'a cfg::GlobPattern>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<DisallowedByExtension<'_>> for Diag {
+    fn from(de: DisallowedByExtension<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Error)
+            .with_message("path disallowed by extension")
+            .with_notes(vec![format!("path = '{}'", de.path)])
+            .with_code(Code::DisallowedByExtension)
+            .with_labels(globs_to_labels(de.file_id, de.globs));
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct DetectedExecutable<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) interpreted: crate::LintLevel,
+    pub(crate) exe_kind: super::ExecutableKind,
+}
+
+impl From<DetectedExecutable<'_>> for Diag {
+    fn from(de: DetectedExecutable<'_>) -> Diag {
+        let (code, exe_note, severity) = match de.exe_kind {
+            super::ExecutableKind::Native(hint) => {
+                let native_kind = match hint {
+                    goblin::Hint::Elf(_) => "elf",
+                    goblin::Hint::PE => "pe",
+                    goblin::Hint::Mach(_) | goblin::Hint::MachFat(_) => "mach",
+                    goblin::Hint::Archive => "archive",
+                    goblin::Hint::Unknown(_) => unreachable!(),
+                };
+
+                (
+                    Code::DetectedExecutable,
+                    format!("executable-kind = '{native_kind}'"),
+                    Severity::Error,
+                )
+            }
+            super::ExecutableKind::Interpreted(interpreter) => (
+                Code::DetectedExecutableScript,
+                format!("interpreter = '{interpreter}'"),
+                de.interpreted.into(),
+            ),
+        };
+
+        let diag = Diagnostic::new(severity)
+            .with_message("detected executable")
+            .with_notes(vec![format!("path = '{}'", de.path), exe_note])
+            .with_code(code);
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct UnableToCheckPath<'a> {
+    pub(crate) path: HomePath<'a>,
+    pub(crate) error: anyhow::Error,
+}
+
+impl From<UnableToCheckPath<'_>> for Diag {
+    fn from(ucp: UnableToCheckPath<'_>) -> Diag {
+        let mut notes = vec![format!("path = {}", ucp.path)];
+
+        notes.extend(
+            format!("error = {:#}", ucp.error)
+                .lines()
+                .map(|l| l.to_owned()),
+        );
+        let diag = Diagnostic::new(Severity::Error)
+            .with_message("unable to check if path is an executable")
+            .with_notes(notes)
+            .with_code(Code::UnableToCheckPath);
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct FeaturesEnabled<'a> {
+    pub(crate) enabled_features: Vec<&'a Spanned<String>>,
+    pub(crate) file_id: FileId,
+}
+
+impl From<FeaturesEnabled<'_>> for Diag {
+    fn from(fe: FeaturesEnabled<'_>) -> Diag {
+        let diag = Diagnostic::new(Severity::Note)
+            .with_message(format!(
+                "{} features enabled for crate with build script, checking sources",
+                fe.enabled_features.len()
+            ))
+            .with_code(Code::FeaturesEnabled)
+            .with_labels(
+                fe.enabled_features
+                    .into_iter()
+                    .map(|ef| Label::secondary(fe.file_id, ef.span.clone()))
+                    .collect(),
+            );
+
+        Diag {
+            diag,
+            // Not really helpful to show graphs for these
+            graph_nodes: Default::default(),
+            extra: None,
+            with_features: false,
+        }
+    }
+}
+
+pub(crate) struct UnmatchedBuildConfig<'a> {
+    pub(crate) unmatched: &'a super::cfg::ValidExecutables,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedBuildConfig<'a>> for Diag {
+    fn from(ubc: UnmatchedBuildConfig<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("crate build configuration was not encountered")
+            .with_code(Code::UnmatchedBuildConfig)
+            .with_labels(vec![Label::primary(
+                ubc.file_id,
+                ubc.unmatched.name.span.clone(),
+            )
+            .with_message("unmatched crate configuration")])
+            .into()
     }
 }

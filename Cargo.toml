@@ -25,6 +25,10 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
+default = ["reqwest/rustls-tls-webpki-roots", "tame-index/default"]
+# Enables the use of OS native certificate store.
+native-certs = ["reqwest/rustls-tls-native-roots", "tame-index/native-certs"]
+
 #default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
 # us to compile static executables (eg musl) and avoid system dependencies
@@ -49,7 +53,7 @@ camino = "1.1"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
-clap = { version = "4.0", features = ["derive", "env"] }
+clap = { version = "4.3", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = "0.11"
 codespan-reporting = "0.11"
@@ -57,18 +61,34 @@ codespan-reporting = "0.11"
 crossbeam = "0.8"
 # Logging utilities
 fern = "0.6"
+# Glob matching
+globset = "0.4"
+# Native executable detection
+goblin = { version = "0.7", default-features = false, features = [
+  "elf32",
+  "elf64",
+  "mach32",
+  "mach64",
+  "pe32",
+  "pe64",
+] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.14", features = ["prefer-index", "targets"] }
+krates = { version = "0.15", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Nicer sync primitives
 parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.4"
+# HTTP client backing gix, we don't use it directly but need it here for configuration
+# due to ...reasons
+reqwest = { version = "0.11", default-features = false }
+# sha-256 hash calculation, already a dependency via rustls/etc
+ring = "0.16"
 # Used for interacting with advisory databases
-rustsec = { version = "0.27", default-features = false }
+rustsec = { version = "0.28", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -81,7 +101,10 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.25", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.2", features = ["git", "sparse"] }
+tame-index = { version = "0.5", default-features = false, features = [
+  "git",
+  "sparse",
+] }
 # Timestamp emission
 time = { version = "0.3", default-features = false, features = [
   "formatting",
@@ -93,15 +116,18 @@ toml = "0.7"
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
 url = "2.1"
+# Directory traversal
+walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.50"
+version = "0.52"
 default-features = false
 features = [
-  "blocking-http-transport-reqwest-rust-tls",
+  "blocking-http-transport-reqwest",
   "blocking-network-client",
   "max-performance-safe",
+  "reqwest-for-configuration-only",
 ]
 
 [dev-dependencies]
@@ -109,7 +135,7 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.21", features = ["json"] }
-tame-index = { version = "0.2", features = ["local-builder"] }
+tame-index = { version = "0.5", features = ["local-builder"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 

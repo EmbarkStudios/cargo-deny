@@ -128,7 +128,9 @@ impl Source {
 
     #[inline]
     pub fn git_spec(&self) -> Option<GitSpec> {
-        let Self::Git { spec, .. } = self else { return None; };
+        let Self::Git { spec, .. } = self else {
+            return None;
+        };
         Some(*spec)
     }
 
@@ -160,12 +162,16 @@ impl Source {
 
     #[inline]
     pub fn matches_rustsec(&self, sid: Option<&rustsec::package::SourceId>) -> bool {
-        let Some(sid) = sid else { return self.is_crates_io(); };
+        let Some(sid) = sid else {
+            return self.is_crates_io();
+        };
         if !sid.is_remote_registry() {
             return false;
         }
 
-        let (Self::Registry(url) | Self::Sparse(url)) = self else { return false; };
+        let (Self::Registry(url) | Self::Sparse(url)) = self else {
+            return false;
+        };
         sid.url() == url
     }
 }
@@ -329,7 +335,9 @@ impl Krate {
     /// Determines if the specified url matches the source
     #[inline]
     pub(crate) fn matches_url(&self, url: &Url, exact: bool) -> bool {
-        let Some(src) = &self.source else { return false };
+        let Some(src) = &self.source else {
+            return false;
+        };
 
         let kurl = match src {
             Source::CratesIo(_is_sparse) => {
@@ -483,6 +491,62 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
 pub fn utf8path(pb: std::path::PathBuf) -> anyhow::Result<PathBuf> {
     use anyhow::Context;
     PathBuf::try_from(pb).context("non-utf8 path")
+}
+
+/// Adds the crates.io index with the specified settings to the builder for
+/// feature resolution
+pub fn krates_with_index(
+    kb: &mut krates::Builder,
+    config_root: Option<PathBuf>,
+    cargo_home: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    use anyhow::Context as _;
+    let crates_io = tame_index::IndexUrl::crates_io(config_root, cargo_home.as_deref(), None)
+        .context("unable to determine crates.io url")?;
+
+    let index = tame_index::index::ComboIndexCache::new(
+        tame_index::IndexLocation::new(crates_io).with_root(cargo_home),
+    )
+    .context("unable to open local crates.io index")?;
+
+    let index_cache_build = move |krates: std::collections::BTreeSet<String>| {
+        let mut cache = std::collections::BTreeMap::new();
+        for name in krates {
+            let read = || -> Option<krates::index::IndexKrate> {
+                let name = name.as_str().try_into().ok()?;
+                let krate = index.cached_krate(name).ok()??;
+                let versions = krate
+                    .versions
+                    .into_iter()
+                    .filter_map(|kv| {
+                        // The index (currently) can have both features, and
+                        // features2, the features method gives us an iterator
+                        // over both
+                        kv.version.parse::<semver::Version>().ok().map(|version| {
+                            krates::index::IndexKrateVersion {
+                                version,
+                                features: kv
+                                    .features()
+                                    .map(|(k, v)| (k.clone(), v.clone()))
+                                    .collect(),
+                            }
+                        })
+                    })
+                    .collect();
+
+                Some(krates::index::IndexKrate { versions })
+            };
+
+            let krate = read();
+            cache.insert(name, krate);
+        }
+
+        cache
+    };
+
+    kb.with_crates_io_index(Box::new(index_cache_build));
+
+    Ok(())
 }
 
 #[cfg(test)]

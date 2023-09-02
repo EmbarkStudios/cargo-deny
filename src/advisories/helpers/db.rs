@@ -243,7 +243,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     {
         let mut config = repo.config_snapshot_mut();
         config
-            .set_raw_value("committer", None, "name", "tame-index")
+            .set_raw_value("committer", None, "name", "cargo-deny")
             .context("failed to set `committer.name`")?;
         // Note we _have_ to set the email as well, but luckily gix does not actually
         // validate if it's a proper email or not :)
@@ -353,13 +353,13 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
     let mut index = gix::index::File::from_state(index, repo.index_path());
 
-    let opts = gix::worktree::checkout::Options {
+    let opts = gix::worktree::state::checkout::Options {
         destination_is_initially_empty: false,
         overwrite_existing: true,
         ..Default::default()
     };
 
-    gix::worktree::checkout(
+    gix::worktree::state::checkout(
         &mut index,
         workdir,
         {
@@ -669,6 +669,7 @@ impl<'db, 'k> Report<'db, 'k> {
                             package,
                             advisory: Some(advisory.metadata.clone()),
                             versions: Some(advisory.versions.clone()),
+                            affected: advisory.affected.clone(),
                         };
 
                         if let Some(v) = warnings.get_mut(&kind) {

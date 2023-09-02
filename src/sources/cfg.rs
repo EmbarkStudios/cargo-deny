@@ -107,7 +107,12 @@ use crate::diag::{Diagnostic, Label};
 impl cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
+    fn validate(
+        self,
+        cfg_file: FileId,
+        _files: &mut crate::diag::Files,
+        diags: &mut Vec<Diagnostic>,
+    ) -> Self::ValidCfg {
         let mut allowed_sources = Vec::with_capacity(
             self.allow_registry.len() + self.allow_git.len() + self.private.len(),
         );
@@ -225,14 +230,14 @@ mod test {
             sources: Config,
         }
 
-        let cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
+        let mut cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
 
         let mut diags = Vec::new();
-        let validated = cd.config.sources.validate(cd.id, &mut diags);
+        let validated = cd.config.sources.validate(cd.id, &mut cd.files, &mut diags);
 
         let diags: Vec<_> = diags
             .into_iter()
-            .map(|d| crate::diag::diag_to_json(d.into(), &cd._files, None))
+            .map(|d| crate::diag::diag_to_json(d.into(), &cd.files, None))
             .collect();
 
         insta::assert_json_snapshot!(diags);

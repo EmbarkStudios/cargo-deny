@@ -301,6 +301,13 @@ fn real_main() -> Result<(), Error> {
         log_level: args.log_level,
     };
 
+    // Allow gix to hook the signal handler so that it can properly release lockfiles
+    // if the user aborts or we crash
+    let _dereg = gix::interrupt::init_handler(0, || {
+        log::info!("gix interrupt handler triggered, terminating process...");
+    })
+    .context("failed to initialize gix's interrupt handler")?;
+
     match args.cmd {
         Command::Check(mut cargs) => {
             let show_stats = cargs.show_stats;

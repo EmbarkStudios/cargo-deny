@@ -1,0 +1,314 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/applypatch-msg.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/commit-msg.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/fsmonitor-watchman.sample'",
+        "interpreter = 'perl'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/post-update.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/pre-applypatch.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/pre-commit.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/pre-push.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/pre-rebase.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/pre-receive.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/prepare-commit-msg.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "detected-executable-script",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ittapi-sys",
+            "version": "0.3.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "detected executable",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/c-library/.git/hooks/update.sample'",
+        "interpreter = 'sh'"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

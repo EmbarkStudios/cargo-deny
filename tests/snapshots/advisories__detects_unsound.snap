@@ -21,6 +21,7 @@ expression: unsound_diag
       "keywords": [
         "unsound"
       ],
+      "license": "CC0-1.0",
       "package": "failure",
       "references": [],
       "related": [],

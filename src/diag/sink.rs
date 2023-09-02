@@ -1,5 +1,6 @@
 use super::Pack;
 
+#[derive(Clone)]
 pub struct ErrorSink {
     pub overrides: Option<std::sync::Arc<DiagnosticOverrides>>,
     pub channel: super::PackChannel,

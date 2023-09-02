@@ -523,7 +523,7 @@ fn crates_io_source_replacement() {
                 .ik
                 .versions
                 .iter()
-                .find(|iv| iv.version == ip.version)
+                .find(|iv| iv.version.parse::<cargo_deny::Version>().unwrap() == ip.version)
                 .unwrap();
             let vk = local::ValidKrate::download(&client, &config, iv).unwrap();
 
@@ -579,15 +579,15 @@ fn crates_io_source_replacement() {
     let mut cmd: krates::cm::MetadataCommand = cmd.into();
     cmd.env("CARGO_HOME", cargo_home);
 
-    let krates: Krates = krates::Builder::new()
-        .with_crates_io_index(
-            Some(to_path(&pkg_dir).unwrap().join("12_yank_check")),
-            Some(cargo_home.to_owned().try_into().unwrap()),
-            None,
-        )
-        .unwrap()
-        .build(cmd, krates::NoneFilter)
-        .unwrap();
+    let mut kb = krates::Builder::new();
+    cargo_deny::krates_with_index(
+        &mut kb,
+        Some(to_path(&pkg_dir).unwrap().join("12_yank_check")),
+        Some(cargo_home.to_owned().try_into().unwrap()),
+    )
+    .unwrap();
+
+    let krates: Krates = kb.build(cmd, krates::NoneFilter).unwrap();
 
     let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
 

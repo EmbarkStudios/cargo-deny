@@ -1,0 +1,19 @@
+# List of "common" patterns for scripting languages or easily executable
+# compiled languages that could be used for local execution with build scripts
+# or proc macros. Obviously this list is not and never can be complete since
+# in most cases extensions are only for humans and most tools will happily
+# execute scripts/code they can regardless of extension (eg. shell scripts),
+# and besides that, an _actually_ malicious crate could generate files on demand,
+# download from a remote location, or, really, anything
+globs = [
+    "*.bat", "*.cmd", # batch
+    "*.go", # Go `go run <file.go>`
+    "*.java", # Java `java <file.java>`
+    "*.js", "*._js", "*.es", "*.es6", # javascript
+    "*.pl", "*.perl", "*.pm", # perl
+    "*.6pl", "*.6pm", "*.p6", "*.p6l", "*.p6m", "*.pl6", "*.pm6", "*.t", # perl 6
+    "*.ps1", "*.psd1", "*.psm1", # powershell
+    "*.py", # python
+    "*.rb", # ruby
+    "*.sh", "*.bash", "*.zsh", # shell
+]

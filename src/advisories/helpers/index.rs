@@ -1,12 +1,13 @@
 use crate::{Krate, Krates, Source};
-use anyhow::Context as _;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use std::{borrow::Cow, collections::BTreeMap};
+use std::collections::BTreeMap;
 use tame_index::{index::ComboIndexCache, Error, IndexLocation, IndexUrl};
+
+type YankMap = Vec<(semver::Version, bool)>;
 
 pub struct Indices<'k> {
     pub indices: Vec<(&'k Source, Result<ComboIndexCache, Error>)>,
-    pub cache: BTreeMap<(&'k str, &'k Source), tame_index::IndexKrate>,
+    pub cache: BTreeMap<(&'k str, &'k Source), YankMap>,
 }
 
 impl<'k> Indices<'k> {
@@ -57,10 +58,10 @@ impl<'k> Indices<'k> {
                     .iter()
                     .find_map(|(url, index)| index.as_ref().ok().filter(|_i| src == *url))?;
 
-                index
-                    .cached_krate(name.try_into().ok()?)
-                    .ok()?
-                    .map(|ik| ((name, src), ik))
+                index.cached_krate(name.try_into().ok()?).ok()?.map(|ik| {
+                    let yank_map = Self::load_index_krate(ik);
+                    ((name, src), yank_map)
+                })
             })
             .collect();
 
@@ -68,32 +69,30 @@ impl<'k> Indices<'k> {
     }
 
     #[inline]
+    fn load_index_krate(ik: tame_index::IndexKrate) -> YankMap {
+        ik.versions
+            .into_iter()
+            .filter_map(|iv| Some((iv.version.parse().ok()?, iv.yanked)))
+            .collect()
+    }
+
+    #[inline]
     pub fn is_yanked(&self, krate: &'k Krate) -> anyhow::Result<bool> {
+        use anyhow::Context as _;
+
         // Ignore non-registry crates when checking, as a crate sourced
         // locally or via git can have the same name as a registry package
-        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else { return Ok(false) };
-
-        let index_krate = if let Some(ik) = self.cache.get(&(krate.name.as_str(), src)) {
-            Cow::Borrowed(ik)
-        } else {
-            let index = self
-                .indices
-                .iter()
-                .find_map(|(url, index)| (src == *url).then_some(index.as_ref()))
-                .context("unable to find source index")?
-                .map_err(|err| anyhow::anyhow!("failed to load index: {err:#}"))?;
-
-            let ik = index
-                .cached_krate(krate.name.as_str().try_into()?)
-                .context("failed to read crate from index cache")?
-                .context("unable to find crate in cache")?;
-            Cow::Owned(ik)
+        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else {
+            return Ok(false);
         };
 
-        let is_yanked = index_krate
-            .versions
+        let cache_entry = self
+            .cache
+            .get(&(krate.name.as_str(), src))
+            .context("unable to locate index metadata")?;
+        let is_yanked = cache_entry
             .iter()
-            .find_map(|kv| (kv.version == krate.version).then_some(kv.yanked));
+            .find_map(|kv| (kv.0 == krate.version).then_some(kv.1));
 
         Ok(is_yanked.unwrap_or_default())
     }

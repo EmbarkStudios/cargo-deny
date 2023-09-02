@@ -85,7 +85,12 @@ impl Default for Config {
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(self, cfg_file: FileId, diags: &mut Vec<Diagnostic>) -> Self::ValidCfg {
+    fn validate(
+        self,
+        cfg_file: FileId,
+        _files: &mut crate::diag::Files,
+        diags: &mut Vec<Diagnostic>,
+    ) -> Self::ValidCfg {
         let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
         ignored.sort();
 
@@ -352,9 +357,12 @@ mod test {
             advisories: Config,
         }
 
-        let cd: ConfigData<Advisories> = load("tests/cfg/advisories.toml");
+        let mut cd: ConfigData<Advisories> = load("tests/cfg/advisories.toml");
         let mut diags = Vec::new();
-        let validated = cd.config.advisories.validate(cd.id, &mut diags);
+        let validated = cd
+            .config
+            .advisories
+            .validate(cd.id, &mut cd.files, &mut diags);
         assert!(
             !diags
                 .iter()

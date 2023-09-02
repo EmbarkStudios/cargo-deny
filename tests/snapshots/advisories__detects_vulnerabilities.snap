@@ -20,6 +20,7 @@ expression: diag
         "stack-overflow",
         "crash"
       ],
+      "license": "CC0-1.0",
       "package": "ammonia",
       "references": [],
       "related": [],

@@ -169,21 +169,16 @@ impl KrateContext {
             );
         }
 
-        // crates have been encountered whose metadata disagrees with the index
-        // so we use the index to fix the features in the graph
-        // <https://github.com/EmbarkStudios/krates/issues/46>
-        let gb = gb.with_crates_io_index(
-            // This is IMO, wrong, but follows the same behavior as cargo, which
-            // is to use the current working directory to find .cargo/config.toml
-            // files, rather than being based off of the manifest path etc, but
-            // this _should_ be the least surprising option
-            None,
-            // This is only really supplied in tests to isolate them from one another
-            None,
-            // When deciding the default of crates.io, we need to know the version
-            // of cargo, in this case it's up to the environment
-            None,
-        )?;
+        // Attempt to open the crates.io index so that the feature sets for every
+        // crate in the graph are correct, however, don't consider it a hard failure
+        // if we can't for some reason, as the graph will _probably_ still be accurate
+        // as incorrect feature sets are not the norm by any means
+        // see https://github.com/rust-lang/cargo/issues/11319 for an example of
+        // what this can look like in practice if we don't have the index metadata
+        // to supplement/fix the cargo metadata
+        if let Err(err) = cargo_deny::krates_with_index(&mut gb, None, None) {
+            log::error!("failed to open the local crates.io index, feature sets for crates may not be correct: {err}");
+        }
 
         let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
             let name = filtered.name;

@@ -183,10 +183,20 @@ impl ValidConfig {
 
             let mut diags = Vec::new();
 
-            let advisories = cfg.advisories.unwrap_or_default().validate(id, &mut diags);
-            let bans = cfg.bans.unwrap_or_default().validate(id, &mut diags);
-            let licenses = cfg.licenses.unwrap_or_default().validate(id, &mut diags);
-            let sources = cfg.sources.unwrap_or_default().validate(id, &mut diags);
+            let advisories = cfg
+                .advisories
+                .unwrap_or_default()
+                .validate(id, files, &mut diags);
+
+            let bans = cfg.bans.unwrap_or_default().validate(id, files, &mut diags);
+            let licenses = cfg
+                .licenses
+                .unwrap_or_default()
+                .validate(id, files, &mut diags);
+            let sources = cfg
+                .sources
+                .unwrap_or_default()
+                .validate(id, files, &mut diags);
 
             let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
             let exclude = cfg.exclude;
@@ -212,6 +222,10 @@ impl ValidConfig {
             )
         };
 
+        let (diags, valid_cfg) = validate();
+
+        let has_errors = diags.iter().any(|d| d.severity >= Severity::Error);
+
         let print = |diags: Vec<Diagnostic>| {
             if diags.is_empty() {
                 return;
@@ -225,9 +239,6 @@ impl ValidConfig {
             }
         };
 
-        let (diags, valid_cfg) = validate();
-
-        let has_errors = diags.iter().any(|d| d.severity >= Severity::Error);
         print(diags);
 
         // While we could continue in the face of configuration errors, the user
