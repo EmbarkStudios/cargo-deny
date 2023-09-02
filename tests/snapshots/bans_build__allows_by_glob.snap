@@ -32,7 +32,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/chacha/asm/chacha-armv4.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-armv4.pl'"
       ],
       "severity": "help"
     },
@@ -67,7 +67,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/chacha/asm/chacha-armv8.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-armv8.pl'"
       ],
       "severity": "help"
     },
@@ -102,7 +102,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/chacha/asm/chacha-x86.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-x86.pl'"
       ],
       "severity": "help"
     },
@@ -137,7 +137,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/chacha/asm/chacha-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/chacha/asm/chacha-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -172,7 +172,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/cipher_extra/asm/chacha20_poly1305_x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/cipher_extra/asm/chacha20_poly1305_x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -207,7 +207,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/aesni-x86.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesni-x86.pl'"
       ],
       "severity": "help"
     },
@@ -242,7 +242,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/aesni-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesni-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -277,7 +277,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/aesv8-armx.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/aesv8-armx.pl'"
       ],
       "severity": "help"
     },
@@ -312,7 +312,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/bsaes-armv7.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/bsaes-armv7.pl'"
       ],
       "severity": "help"
     },
@@ -347,7 +347,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/vpaes-x86.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/vpaes-x86.pl'"
       ],
       "severity": "help"
     },
@@ -382,7 +382,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/aes/asm/vpaes-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/asm/vpaes-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -417,7 +417,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/bn/asm/armv4-mont.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/armv4-mont.pl'"
       ],
       "severity": "help"
     },
@@ -452,7 +452,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/bn/asm/armv8-mont.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/armv8-mont.pl'"
       ],
       "severity": "help"
     },
@@ -487,7 +487,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/bn/asm/x86-mont.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86-mont.pl'"
       ],
       "severity": "help"
     },
@@ -522,7 +522,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/bn/asm/x86_64-mont.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86_64-mont.pl'"
       ],
       "severity": "help"
     },
@@ -557,7 +557,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/bn/asm/x86_64-mont5.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/bn/asm/x86_64-mont5.pl'"
       ],
       "severity": "help"
     },
@@ -592,7 +592,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-armv4.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-armv4.pl'"
       ],
       "severity": "help"
     },
@@ -627,7 +627,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-armv8.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-armv8.pl'"
       ],
       "severity": "help"
     },
@@ -662,7 +662,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/ec/asm/ecp_nistz256-x86.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/ecp_nistz256-x86.pl'"
       ],
       "severity": "help"
     },
@@ -697,7 +697,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/ec/asm/p256-x86_64-asm.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/ec/asm/p256-x86_64-asm.pl'"
       ],
       "severity": "help"
     },
@@ -732,7 +732,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/modes/asm/aesni-gcm-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/aesni-gcm-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -767,7 +767,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/modes/asm/ghash-armv4.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-armv4.pl'"
       ],
       "severity": "help"
     },
@@ -802,7 +802,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/modes/asm/ghash-x86.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-x86.pl'"
       ],
       "severity": "help"
     },
@@ -837,7 +837,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/modes/asm/ghash-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghash-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -872,7 +872,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/modes/asm/ghashv8-armx.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/modes/asm/ghashv8-armx.pl'"
       ],
       "severity": "help"
     },
@@ -907,7 +907,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/sha/asm/sha256-armv4.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha256-armv4.pl'"
       ],
       "severity": "help"
     },
@@ -942,7 +942,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/sha/asm/sha512-armv4.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-armv4.pl'"
       ],
       "severity": "help"
     },
@@ -977,7 +977,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/sha/asm/sha512-armv8.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-armv8.pl'"
       ],
       "severity": "help"
     },
@@ -1012,7 +1012,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/fipsmodule/sha/asm/sha512-x86_64.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/sha/asm/sha512-x86_64.pl'"
       ],
       "severity": "help"
     },
@@ -1047,7 +1047,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/perlasm/arm-xlate.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/arm-xlate.pl'"
       ],
       "severity": "help"
     },
@@ -1082,7 +1082,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/perlasm/x86_64-xlate.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86_64-xlate.pl'"
       ],
       "severity": "help"
     },
@@ -1117,7 +1117,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/perlasm/x86asm.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86asm.pl'"
       ],
       "severity": "help"
     },
@@ -1152,7 +1152,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/perlasm/x86gas.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86gas.pl'"
       ],
       "severity": "help"
     },
@@ -1187,7 +1187,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'crypto/perlasm/x86nasm.pl'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/perlasm/x86nasm.pl'"
       ],
       "severity": "help"
     },
@@ -1222,7 +1222,7 @@ expression: diags
       ],
       "message": "file allowed by glob",
       "notes": [
-        "path = 'src/rsa/convert_nist_rsa_test_vectors.py'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/src/rsa/convert_nist_rsa_test_vectors.py'"
       ],
       "severity": "help"
     },

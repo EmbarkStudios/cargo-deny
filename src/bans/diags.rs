@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{
     bans::{cfg, KrateId},
     diag::{
@@ -491,6 +493,22 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
     }
 }
 
+pub(crate) struct HomePath<'a> {
+    pub(crate) path: &'a crate::Path,
+    pub(crate) home: Option<&'a crate::Path>,
+}
+
+impl<'a> fmt::Display for HomePath<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(rel_path) = self.home.and_then(|home| self.path.strip_prefix(home).ok()) {
+            f.write_str("$CARGO_HOME/")?;
+            f.write_str(rel_path.as_str())
+        } else {
+            f.write_str(self.path.as_str())
+        }
+    }
+}
+
 pub(crate) struct ExplicitPathAllowance<'a> {
     pub(crate) allowed: &'a cfg::AllowedExecutable,
     pub(crate) file_id: FileId,
@@ -534,7 +552,7 @@ fn globs_to_labels(file_id: FileId, globs: Vec<&cfg::GlobPattern>) -> Vec<Label>
 }
 
 pub(crate) struct GlobAllowance<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) globs: Vec<&'a cfg::GlobPattern>,
     pub(crate) file_id: FileId,
 }
@@ -558,7 +576,7 @@ impl From<GlobAllowance<'_>> for Diag {
 }
 
 pub(crate) struct ChecksumMatch<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) checksum: &'a Spanned<super::cfg::Checksum>,
     pub(crate) severity: Option<Severity>,
     pub(crate) file_id: FileId,
@@ -585,7 +603,7 @@ impl From<ChecksumMatch<'_>> for Diag {
 }
 
 pub(crate) struct ChecksumMismatch<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) checksum: &'a Spanned<super::cfg::Checksum>,
     pub(crate) severity: Option<Severity>,
     pub(crate) error: String,
@@ -619,7 +637,7 @@ impl From<ChecksumMismatch<'_>> for Diag {
 }
 
 pub(crate) struct DisallowedByExtension<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) globs: Vec<&'a cfg::GlobPattern>,
     pub(crate) file_id: FileId,
 }
@@ -643,7 +661,7 @@ impl From<DisallowedByExtension<'_>> for Diag {
 }
 
 pub(crate) struct DetectedExecutable<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) interpreted: crate::LintLevel,
     pub(crate) exe_kind: super::ExecutableKind,
 }
@@ -689,7 +707,7 @@ impl From<DetectedExecutable<'_>> for Diag {
 }
 
 pub(crate) struct UnableToCheckPath<'a> {
-    pub(crate) path: &'a crate::Path,
+    pub(crate) path: HomePath<'a>,
     pub(crate) error: anyhow::Error,
 }
 

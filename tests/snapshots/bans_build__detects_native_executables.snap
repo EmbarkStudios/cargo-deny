@@ -24,7 +24,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-aarch_64'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-aarch_64'",
         "executable-kind = 'elf'"
       ],
       "severity": "error"
@@ -52,7 +52,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-x86_32'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-x86_32'",
         "executable-kind = 'elf'"
       ],
       "severity": "error"
@@ -80,7 +80,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-x86_64'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-linux-x86_64'",
         "executable-kind = 'elf'"
       ],
       "severity": "error"
@@ -108,7 +108,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-aarch64'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-aarch64'",
         "executable-kind = 'mach'"
       ],
       "severity": "error"
@@ -136,7 +136,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-x86_64'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-osx-x86_64'",
         "executable-kind = 'mach'"
       ],
       "severity": "error"
@@ -164,7 +164,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-win32.exe'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/prost-build-0.9.0/third-party/protobuf/protoc-win32.exe'",
         "executable-kind = 'pe'"
       ],
       "severity": "error"
@@ -200,7 +200,7 @@ expression: diags
       ],
       "message": "detected executable",
       "notes": [
-        "path = '/home/jake/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_derive-1.0.172/serde_derive-x86_64-unknown-linux-gnu'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/serde_derive-1.0.172/serde_derive-x86_64-unknown-linux-gnu'",
         "executable-kind = 'elf'"
       ],
       "severity": "error"
