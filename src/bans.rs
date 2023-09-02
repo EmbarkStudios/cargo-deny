@@ -749,10 +749,8 @@ pub fn check(
 
             // Keep track of the individual crate configs so we can emit warnings
             // if they're configured but not actually used
-            let bcv = parking_lot::Mutex::<BitVec>::new(BitVec::repeat(
-                false,
-                build_config.allow_executables.len(),
-            ));
+            let bcv =
+                parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, build_config.bypass.len()));
 
             // Make all paths reported in build diagnostics be relative to cargo_home
 
@@ -798,10 +796,10 @@ pub fn check(
                 for ve in bcv
                     .into_inner()
                     .into_iter()
-                    .zip(build_config.allow_executables.into_iter())
+                    .zip(build_config.bypass.into_iter())
                     .filter_map(|(hit, ve)| if !hit { Some(ve) } else { None })
                 {
-                    pack.push(diags::UnmatchedBuildConfig {
+                    pack.push(diags::UnmatchedBypass {
                         unmatched: &ve,
                         file_id,
                     });
@@ -913,7 +911,7 @@ pub fn check_build(
     }
 
     let (kc_index, krate_config) = config
-        .allow_executables
+        .bypass
         .iter()
         .enumerate()
         .find_map(|(i, ae)| {
@@ -925,7 +923,7 @@ pub fn check_build(
     // If the build script hashes to the same value and required features are not actually
     // set on the crate, we can skip it
     if let Some(kc) = krate_config {
-        if let Some((bsc, rf)) = kc.build_script.as_ref().zip(kc.required_features.as_ref()) {
+        if let Some(bsc) = &kc.build_script {
             if let Some(path) = krate
                 .targets
                 .iter()
@@ -942,7 +940,7 @@ pub fn check_build(
                         });
 
                         // Emit an error if the user specifies features that don't exist
-                        for rfeat in rf {
+                        for rfeat in &kc.required_features {
                             if !krate.features.contains_key(&rfeat.value) {
                                 pack.push(diags::UnknownFeature {
                                     krate,
@@ -954,8 +952,11 @@ pub fn check_build(
 
                         let enabled = krates.get_enabled_features(&krate.id).unwrap();
 
-                        let enabled_features: Vec<_> =
-                            rf.iter().filter(|f| enabled.contains(&f.value)).collect();
+                        let enabled_features: Vec<_> = kc
+                            .required_features
+                            .iter()
+                            .filter(|f| enabled.contains(&f.value))
+                            .collect();
 
                         // If none of the required-features are present then we
                         // can skip the rest of the check
@@ -992,10 +993,8 @@ pub fn check_build(
             let mut matches = Vec::new();
             let is_git_src = krate.is_git_source();
 
-            let mut allow_hit: BitVec = BitVec::repeat(
-                false,
-                krate_config.map_or(0, |kc| kc.allow.as_ref().map_or(0, |kca| kca.len())),
-            );
+            let mut allow_hit: BitVec =
+                BitVec::repeat(false, krate_config.map_or(0, |kc| kc.allow.len()));
             let mut glob_hit: BitVec = BitVec::repeat(
                 false,
                 krate_config.map_or(0, |kc| {
@@ -1048,15 +1047,14 @@ pub fn check_build(
                 if let Some(kc) = krate_config {
                     // First just check if the file has been explicitly allowed without a
                     // checksum so we don't even need to bother going more in depth
-                    let ae = kc.allow.as_ref().and_then(|aexes| {
-                        aexes
-                            .binary_search_by(|ae| ae.path.value.as_path().cmp(rel_path))
-                            .ok()
-                            .map(|i| {
-                                allow_hit.set(i, true);
-                                &aexes[i]
-                            })
-                    });
+                    let ae = kc
+                        .allow
+                        .binary_search_by(|ae| ae.path.value.as_path().cmp(rel_path))
+                        .ok()
+                        .map(|i| {
+                            allow_hit.set(i, true);
+                            &kc.allow[i]
+                        });
 
                     if let Some(ae) = ae {
                         if ae.checksum.is_none() {
@@ -1094,7 +1092,7 @@ pub fn check_build(
 
                 // Check if the file matches a disallowed glob pattern
                 if let Some(globs) = config.script_extensions.matches(&candidate, &mut matches) {
-                    pack.push(diags::DisallowedByExtension {
+                    pack.push(diags::DeniedByExtension {
                         path: diags::HomePath { path, root, home },
                         globs,
                         file_id,
@@ -1122,13 +1120,13 @@ pub fn check_build(
                 pack.push(diag);
             }
 
-            if let Some(ae) = krate_config.and_then(|kc| kc.allow.as_ref()) {
+            if let Some(ae) = krate_config.map(|kc| &kc.allow) {
                 for ae in allow_hit
                     .into_iter()
                     .zip(ae.iter())
                     .filter_map(|(hit, ae)| if !hit { Some(ae) } else { None })
                 {
-                    pack.push(diags::UnmatchedAllow {
+                    pack.push(diags::UnmatchedPathBypass {
                         unmatched: ae,
                         file_id,
                     });

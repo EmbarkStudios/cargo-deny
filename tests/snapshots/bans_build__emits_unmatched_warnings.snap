@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "unmatched-allow",
+      "code": "unmatched-path-bypass",
       "graphs": [
         {
           "Krate": {
@@ -101,17 +101,17 @@ expression: diags
   },
   {
     "fields": {
-      "code": "unmatched-build-config",
+      "code": "unmatched-bypass",
       "graphs": [],
       "labels": [
         {
           "column": 8,
           "line": 3,
-          "message": "unmatched crate configuration",
+          "message": "unmatched bypass",
           "span": "this-crate-does-not-exist"
         }
       ],
-      "message": "crate build configuration was not encountered",
+      "message": "crate build bypass was not encountered",
       "severity": "warning"
     },
     "type": "diagnostic"

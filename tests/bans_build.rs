@@ -23,7 +23,7 @@ include-dependencies = true
 
     diags.retain(|d| {
         field_eq!(d, "/fields/graphs/0/Krate/name", "ring")
-            && field_eq!(d, "/fields/code", "disallowed-by-extension")
+            && field_eq!(d, "/fields/code", "denied-by-extension")
     });
 
     insta::assert_json_snapshot!(diags);
@@ -112,10 +112,9 @@ fn detects_build_script_mismatch() {
         },
         Config::new(
             r#"
-[[build.allow-executables]]
+[[build.bypass]]
 name = "ittapi-sys"
 build-script = "00abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef00"
-required-features = []
 "#,
         ),
     );
@@ -143,15 +142,13 @@ fn skips_matching_build_scripts() {
         },
         Config::new(
             r#"
-[[build.allow-executables]]
+[[build.bypass]]
 name = "ittapi-sys"
 build-script = "474a3eb189a698475d8a6f4b358eb0790db6379aea8b8a85ac925102784cd520"
-required-features = []
 
-[[build.allow-executables]]
+[[build.bypass]]
 name = "ring"
 build-script = "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf"
-required-features = []
 "#,
         ),
     );
@@ -177,7 +174,7 @@ fn allows_by_glob() {
 enable-builtin-globs = true
 include-dependencies = true
 
-[[build.allow-executables]]
+[[build.bypass]]
 name = "ring"
 allow-globs = ["crypto/**.pl", "src/rsa/convert_nist_rsa_test_vectors.py"]
 "#,
@@ -201,7 +198,7 @@ fn allows_by_path() {
         },
         Config::new(
             r#"
-[[build.allow-executables]]
+[[build.bypass]]
 name = "prost-build"
 allow = [
     { path = "third-party/protobuf/protoc-linux-aarch_64", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" },
@@ -237,10 +234,10 @@ fn emits_unmatched_warnings() {
         },
         Config::new(
             r#"
-[[build.allow-executables]]
+[[build.bypass]]
 name = "this-crate-does-not-exist"
 
-[[build.allow-executables]]
+[[build.bypass]]
 name = "prost-build"
 allow = [
     { path = "third-party/protobuf/boop", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" },
@@ -255,9 +252,9 @@ allow-globs = [
     );
 
     diags.retain(|d| {
-        field_eq!(d, "/fields/code", "unmatched-allow")
+        field_eq!(d, "/fields/code", "unmatched-path-bypass")
             || field_eq!(d, "/fields/code", "unmatched-glob")
-            || field_eq!(d, "/fields/code", "unmatched-build-config")
+            || field_eq!(d, "/fields/code", "unmatched-bypass")
     });
 
     insta::assert_json_snapshot!(diags);

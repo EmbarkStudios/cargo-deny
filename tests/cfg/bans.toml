@@ -29,3 +29,22 @@ version = "1.0"
 deny = ["bad-feature"]
 allow = ["good-feature"]
 exact = true
+
+[bans.build]
+allow-build-scripts = [{ name = "all-versionsa" }]
+executables = "warn"
+interpreted = "deny"
+script-extensions = ["cs"]
+enable-builtin-globs = true
+include-dependencies = true
+include-workspace = true
+include-archives = true
+
+[[bans.build.bypass]]
+name = "allversionsa"
+build-script = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+required-features = ["feature-used-at-build-time"]
+allow-globs = ["scripts/*.cs"]
+allow = [
+    { path = "bin/x86_64-linux", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" },
+]
