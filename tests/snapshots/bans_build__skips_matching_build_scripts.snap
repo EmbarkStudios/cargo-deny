@@ -60,7 +60,7 @@ expression: diags
       "labels": [
         {
           "column": 16,
-          "line": 9,
+          "line": 8,
           "message": "checksum",
           "span": "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf"
         }

@@ -82,3 +82,34 @@ Similar to cargo's [net.git-fetch-with-cli](https://doc.rust-lang.org/cargo/refe
 
 * `false` (default) - Fetches advisory databases via `gix`
 * `true` - Fetches advisory databases using `git`. Git must be installed and in `PATH`.
+
+### The `maximum-db-staleness` field (optional)
+
+A duration in RFC3339 format that specifies the maximum amount of time that can pass before the database is considered stale and an error is emitted. This is only checked when advisory database fetching has been disabled via the `--offline` or `check --disable-fetch` flags, as otherwise the database is always cloned or fetched to be up to date with the remote git repository.
+
+The default if not specified is the same value that `cargo-audit` uses, and `cargo-deny` has been using, which is `P90D`, or 90 days.
+
+The RFC3339 duration format is...not well documented. The official grammar is as follows:
+
+```txt
+   dur-second        = 1*DIGIT "S"
+   dur-minute        = 1*DIGIT "M" [dur-second]
+   dur-hour          = 1*DIGIT "H" [dur-minute]
+   dur-time          = "T" (dur-hour / dur-minute / dur-second)
+   dur-day           = 1*DIGIT "D"
+   dur-week          = 1*DIGIT "W"
+   dur-month         = 1*DIGIT "M" [dur-day]
+   dur-year          = 1*DIGIT "Y" [dur-month]
+   dur-date          = (dur-day / dur-month / dur-year) [dur-time]
+
+   duration          = "P" (dur-date / dur-time / dur-week)
+```
+
+However, as far as I can tell, there are no official spec compliance tests one can run for the duration formation, and several parsers I found written in other languages seemed to...not actually properly follow the grammar, so the implementation in cargo-deny _may_ be wrong according to the spec, but at least it will be consistently wrong.
+
+Note that while the spec supports `,` as a decimal separator, for simplicity cargo-deny only supports `.` as a decimal separator.
+
+One final note, there are 2 units available in the format that are not exact, namely, year 'Y' and month 'M'. It's not recommended to use either of them for that reason, but if you do they are calculated as follows.
+
+* 1 year = 365 days
+* 1 month = 30.43 days

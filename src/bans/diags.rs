@@ -38,16 +38,18 @@ pub enum Code {
     FeatureBanned,
     UnknownFeature,
     DefaultFeatureEnabled,
-    PathAllowed,
-    PathAllowedByGlob,
+    PathBypassed,
+    PathBypassedByGlob,
     ChecksumMatch,
     ChecksumMismatch,
-    DisallowedByExtension,
+    DeniedByExtension,
     DetectedExecutable,
     DetectedExecutableScript,
     UnableToCheckPath,
     FeaturesEnabled,
-    UnmatchedBuildConfig,
+    UnmatchedBypass,
+    UnmatchedPathBypass,
+    UnmatchedGlob,
 }
 
 impl From<Code> for String {
@@ -514,7 +516,7 @@ impl<'a> fmt::Display for HomePath<'a> {
 }
 
 pub(crate) struct ExplicitPathAllowance<'a> {
-    pub(crate) allowed: &'a cfg::AllowedExecutable,
+    pub(crate) allowed: &'a cfg::BypassPath,
     pub(crate) file_id: FileId,
 }
 
@@ -529,7 +531,7 @@ impl From<ExplicitPathAllowance<'_>> for Diag {
         }));
         let diag = Diagnostic::new(Severity::Help)
             .with_message("file explicitly allowed")
-            .with_code(Code::PathAllowed)
+            .with_code(Code::PathBypassed)
             .with_labels(labels);
 
         Diag {
@@ -566,7 +568,7 @@ impl From<GlobAllowance<'_>> for Diag {
         let diag = Diagnostic::new(Severity::Help)
             .with_message("file allowed by glob")
             .with_notes(vec![format!("path = '{}'", pa.path)])
-            .with_code(Code::PathAllowedByGlob)
+            .with_code(Code::PathBypassedByGlob)
             .with_labels(globs_to_labels(pa.file_id, pa.globs));
 
         Diag {
@@ -640,18 +642,18 @@ impl From<ChecksumMismatch<'_>> for Diag {
     }
 }
 
-pub(crate) struct DisallowedByExtension<'a> {
+pub(crate) struct DeniedByExtension<'a> {
     pub(crate) path: HomePath<'a>,
     pub(crate) globs: Vec<&'a cfg::GlobPattern>,
     pub(crate) file_id: FileId,
 }
 
-impl From<DisallowedByExtension<'_>> for Diag {
-    fn from(de: DisallowedByExtension<'_>) -> Diag {
+impl From<DeniedByExtension<'_>> for Diag {
+    fn from(de: DeniedByExtension<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Error)
             .with_message("path disallowed by extension")
             .with_notes(vec![format!("path = '{}'", de.path)])
-            .with_code(Code::DisallowedByExtension)
+            .with_code(Code::DeniedByExtension)
             .with_labels(globs_to_labels(de.file_id, de.globs));
 
         Diag {
@@ -769,21 +771,54 @@ impl From<FeaturesEnabled<'_>> for Diag {
     }
 }
 
-pub(crate) struct UnmatchedBuildConfig<'a> {
-    pub(crate) unmatched: &'a super::cfg::ValidExecutables,
+pub(crate) struct UnmatchedBypass<'a> {
+    pub(crate) unmatched: &'a super::cfg::ValidBypass,
     pub(crate) file_id: FileId,
 }
 
-impl<'a> From<UnmatchedBuildConfig<'a>> for Diag {
-    fn from(ubc: UnmatchedBuildConfig<'a>) -> Self {
+impl<'a> From<UnmatchedBypass<'a>> for Diag {
+    fn from(ubc: UnmatchedBypass<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message("crate build configuration was not encountered")
-            .with_code(Code::UnmatchedBuildConfig)
+            .with_message("crate build bypass was not encountered")
+            .with_code(Code::UnmatchedBypass)
             .with_labels(vec![Label::primary(
                 ubc.file_id,
                 ubc.unmatched.name.span.clone(),
             )
-            .with_message("unmatched crate configuration")])
+            .with_message("unmatched bypass")])
+            .into()
+    }
+}
+
+pub(crate) struct UnmatchedPathBypass<'a> {
+    pub(crate) unmatched: &'a super::cfg::BypassPath,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedPathBypass<'a>> for Diag {
+    fn from(ua: UnmatchedPathBypass<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("allowed path was not encountered")
+            .with_code(Code::UnmatchedPathBypass)
+            .with_labels(vec![Label::primary(
+                ua.file_id,
+                ua.unmatched.path.span.clone(),
+            )])
+            .into()
+    }
+}
+
+pub(crate) struct UnmatchedGlob<'a> {
+    pub(crate) unmatched: &'a Spanned<String>,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedGlob<'a>> for Diag {
+    fn from(ug: UnmatchedGlob<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("glob was not encountered")
+            .with_code(Code::UnmatchedGlob)
+            .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span.clone())])
             .into()
     }
 }

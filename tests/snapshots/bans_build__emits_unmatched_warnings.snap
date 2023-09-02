@@ -1,0 +1,119 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unmatched-path-bypass",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 14,
+          "line": 8,
+          "message": "",
+          "span": "third-party/protobuf/boop"
+        }
+      ],
+      "message": "allowed path was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unmatched-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 11,
+          "message": "",
+          "span": "first-party/**"
+        }
+      ],
+      "message": "glob was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unmatched-glob",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prost-build",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 5,
+          "line": 13,
+          "message": "",
+          "span": "second-party/you/*"
+        }
+      ],
+      "message": "glob was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unmatched-bypass",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 8,
+          "line": 3,
+          "message": "unmatched bypass",
+          "span": "this-crate-does-not-exist"
+        }
+      ],
+      "message": "crate build bypass was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

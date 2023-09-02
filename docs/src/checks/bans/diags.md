@@ -63,3 +63,51 @@ A feature in either [`bans.features.deny`](cfg.md#the-features-deny-field-option
 ### `default-feature-enabled`
 
 The `default` feature was enabled on a crate, and the [`bans.external-default-features`](cfg.md#the-external-default-features-field-optional) or [`bans.workspace-default-features`](cfg.md#the-workspace-default-features-field-optional) was configured.
+
+### `path-bypassed`
+
+A path specified by [`bans.build.bypass.allow.path`](cfg.md#the-path-field) was bypassed, optionally ensuring its contents matched a SHA-256 checksum.
+
+### `path-bypassed-by-glob`
+
+A path was bypassed due to matching one or more [glob patterns](cfg.md#the-allow-globs-field-optional).
+
+### `checksum-match`
+
+The SHA-256 checksum calculated for the contents of a file matched the checksum in the configuration.
+
+### `checksum-mismatch`
+
+The SHA-256 checksum calculated for the contents of a file did not match the checksum in the configuration.
+
+### `denied-by-extension`
+
+The file extension matched either a [user specified](cfg.md#the-script-extensions-field-optional) or [builtin](cfg.md#the-enable-builtin-globs-field-optional) extension.
+
+### `detected-executable`
+
+A [native executable](cfg.md#the-executables-field-optional) was detected.
+
+### `detected-executable-script`
+
+An [interpreted script](cfg.md#the-interpreted-field-optional) was detected.
+
+### `unable-to-check-path`
+
+An I/O error occured when opening or reading a file from disk.
+
+### `features-enabled`
+
+One or more [`required-features`](cfg.md#the-build-script-and-required-features-field-optional) were enabled, causing the [`build-script`](cfg.md#the-build-script-and-required-features-field-optional) bypass to be ignored.
+
+### `unmatched-bypass`
+
+A [crate bypass](cfg.md#the-bypass-field-optional) did not match any crate in the graph.
+
+### `unmatched-path-bypass`
+
+A [path bypass](cfg.md#the-bypassallow-field-optional) did not match a file in the crate.
+
+### `unmatched-glob`
+
+A [glob bypass](cfg.md#the-allow-globs-field-optional) did not match any files in the crate.

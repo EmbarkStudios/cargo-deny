@@ -46,7 +46,7 @@ When multiple versions of the same crate are encountered and `multiple-versions`
 
 ### Crate specifier
 
-The `allow`, `deny`, `features`, `skip`, and `skip-tree` fields all use a crate identifier to specify what crate(s) they want to match against.
+The `allow`, `deny`, `features`, `skip`, `skip-tree`, and `build.allow` fields all use a crate identifier to specify what crate(s) they want to match against.
 
 ```ini
 { name = "some-crate-name-here", version = "<= 0.7.0" }
@@ -158,6 +158,131 @@ Note that by default, the `depth` is infinite.
 
 **NOTE:** `skip-tree` is a very big hammer at the moment, and should be used with care.
 
-### The `allow-build-scripts` field (optional)
+### The `build` field (optional)
+
+The `build` field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html), or they are a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html). The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of [interpreted shebang scripts](https://en.wikipedia.org/wiki/Shebang_(Unix)).
+
+While the intention of this configuration is to raise awareness of crates that have or use precompiled binaries or scripts, or otherwise contain file types that you want to be aware of, the compile time crate linting supplied by cargo-deny does **NOT** protect you from actively malicious code.
+
+A quick run down of things that cargo-deny **WILL NOT DETECT**.
+
+* The crate just straight up does bad things like uploading your SSH keys to a remote server using vanilla rust code
+* The crate contains compressed, or otherwise obfuscated executable binaries
+* The build script uses `include!()` for code that is benign in one version, then replaces it with something malicious without triggering a checksum mismatch on the build script contents itself.
+* A build time dependency of a non-malicious crate does any of the above.
+* Tons of other stuff I haven't thought of because I am not a security person
+
+So all this is to say, `cargo-deny` (currently) is only really useful for analyzing when crates have native executables, and/or the crate maintainers have either forgotten or purposefully left helper scripts for their CI/release management/etc in the crate source that are not actually ever executed automatically.
+
+#### The `allow-build-scripts` field (optional)
 
 Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.
+
+#### The `executables` field (optional)
+
+This controls how native executables are handled. Note this check is done by actually reading the file headers from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
+
+* `deny` (default) - Emits an error when native executables are detected.
+* `warn` - Prints a warning when native executables are detected, but does not fail the check.
+* `allow` - Prints a note when native executables are detected, but does not fail the check.
+
+This check currently only handles the major executable formats.
+
+* [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
+* [PE](https://en.wikipedia.org/wiki/Portable_Executable)
+* [Mach-O](https://en.wikipedia.org/wiki/Mach-O)
+
+#### The `interpreted` field (optional)
+
+This controls how interpreted scripts are handled. Note this check is done by actually reading the file header from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
+
+* `deny` - Emits an error when interpreted scripts are detected.
+* `warn` - Prints a warning when interpreted scripts are detected, but does not fail the check.
+* `allow` (default) - Prints a note when interpreted scripts are detected, but does not fail the check.
+
+#### The `script-extensions` field (optional)
+
+If supplied scans crates that execute at compile time for any files with the specified extension(s), emitting an error for every one that matches.
+
+#### The `enable-builtin-globs` field (optional)
+
+If `true`, enables the builtin glob patterns for common languages that tend to by installed on most developer machines, such as python.
+
+```ini
+{{#include ../../../../src/bans/builtin_globs.toml}}
+```
+
+#### The `include-dependencies` field (optional)
+
+By default, only the crate that executes at compile time is scanned, but if set to `true`, this field will check this crate as well as all of its dependencies. This option is disabled by default, as this will tend to only find CI scripts that people leave in their published crates.
+
+#### The `include-workspace` field (optional)
+
+If `true`, workspace crates will also be scanned. This defaults to false as you presumably have some degree of trust for your own code.
+
+#### The `include-archives` field (optional)
+
+If `true`, archive files (eg. Windows .lib, Unix .a, C++ .o object files etc) are also counted as native code. This defaults to false, as these tend to need to be linked before they can be executed.
+
+#### The `bypass` field (optional)
+
+While all the previous configuration is about configuration the global checks that run on compile time crates, the `allow` field is how one can suppress those lints on a crate-by-crate basis.
+
+Each entry uses the same [Crate specifier](#crate-specifier) as other parts of cargo-deny's configuration.
+
+```ini
+[build.bypass]
+name = "crate-name"
+```
+
+##### The `build-script` and `required-features` field (optional)
+
+If set to a valid, 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2), the `build-script` field will cause the rest of the scanning to be bypassed _if_ the crate's build script's checksum matches the user specified checksum **AND** none of the features specified in the `required-features` field are enabled. If the checksum does not match, the calculated checksum will be emitted as a warning, and the crate will be scanned as if a checksum was not supplied.
+
+**NOTE:** These options only applies to crate with build scripts, not proc macros, as proc macros do not have a single entry point that can be easily checksummed.
+
+```ini
+[[build.bypass]]
+name = "crate-name"
+build-script = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+```
+
+##### The `allow-globs` field (optional)
+
+Bypasses scanning of files that match one or more of the glob patterns specified. Note that unlike the [`script-extensions`](#the-script-extensions-field-optional) field that applies to all crates, these globs can match anything, not just extensions.
+
+```ini
+[build]
+script-extensions = ["cs"]
+
+[[build.bypass]]
+name = "crate-name"
+allow-globs = [
+    "scripts/*.cs",
+]
+```
+
+##### The `bypass.allow` field (optional)
+
+Bypasses scanning a single file.
+
+```ini
+[build]
+executables = "deny"
+
+[[build.bypass]]
+name = "crate-name"
+allow = [
+    { path = "bin/x86_64-linux", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" }
+]
+```
+
+###### The `path` field
+
+The path, relative to the crate root, of the file to bypass scanning.
+
+###### The `checksum` field (optional)
+
+The 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2) checksum of the file. If the checksum does not match, an error is emitted.
+
+[](

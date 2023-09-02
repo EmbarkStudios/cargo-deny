@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -40,7 +40,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -75,7 +75,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -110,7 +110,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -145,7 +145,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -180,7 +180,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -215,7 +215,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -250,7 +250,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -285,7 +285,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -320,7 +320,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -355,7 +355,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -390,7 +390,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -425,7 +425,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -460,7 +460,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -495,7 +495,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -530,7 +530,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -565,7 +565,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -600,7 +600,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -635,7 +635,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -670,7 +670,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -705,7 +705,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -740,7 +740,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -775,7 +775,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -810,7 +810,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -845,7 +845,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -880,7 +880,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -915,7 +915,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -950,7 +950,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -985,7 +985,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1020,7 +1020,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1055,7 +1055,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1090,7 +1090,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1125,7 +1125,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1160,7 +1160,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {
@@ -1195,7 +1195,7 @@ expression: diags
   },
   {
     "fields": {
-      "code": "path-allowed-by-glob",
+      "code": "path-bypassed-by-glob",
       "graphs": [
         {
           "Krate": {

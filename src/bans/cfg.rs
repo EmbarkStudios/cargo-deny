@@ -89,6 +89,7 @@ impl GraphHighlight {
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Checksum(pub [u8; 32]);
 
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub enum ChecksumParseError {
     /// The checksum string had an invalid length
     InvalidLength(usize),
@@ -169,7 +170,7 @@ impl<'de> Deserialize<'de> for Checksum {
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct AllowedExecutable {
+pub struct BypassPath {
     /// The crate-relative path to the executable
     pub path: Spanned<crate::PathBuf>,
     /// An optional sha-256 checksum to ensure that the executable is matched exactly
@@ -179,22 +180,24 @@ pub struct AllowedExecutable {
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct Executables {
+pub struct Bypass {
     pub name: Spanned<String>,
     pub version: Option<VersionReq>,
     pub build_script: Option<Spanned<Checksum>>,
     /// List of features that, if matched, means the build script/proc macro is
     /// not actually executed/run
-    pub required_features: Option<Vec<Spanned<String>>>,
+    #[serde(default)]
+    pub required_features: Vec<Spanned<String>>,
     /// List of glob patterns that are allowed. This is much more loose than
     /// `allow`, but can be useful in scenarios where things like test suites or
     /// the like that contain many scripts/test executables that are present in
-    /// the packged source, but are (hopefully) not actually read or executed
+    /// the packaged source, but are (hopefully) not actually read or executed
     /// during builds
     pub allow_globs: Option<Vec<Spanned<String>>>,
     /// One or more executables that are allowed. If not set all executables are
     /// allowed.
-    pub allow: Option<Vec<AllowedExecutable>>,
+    #[serde(default)]
+    pub allow: Vec<BypassPath>,
 }
 
 #[derive(Deserialize)]
@@ -207,11 +210,14 @@ pub struct BuildConfig {
     /// scripts or are proc macros, or are a dependency of either of them
     #[serde(default = "crate::lint_deny")]
     pub executables: LintLevel,
+    /// The lint level for interpreted scripts
+    #[serde(default = "crate::lint_allow")]
+    pub interpreted: LintLevel,
     /// List of script extensions that are considered to be executable. These
     /// are always in addition to the builtin ones.
     pub script_extensions: Option<Vec<Spanned<String>>>,
     /// The list of allowed executables, by crate
-    pub allow_executables: Option<Vec<Executables>>,
+    pub bypass: Option<Vec<Bypass>>,
     /// If true, enables the built-in glob patterns
     #[serde(default)]
     pub enable_builtin_globs: bool,
@@ -225,9 +231,6 @@ pub struct BuildConfig {
     /// If true, archive files are counted as native executables
     #[serde(default)]
     pub include_archives: bool,
-    /// The lint level for interpreted scripts
-    #[serde(default = "crate::lint_allow")]
-    pub interpreted: LintLevel,
 }
 
 #[derive(Deserialize)]
@@ -511,7 +514,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 ValidGlobSet::default()
             });
 
-            let allow_executables = if let Some(aexes) = bc.allow_executables {
+            let bypass = if let Some(aexes) = bc.bypass {
                 let mut aex = Vec::new();
 
                 for aexe in aexes {
@@ -549,27 +552,25 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         None
                     };
 
-                    let allow = aexe.allow.map(|mut aexes| {
-                        aexes.retain(|ae| {
-                            let keep = ae.path.value.is_relative();
-                            if !keep {
-                                diags.push(
-                                    Diagnostic::error()
-                                        .with_message("absolute paths are not allowed")
-                                        .with_labels(vec![Label::primary(
-                                            cfg_file,
-                                            ae.path.span.clone(),
-                                        )]),
-                                );
-                            }
+                    let mut allow = aexe.allow;
+                    allow.retain(|ae| {
+                        let keep = ae.path.value.is_relative();
+                        if !keep {
+                            diags.push(
+                                Diagnostic::error()
+                                    .with_message("absolute paths are not allowed")
+                                    .with_labels(vec![Label::primary(
+                                        cfg_file,
+                                        ae.path.span.clone(),
+                                    )]),
+                            );
+                        }
 
-                            keep
-                        });
-                        aexes.sort_by(|a, b| a.path.value.cmp(&b.path.value));
-                        aexes
+                        keep
                     });
+                    allow.sort_by(|a, b| a.path.value.cmp(&b.path.value));
 
-                    aex.push(ValidExecutables {
+                    aex.push(ValidBypass {
                         name: aexe.name,
                         version: aexe.version,
                         build_script: aexe.build_script,
@@ -588,7 +589,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 allow_build_scripts: bc.allow_build_scripts,
                 executables: bc.executables,
                 script_extensions,
-                allow_executables,
+                bypass,
                 include_dependencies: bc.include_dependencies,
                 include_workspace: bc.include_workspace,
                 include_archives: bc.include_archives,
@@ -604,7 +605,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 allow_build_scripts: Some(allow_build_scripts),
                 executables: LintLevel::Allow,
                 script_extensions: ValidGlobSet::default(),
-                allow_executables: Vec::new(),
+                bypass: Vec::new(),
                 include_dependencies: false,
                 include_workspace: false,
                 include_archives: false,
@@ -719,7 +720,7 @@ impl GlobsetBuilder {
 pub struct ValidGlobSet {
     set: globset::GlobSet,
     /// Patterns in the globset for lint output
-    patterns: Vec<GlobPattern>,
+    pub(crate) patterns: Vec<GlobPattern>,
 }
 
 impl Default for ValidGlobSet {
@@ -743,20 +744,20 @@ impl ValidGlobSet {
     }
 }
 
-pub struct ValidExecutables {
+pub struct ValidBypass {
     pub name: Spanned<String>,
     pub version: Option<VersionReq>,
     pub build_script: Option<Spanned<Checksum>>,
-    pub required_features: Option<Vec<Spanned<String>>>,
+    pub required_features: Vec<Spanned<String>>,
     pub allow_globs: Option<ValidGlobSet>,
-    pub allow: Option<Vec<AllowedExecutable>>,
+    pub allow: Vec<BypassPath>,
 }
 
 pub struct ValidBuildConfig {
     pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
     pub executables: LintLevel,
     pub script_extensions: ValidGlobSet,
-    pub allow_executables: Vec<ValidExecutables>,
+    pub bypass: Vec<ValidBypass>,
     pub include_dependencies: bool,
     pub include_workspace: bool,
     pub include_archives: bool,
@@ -866,5 +867,57 @@ mod test {
         assert_eq!(kf.features.deny[0].value, "bad-feature");
         assert_eq!(kf.features.allow.value[0].value, "good-feature");
         assert!(kf.features.exact.value);
+
+        let mut bc = validated.build.expect("expected build config");
+        assert_eq!(
+            bc.allow_build_scripts.unwrap().value.pop().unwrap().name,
+            "all-versionsa"
+        );
+        assert_eq!(bc.executables, LintLevel::Warn);
+        assert_eq!(bc.interpreted, LintLevel::Deny);
+
+        assert!(bc.script_extensions.patterns.iter().any(|gp| {
+            let GlobPattern::User(gp) = gp else {
+                return false;
+            };
+            gp.value == "cs"
+        }));
+        assert!(bc.script_extensions.patterns.iter().any(|gp| {
+            let GlobPattern::Builtin(gp) = gp else {
+                return false;
+            };
+            gp.0.value == "*.py"
+        }));
+        assert!(bc.include_dependencies);
+        assert!(bc.include_workspace);
+        assert!(bc.include_archives);
+
+        let mut bypass = bc.bypass.pop().unwrap();
+        assert_eq!(bypass.name.value, "allversionsa");
+        assert!(bypass.version.is_none());
+        assert_eq!(
+            bypass.build_script.unwrap().value,
+            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+                .parse()
+                .unwrap()
+        );
+        assert_eq!(
+            bypass.required_features.pop().unwrap().value,
+            "feature-used-at-build-time"
+        );
+        assert!(bypass.allow_globs.unwrap().patterns.iter().any(|gp| {
+            let GlobPattern::User(gp) = gp else {
+                return false;
+            };
+            gp.value == "scripts/*.cs"
+        }));
+        let ba = bypass.allow.pop().unwrap();
+        assert_eq!(ba.path.value, "bin/x86_64-linux");
+        assert_eq!(
+            ba.checksum.unwrap().value,
+            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+                .parse()
+                .unwrap()
+        );
     }
 }

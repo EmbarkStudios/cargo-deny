@@ -34,6 +34,8 @@ Disable fetching of the advisory database
 
 When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
 
+This option is also set if the `--offline` flag is used in the global options.
+
 ### `-D, --deny <DENY>`
 
 Set lint denied
@@ -77,7 +79,7 @@ Set lint warnings
 
 As of [0.14.1](https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.14.1), the exit code for the check command is a bitset of the checks that were executed and had 1 or more errors.
 
-A script or program can use the following values to determine exactly which check failed.
+A script or program can use the following values to determine exactly which check(s) failed.
 
 * `advisories` - `0x1`
 * `bans` - `0x2`

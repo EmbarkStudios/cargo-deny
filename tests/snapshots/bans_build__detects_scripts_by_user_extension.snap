@@ -5,7 +5,7 @@ expression: diags
 [
   {
     "fields": {
-      "code": "disallowed-by-extension",
+      "code": "denied-by-extension",
       "graphs": [
         {
           "Krate": {
