@@ -25,9 +25,9 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
-default = ["reqwest/rustls-tls-webpki-roots"]
+default = ["reqwest/rustls-tls-webpki-roots", "tame-index/default"]
 # Enables the use of OS native certificate store.
-native-certs = ["reqwest/rustls-tls-native-roots"]
+native-certs = ["reqwest/rustls-tls-native-roots", "tame-index/native-certs"]
 
 #default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
@@ -101,7 +101,10 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.25", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.5", features = ["git", "sparse"] }
+tame-index = { version = "0.5", default-features = false, features = [
+  "git",
+  "sparse",
+] }
 # Timestamp emission
 time = { version = "0.3", default-features = false, features = [
   "formatting",
