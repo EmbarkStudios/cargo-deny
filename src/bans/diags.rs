@@ -495,6 +495,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
 
 pub(crate) struct HomePath<'a> {
     pub(crate) path: &'a crate::Path,
+    pub(crate) root: &'a crate::Path,
     pub(crate) home: Option<&'a crate::Path>,
 }
 
@@ -502,6 +503,9 @@ impl<'a> fmt::Display for HomePath<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(rel_path) = self.home.and_then(|home| self.path.strip_prefix(home).ok()) {
             f.write_str("$CARGO_HOME/")?;
+            f.write_str(rel_path.as_str())
+        } else if let Ok(rel_path) = self.path.strip_prefix(self.root) {
+            f.write_str("$crate/")?;
             f.write_str(rel_path.as_str())
         } else {
             f.write_str(self.path.as_str())

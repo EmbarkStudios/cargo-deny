@@ -926,15 +926,16 @@ pub fn check_build(
     // set on the crate, we can skip it
     if let Some(kc) = krate_config {
         if let Some((bsc, rf)) = kc.build_script.as_ref().zip(kc.required_features.as_ref()) {
-            if let Some(bsp) = krate
+            if let Some(path) = krate
                 .targets
                 .iter()
                 .find_map(|t| (t.name == "build-script-build").then_some(&t.src_path))
             {
-                match validate_file_checksum(bsp, &bsc.value) {
+                let root = &krate.manifest_path.parent().unwrap();
+                match validate_file_checksum(path, &bsc.value) {
                     Ok(_) => {
                         pack.push(diags::ChecksumMatch {
-                            path: diags::HomePath { path: bsp, home },
+                            path: diags::HomePath { path, root, home },
                             checksum: bsc,
                             severity: None,
                             file_id,
@@ -969,7 +970,7 @@ pub fn check_build(
                     }
                     Err(err) => {
                         pack.push(diags::ChecksumMismatch {
-                            path: diags::HomePath { path: bsp, home },
+                            path: diags::HomePath { path, root, home },
                             checksum: bsc,
                             severity: Some(Severity::Warning),
                             error: format!("build script failed checksum: {err:#}"),
@@ -981,7 +982,7 @@ pub fn check_build(
         }
     }
 
-    let parent = krate.manifest_path.parent().unwrap();
+    let root = krate.manifest_path.parent().unwrap();
 
     let (tx, rx) = crossbeam::channel::unbounded();
 
@@ -991,7 +992,7 @@ pub fn check_build(
             let mut matches = Vec::new();
             let is_git_src = krate.is_git_source();
 
-            for entry in walkdir::WalkDir::new(parent)
+            for entry in walkdir::WalkDir::new(root)
                 .sort_by_file_name()
                 .into_iter()
                 .filter_entry(|entry| {
@@ -1000,7 +1001,7 @@ pub fn check_build(
                     // clones are...not interesting
                     !is_git_src
                         || (entry.path().file_name() == Some(std::ffi::OsStr::new(".git"))
-                            && entry.path().parent() == Some(parent.as_std_path()))
+                            && entry.path().parent() == Some(root.as_std_path()))
                 })
             {
                 let Ok(entry) = entry else {
@@ -1024,9 +1025,9 @@ pub fn check_build(
 
                 let path = &absolute_path;
 
-                let Ok(rel_path) = path.strip_prefix(parent) else {
+                let Ok(rel_path) = path.strip_prefix(root) else {
                     pack.push(crate::diag::Diagnostic::error().with_message(format!(
-                        "path '{path}' is not relative to crate root '{parent}'"
+                        "path '{path}' is not relative to crate root '{root}'"
                     )));
                     continue;
                 };
@@ -1057,7 +1058,7 @@ pub fn check_build(
                     if let Some(ag) = &kc.allow_globs {
                         if let Some(matches) = ag.matches(&candidate, &mut matches) {
                             pack.push(diags::GlobAllowance {
-                                path: diags::HomePath { path, home },
+                                path: diags::HomePath { path, root, home },
                                 globs: matches,
                                 file_id,
                             });
@@ -1076,7 +1077,7 @@ pub fn check_build(
                 // Check if the file matches a disallowed glob pattern
                 if let Some(matches) = config.script_extensions.matches(&candidate, &mut matches) {
                     pack.push(diags::DisallowedByExtension {
-                        path: diags::HomePath { path, home },
+                        path: diags::HomePath { path, root, home },
                         globs: matches,
                         file_id,
                     });
@@ -1088,13 +1089,13 @@ pub fn check_build(
                 let diag: Diag = match check_is_executable(path, !config.include_archives) {
                     Ok(None) => continue,
                     Ok(Some(exe_kind)) => diags::DetectedExecutable {
-                        path: diags::HomePath { path, home },
+                        path: diags::HomePath { path, root, home },
                         interpreted: config.interpreted,
                         exe_kind,
                     }
                     .into(),
                     Err(error) => diags::UnableToCheckPath {
-                        path: diags::HomePath { path, home },
+                        path: diags::HomePath { path, root, home },
                         error,
                     }
                     .into(),
@@ -1113,10 +1114,11 @@ pub fn check_build(
             rayon::scope(|s| {
                 while let Ok((path, checksum)) = rx.recv() {
                     s.spawn(|_s| {
-                        let path = path;
-                        if let Err(err) = validate_file_checksum(&path, &checksum.value) {
+                        let absolute_path = path;
+                        let path = &absolute_path;
+                        if let Err(err) = validate_file_checksum(&absolute_path, &checksum.value) {
                             let diag: Diag = diags::ChecksumMismatch {
-                                path: diags::HomePath { path: &path, home },
+                                path: diags::HomePath { path, root, home },
                                 checksum,
                                 severity: None,
                                 error: format!("{err:#}"),
@@ -1124,17 +1126,17 @@ pub fn check_build(
                             }
                             .into();
 
-                            checksum_diags.lock().insert(path, diag);
+                            checksum_diags.lock().insert(absolute_path, diag);
                         } else {
                             let diag: Diag = diags::ChecksumMatch {
-                                path: diags::HomePath { path: &path, home },
+                                path: diags::HomePath { path, root, home },
                                 checksum,
                                 severity: None,
                                 file_id,
                             }
                             .into();
 
-                            checksum_diags.lock().insert(path, diag);
+                            checksum_diags.lock().insert(absolute_path, diag);
                         }
                     });
                 }

@@ -24,7 +24,7 @@ expression: diags
       ],
       "message": "path disallowed by extension",
       "notes": [
-        "path = '/home/jake/code/cargo-deny/tests/test_data/build-bans/src/ohno.cs'"
+        "path = '$crate/src/ohno.cs'"
       ],
       "severity": "error"
     },
