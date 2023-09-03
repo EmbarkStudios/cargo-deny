@@ -1794,9 +1794,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c4dd211bb631092ec6130de12b2914bdfca99980ed567648bc77cb6c28b5bda"
+checksum = "574af0483e3c16756f0e5cd82f394be0fb1c898397fd61fdcbd26575457be5d0"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",

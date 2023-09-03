@@ -122,13 +122,16 @@ struct Config {
     targets: Vec<crate::common::Target>,
     #[serde(default)]
     exclude: Vec<String>,
+    #[serde(default)]
+    features: Vec<String>,
     feature_depth: Option<u32>,
     #[serde(default)]
     all_features: bool,
     #[serde(default)]
     no_default_features: bool,
+    /// By default, dev dependencies for workspace crates are not ignored
     #[serde(default)]
-    features: Vec<String>,
+    ignore_dev_dependencies: bool,
 }
 
 struct ValidConfig {
@@ -138,10 +141,11 @@ struct ValidConfig {
     sources: sources::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
     exclude: Vec<String>,
+    features: Vec<String>,
     feature_depth: Option<u32>,
     all_features: bool,
     no_default_features: bool,
-    features: Vec<String>,
+    ignore_dev_dependencies: bool,
 }
 
 impl ValidConfig {
@@ -212,6 +216,7 @@ impl ValidConfig {
             let all_features = cfg.all_features;
             let no_default_features = cfg.no_default_features;
             let features = cfg.features;
+            let ignore_dev_dependencies = cfg.ignore_dev_dependencies;
 
             (
                 diags,
@@ -226,6 +231,7 @@ impl ValidConfig {
                     all_features,
                     no_default_features,
                     features,
+                    ignore_dev_dependencies,
                 },
             )
         };
@@ -276,6 +282,7 @@ pub(crate) fn cmd(
         all_features,
         no_default_features,
         features,
+        ignore_dev_dependencies,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         krate_ctx.get_local_exceptions_path(),
@@ -319,6 +326,10 @@ pub(crate) fn cmd(
 
     if krate_ctx.features.is_empty() {
         krate_ctx.features = features;
+    }
+
+    if !krate_ctx.ignore_dev {
+        krate_ctx.ignore_dev = ignore_dev_dependencies;
     }
 
     let mut krates = None;

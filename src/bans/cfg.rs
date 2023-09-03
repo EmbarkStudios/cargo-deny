@@ -239,6 +239,8 @@ pub struct Config {
     /// How to handle multiple versions of the same crate
     #[serde(default = "crate::lint_warn")]
     pub multiple_versions: LintLevel,
+    #[serde(default)]
+    pub multiple_versions_include_dev: bool,
     /// How the duplicate graphs are highlighted
     #[serde(default = "highlight")]
     pub highlight: GraphHighlight,
@@ -288,6 +290,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             multiple_versions: LintLevel::Warn,
+            multiple_versions_include_dev: false,
             highlight: GraphHighlight::All,
             deny: Vec::new(),
             allow: Vec::new(),
@@ -618,6 +621,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         ValidConfig {
             file_id: cfg_file,
             multiple_versions: self.multiple_versions,
+            multiple_versions_include_dev: self.multiple_versions_include_dev,
             highlight: self.highlight,
             denied,
             denied_multiple_versions,
@@ -767,6 +771,7 @@ pub struct ValidBuildConfig {
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
+    pub multiple_versions_include_dev: bool,
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<KrateBan>,
     pub(crate) denied_multiple_versions: Vec<Skrate>,

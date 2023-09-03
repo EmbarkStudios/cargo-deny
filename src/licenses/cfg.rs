@@ -169,6 +169,10 @@ pub struct Config {
     /// licenses aren't accepted for every possible crate and must be opted into
     #[serde(default)]
     pub exceptions: Vec<Exception>,
+    /// If true, performs license checks for dev-dependencies for workspace
+    /// crates as well
+    #[serde(default)]
+    pub include_dev_dependencies: bool,
 }
 
 impl Default for Config {
@@ -185,6 +189,7 @@ impl Default for Config {
             allow: Vec::new(),
             clarify: Vec::new(),
             exceptions: Vec::new(),
+            include_dev_dependencies: false,
         }
     }
 }
@@ -339,6 +344,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             denied,
             allowed,
             ignore_sources,
+            include_dev_dependencies: self.include_dev_dependencies,
         }
     }
 }
@@ -434,6 +440,7 @@ pub struct ValidConfig {
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
     pub ignore_sources: Vec<url::Url>,
+    pub include_dev_dependencies: bool,
 }
 
 #[cfg(test)]

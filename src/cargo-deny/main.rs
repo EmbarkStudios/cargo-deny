@@ -95,6 +95,9 @@ pub(crate) struct GraphContext {
     /// only if using a cargo < 1.70.0 without the sparse protocol enabled
     #[arg(long)]
     pub(crate) allow_git_index: bool,
+    #[arg(long)]
+    /// If set, ignores all dev dependencies, not just ones for non-workspace crates
+    pub(crate) ignore_dev: bool,
 }
 
 /// Lints your project's crate graph
@@ -293,6 +296,7 @@ fn real_main() -> Result<(), Error> {
         locked: args.ctx.locked,
         offline: args.ctx.offline,
         allow_git_index: args.ctx.allow_git_index,
+        ignore_dev: args.ctx.ignore_dev,
     };
 
     let log_ctx = crate::common::LogContext {

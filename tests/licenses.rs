@@ -284,3 +284,23 @@ license-files = [
 
     insta::assert_json_snapshot!(diags);
 }
+
+#[test]
+fn handles_dev_dependencies() {
+    let cfg = tu::Config::new(
+        r#"
+allow = ['Apache-2.0']
+deny = ['GPL-3.0']
+include-dev-dependencies = true
+"#,
+    );
+
+    let mut diags = gather_licenses_with_overrides(func_name!(), cfg, None);
+    diags.retain(|d| {
+        field_eq!(d, "/fields/severity", "error")
+            && field_eq!(d, "/fields/graphs/0/Krate/name", "dynamic")
+            || field_eq!(d, "/fields/graphs/0/Krate/name", "simple_ecs")
+    });
+
+    insta::assert_json_snapshot!(diags);
+}
