@@ -171,43 +171,8 @@ impl ValidConfig {
             }
         };
 
-        let mut cfg: Config = toml::from_str(&cfg_contents)
+        let cfg: Config = toml::from_str(&cfg_contents)
             .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
-
-        // Allow for project-local exceptions. Relevant in corporate environments.
-        // https://github.com/EmbarkStudios/cargo-deny/issues/541
-        //
-        // This isn't the cleanest, but cfg.licenses isn't mutable, so appending/extending the Vec
-        // isn't possible. Similarly, the various Config/ValidConfig structs don't derive from
-        // Copy/Clone, so cloning and updating isn't possible either.
-        //
-        // This is the most minimally invasive approach I could come up with.
-        if let Some(exceptions_cfg_path) = exceptions_cfg_path {
-            // TOML can't have unnamed arrays at the root.
-            #[derive(Deserialize)]
-            pub struct ExceptionsConfig {
-                pub exceptions: Vec<licenses::cfg::Exception>,
-            }
-
-            let content = std::fs::read_to_string(&exceptions_cfg_path)
-                .with_context(|| format!("failed to read config from {exceptions_cfg_path}"))?;
-
-            let ex_cfg: ExceptionsConfig = toml::from_str(&content).with_context(|| {
-                format!("failed to deserialize config from '{exceptions_cfg_path}'")
-            })?;
-
-            if cfg.licenses.is_some() {
-                let l = cfg.licenses.unwrap_or_default();
-
-                let exceptions = l
-                    .exceptions
-                    .into_iter()
-                    .chain(ex_cfg.exceptions.into_iter())
-                    .collect();
-
-                cfg.licenses = Some(licenses::Config { exceptions, ..l });
-            }
-        };
 
         log::info!("using config from {cfg_path}");
 
@@ -225,10 +190,17 @@ impl ValidConfig {
                 .validate(id, files, &mut diags);
 
             let bans = cfg.bans.unwrap_or_default().validate(id, files, &mut diags);
-            let licenses = cfg
+            let mut licenses = cfg
                 .licenses
                 .unwrap_or_default()
                 .validate(id, files, &mut diags);
+
+            // Allow for project-local exceptions. Relevant in corporate environments.
+            // https://github.com/EmbarkStudios/cargo-deny/issues/541
+            if let Some(ecp) = exceptions_cfg_path {
+                licenses::cfg::load_exceptions(&mut licenses, ecp, files, &mut diags);
+            };
+
             let sources = cfg
                 .sources
                 .unwrap_or_default()

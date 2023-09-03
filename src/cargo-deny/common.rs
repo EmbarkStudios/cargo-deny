@@ -102,8 +102,6 @@ impl KrateContext {
         }
     }
 
-    // Allow for project-local exceptions. Relevant in corporate environments.
-    // https://github.com/EmbarkStudios/cargo-deny/issues/541
     pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
         let mut p = self.manifest_path.parent();
 
