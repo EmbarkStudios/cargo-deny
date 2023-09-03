@@ -348,9 +348,14 @@ pub fn check(
             .zip(ctx.cfg.exceptions.into_iter())
             .filter_map(|(hit, exc)| if !hit { Some(exc) } else { None })
         {
+            // Don't print warnings for exception overrides
+            if exc.file_id != ctx.cfg.file_id {
+                continue;
+            }
+
             pack.push(diags::UnmatchedLicenseException {
                 license_exc_cfg: CfgCoord {
-                    file: ctx.cfg.file_id,
+                    file: exc.file_id,
                     span: exc.name.span,
                 },
             });

@@ -147,6 +147,7 @@ struct ValidConfig {
 impl ValidConfig {
     fn load(
         cfg_path: Option<PathBuf>,
+        exceptions_cfg_path: Option<PathBuf>,
         files: &mut Files,
         log_ctx: crate::common::LogContext,
     ) -> Result<Self, Error> {
@@ -189,10 +190,17 @@ impl ValidConfig {
                 .validate(id, files, &mut diags);
 
             let bans = cfg.bans.unwrap_or_default().validate(id, files, &mut diags);
-            let licenses = cfg
+            let mut licenses = cfg
                 .licenses
                 .unwrap_or_default()
                 .validate(id, files, &mut diags);
+
+            // Allow for project-local exceptions. Relevant in corporate environments.
+            // https://github.com/EmbarkStudios/cargo-deny/issues/541
+            if let Some(ecp) = exceptions_cfg_path {
+                licenses::cfg::load_exceptions(&mut licenses, ecp, files, &mut diags);
+            };
+
             let sources = cfg
                 .sources
                 .unwrap_or_default()
@@ -270,6 +278,7 @@ pub(crate) fn cmd(
         features,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
+        krate_ctx.get_local_exceptions_path(),
         &mut files,
         log_ctx,
     )?;
@@ -332,7 +341,7 @@ pub(crate) fn cmd(
                     match cl {
                         CodeOrLevel::Code(code) => {
                             if let Some(current) = code_overrides.get(code.as_str()) {
-                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overridden to '{current:?}'");
                             }
 
                             code_overrides.insert(code.as_str(), severity);
@@ -348,7 +357,7 @@ pub(crate) fn cmd(
                                     }
                                 })
                             {
-                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overriden to '{current:?}'");
+                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overridden to '{current:?}'");
                             }
 
                             level_overrides.push((ls, severity));

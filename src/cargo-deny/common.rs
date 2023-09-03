@@ -102,6 +102,35 @@ impl KrateContext {
         }
     }
 
+    pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
+        let mut p = self.manifest_path.parent();
+
+        while let Some(parent) = p {
+            let mut config_path = parent.join("deny.exceptions.toml");
+
+            if config_path.exists() {
+                return Some(config_path);
+            }
+
+            config_path.pop();
+            config_path.push(".deny.exceptions.toml");
+
+            if config_path.exists() {
+                return Some(config_path);
+            }
+
+            config_path.pop();
+            config_path.push(".cargo/deny.exceptions.toml");
+            if config_path.exists() {
+                return Some(config_path);
+            }
+
+            p = parent.parent();
+        }
+
+        None
+    }
+
     #[inline]
     pub fn fetch_krates(&self) -> anyhow::Result<()> {
         fetch(MetadataOptions {

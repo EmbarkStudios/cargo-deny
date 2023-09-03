@@ -101,6 +101,21 @@ The name of the crate that you are adding an exception for
 
 An optional version constraint specifying the range of crate versions you are excepting. Defaults to any version.
 
+### Additional exceptions configuration file
+
+In some cases it's useful to have global cargo-deny config and project-local exceptions. This can be accomplished with a project exceptions file in any of these locations relative to your top level `Cargo.toml` manifest file.
+
+`cargo-deny` will look for the following files: `<cwd>/deny.exceptions.toml`, `<cwd>/.deny.exceptions.toml` and `<cwd>/.cargo/deny.exceptions.toml`
+
+Only the exceptions field should be set:
+
+```ini
+exceptions = [
+    # Each entry is the crate and version constraint, and its specific allow list.
+    { allow = ["CDDL-1.0"], name = "inferno", version = "*" },
+]
+```
+
 #### The `allow` field
 
 This is the exact same as the general `allow` field.
