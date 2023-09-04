@@ -24,6 +24,10 @@ Space-separated list of features to enable when determining which crates to cons
 
 Forces all workspace crates to be used as roots in the crate graph that we operate on, unless they are excluded by other means. By default, if you specify a [virtual manifest](https://doc.rust-lang.org/cargo/reference/manifest.html#virtual-manifest), all crates in the workspace will be used as roots. However, if you specify a normal package manifest somewhere inside a workspace, only that crate will be used as a graph root, and only other workspaces crates it depends on will be included in the graph. If you want to specify a sub-crate in a workspace, but still include all other crates in the workspace, you can use this flag.
 
+### `--exclude-dev`
+
+If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks.
+
 ### `--exclude`
 
 Exclude the specified package(s) from the crate graph. Unlike other cargo subcommands, it doesn't have to be used in conjunction with the `--workspace` flag. This flag may be specified multiple times.

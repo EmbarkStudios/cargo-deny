@@ -52,6 +52,7 @@ expression: diags
                                   "parents": [
                                     {
                                       "Krate": {
+                                        "kind": "dev",
                                         "name": "duplicates",
                                         "version": "0.1.0"
                                       }
@@ -216,6 +217,7 @@ expression: diags
                                   "parents": [
                                     {
                                       "Krate": {
+                                        "kind": "dev",
                                         "name": "duplicates",
                                         "version": "0.1.0"
                                       }
@@ -378,6 +380,7 @@ expression: diags
                                       "parents": [
                                         {
                                           "Krate": {
+                                            "kind": "dev",
                                             "name": "duplicates",
                                             "version": "0.1.0"
                                           }

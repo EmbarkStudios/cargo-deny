@@ -1,6 +1,6 @@
 ---
 source: tests/bans.rs
-expression: dup_graphs.lock().unwrap()
+expression: dup_graphs.lock()
 ---
 [
     digraph {
@@ -26,7 +26,7 @@ expression: dup_graphs.lock().unwrap()
         6 -> 5 []
         7 -> 6 []
         8 -> 6 []
-        9 -> 8 []
+        9 -> 8 [label="dev"]
         8 -> 7 []
         10 -> 0 [color=red]
         11 -> 10 [color=red]
@@ -65,7 +65,7 @@ expression: dup_graphs.lock().unwrap()
         6 -> 5 []
         7 -> 6 []
         8 -> 6 []
-        9 -> 8 []
+        9 -> 8 [label="dev"]
         8 -> 7 []
         10 -> 0 [color=red]
         11 -> 10 [color=red]
@@ -121,7 +121,7 @@ expression: dup_graphs.lock().unwrap()
         16 -> 15 [color=blue]
         17 -> 16 [color=blue]
         18 -> 16 [color=blue]
-        8 -> 18 [color=blue]
+        8 -> 18 [label="dev", color=blue]
         18 -> 17 [color=blue]
         12 -> 10 [color=blue]
         subgraph cluster_0 {

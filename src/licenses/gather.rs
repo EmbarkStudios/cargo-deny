@@ -463,6 +463,13 @@ impl Gatherer {
 
         let files_lock = std::sync::Arc::new(parking_lot::RwLock::new(files));
 
+        // Most users will not care about licenses for dev dependencies
+        let krates = if cfg.map_or(false, |cfg| cfg.include_dev) {
+            krates.krates().collect()
+        } else {
+            krates.krates_filtered(krates::DepKind::Dev)
+        };
+
         // Retrieve the license expression we'll use to evaluate the user's overall
         // constraints with.
         //
@@ -492,8 +499,7 @@ impl Gatherer {
         // of dual-licensing in the rust ecosystem, many people forgo setting
         // license-file, so we use it and/or any LICENSE files
         summary.nfos = krates
-            .krates()
-            .par_bridge()
+            .into_par_iter()
             .map(|krate| {
                 // Attempt an SPDX expression that we can validate the user's acceptable
                 // license terms with

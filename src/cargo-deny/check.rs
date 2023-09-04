@@ -93,6 +93,9 @@ pub struct Args {
     /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
     #[arg(short, long)]
     pub disable_fetch: bool,
+    /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
+    #[arg(long)]
+    pub exclude_dev: bool,
     /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
     ///
     /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
@@ -122,13 +125,16 @@ struct Config {
     targets: Vec<crate::common::Target>,
     #[serde(default)]
     exclude: Vec<String>,
+    #[serde(default)]
+    features: Vec<String>,
     feature_depth: Option<u32>,
     #[serde(default)]
     all_features: bool,
     #[serde(default)]
     no_default_features: bool,
+    /// By default, dev dependencies for workspace crates are not ignored
     #[serde(default)]
-    features: Vec<String>,
+    exclude_dev: bool,
 }
 
 struct ValidConfig {
@@ -138,10 +144,11 @@ struct ValidConfig {
     sources: sources::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
     exclude: Vec<String>,
+    features: Vec<String>,
     feature_depth: Option<u32>,
     all_features: bool,
     no_default_features: bool,
-    features: Vec<String>,
+    exclude_dev: bool,
 }
 
 impl ValidConfig {
@@ -212,6 +219,7 @@ impl ValidConfig {
             let all_features = cfg.all_features;
             let no_default_features = cfg.no_default_features;
             let features = cfg.features;
+            let exclude_dev = cfg.exclude_dev;
 
             (
                 diags,
@@ -226,6 +234,7 @@ impl ValidConfig {
                     all_features,
                     no_default_features,
                     features,
+                    exclude_dev,
                 },
             )
         };
@@ -276,6 +285,7 @@ pub(crate) fn cmd(
         all_features,
         no_default_features,
         features,
+        exclude_dev,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         krate_ctx.get_local_exceptions_path(),
@@ -308,15 +318,11 @@ pub(crate) fn cmd(
 
     let feature_depth = args.feature_depth.or(feature_depth);
 
+    krate_ctx.all_features |= all_features;
+    krate_ctx.no_default_features |= no_default_features;
+    krate_ctx.exclude_dev |= exclude_dev | args.exclude_dev;
+
     // If not specified on the cmd line, fallback to the feature related config options
-    if !krate_ctx.all_features {
-        krate_ctx.all_features = all_features;
-    }
-
-    if !krate_ctx.no_default_features {
-        krate_ctx.no_default_features = no_default_features;
-    }
-
     if krate_ctx.features.is_empty() {
         krate_ctx.features = features;
     }

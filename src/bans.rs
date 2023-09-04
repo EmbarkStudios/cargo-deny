@@ -200,6 +200,7 @@ pub fn check(
         external_default_features,
         skipped,
         multiple_versions,
+        multiple_versions_include_dev,
         highlight,
         tree_skipped,
         wildcards,
@@ -234,6 +235,24 @@ pub fn check(
     let mut multi_detector = MultiDetector {
         name: &ctx.krates.krates().next().unwrap().name,
         dupes: smallvec::SmallVec::new(),
+    };
+
+    let filtered_krates = if !multiple_versions_include_dev {
+        ctx.krates.krates_filtered(krates::DepKind::Dev)
+    } else {
+        Vec::new()
+    };
+
+    // If we're not counting dev dependencies as duplicates, create a separate
+    // set of krates with dev dependencies filtered out
+    let should_add_dupe = move |kid| {
+        if multiple_versions_include_dev {
+            true
+        } else {
+            filtered_krates
+                .binary_search_by(|krate| krate.id.cmp(kid))
+                .is_ok()
+        }
     };
 
     let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
@@ -669,66 +688,68 @@ pub fn check(
                     }
                 }
 
-                if let Some(matches) = matches(&skipped, krate) {
-                    for rm in matches {
-                        pack.push(diags::Skipped {
-                            krate,
-                            skip_cfg: CfgCoord {
-                                file: file_id,
-                                span: rm.id.span.clone(),
-                            },
-                        });
-
-                        // Mark each skip filter that is hit so that we can report unused
-                        // filters to the user so that they can cleanup their configs as
-                        // their dependency graph changes over time
-                        skip_hit.as_mut_bitslice().set(rm.index, true);
-                    }
-                } else if !tree_skipper.matches(krate, &mut pack) {
-                    if multi_detector.name != krate.name {
-                        report_duplicates(&multi_detector, &mut sink);
-
-                        multi_detector.name = &krate.name;
-                        multi_detector.dupes.clear();
-                    }
-
-                    multi_detector.dupes.push(i);
-
-                    if wildcards != LintLevel::Allow && !krate.is_git_source() {
-                        let severity = match wildcards {
-                            LintLevel::Warn => Severity::Warning,
-                            LintLevel::Deny => Severity::Error,
-                            LintLevel::Allow => unreachable!(),
-                        };
-
-                        let mut wildcards: Vec<_> = krate
-                            .deps
-                            .iter()
-                            .filter(|dep| dep.req == VersionReq::STAR)
-                            .collect();
-
-                        if allow_wildcard_paths {
-                            let is_private = krate.is_private(&[]);
-
-                            wildcards.retain(|dep| {
-                                if is_private {
-                                    dep.path.is_none()
-                                } else {
-                                    let is_path_dev_dependency = dep.path.is_some()
-                                        && dep.kind != DependencyKind::Development;
-                                    is_path_dev_dependency || dep.path.is_none()
-                                }
+                if should_add_dupe(&krate.id) {
+                    if let Some(matches) = matches(&skipped, krate) {
+                        for rm in matches {
+                            pack.push(diags::Skipped {
+                                krate,
+                                skip_cfg: CfgCoord {
+                                    file: file_id,
+                                    span: rm.id.span.clone(),
+                                },
                             });
+
+                            // Mark each skip filter that is hit so that we can report unused
+                            // filters to the user so that they can cleanup their configs as
+                            // their dependency graph changes over time
+                            skip_hit.as_mut_bitslice().set(rm.index, true);
+                        }
+                    } else if !tree_skipper.matches(krate, &mut pack) {
+                        if multi_detector.name != krate.name {
+                            report_duplicates(&multi_detector, &mut sink);
+
+                            multi_detector.name = &krate.name;
+                            multi_detector.dupes.clear();
                         }
 
-                        if !wildcards.is_empty() {
-                            sink.push(diags::Wildcards {
-                                krate,
-                                severity,
-                                wildcards,
-                                allow_wildcard_paths,
-                                cargo_spans: &cargo_spans,
-                            });
+                        multi_detector.dupes.push(i);
+
+                        if wildcards != LintLevel::Allow && !krate.is_git_source() {
+                            let severity = match wildcards {
+                                LintLevel::Warn => Severity::Warning,
+                                LintLevel::Deny => Severity::Error,
+                                LintLevel::Allow => unreachable!(),
+                            };
+
+                            let mut wildcards: Vec<_> = krate
+                                .deps
+                                .iter()
+                                .filter(|dep| dep.req == VersionReq::STAR)
+                                .collect();
+
+                            if allow_wildcard_paths {
+                                let is_private = krate.is_private(&[]);
+
+                                wildcards.retain(|dep| {
+                                    if is_private {
+                                        dep.path.is_none()
+                                    } else {
+                                        let is_path_dev_dependency = dep.path.is_some()
+                                            && dep.kind != DependencyKind::Development;
+                                        is_path_dev_dependency || dep.path.is_none()
+                                    }
+                                });
+                            }
+
+                            if !wildcards.is_empty() {
+                                sink.push(diags::Wildcards {
+                                    krate,
+                                    severity,
+                                    wildcards,
+                                    allow_wildcard_paths,
+                                    cargo_spans: &cargo_spans,
+                                });
+                            }
                         }
                     }
                 }

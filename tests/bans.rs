@@ -89,7 +89,27 @@ fn deterministic_duplicate_ordering() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("duplicates"),
-        "multiple-versions = 'deny'",
+        r#"
+multiple-versions = 'deny'
+multiple-versions-include-dev = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Ensures that dev dependendencies are ignored
+#[test]
+fn ignores_dev() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("duplicates"),
+        r#"
+multiple-versions = 'deny'
+skip = [
+    { name = 'block-buffer', version = "=0.7.3" },
+]
+"#,
     );
 
     insta::assert_json_snapshot!(diags);
@@ -101,7 +121,11 @@ fn duplicate_graphs() {
     use cargo_deny::bans;
 
     let krates = KrateGather::new("duplicates").gather();
-    let cfg = "multiple-versions = 'deny'".into();
+    let cfg = r#"
+multiple-versions = 'deny'
+multiple-versions-include-dev = true
+"#
+    .into();
 
     let dup_graphs = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
 
@@ -130,6 +154,7 @@ fn deny_multiple_versions_for_specific_krates() {
         KrateGather::new("duplicates"),
         r#"
 multiple-versions = 'allow'
+multiple-versions-include-dev = true
 deny = [
     { name = 'block-buffer', deny-multiple-versions = true },
     { name = 'generic-array', deny-multiple-versions = true },

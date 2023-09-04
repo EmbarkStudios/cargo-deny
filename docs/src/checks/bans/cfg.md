@@ -16,6 +16,10 @@ Determines what happens when multiple versions of the same crate are encountered
 * `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.
 * `allow` - Ignores duplicate versions of the same crate.
 
+### The `multiple-versions-include-dev` field (optional)
+
+If `true`, `dev-dependencies` are included when checking for multiple versions of crates. By default this is false, and any crates that are only reached via dev dependency edges are ignored when checking for multiple versions. Note that this also means that `skip` and `skip` tree are not used, which may lead to warnings about unused configuration.
+
 ### The `wildcards` field (optional)
 
 Determines what happens when a dependency is specified with the `*` (wildcard) version.

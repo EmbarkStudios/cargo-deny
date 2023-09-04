@@ -1,0 +1,23 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unmatched-skip",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 5,
+          "line": 4,
+          "message": "unmatched skip configuration",
+          "span": "{ name = 'block-buffer', version = \"=0.7.3\" }"
+        }
+      ],
+      "message": "skipped crate 'block-buffer = =0.7.3' was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

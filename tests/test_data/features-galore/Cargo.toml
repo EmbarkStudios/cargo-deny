@@ -16,7 +16,7 @@ rustls = { version = "0.20", optional = true }
 windows-sys = { version = "0.42", features = ["Win32_System_LibraryLoader"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-git = { package = "git2", version = "0.14", default-features = false }
+git = { package = "git2", version = "=0.14.4", default-features = false }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 audio = { package = "coreaudio-rs", version = "=0.11.1", default-features = false, optional = true }
@@ -25,6 +25,9 @@ audio = { package = "coreaudio-rs", version = "=0.11.1", default-features = fals
 reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
     "cookies",
 ] }
+
+[dev-dependencies]
+simple_ecs = "=0.3.2"
 
 [features]
 default = ["simple"]

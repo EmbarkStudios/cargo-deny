@@ -33,6 +33,9 @@ Options:
           
           When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
 
+      --exclude-dev
+          If set, excludes all dev-dependencies, not just ones for non-workspace crates
+
       --audit-compatible-output
           To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
           

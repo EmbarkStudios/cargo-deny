@@ -5,4 +5,6 @@ edition = "2021"
 
 [dependencies]
 sqlx = "0.5"
+
+[dev-dependencies]
 async-graphql = "3.0"
