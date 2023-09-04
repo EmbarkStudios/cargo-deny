@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.2] - 2023-09-04
 ### Added
 - [PR#545](https://github.com/EmbarkStudios/cargo-deny/pull/545) added the ability to specify additional license exceptions via [additional configuration files](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#additional-exceptions-configuration-file).
 - [PR#549](https://github.com/EmbarkStudios/cargo-deny/pull/549) added the [`bans.build`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-build-field-optional) configuration option, opting in to checking for [file extensions](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-script-extensions-field-optional), [native executables](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-executables-field-optional), and [interpreted scripts](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-interpreted-field-optional). This resolved [#43](https://github.com/EmbarkStudios/cargo-deny/issues/43).
@@ -479,7 +480,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.2...HEAD
+[0.14.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...0.14.0
 [0.13.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.8...0.13.9
