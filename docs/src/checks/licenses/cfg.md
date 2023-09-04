@@ -41,6 +41,10 @@ allow = [
 ]
 ```
 
+### The `include-dev` field (optional)
+
+If `true`, licenses are checked even for `dev-dependencies`. By default this is false as `dev-dependencies` are not used by downstream crates, nor part of binary artifacts.
+
 ### The `unlicensed` field (optional)
 
 Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via `LICENSE*` files in the crate's source.

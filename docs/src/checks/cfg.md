@@ -28,15 +28,15 @@ The `targets` field allows you to specify one or more targets which you **actual
 
 The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target you wish to filter target specific dependencies with. If the target triple specified is **not** one of the targets builtin to `rustc`, the configuration check for that target will be limited to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()` expressions require us to know the details about the target.
 
-#### The `exclude` field (optional)
+#### The `targets.features` field (optional)
+
+Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute) predicate, but at the moment, the only way to actually pass them when compiling is to use the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more `target_feature`s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
+
+### The `exclude` field (optional)
 
 Just as with the [`--exclude`](../cli/common.md#--exclude) command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html) that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.
 
 Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.
-
-#### The `features` field (optional)
-
-Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute) predicate, but at the moment, the only way to actually pass them when compiling is to use the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more `target_feature`s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
 ### The `all-features` field (optional)
 
@@ -53,6 +53,10 @@ If set, and `--features` is not specified on the cmd line, these features will b
 ### The `feature-depth` field (optional)
 
 The maximum depth that features will be displayed when inclusion graphs are included in diagnostics, unless specified via `--feature-depth` on the command line. Only applies to diagnostics that actually print features. If not specified defaults to `1`.
+
+### The `exclude-dev` field (optional)
+
+If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks. This option can also be enabled on cmd line with `--exclude-dev` either [before](../cli/common.md#--exclude-dev) or [after](../cli/check.md#--exclude-dev) the `check` subcommand.
 
 ### The `[licenses]` section
 

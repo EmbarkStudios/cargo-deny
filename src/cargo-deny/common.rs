@@ -62,7 +62,7 @@ pub struct KrateContext {
     /// If true, allows using the crates.io git index, otherwise the sparse index
     /// is assumed to be the only index
     pub allow_git_index: bool,
-    pub ignore_dev: bool,
+    pub exclude_dev: bool,
 }
 
 impl KrateContext {
@@ -182,7 +182,7 @@ impl KrateContext {
 
         gb.ignore_kind(
             DepKind::Dev,
-            if self.ignore_dev {
+            if self.exclude_dev {
                 krates::Scope::All
             } else {
                 krates::Scope::NonWorkspace

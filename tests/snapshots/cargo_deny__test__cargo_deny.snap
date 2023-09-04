@@ -86,8 +86,8 @@ Options:
       --allow-git-index
           If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled only if using a cargo < 1.70.0 without the sparse protocol enabled
 
-      --ignore-dev
-          If set, ignores all dev dependencies, not just ones for non-workspace crates
+      --exclude-dev
+          If set, excludes all dev-dependencies, not just ones for non-workspace crates
 
   -h, --help
           Print help (see a summary with '-h')

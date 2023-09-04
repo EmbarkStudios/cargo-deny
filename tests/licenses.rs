@@ -291,7 +291,7 @@ fn handles_dev_dependencies() {
         r#"
 allow = ['Apache-2.0']
 deny = ['GPL-3.0']
-include-dev-dependencies = true
+include-dev = true
 "#,
     );
 

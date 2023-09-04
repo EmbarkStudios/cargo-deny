@@ -36,6 +36,10 @@ When running the `advisories` check, the configured advisory database will be fe
 
 This option is also set if the `--offline` flag is used in the global options.
 
+### `--exclude-dev`
+
+If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks.
+
 ### `-D, --deny <DENY>`
 
 Set lint denied

@@ -96,8 +96,8 @@ pub(crate) struct GraphContext {
     #[arg(long)]
     pub(crate) allow_git_index: bool,
     #[arg(long)]
-    /// If set, ignores all dev dependencies, not just ones for non-workspace crates
-    pub(crate) ignore_dev: bool,
+    /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
+    pub(crate) exclude_dev: bool,
 }
 
 /// Lints your project's crate graph
@@ -296,7 +296,7 @@ fn real_main() -> Result<(), Error> {
         locked: args.ctx.locked,
         offline: args.ctx.offline,
         allow_git_index: args.ctx.allow_git_index,
-        ignore_dev: args.ctx.ignore_dev,
+        exclude_dev: args.ctx.exclude_dev,
     };
 
     let log_ctx = crate::common::LogContext {
