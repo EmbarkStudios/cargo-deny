@@ -167,7 +167,7 @@ end = "2024-06-05"
 
 [[trusted.libz-sys]]
 criteria = "safe-to-deploy"
-user-id = 4333 # Josh Triplett (joshtriplett)
+user-id = 4333
 start = "2020-08-14"
 end = "2024-06-07"
 
