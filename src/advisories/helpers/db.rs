@@ -366,8 +366,8 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
             let objects = repo.objects.clone().into_arc()?;
             move |oid, buf| objects.find_blob(oid, buf)
         },
-        &mut progress,
-        &mut gix::progress::Discard,
+        &progress,
+        &gix::progress::Discard,
         should_interrupt,
         opts,
     )
