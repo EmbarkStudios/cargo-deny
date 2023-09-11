@@ -2549,9 +2549,9 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.5.6"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43e507ac85d70463f22b6dddc79e637cff047a4460a0278d5999647f1ae2b63f"
+checksum = "e6b3fea0e225ef36939de3613334dbbc02da041c1830e4a84260b0137b3bc0c7"
 dependencies = [
  "bytes",
  "camino",
