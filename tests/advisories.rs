@@ -581,14 +581,6 @@ fn crates_io_source_replacement() {
     let mut cmd: krates::cm::MetadataCommand = cmd.into();
     cmd.env("CARGO_HOME", cargo_home);
 
-    // Create a .package-cache lockfile, as we always open the global cargo index
-    // with shared, which isn't capable of creating the file if it doesn't exist
-    // std::fs::OpenOptions::new()
-    //     .create(true)
-    //     .write(true)
-    //     .open(cargo_home.join(".package-cache"))
-    //     .unwrap();
-
     let mut kb = krates::Builder::new();
     cargo_deny::krates_with_index(
         &mut kb,
