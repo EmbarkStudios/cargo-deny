@@ -110,7 +110,7 @@ time = { version = "0.3", default-features = false, features = [
   "formatting",
   "macros",
 ] }
-# Deserialization of configuration files and crate manifests, keep aligned with rustsec
+# Deserialization of configuration files and crate manifests
 toml = "0.8"
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
