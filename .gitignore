@@ -4,3 +4,4 @@
 /tests/test_data/**/target
 scripts/check
 *.snap.new
+/tests/advisory-db/db.lock

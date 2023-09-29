@@ -505,16 +505,21 @@ pub fn krates_with_index(
         .context("unable to determine crates.io url")?;
 
     let index = tame_index::index::ComboIndexCache::new(
-        tame_index::IndexLocation::new(crates_io).with_root(cargo_home),
+        tame_index::IndexLocation::new(crates_io).with_root(cargo_home.clone()),
     )
     .context("unable to open local crates.io index")?;
+
+    // Note we don't take a lock here ourselves, since we are calling cargo
+    // it will take the lock and only give us results if it gets access, if we
+    // took a look we would deadlock here
+    let lock = tame_index::utils::flock::FileLock::unlocked();
 
     let index_cache_build = move |krates: std::collections::BTreeSet<String>| {
         let mut cache = std::collections::BTreeMap::new();
         for name in krates {
             let read = || -> Option<krates::index::IndexKrate> {
                 let name = name.as_str().try_into().ok()?;
-                let krate = index.cached_krate(name).ok()??;
+                let krate = index.cached_krate(name, &lock).ok()??;
                 let versions = krate
                     .versions
                     .into_iter()

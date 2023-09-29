@@ -39,6 +39,21 @@ impl<'k> Indices<'k> {
             indices.push((source, index));
         }
 
+        let cargo_package_lock =
+            match tame_index::utils::flock::LockOptions::cargo_package_lock(Some(cargo_home))
+                .expect("unreachable")
+                .shared()
+                .lock(|path| {
+                    log::info!("waiting for {path}...");
+                    Some(std::time::Duration::from_secs(60))
+                }) {
+                Ok(fl) => fl,
+                Err(err) => {
+                    log::error!("unable to acquire cargo global package lock: {err:#}");
+                    tame_index::utils::flock::FileLock::unlocked()
+                }
+            };
+
         // Load the current entries into an in-memory cache so we can hopefully
         // remove any I/O in the rest of the check
         let set: std::collections::BTreeSet<_> = krates
@@ -58,10 +73,13 @@ impl<'k> Indices<'k> {
                     .iter()
                     .find_map(|(url, index)| index.as_ref().ok().filter(|_i| src == *url))?;
 
-                index.cached_krate(name.try_into().ok()?).ok()?.map(|ik| {
-                    let yank_map = Self::load_index_krate(ik);
-                    ((name, src), yank_map)
-                })
+                index
+                    .cached_krate(name.try_into().ok()?, &cargo_package_lock)
+                    .ok()?
+                    .map(|ik| {
+                        let yank_map = Self::load_index_krate(ik);
+                        ((name, src), yank_map)
+                    })
             })
             .collect();
 

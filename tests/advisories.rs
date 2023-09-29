@@ -496,6 +496,8 @@ fn crates_io_source_replacement() {
             version: semver::Version,
         }
 
+        let lock = &tame_index::utils::flock::FileLock::unlocked();
+
         let index_krates: Vec<_> = krates
             .krates()
             .filter_map(|k| {
@@ -504,7 +506,7 @@ fn crates_io_source_replacement() {
                 }
                 Some(IndexPkg {
                     ik: sparse
-                        .cached_krate(k.name.as_str().try_into().unwrap())
+                        .cached_krate(k.name.as_str().try_into().unwrap(), lock)
                         .unwrap()
                         .unwrap(),
                     version: k.version.clone(),
