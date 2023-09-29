@@ -87,6 +87,17 @@ impl DbSet {
             urls.push(Url::parse(DEFAULT_URL).unwrap());
         }
 
+        // Acquire an exclusive lock, even if we aren't fetching, to prevent
+        // other cargo-deny processes from performing mutations
+        let lock_path = root_db_path.join("db.lock");
+        let _lock = tame_index::utils::flock::LockOptions::new(&lock_path)
+            .exclusive(false)
+            .lock(|path| {
+                log::info!("waiting on advisory db lock '{path}'");
+                Some(std::time::Duration::from_secs(60))
+            })
+            .context("failed to acquire advisory database lock")?;
+
         use rayon::prelude::*;
         let mut dbs = Vec::with_capacity(urls.len());
         urls.into_par_iter()
@@ -404,18 +415,6 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
     if db_path.is_dir() && std::fs::read_dir(db_path)?.next().is_none() {
         std::fs::remove_dir(db_path)?;
     }
-
-    let _lock = gix::lock::Marker::acquire_to_hold_resource(
-        db_path.with_extension("cargo-deny"),
-        gix::lock::acquire::Fail::AfterDurationWithBackoff(std::time::Duration::from_secs(
-            60 * 10, /* 10 minutes */
-        )),
-        #[allow(clippy::disallowed_types)]
-        Some(std::path::PathBuf::from_iter(Some(
-            std::path::Component::RootDir,
-        ))),
-    )
-    .context("failed to acquire lock")?;
 
     let open_or_clone_repo = || -> anyhow::Result<_> {
         let mut mapping = gix::sec::trust::Mapping::default();

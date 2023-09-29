@@ -496,6 +496,8 @@ fn crates_io_source_replacement() {
             version: semver::Version,
         }
 
+        let lock = &tame_index::utils::flock::FileLock::unlocked();
+
         let index_krates: Vec<_> = krates
             .krates()
             .filter_map(|k| {
@@ -504,7 +506,7 @@ fn crates_io_source_replacement() {
                 }
                 Some(IndexPkg {
                     ik: sparse
-                        .cached_krate(k.name.as_str().try_into().unwrap())
+                        .cached_krate(k.name.as_str().try_into().unwrap(), lock)
                         .unwrap()
                         .unwrap(),
                     version: k.version.clone(),
@@ -578,6 +580,14 @@ fn crates_io_source_replacement() {
 
     let mut cmd: krates::cm::MetadataCommand = cmd.into();
     cmd.env("CARGO_HOME", cargo_home);
+
+    // Create a .package-cache lockfile, as we always open the global cargo index
+    // with shared, which isn't capable of creating the file if it doesn't exist
+    // std::fs::OpenOptions::new()
+    //     .create(true)
+    //     .write(true)
+    //     .open(cargo_home.join(".package-cache"))
+    //     .unwrap();
 
     let mut kb = krates::Builder::new();
     cargo_deny::krates_with_index(
