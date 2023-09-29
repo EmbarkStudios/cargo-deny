@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.3] - 2023-09-29
 ### Fixed
 - [PR#566](https://github.com/EmbarkStudios/cargo-deny/pull/566) updated `tame-index` to obtain support OS file locking, resolving [#537](https://github.com/EmbarkStudios/cargo-deny/issues/537). This change means that cargo-deny should not encounter issues such as those described [here](https://github.com/rustsec/rustsec/issues/1011) since we no longer use `gix::lock` locking advisory databases, and makes reading the crates.io index safer by respecting the lock used by cargo itself.
 
@@ -483,7 +484,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.3...HEAD
+[0.14.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.13.9...0.14.0
