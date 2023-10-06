@@ -36,7 +36,7 @@ executables = "warn"
 interpreted = "deny"
 script-extensions = ["cs"]
 enable-builtin-globs = true
-include-dependencies = true
+include-dependencies = 1
 include-workspace = true
 include-archives = true
 

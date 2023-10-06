@@ -221,14 +221,16 @@ pub struct BuildConfig {
     /// If true, enables the built-in glob patterns
     #[serde(default)]
     pub enable_builtin_globs: bool,
-    /// If true, all dependencies of proc macro crates or crates with build
-    /// scripts are also checked for executables/glob patterns
+    /// If positive, the set levels of dependencies of proc macro crates
+    /// or crates with build scripts are also checked for
+    /// executables/glob patterns
     #[serde(default)]
-    pub include_dependencies: bool,
-    /// If true, workspace crates are included
+    pub include_dependencies: u16,
+    /// If true, the workspace crates are included
     #[serde(default)]
     pub include_workspace: bool,
-    /// If true, archive files are counted as native executables
+    /// If true, the level of archive files are counted as native
+    /// executables
     #[serde(default)]
     pub include_archives: bool,
 }
@@ -609,7 +611,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 executables: LintLevel::Allow,
                 script_extensions: ValidGlobSet::default(),
                 bypass: Vec::new(),
-                include_dependencies: false,
+                include_dependencies: 0,
                 include_workspace: false,
                 include_archives: false,
                 interpreted: LintLevel::Warn,
@@ -762,7 +764,7 @@ pub struct ValidBuildConfig {
     pub executables: LintLevel,
     pub script_extensions: ValidGlobSet,
     pub bypass: Vec<ValidBypass>,
-    pub include_dependencies: bool,
+    pub include_dependencies: u16,
     pub include_workspace: bool,
     pub include_archives: bool,
     pub interpreted: LintLevel,
@@ -893,7 +895,7 @@ mod test {
             };
             gp.0.value == "*.py"
         }));
-        assert!(bc.include_dependencies);
+        assert_eq!(bc.include_dependencies, 1);
         assert!(bc.include_workspace);
         assert!(bc.include_archives);
 

@@ -16,7 +16,7 @@ fn detects_scripts_by_builtin_glob() {
             r#"
 [build]
 enable-builtin-globs = true
-include-dependencies = true
+include-dependencies = 100
 "#,
         ),
     );
@@ -88,7 +88,7 @@ fn detects_native_executables() {
             r#"
 [build]
 enable-builtin-globs = true
-include-dependencies = true
+include-dependencies = 100
 "#,
         ),
     );
@@ -172,7 +172,7 @@ fn allows_by_glob() {
             r#"
 [build]
 enable-builtin-globs = true
-include-dependencies = true
+include-dependencies = 100
 
 [[build.bypass]]
 name = "ring"

@@ -11,7 +11,7 @@ use anyhow::Error;
 pub use diags::Code;
 use krates::cm::DependencyKind;
 use semver::VersionReq;
-use std::fmt;
+use std::{collections::BTreeSet, fmt};
 
 #[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(test, derive(Debug))]
@@ -789,6 +789,60 @@ pub fn check(
                         .ok()
                 });
 
+            // For the build checks, pick only the crates based on the
+            // depth in their dependency level, starting off from the
+            // workspace members.
+            let mut levels_to_go = build_config.include_dependencies;
+            let mut dependencies_to_check_build: BTreeSet<&Krate> = BTreeSet::new();
+            if levels_to_go > 0 {
+                levels_to_go -= 1;
+
+                for (krate, features) in ctx.krates.workspace_members().filter_map(|member| {
+                    if let krates::Node::Krate {
+                        id: _,
+                        krate,
+                        features,
+                    } = member
+                    {
+                        Some((krate, features))
+                    } else {
+                        None
+                    }
+                }) {
+                    if features.is_empty() {
+                        let (nid, _) = ctx.krates.get_node(&krate.id, None).unwrap();
+                        for dependency in ctx.krates.direct_dependencies(nid) {
+                            dependencies_to_check_build.insert(dependency.krate);
+                        }
+                    } else {
+                        for feature in features {
+                            let (nid, _) = ctx
+                                .krates
+                                .get_node(&krate.id, Some(feature.as_ref()))
+                                .unwrap();
+                            for dependency in ctx.krates.direct_dependencies(nid) {
+                                dependencies_to_check_build.insert(dependency.krate);
+                            }
+                        }
+                    }
+
+                    // Traverse the levels of dependencies.
+                    while levels_to_go > 0 {
+                        levels_to_go -= 1;
+
+                        let mut sub_dependencies = BTreeSet::new();
+                        for dependency in &dependencies_to_check_build {
+                            let (nid, _) = ctx.krates.get_node(&dependency.id, None).unwrap();
+                            for dependency in ctx.krates.direct_dependencies(nid) {
+                                sub_dependencies.insert(dependency.krate);
+                            }
+                        }
+                        dependencies_to_check_build.append(&mut sub_dependencies);
+                    }
+                }
+            }
+            let dependencies_to_check_build = &dependencies_to_check_build;
+
             let pq = parking_lot::Mutex::new(std::collections::BTreeMap::new());
             rayon::scope(|s| {
                 let bc = &build_config;
@@ -798,9 +852,15 @@ pub fn check(
 
                 while let Ok((index, krate, mut pack)) = rx.recv() {
                     s.spawn(move |_s| {
-                        if let Some(bcc) =
-                            check_build(ctx.cfg.file_id, bc, home, krate, ctx.krates, &mut pack)
-                        {
+                        if let Some(bcc) = check_build(
+                            ctx.cfg.file_id,
+                            bc,
+                            home,
+                            krate,
+                            ctx.krates,
+                            &mut pack,
+                            dependencies_to_check_build,
+                        ) {
                             bcv.lock().set(bcc, true);
                         }
 
@@ -869,6 +929,7 @@ pub fn check_build(
     krate: &Krate,
     krates: &Krates,
     pack: &mut Pack,
+    check_deps: &BTreeSet<&Krate>,
 ) -> Option<usize> {
     if let Some(allow_build_scripts) = &config.allow_build_scripts {
         let has_build_script = krate
@@ -924,10 +985,16 @@ pub fn check_build(
                 false
             }
         })
-        || (!config.include_dependencies && !executes_at_buildtime(krate))
-        || (config.include_dependencies
+        || (config.include_dependencies == 0 && !executes_at_buildtime(krate))
+        || (config.include_dependencies > 0
             && !needs_checking(krates.nid_for_kid(&krate.id).unwrap(), krates))
     {
+        return None;
+    }
+
+    // Confirm we are only checking the crates we need to check for,
+    // according to the include_dependencies level.
+    if config.include_dependencies > 0 && !check_deps.iter().any(|k| k.id == krate.id) {
         return None;
     }
 
