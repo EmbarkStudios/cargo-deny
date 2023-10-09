@@ -414,8 +414,9 @@ mod test {
 
         let failures: String = FAILURES
             .iter()
-            .map(|bad| format!("{:?}\n", dur_parse(bad)))
-            .collect();
+            .map(|bad| format!("{:?}", dur_parse(bad)))
+            .collect::<Vec<String>>()
+            .join("\n");
 
         insta::assert_snapshot!(failures);
     }

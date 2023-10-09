@@ -15,4 +15,3 @@ Err(unit 'H' cannot follow 'W')
 Err('H' must be preceded with 'T')
 Err('S' must be preceded with 'T')
 Err(',' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead)
-
