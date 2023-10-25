@@ -412,10 +412,11 @@ mod test {
             "PT1,5S",
         ];
 
-        let failures: String = FAILURES
-            .iter()
-            .map(|bad| format!("{:?}\n", dur_parse(bad)))
-            .collect();
+        let failures: String = FAILURES.iter().fold(String::new(), |mut acc, bad| {
+            use std::fmt::Write;
+            writeln!(&mut acc, "{:?}", dur_parse(bad)).unwrap();
+            acc
+        });
 
         insta::assert_snapshot!(failures);
     }
