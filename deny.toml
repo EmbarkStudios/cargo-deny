@@ -35,7 +35,7 @@ skip = [
     # petgraph + h2 use an old version
     { name = "indexmap", version = "=1.9.3" },
     # hyper/tokio uses an old version
-    { name = "socket2", version = "=0.4.9" },
+    { name = "socket2", version = "=0.4.10" },
     # strum_macros + maybe-async
     { name = "syn", version = "=1.0.109" },
     # security-framework uses an ooooold version
