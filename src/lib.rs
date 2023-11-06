@@ -62,7 +62,10 @@ pub enum Source {
 
 /// The directory name under which crates sourced from the crates.io sparse
 /// registry are placed
+#[cfg(target_endian = "little")]
 const CRATES_IO_SPARSE_DIR: &str = "index.crates.io-6f17d22bba15001f";
+#[cfg(target_endian = "big")]
+const CRATES_IO_SPARSE_DIR: &str = "index.crates.io-d11c229612889eed";
 
 impl Source {
     pub fn crates_io(is_sparse: bool) -> Self {
