@@ -742,25 +742,49 @@ mod test {
 
         {
             let url = Url::parse("https://github.com/RustSec/advisory-db").unwrap();
+
+            #[cfg(target_endian = "little")]
             assert_eq!(
                 url_to_db_path(root_path.clone(), &url).unwrap(),
                 root_path.join("github.com-a946fc29ac602819")
+            );
+
+            #[cfg(target_endian = "big")]
+            assert_eq!(
+                url_to_db_path(root_path.clone(), &url).unwrap(),
+                root_path.join("github.com-f4edf1c00e90fd42")
             );
         }
 
         {
             let url = Url::parse("https://bare.com").unwrap();
+
+            #[cfg(target_endian = "little")]
             assert_eq!(
                 url_to_db_path(root_path.clone(), &url).unwrap(),
                 root_path.join("bare.com-9c003d1ed306b28c")
+            );
+
+            #[cfg(target_endian = "big")]
+            assert_eq!(
+                url_to_db_path(root_path.clone(), &url).unwrap(),
+                root_path.join("bare.com-c9767e4ee31501de")
             );
         }
 
         {
             let url = Url::parse("https://example.com/countries/việt nam").unwrap();
+
+            #[cfg(target_endian = "little")]
             assert_eq!(
                 url_to_db_path(root_path.clone(), &url).unwrap(),
                 root_path.join("example.com-1c03f84825fb7438")
+            );
+
+            #[cfg(target_endian = "big")]
+            assert_eq!(
+                url_to_db_path(root_path.clone(), &url).unwrap(),
+                root_path.join("example.com-5ebf17a6f3e576f0")
             );
         }
     }
