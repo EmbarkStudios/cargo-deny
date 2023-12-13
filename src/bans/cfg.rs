@@ -6,36 +6,52 @@ use crate::{
 use semver::VersionReq;
 use serde::Deserialize;
 
+// #[derive(Deserialize, Clone)]
+// #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+// #[serde(deny_unknown_fields)]
+// pub struct CrateId {
+//     // The name of the crate
+//     pub name: String,
+//     /// The version constraints of the crate
+//     pub version: Option<VersionReq>,
+// }
+
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(deny_unknown_fields)]
-pub struct CrateId {
-    // The name of the crate
-    pub name: String,
-    /// The version constraints of the crate
-    pub version: Option<VersionReq>,
+#[serde(untagged)]
+pub enum CrateId {
+    Simple {
+        #[serde(rename = "crate")]
+        id: crate::package_id::PackageId,
+    },
+    Split {
+        name: Spanned<String>,
+        version: Option<VersionReq>,
+    },
 }
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct CrateBan {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+pub struct ExtendedCrateBan {
+    #[serde(flatten)]
+    pub id: CrateId,
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
     pub wrappers: Option<Spanned<Vec<Spanned<String>>>>,
     /// Setting this to true will only emit an error if multiple
-    // versions of the crate are found
+    /// versions of the crate are found
     pub deny_multiple_versions: Option<Spanned<bool>>,
+    /// The reason for banning the crate
+    pub reason: Option<Spanned<String>>,
 }
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CrateFeatures {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    #[serde(flatten)]
+    pub id: CrateId,
     /// All features that are allowed to be used.
     #[serde(default)]
     pub allow: Spanned<Vec<Spanned<String>>>,
@@ -45,6 +61,8 @@ pub struct CrateFeatures {
     /// The actual feature set has to exactly match the `allow` set.
     #[serde(default)]
     pub exact: Spanned<bool>,
+    /// The reason for specifying the crate features
+    pub reason: Option<Spanned<String>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -231,6 +249,13 @@ pub struct BuildConfig {
     /// If true, archive files are counted as native executables
     #[serde(default)]
     pub include_archives: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum CrateBan {
+    Simple(crate::package_id::PackageId),
+    Extended(ExtendedCrateBan),
 }
 
 #[derive(Deserialize)]

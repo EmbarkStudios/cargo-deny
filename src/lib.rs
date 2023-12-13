@@ -10,6 +10,7 @@ mod cfg;
 pub mod diag;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
+mod package_id;
 pub mod sources;
 
 #[doc(hidden)]
