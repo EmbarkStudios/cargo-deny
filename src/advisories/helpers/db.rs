@@ -341,16 +341,13 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         );
     }
 
-    use gix::prelude::FindExt;
-
     // Now that we've updated HEAD, do the actual checkout
     let workdir = repo
         .work_dir()
         .context("unable to checkout, repository is bare")?;
     let root_tree = repo
         .head()?
-        .peel_to_id_in_place()
-        .transpose()?
+        .try_peel_to_id_in_place()?
         .context("unable to peel HEAD")?
         .object()
         .context("HEAD commit not downloaded from remote")?
@@ -358,10 +355,8 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("unable to peel HEAD to tree")?
         .id;
 
-    let index = gix::index::State::from_tree(&root_tree, |oid, buf| {
-        repo.objects.find_tree_iter(oid, buf).ok()
-    })
-    .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
+    let index = gix::index::State::from_tree(&root_tree, &repo.objects)
+        .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
     let mut index = gix::index::File::from_state(index, repo.index_path());
 
     let opts = gix::worktree::state::checkout::Options {
@@ -373,10 +368,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     gix::worktree::state::checkout(
         &mut index,
         workdir,
-        {
-            let objects = repo.objects.clone().into_arc()?;
-            move |oid, buf| objects.find_blob(oid, buf)
-        },
+        repo.objects.clone().into_arc()?,
         &progress,
         &gix::progress::Discard,
         should_interrupt,
