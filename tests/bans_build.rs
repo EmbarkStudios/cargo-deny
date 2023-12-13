@@ -179,7 +179,6 @@ name = "ring"
 allow-globs = [
     "crypto/**.pl",
     "src/rsa/convert_nist_rsa_test_vectors.py",
-    "*.o",
 ]
 "#,
         ),

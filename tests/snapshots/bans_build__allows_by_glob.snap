@@ -25,41 +25,6 @@ expression: diags
       "labels": [
         {
           "column": 5,
-          "line": 11,
-          "message": "",
-          "span": "*.o"
-        }
-      ],
-      "message": "file allowed by glob",
-      "notes": [
-        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/aes_nohw.o'"
-      ],
-      "severity": "help"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "path-bypassed-by-glob",
-      "graphs": [
-        {
-          "Krate": {
-            "name": "ring",
-            "version": "0.16.20"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "name": "build-bans",
-                "version": "0.1.0"
-              }
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 5,
           "line": 9,
           "message": "",
           "span": "crypto/**.pl"
