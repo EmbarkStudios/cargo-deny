@@ -1,7 +1,8 @@
 use std::fmt;
 
 use crate::{
-    bans::{cfg, KrateId},
+    bans::cfg,
+    cfg::PackageSpec,
     diag::{
         CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
     },
@@ -190,22 +191,17 @@ impl<'a> From<Wildcards<'a>> for Pack {
 
 pub(crate) struct UnmatchedSkip<'a> {
     pub(crate) skip_cfg: CfgCoord,
-    pub(crate) skipped_krate: &'a KrateId,
+    pub(crate) skipped_krate: &'a PackageSpec,
+    pub(crate) reason: &'a Option<Spanned<String>>,
 }
 
 impl<'a> From<UnmatchedSkip<'a>> for Diag {
     fn from(us: UnmatchedSkip<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message(match &us.skipped_krate.version {
-                Some(version) => format!(
-                    "skipped crate '{} = {}' was not encountered",
-                    us.skipped_krate.name, version
-                ),
-                None => format!(
-                    "skipped crate '{}' was not encountered",
-                    us.skipped_krate.name
-                ),
-            })
+            .with_message(format!(
+                "skipped crate '{}' was not encountered",
+                us.skipped_krate
+            ))
             .with_code(Code::UnmatchedSkip)
             .with_labels(vec![us
                 .skip_cfg
@@ -801,7 +797,7 @@ impl<'a> From<UnmatchedBypass<'a>> for Diag {
             .with_code(Code::UnmatchedBypass)
             .with_labels(vec![Label::primary(
                 ubc.file_id,
-                ubc.unmatched.name.span.clone(),
+                ubc.unmatched.id.span.clone(),
             )
             .with_message("unmatched bypass")])
             .into()

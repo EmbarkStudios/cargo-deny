@@ -7,17 +7,17 @@ workspace-default-features = "warn"
 external-default-features = "deny"
 allow = [
     { name = "all-versionsa" },
-    { name = "specific-versiona", version = "<0.1.1" },
+    "version-rangea:<0.1.1",
+    "specific-versionb@0.1.2",
+    "any-version",
 ]
+deny = ["specific-versiond@0.1.9"]
 skip-tree = [{ name = "blah", depth = 20 }]
 
 [[bans.deny]]
 name = "all-versionsd"
 wrappers = ["specific-versiona"]
-
-[[bans.deny]]
-name = "specific-versiond"
-version = "=0.1.9"
+reason = "we want to get rid of this crate but there is still one user of it"
 
 [[bans.skip]]
 name = "rand"
@@ -29,6 +29,7 @@ version = "1.0"
 deny = ["bad-feature"]
 allow = ["good-feature"]
 exact = true
+reason = "`bad-feature` is bad"
 
 [bans.build]
 allow-build-scripts = [{ name = "all-versionsa" }]

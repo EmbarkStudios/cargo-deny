@@ -1,46 +1,21 @@
-use super::KrateId;
 use crate::{
+    cfg::{ConfigWithSpec, EmbeddedSpec, PackageSpec, PackageSpecOrExtended, Reason, WithReason},
     diag::{Diagnostic, FileId, Label},
     LintLevel, Spanned,
 };
-use semver::VersionReq;
 use serde::Deserialize;
-
-// #[derive(Deserialize, Clone)]
-// #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-// #[serde(deny_unknown_fields)]
-// pub struct CrateId {
-//     // The name of the crate
-//     pub name: String,
-//     /// The version constraints of the crate
-//     pub version: Option<VersionReq>,
-// }
-
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(untagged)]
-pub enum CrateId {
-    Simple {
-        #[serde(rename = "crate")]
-        id: crate::package_id::PackageId,
-    },
-    Split {
-        name: Spanned<String>,
-        version: Option<VersionReq>,
-    },
-}
 
 #[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct ExtendedCrateBan {
     #[serde(flatten)]
-    pub id: CrateId,
+    pub spec: EmbeddedSpec,
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
-    pub wrappers: Option<Spanned<Vec<Spanned<String>>>>,
-    /// Setting this to true will only emit an error if multiple
-    /// versions of the crate are found
+    pub wrappers: Option<Spanned<Vec<Spanned<PackageSpec>>>>,
+    /// Setting this to true will only emit an error if multiple versions of the
+    /// crate are found
     pub deny_multiple_versions: Option<Spanned<bool>>,
     /// The reason for banning the crate
     pub reason: Option<Spanned<String>>,
@@ -51,7 +26,7 @@ pub struct ExtendedCrateBan {
 #[serde(deny_unknown_fields)]
 pub struct CrateFeatures {
     #[serde(flatten)]
-    pub id: CrateId,
+    pub spec: EmbeddedSpec,
     /// All features that are allowed to be used.
     #[serde(default)]
     pub allow: Spanned<Vec<Spanned<String>>>,
@@ -65,20 +40,7 @@ pub struct CrateFeatures {
     pub reason: Option<Spanned<String>>,
 }
 
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct TreeSkip {
-    #[serde(flatten)]
-    pub id: CrateId,
-    pub depth: Option<usize>,
-}
-
-const fn highlight() -> GraphHighlight {
-    GraphHighlight::All
-}
-
-#[derive(Deserialize, PartialEq, Eq, Copy, Clone)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Default)]
 #[cfg_attr(test, derive(Debug))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum GraphHighlight {
@@ -88,6 +50,7 @@ pub enum GraphHighlight {
     /// Highlights the path to the duplicate dependency with the lowest version
     LowestVersion,
     /// Highlights with all of the other configs
+    #[default]
     All,
 }
 
@@ -199,8 +162,8 @@ pub struct BypassPath {
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Bypass {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    #[serde(flatten)]
+    pub spec: EmbeddedSpec,
     pub build_script: Option<Spanned<Checksum>>,
     /// List of features that, if matched, means the build script/proc macro is
     /// not actually executed/run
@@ -223,7 +186,7 @@ pub struct Bypass {
 pub struct BuildConfig {
     /// List of crates that are allowed to have build scripts. If this is set,
     /// any crates with a build script that aren't listed here will be banned
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Spanned<Vec<EmbeddedSpec>>>,
     /// Lint level for when executables are detected within crates with build
     /// scripts or are proc macros, or are a dependency of either of them
     #[serde(default = "crate::lint_deny")]
@@ -251,12 +214,31 @@ pub struct BuildConfig {
     pub include_archives: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub enum CrateBan {
-    Simple(crate::package_id::PackageId),
-    Extended(ExtendedCrateBan),
+#[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct CrateSpecWithReason {
+    #[serde(flatten)]
+    pub spec: EmbeddedSpec,
+    /// Reason for this package id being in the list
+    pub reason: Option<Spanned<String>>,
 }
+
+#[derive(Deserialize, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct ExtendedTreeSkip {
+    #[serde(flatten)]
+    pub spec: EmbeddedSpec,
+    pub depth: Option<usize>,
+    /// Reason the tree is being skipped
+    pub reason: Option<Spanned<String>>,
+}
+
+pub type CrateBan = PackageSpecOrExtended<ExtendedCrateBan>;
+pub type CrateAllow = PackageSpecOrExtended<CrateSpecWithReason>;
+pub type CrateSkip = PackageSpecOrExtended<CrateSpecWithReason>;
+pub type TreeSkip = PackageSpecOrExtended<ExtendedTreeSkip>;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
@@ -267,17 +249,17 @@ pub struct Config {
     #[serde(default)]
     pub multiple_versions_include_dev: bool,
     /// How the duplicate graphs are highlighted
-    #[serde(default = "highlight")]
+    #[serde(default)]
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
     #[serde(default)]
     pub deny: Vec<CrateBan>,
     /// If specified, means only the listed crates are allowed
     #[serde(default)]
-    pub allow: Vec<Spanned<CrateId>>,
+    pub allow: Vec<CrateAllow>,
     /// Allows specifying features that are or are not allowed on crates
     #[serde(default)]
-    pub features: Vec<CrateFeatures>,
+    pub features: Vec<Spanned<CrateFeatures>>,
     /// The default lint level for default features for external, non-workspace
     /// crates, can be overriden in `features` on a crate by crate basis
     #[serde(default)]
@@ -288,7 +270,7 @@ pub struct Config {
     pub workspace_default_features: Option<Spanned<LintLevel>>,
     /// If specified, disregards the crate completely
     #[serde(default)]
-    pub skip: Vec<Spanned<CrateId>>,
+    pub skip: Vec<CrateSkip>,
     /// If specified, disregards the crate's transitive dependencies
     /// down to a certain depth
     #[serde(default)]
@@ -306,7 +288,7 @@ pub struct Config {
     pub allow_wildcard_paths: bool,
     /// Deprecated and moved into `build.allow_build_scripts`, will eventually
     /// be removed
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Spanned<Vec<EmbeddedSpec>>>,
     /// Options for crates that run at build time
     pub build: Option<BuildConfig>,
 }
@@ -335,119 +317,130 @@ impl Default for Config {
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(
-        self,
-        cfg_file: FileId,
-        files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
-        let from = |s: Spanned<CrateId>| {
-            Skrate::new(
-                KrateId {
-                    name: s.value.name,
-                    version: s.value.version,
-                },
-                s.span,
-            )
+    fn validate(self, ctx: crate::cfg::ValidationContext<'_>) -> Self::ValidCfg {
+        let from =
+            |ekid: PackageSpecOrExtended<CrateSpecWithReason>| -> Option<ConfigWithSpec<Reason>> {
+                ctx.convert_embedded(ekid, |ext, ctx| {
+                    Ok(ConfigWithSpec {
+                        spec: PackageSpec::from_embedded(ext.spec, ctx)?,
+                        inner: ext.reason.map(|reason| Reason { reason }),
+                    })
+                })
+            };
+
+        let (deny_multiple_versions, denied) = {
+            let mut dmv = Vec::new();
+            let mut denied = Vec::new();
+            for deny_spec in self.deny {
+                let deny_multiple_versions = match &deny_spec {
+                    PackageSpecOrExtended::Simple(_) => false,
+                    PackageSpecOrExtended::Extended(ext) => {
+                        let deny_mv = ext
+                            .value
+                            .deny_multiple_versions
+                            .map_or(false, |dmv| dmv.value);
+
+                        if let Some(mv_span) = ext
+                            .value
+                            .deny_multiple_versions
+                            .as_ref()
+                            .and_then(|mv| mv.value.then_some(mv.span.clone()))
+                        {
+                            if let Some(wrappers_span) = ext
+                                .value
+                                .wrappers
+                                .as_ref()
+                                .and_then(|w| (!w.value.is_empty()).then_some(w.span.clone()))
+                            {
+                                ctx.diagnostics.push(
+                                    Diagnostic::error()
+                                        .with_message(
+                                            "a crate ban was specified with both `wrappers` and `multiple-versions` = true",
+                                        )
+                                        .with_labels(vec![
+                                            Label::secondary(ctx.cfg_id, wrappers_span)
+                                                .with_message("has one or more `wrappers`"),
+                                            Label::secondary(ctx.cfg_id, mv_span)
+                                                .with_message("has `multiple-versions` set to true"),
+                                        ]),
+                                );
+                            }
+                        }
+
+                        deny_mv
+                    }
+                };
+
+                let Some(deny_spec) = ctx.convert_embedded(deny_spec, |ext, cctx| {
+                    Ok(ValidKrateBan {
+                        spec: PackageSpec::from_embedded(ext.spec, cctx)?,
+                        inner: Some(KrateBan {
+                            wrappers: ext.wrappers.map(|spanned| spanned.value),
+                            reason: ext.reason,
+                        }),
+                    })
+                }) else {
+                    continue;
+                };
+
+                if deny_multiple_versions {
+                    dmv.push(deny_spec.spec);
+                } else {
+                    denied.push(deny_spec);
+                }
+            }
+
+            (dmv, denied)
         };
 
-        let (deny_multiple_versions, deny): (Vec<_>, Vec<_>) =
-            self.deny.into_iter().partition(|kb| {
-                kb.deny_multiple_versions
-                    .as_ref()
-                    .map_or(false, |spanned| spanned.value)
-            });
+        let allowed: Vec<_> = self.allow.into_iter().filter_map(from).collect();
+        let skipped: Vec<_> = self.skip.into_iter().filter_map(from).collect();
 
-        let denied: Vec<_> = deny
-            .into_iter()
-            .map(|cb| KrateBan {
-                id: Skrate::new(
-                    KrateId {
-                        name: cb.name.value,
-                        version: cb.version,
-                    },
-                    cb.name.span,
-                ),
-                wrappers: cb.wrappers.map(|spanned| spanned.value),
-            })
-            .collect();
-
-        let denied_multiple_versions: Vec<_> = deny_multiple_versions
-            .into_iter()
-            .map(|cb| {
-                let wrappers = cb.wrappers.filter(|spanned| !spanned.value.is_empty());
-                if let Some(wrappers) = wrappers {
-                    // cb.multiple_versions is guaranteed to be Some(_) by the
-                    // earlier call to `partition`
-                    let multiple_versions = cb.deny_multiple_versions.unwrap();
-                    diags.push(
-                        Diagnostic::error()
-                            .with_message(
-                                "a crate ban was specified with both `wrappers` and `multiple-versions`",
-                            )
-                            .with_labels(vec![
-                                Label::secondary(cfg_file, wrappers.span)
-                                    .with_message("has one or more `wrappers`"),
-                                Label::secondary(cfg_file, multiple_versions.span)
-                                    .with_message("has `multiple-versions` set to true"),
-                            ]),
-                    );
-                }
-
-                Skrate::new(
-                    KrateId {
-                        name: cb.name.value,
-                        version: cb.version,
-                    },
-                    cb.name.span,
-                )
-            })
-            .collect();
-
-        let allowed: Vec<_> = self.allow.into_iter().map(from).collect();
-        let skipped: Vec<_> = self.skip.into_iter().map(from).collect();
-
-        let dupe_crate_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| -> Diagnostic {
-            Diagnostic::error()
+        let dupe_crate_diag = |first: (&PackageSpec, &str), second: (&PackageSpec, &str)| {
+            let diag = Diagnostic::error()
                 .with_message(format!(
                     "a crate was specified in both `{}` and `{}`",
                     second.1, first.1
                 ))
                 .with_labels(vec![
-                    Label::secondary(cfg_file, first.0.span.clone())
+                    Label::secondary(ctx.cfg_id, first.0.span.clone())
                         .with_message(format!("marked as `{}`", first.1)),
-                    Label::secondary(cfg_file, second.0.span.clone())
+                    Label::secondary(ctx.cfg_id, second.0.span.clone())
                         .with_message(format!("marked as `{}`", second.1)),
-                ])
+                ]);
+
+            ctx.diagnostics.push(diag);
         };
 
-        let dupe_feature_diag = |krate: &Skrate,
+        let dupe_feature_diag = |krate: &PackageSpec,
                                  allow: &Spanned<String>,
-                                 deny: &Spanned<String>|
-         -> Diagnostic {
-            Diagnostic::error()
+                                 deny: &Spanned<String>| {
+            let diag = Diagnostic::error()
                 .with_message("a crate feature was specified as both allowed and denied")
                 .with_labels(vec![
-                    Label::primary(cfg_file, krate.span.clone()).with_message("crate ban entry"),
-                    Label::secondary(cfg_file, allow.span.clone())
+                    Label::primary(ctx.cfg_id, krate.span.clone()).with_message("crate ban entry"),
+                    Label::secondary(ctx.cfg_id, allow.span.clone())
                         .with_message("marked as `allow`"),
-                    Label::secondary(cfg_file, deny.span.clone()).with_message("marked as `deny`"),
-                ])
+                    Label::secondary(ctx.cfg_id, deny.span.clone())
+                        .with_message("marked as `deny`"),
+                ]);
+
+            ctx.diagnostics.push(diag);
         };
 
         for d in &denied {
-            if let Some(dupe) = exact_match(&allowed, &d.id.value) {
-                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "allow")));
+            if let Some(dupe) = exact_match(&allowed, &d.spec) {
+                dupe_crate_diag((&d.spec, "deny"), (dupe, "allow"));
             }
 
-            if let Some(dupe) = exact_match(&skipped, &d.id.value) {
-                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "skip")));
+            if let Some(dupe) = exact_match(&skipped, &d.spec) {
+                dupe_crate_diag((&d.spec, "deny"), (dupe, "skip"));
             }
         }
 
         for all in &allowed {
-            if let Some(dupe) = exact_match(&skipped, &all.value) {
-                diags.push(dupe_crate_diag((all, "allow"), (dupe, "skip")));
+            if let Some(dupe) = exact_match(&skipped, &all.spec) {
+                dupe_crate_diag((&all.spec, "allow"), (dupe, "skip"));
             }
         }
 
@@ -455,29 +448,26 @@ impl crate::cfg::UnvalidatedConfig for Config {
         let features = self
             .features
             .into_iter()
-            .map(|cf| {
-                let id = Skrate::new(
-                    KrateId {
-                        name: cf.name.value,
-                        version: cf.version,
-                    },
-                    cf.name.span,
-                );
-
+            .filter_map(|cf| {
+                let (cf, span) = (cf.value, cf.span);
+                let spec = ctx.convert_spanned(span, cf.spec)?;
                 for allowed in &cf.allow.value {
                     if let Some(denied) = cf.deny.iter().find(|df| df.value == allowed.value) {
-                        diags.push(dupe_feature_diag(&id, allowed, denied));
+                        dupe_feature_diag(&spec, allowed, denied);
                     }
                 }
 
-                KrateFeatures {
-                    id,
-                    features: Features {
-                        allow: cf.allow,
-                        deny: cf.deny,
-                        exact: cf.exact,
+                Some(WithReason {
+                    inner: KrateFeatures {
+                        spec,
+                        features: Features {
+                            allow: cf.allow,
+                            deny: cf.deny,
+                            exact: cf.exact,
+                        },
                     },
-                }
+                    reason: cf.reason,
+                })
             })
             .collect();
 
@@ -488,24 +478,24 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 for ext in extensions {
                     // This top level config should only be extensions, not glob patterns
                     if !ext.value.is_ascii() {
-                        diags.push(
+                        ctx.diagnostics.push(
                             Diagnostic::error()
                                 .with_message("non-ascii file extension provided")
-                                .with_labels(vec![Label::primary(cfg_file, ext.span.clone())
+                                .with_labels(vec![Label::primary(ctx.cfg_id, ext.span.clone())
                                     .with_message("invalid extension")]),
                         );
                         continue;
                     }
 
                     if let Some(i) = ext.value.chars().position(|c| !c.is_ascii_alphanumeric()) {
-                        diags.push(
+                        ctx.diagnostics.push(
                             Diagnostic::error()
                                 .with_message("invalid file extension provided")
                                 .with_labels(vec![
-                                    Label::primary(cfg_file, ext.span.clone())
+                                    Label::primary(ctx.cfg_id, ext.span.clone())
                                         .with_message("extension"),
                                     Label::secondary(
-                                        cfg_file,
+                                        ctx.cfg_id,
                                         ext.span.start + i..ext.span.start + i + 1,
                                     )
                                     .with_message("invalid character"),
@@ -519,11 +509,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             gsb.add(glob, GlobPattern::User(ext));
                         }
                         Err(err) => {
-                            diags.push(
+                            ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message(format!("invalid glob pattern: {err}"))
-                                    .with_labels(vec![Label::primary(cfg_file, ext.span.clone())
-                                        .with_message("extension")]),
+                                    .with_labels(vec![Label::primary(
+                                        ctx.cfg_id,
+                                        ext.span.clone(),
+                                    )
+                                    .with_message("extension")]),
                             );
                         }
                     }
@@ -531,11 +524,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
 
             if bc.enable_builtin_globs {
-                load_builtin_globs(files, &mut gsb);
+                load_builtin_globs(ctx.files, &mut gsb);
             }
 
             let script_extensions = gsb.build().unwrap_or_else(|err| {
-                diags
+                ctx.diagnostics
                     .push(Diagnostic::error().with_message(format!(
                         "failed to build script extensions glob set: {err}"
                     )));
@@ -546,6 +539,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 let mut aex = Vec::new();
 
                 for aexe in aexes {
+                    let (aexe, span) = (aexe.value, aexe.span);
+                    let Some(spec) = ctx.convert_spanned(span, aexe.spec) else {
+                        continue;
+                    };
                     let allow_globs = if let Some(allow_globs) = aexe.allow_globs {
                         let mut gsb = GlobsetBuilder::new();
 
@@ -555,11 +552,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                     gsb.add(glob, GlobPattern::User(ag));
                                 }
                                 Err(err) => {
-                                    diags.push(
+                                    ctx.diagnostics.push(
                                         Diagnostic::error()
                                             .with_message(format!("invalid glob pattern: {err}"))
                                             .with_labels(vec![Label::primary(
-                                                cfg_file,
+                                                ctx.cfg_id,
                                                 ag.span.clone(),
                                             )]),
                                     );
@@ -570,9 +567,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         match gsb.build() {
                             Ok(set) => Some(set),
                             Err(err) => {
-                                diags.push(Diagnostic::error().with_message(format!(
-                                    "failed to build script extensions glob set: {err}"
-                                )));
+                                ctx.diagnostics
+                                    .push(Diagnostic::error().with_message(format!(
+                                        "failed to build script extensions glob set: {err}"
+                                    )));
                                 None
                             }
                         }
@@ -584,11 +582,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     allow.retain(|ae| {
                         let keep = ae.path.value.is_relative();
                         if !keep {
-                            diags.push(
+                            ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message("absolute paths are not allowed")
                                     .with_labels(vec![Label::primary(
-                                        cfg_file,
+                                        ctx.cfg_id,
                                         ae.path.span.clone(),
                                     )]),
                             );
@@ -599,8 +597,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     allow.sort_by(|a, b| a.path.value.cmp(&b.path.value));
 
                     aex.push(ValidBypass {
-                        name: aexe.name,
-                        version: aexe.version,
+                        spec,
                         build_script: aexe.build_script,
                         required_features: aexe.required_features,
                         allow,
@@ -614,7 +611,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
             };
 
             Some(ValidBuildConfig {
-                allow_build_scripts: bc.allow_build_scripts,
+                allow_build_scripts: bc.allow_build_scripts.map(|abs| {
+                    Spanned::new(
+                        abs.value.into_iter().map(PackageSpec::from).collect(),
+                        abs.span,
+                    )
+                }),
                 executables: bc.executables,
                 script_extensions,
                 bypass,
@@ -630,7 +632,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     Label::primary(cfg_file, allow_build_scripts.span.clone())
                 ]));
             Some(ValidBuildConfig {
-                allow_build_scripts: Some(allow_build_scripts),
+                allow_build_scripts: Some(Spanned::new(
+                    allow_build_scripts
+                        .value
+                        .into_iter()
+                        .map(PackageSpec::from)
+                        .collect(),
+                    allow_build_scripts.span,
+                )),
                 executables: LintLevel::Allow,
                 script_extensions: ValidGlobSet::default(),
                 bypass: Vec::new(),
@@ -642,6 +651,34 @@ impl crate::cfg::UnvalidatedConfig for Config {
         } else {
             None
         };
+
+        let tree_skipped = self
+            .skip_tree
+            .into_iter()
+            .map(|st| {
+                let span = st.span;
+                let st = st.value;
+
+                let (inner, reason) = match st {
+                    PackageSpecOrExtended::Simple(id) => (
+                        ValidTreeSkip {
+                            id: id.try_into().unwrap(),
+                            depth: None,
+                        },
+                        None,
+                    ),
+                    PackageSpecOrExtended::Extended(ext) => (
+                        ValidTreeSkip {
+                            id: ext.id.into(),
+                            depth: ext.depth,
+                        },
+                        ext.reason,
+                    ),
+                };
+
+                Spanned::new(WithReason { inner, reason }, span)
+            })
+            .collect();
 
         ValidConfig {
             file_id: cfg_file,
@@ -657,11 +694,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             skipped,
             wildcards: self.wildcards,
             allow_wildcard_paths: self.allow_wildcard_paths,
-            tree_skipped: self
-                .skip_tree
-                .into_iter()
-                .map(crate::Spanned::from)
-                .collect(),
+            tree_skipped,
             build,
         }
     }
@@ -687,17 +720,21 @@ fn load_builtin_globs(files: &mut crate::diag::Files, gsb: &mut GlobsetBuilder) 
 }
 
 #[inline]
-pub(crate) fn exact_match<'v>(arr: &'v [Skrate], id: &'_ KrateId) -> Option<&'v Skrate> {
-    arr.iter().find(|sid| *sid == id)
+pub(crate) fn exact_match<'v, T>(
+    arr: &'v [ConfigWithSpec<T>],
+    id: &'_ PackageSpec,
+) -> Option<&'v PackageSpec> {
+    arr.iter()
+        .find_map(|sid| (&sid.spec == id).then_some(&sid.spec))
 }
-
-pub(crate) type Skrate = Spanned<KrateId>;
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct KrateBan {
-    pub id: Skrate,
-    pub wrappers: Option<Vec<Spanned<String>>>,
+    pub wrappers: Option<Vec<Spanned<PackageSpec>>>,
+    pub reason: Option<Spanned<String>>,
 }
+
+pub type ValidKrateBan = ConfigWithSpec<KrateBan>;
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Features {
@@ -708,10 +745,11 @@ pub struct Features {
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct KrateFeatures {
-    pub id: Skrate,
+    pub spec: PackageSpec,
     pub features: Features,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum GlobPattern {
     Builtin((Spanned<String>, FileId)),
     User(Spanned<String>),
@@ -746,6 +784,7 @@ impl GlobsetBuilder {
     }
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidGlobSet {
     set: globset::GlobSet,
     /// Patterns in the globset for lint output
@@ -773,17 +812,18 @@ impl ValidGlobSet {
     }
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidBypass {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    pub spec: PackageSpec,
     pub build_script: Option<Spanned<Checksum>>,
     pub required_features: Vec<Spanned<String>>,
     pub allow_globs: Option<ValidGlobSet>,
     pub allow: Vec<BypassPath>,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidBuildConfig {
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Spanned<Vec<PackageSpec>>>,
     pub executables: LintLevel,
     pub script_extensions: ValidGlobSet,
     pub bypass: Vec<ValidBypass>,
@@ -793,19 +833,27 @@ pub struct ValidBuildConfig {
     pub interpreted: LintLevel,
 }
 
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
+pub struct ValidTreeSkip {
+    pub id: PackageSpec,
+    pub depth: Option<usize>,
+}
+
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub multiple_versions_include_dev: bool,
     pub highlight: GraphHighlight,
-    pub(crate) denied: Vec<KrateBan>,
-    pub(crate) denied_multiple_versions: Vec<Skrate>,
-    pub(crate) allowed: Vec<Skrate>,
-    pub(crate) features: Vec<KrateFeatures>,
+    pub(crate) denied: Vec<WithReason<KrateBan>>,
+    pub(crate) denied_multiple_versions: Vec<PackageSpec>,
+    pub(crate) allowed: Vec<WithReason<PackageSpec>>,
+    pub(crate) features: Vec<WithReason<KrateFeatures>>,
     pub external_default_features: Option<Spanned<LintLevel>>,
     pub workspace_default_features: Option<Spanned<LintLevel>>,
-    pub(crate) skipped: Vec<Skrate>,
-    pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
+    pub(crate) skipped: Vec<WithReason<PackageSpec>>,
+    pub(crate) tree_skipped: Vec<Spanned<WithReason<ValidTreeSkip>>>,
     pub wildcards: LintLevel,
     pub allow_wildcard_paths: bool,
     pub build: Option<ValidBuildConfig>,
@@ -815,28 +863,6 @@ pub struct ValidConfig {
 mod test {
     use super::*;
     use crate::cfg::{test::*, *};
-
-    macro_rules! kid {
-        ($name:expr) => {
-            KrateId {
-                name: String::from($name),
-                version: None,
-            }
-        };
-
-        ($name:expr, $vs:expr) => {
-            KrateId {
-                name: String::from($name),
-                version: Some($vs.parse::<semver::VersionReq>().unwrap().into()),
-            }
-        };
-    }
-
-    impl PartialEq<KrateId> for KrateBan {
-        fn eq(&self, o: &KrateId) -> bool {
-            &self.id.value == o
-        }
-    }
 
     #[test]
     fn deserializes_ban_cfg() {
@@ -850,104 +876,7 @@ mod test {
 
         let mut diags = Vec::new();
         let validated = cd.config.bans.validate(cd.id, &mut cd.files, &mut diags);
-        assert!(diags.is_empty());
 
-        assert_eq!(validated.file_id, cd.id);
-        assert_eq!(validated.multiple_versions, LintLevel::Deny);
-
-        assert_eq!(validated.wildcards, LintLevel::Deny);
-        assert!(validated.allow_wildcard_paths);
-
-        assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
-        assert_eq!(
-            validated.external_default_features.unwrap().value,
-            LintLevel::Deny
-        );
-        assert_eq!(
-            validated.workspace_default_features.unwrap().value,
-            LintLevel::Warn
-        );
-
-        assert_eq!(
-            validated.allowed,
-            vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
-        );
-
-        assert_eq!(
-            validated.denied,
-            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
-        );
-
-        assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
-
-        assert_eq!(
-            validated.tree_skipped,
-            vec![TreeSkip {
-                id: CrateId {
-                    name: "blah".to_owned(),
-                    version: None,
-                },
-                depth: Some(20),
-            }]
-        );
-
-        let kf = &validated.features[0];
-
-        assert_eq!(kf.id, kid!("featured-krate", "1.0"));
-        assert_eq!(kf.features.deny[0].value, "bad-feature");
-        assert_eq!(kf.features.allow.value[0].value, "good-feature");
-        assert!(kf.features.exact.value);
-
-        let mut bc = validated.build.expect("expected build config");
-        assert_eq!(
-            bc.allow_build_scripts.unwrap().value.pop().unwrap().name,
-            "all-versionsa"
-        );
-        assert_eq!(bc.executables, LintLevel::Warn);
-        assert_eq!(bc.interpreted, LintLevel::Deny);
-
-        assert!(bc.script_extensions.patterns.iter().any(|gp| {
-            let GlobPattern::User(gp) = gp else {
-                return false;
-            };
-            gp.value == "cs"
-        }));
-        assert!(bc.script_extensions.patterns.iter().any(|gp| {
-            let GlobPattern::Builtin(gp) = gp else {
-                return false;
-            };
-            gp.0.value == "*.py"
-        }));
-        assert!(bc.include_dependencies);
-        assert!(bc.include_workspace);
-        assert!(bc.include_archives);
-
-        let mut bypass = bc.bypass.pop().unwrap();
-        assert_eq!(bypass.name.value, "allversionsa");
-        assert!(bypass.version.is_none());
-        assert_eq!(
-            bypass.build_script.unwrap().value,
-            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
-                .parse()
-                .unwrap()
-        );
-        assert_eq!(
-            bypass.required_features.pop().unwrap().value,
-            "feature-used-at-build-time"
-        );
-        assert!(bypass.allow_globs.unwrap().patterns.iter().any(|gp| {
-            let GlobPattern::User(gp) = gp else {
-                return false;
-            };
-            gp.value == "scripts/*.cs"
-        }));
-        let ba = bypass.allow.pop().unwrap();
-        assert_eq!(ba.path.value, "bin/x86_64-linux");
-        assert_eq!(
-            ba.checksum.unwrap().value,
-            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
-                .parse()
-                .unwrap()
-        );
+        insta::assert_debug_snapshot!(validated);
     }
 }

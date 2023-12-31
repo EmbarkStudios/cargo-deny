@@ -1,31 +1,93 @@
+mod package_spec;
+pub use package_spec::{
+    ConfigWithSpec, EmbeddedSpec, PackageSpec, PackageSpecOrExtended, Reason, WithReason,
+};
+
+use crate::diag;
 use serde::{de, ser};
 use std::fmt;
+
+pub type Span = std::ops::Range<usize>;
+
+pub struct ValidationContext<'ctx> {
+    pub cfg_id: diag::FileId,
+    pub files: &'ctx mut diag::Files,
+    pub diagnostics: &'ctx mut Vec<diag::Diagnostic>,
+}
+
+impl<'ctx> ValidationContext<'ctx> {
+    pub fn convert_embedded<T, V>(
+        &self,
+        input: PackageSpecOrExtended<T>,
+        convert: impl Fn(T, package_spec::ConvertCtx<'ctx>) -> anyhow::Result<ConfigWithSpec<V>>,
+    ) -> Option<ConfigWithSpec<V>> {
+        match input {
+            PackageSpecOrExtended::Simple(spec) => Some(ConfigWithSpec { spec, inner: None }),
+            PackageSpecOrExtended::Extended(ext) => {
+                let ctx = package_spec::ConvertCtx {
+                    doc: self.files.source(self.cfg_id).as_str(),
+                    range: ext.span.clone(),
+                };
+
+                let inner = ext.value;
+                match convert(inner, ctx) {
+                    Ok(cs) => Some(cs),
+                    Err(err) => {
+                        self.diagnostics.push(
+                            diag::Diagnostic::error()
+                                .with_message(err.to_string())
+                                .with_labels(vec![diag::Label::secondary(self.cfg_id, ext.span)]),
+                        );
+
+                        None
+                    }
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn convert_spanned(&self, range: Span, spec: EmbeddedSpec) -> Option<PackageSpec> {
+        let ctx = package_spec::ConvertCtx {
+            doc: self.files.source(self.cfg_id).as_str(),
+            range,
+        };
+
+        match PackageSpec::from_embedded(spec, ctx) {
+            Ok(ps) => Some(ps),
+            Err(err) => {
+                self.diagnostics.push(
+                    diag::Diagnostic::error()
+                        .with_message(err.to_string())
+                        .with_labels(vec![diag::Label::secondary(self.cfg_id, range)]),
+                );
+
+                None
+            }
+        }
+    }
+}
 
 pub trait UnvalidatedConfig {
     type ValidCfg;
 
-    fn validate(
-        self,
-        id: crate::diag::FileId,
-        files: &mut crate::diag::Files,
-        diagnostics: &mut Vec<crate::diag::Diagnostic>,
-    ) -> Self::ValidCfg;
+    fn validate(self, ctx: ValidationContext<'_>) -> Self::ValidCfg;
 }
 
 #[derive(Default)]
 pub struct Spanned<T> {
     pub(crate) value: T,
-    pub(crate) span: std::ops::Range<usize>,
+    pub(crate) span: Span,
 }
 
 impl<T> Spanned<T> {
     #[inline]
-    pub(crate) const fn new(value: T, span: std::ops::Range<usize>) -> Self {
+    pub(crate) const fn new(value: T, span: Span) -> Self {
         Self { value, span }
     }
 
     #[inline]
-    pub fn span(&self) -> &std::ops::Range<usize> {
+    pub fn span(&self) -> &Span {
         &self.span
     }
 
