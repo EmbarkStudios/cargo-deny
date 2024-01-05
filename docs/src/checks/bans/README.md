@@ -32,7 +32,7 @@ The intention of duplicate detection in cargo-deny is not to "correct" cargo's b
 
 * Maybe you want to open up a PR on a crate to use a version of the duplicate that is aligned with the rest of the ecosystem.
 * Maybe the crate has actually already been updated, but the maintainer hasn't published a new version yet, and you can ask if they can publish a new one.
-* Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily introduce a `[patch]` to force the crate to use a particular version for your entire workspace.
+* Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily patch 1 or more crates to use a different version requirement without actually change the crates' code itself.
 * Sometimes having the "latest and greatest" is not really that important for every version, and you can just specify a lower version in your own project that matches the transitive constraint(s).
 * And finally, you don't care about a particular case of multiple versions, so you just tell cargo-deny to ignore one or more of the specific versions, and the situation will eventually resolve itself.
 
