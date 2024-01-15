@@ -64,7 +64,7 @@ fern = "0.6"
 # Glob matching
 globset = "0.4"
 # Native executable detection
-goblin = { version = "0.7", default-features = false, features = [
+goblin = { version = "0.8", default-features = false, features = [
   "elf32",
   "elf64",
   "mach32",
@@ -121,7 +121,7 @@ walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.56"
+version = "0.57"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",

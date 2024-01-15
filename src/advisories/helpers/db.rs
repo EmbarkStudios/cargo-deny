@@ -1,7 +1,7 @@
 use crate::{utf8path, Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
-pub use rustsec::{advisory::Id, Database, Lockfile, Vulnerability};
+pub use rustsec::{advisory::Id, Database};
 use std::fmt;
 use url::Url;
 
@@ -555,8 +555,6 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
 
     Ok(())
 }
-
-pub use rustsec::{Warning, WarningKind};
 
 pub struct Report<'db, 'k> {
     pub advisories: Vec<(&'k Krate, krates::NodeId, &'db rustsec::Advisory)>,

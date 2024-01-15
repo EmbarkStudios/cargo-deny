@@ -28,6 +28,8 @@ deny = [
     { name = "openssl" },
     { name = "openssl-sys" },
     { name = "libssh2-sys" },
+    # https://github.com/Byron/gitoxide/pull/1245
+    { name = "windows", wrappers = ["gix-sec"] },
 ]
 skip = [
     # hyper/tokio uses an old version
@@ -36,9 +38,6 @@ skip = [
     { name = "syn", version = "=1.0.109" },
     # security-framework uses an ooooold version
     { name = "bitflags", version = "=1.3.2" },
-    # gix via gix-packetline depends on 2 versions, but will be fixed in the next
-    # release
-    { name = "faster-hex", version = "=0.8.1" },
 ]
 skip-tree = [
     # Sigh
