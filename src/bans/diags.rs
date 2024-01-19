@@ -681,7 +681,7 @@ impl From<DetectedExecutable<'_>> for Diag {
                     goblin::Hint::PE => "pe",
                     goblin::Hint::Mach(_) | goblin::Hint::MachFat(_) => "mach",
                     goblin::Hint::Archive => "archive",
-                    _ => unreachable!(),
+                    _ => unreachable!("unhandled format {hint:#?} for {}", de.path),
                 };
 
                 (

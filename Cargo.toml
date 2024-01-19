@@ -75,7 +75,7 @@ goblin = { version = "0.8", default-features = false, features = [
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.15", features = ["targets"] }
+krates = { version = "0.16", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Nicer sync primitives

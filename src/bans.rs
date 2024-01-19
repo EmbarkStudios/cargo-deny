@@ -83,13 +83,11 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for krate in krates
-                .krates_by_name(&ts.value.id.name)
-                .filter(|(_index, krate)| {
-                    crate::match_req(&krate.version, ts.value.id.version.as_ref())
-                })
-            {
-                roots.push(Self::build_skip_root(ts.clone(), krate.0, krates));
+            for nid in krates.krates_by_name(&ts.value.id.name).filter_map(|km| {
+                crate::match_req(&km.krate.version, ts.value.id.version.as_ref())
+                    .then_some(km.node_id)
+            }) {
+                roots.push(Self::build_skip_root(ts.clone(), nid, krates));
             }
 
             // If no roots were added, add a diagnostic that the user's configuration
@@ -1242,13 +1240,15 @@ fn check_is_executable(
         return Ok(None);
     }
 
+    use goblin::Hint;
+
     match goblin::peek_bytes(&header)
         .map_err(|err| anyhow::format_err!("failed to peek bytes: {err}"))?
     {
         // Archive objects/libraries are not great (generally) to have in
         // crate packages, but they are not as easily
-        goblin::Hint::Archive if exclude_archives => Ok(None),
-        goblin::Hint::Unknown(_) => {
+        Hint::Archive if exclude_archives => Ok(None),
+        Hint::Unknown(_) => {
             // Check for shebang scripts
             if header[..2] != [0x23, 0x21] {
                 return Ok(None);
@@ -1298,6 +1298,7 @@ fn check_is_executable(
 
             Ok(parse().map(|s| ExecutableKind::Interpreted(s.to_owned())))
         }
+        Hint::COFF => Ok(None),
         hint => Ok(Some(ExecutableKind::Native(hint))),
     }
 }

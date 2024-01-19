@@ -224,9 +224,7 @@ impl Default for Krate {
             name: "".to_owned(),
             version: Version::new(0, 1, 0),
             authors: Vec::new(),
-            id: Kid {
-                repr: "".to_owned(),
-            },
+            id: Kid::default(),
             source: None,
             description: None,
             deps: Vec::new(),
@@ -292,7 +290,7 @@ impl From<cm::Package> for Krate {
 
         Self {
             name: pkg.name,
-            id: pkg.id,
+            id: pkg.id.into(),
             version: pkg.version,
             authors: pkg.authors,
             repository: pkg.repository,
