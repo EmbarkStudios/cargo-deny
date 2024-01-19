@@ -1,7 +1,7 @@
 use crate::{utf8path, Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
-pub use rustsec::{advisory::Id, Database, Lockfile, Vulnerability};
+pub use rustsec::{advisory::Id, Database};
 use std::fmt;
 use url::Url;
 
@@ -556,8 +556,6 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub use rustsec::{Warning, WarningKind};
-
 pub struct Report<'db, 'k> {
     pub advisories: Vec<(&'k Krate, krates::NodeId, &'db rustsec::Advisory)>,
     /// For backwards compatiblity with cargo-audit, we optionally serialize the
@@ -615,8 +613,8 @@ impl<'db, 'k> Report<'db, 'k> {
                     krates
                         .krates_by_name(advisory.metadata.package.as_str())
                         .par_bridge()
-                        .filter_map(move |(nid, krate)| {
-                            let ksrc = krate.source.as_ref()?;
+                        .filter_map(move |km| {
+                            let ksrc = km.krate.source.as_ref()?;
 
                             // Validate the crate's source is the same as the advisory
                             if !ksrc.matches_rustsec(advisory.metadata.source.as_ref()) {
@@ -624,11 +622,11 @@ impl<'db, 'k> Report<'db, 'k> {
                             }
 
                             // Ensure the crate's version is actually affected
-                            if !advisory.versions.is_vulnerable(&krate.version) {
+                            if !advisory.versions.is_vulnerable(&km.krate.version) {
                                 return None;
                             }
 
-                            Some((krate, nid, advisory))
+                            Some((km.krate, km.node_id, advisory))
                         })
                 })
                 .collect();

@@ -21,6 +21,7 @@ ignore = [
 
 [bans]
 multiple-versions = "deny"
+wildcards = 'deny'
 deny = [
     # We use gix
     { name = "git2" },
@@ -28,17 +29,16 @@ deny = [
     { name = "openssl" },
     { name = "openssl-sys" },
     { name = "libssh2-sys" },
+    # There is literally never a reason to use this
+    { name = "cmake" },
+    # https://github.com/Byron/gitoxide/pull/1245
+    { name = "windows", wrappers = ["gix-sec"] },
 ]
 skip = [
-    # hyper/tokio uses an old version
-    { name = "socket2", version = "=0.4.10" },
     # strum_macros + maybe-async
     { name = "syn", version = "=1.0.109" },
     # security-framework uses an ooooold version
     { name = "bitflags", version = "=1.3.2" },
-    # gix via gix-packetline depends on 2 versions, but will be fixed in the next
-    # release
-    { name = "faster-hex", version = "=0.8.1" },
 ]
 skip-tree = [
     # Sigh

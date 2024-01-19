@@ -28,7 +28,7 @@ expression: diags
           "column": 22,
           "line": 7,
           "message": "source",
-          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617#0c2da61772b89323af9dcfed0ed00b2a698d95b5"
+          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",
@@ -69,7 +69,7 @@ expression: diags
           "column": 22,
           "line": 8,
           "message": "source",
-          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617#0c2da61772b89323af9dcfed0ed00b2a698d95b5"
+          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",
@@ -101,7 +101,7 @@ expression: diags
           "column": 15,
           "line": 9,
           "message": "source",
-          "span": "git+https://github.com/dtolnay/anyhow#0a45d7665c32ba61788e09273bb17912ed402332"
+          "span": "git+https://github.com/dtolnay/anyhow?branch=master"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",
@@ -133,7 +133,7 @@ expression: diags
           "column": 15,
           "line": 45,
           "message": "source",
-          "span": "git+https://github.com/EmbarkStudios/krates?branch=main#6aa02ee69d69444c910f0ca04ccebb949d76e738"
+          "span": "git+https://github.com/EmbarkStudios/krates?branch=main"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",
@@ -166,7 +166,7 @@ expression: diags
           "column": 17,
           "line": 49,
           "message": "source",
-          "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs#41e42b9d95684d41615dd3d0aeeb1cfc4cc47225"
+          "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs"
         },
         {
           "column": 18,
@@ -205,7 +205,7 @@ expression: diags
           "column": 12,
           "line": 94,
           "message": "source",
-          "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4#ba8dc9f0b164619771892b865f00236ebbd4cd39"
+          "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4"
         }
       ],
       "message": "detected 'git' source not explicitly allowed",

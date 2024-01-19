@@ -307,10 +307,17 @@ fn real_main() -> Result<(), Error> {
 
     // Allow gix to hook the signal handler so that it can properly release lockfiles
     // if the user aborts or we crash
-    let _dereg = gix::interrupt::init_handler(0, || {
-        log::info!("gix interrupt handler triggered, terminating process...");
-    })
-    .context("failed to initialize gix's interrupt handler")?;
+    #[allow(unsafe_code)]
+    // SAFETY: The code in the callback must be async signal safe, but we don't
+    // have any code in there because the callback is not actually invoked since
+    // we send a grace_count of 0, the callback is only invoked if grace_count > 0
+    let _dereg = unsafe {
+        gix::interrupt::init_handler(0, || {
+            //const BUF: &[u8] = b"gix interrupt handler triggered, terminating process...\n";
+            //libc::write(libc::STDERR_FILENO, BUF.as_ptr().cast(), BUF.len());
+        })
+        .context("failed to initialize gix's interrupt handler")?
+    };
 
     match args.cmd {
         Command::Check(mut cargs) => {

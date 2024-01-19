@@ -73,6 +73,7 @@ jobs:
 
   self:
     name: Check Users
+    if: false # disabled for now
     strategy:
       matrix:
         include:

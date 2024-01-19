@@ -146,7 +146,8 @@ where
 pub type Span = std::ops::Range<usize>;
 
 pub struct KrateSpan {
-    span: Span,
+    pub total: Span,
+    pub source: usize,
 }
 
 pub struct KrateSpans {
@@ -155,11 +156,11 @@ pub struct KrateSpans {
 }
 
 impl std::ops::Index<usize> for KrateSpans {
-    type Output = Span;
+    type Output = KrateSpan;
 
     #[inline]
     fn index(&self, i: usize) -> &Self::Output {
-        &self.spans[i].span
+        &self.spans[i]
     }
 }
 
@@ -182,24 +183,18 @@ impl KrateSpans {
         krates.sort_unstable_by_key(|a| (&a.name, &a.version));
         for krate in krates {
             let span_start = sl.len();
-            match &krate.source {
-                Some(src) => writeln!(sl, "{} {} {}", krate.name, krate.version, src)
-                    .expect("unable to synthesize lockfile"),
-                None => writeln!(
-                    sl,
-                    "{} {} {}",
-                    krate.name,
-                    krate.version,
-                    krate.manifest_path.parent().unwrap()
-                )
-                .expect("unable to synthesize lockfile"),
+            let source = if krate.source.is_some() {
+                krate.id.source()
+            } else {
+                krate.manifest_path.parent().unwrap().as_str()
             };
 
-            let span_end = sl.len() - 1;
+            writeln!(sl, "{} {} {source}", krate.name, krate.version)
+                .expect("unable to synthesize lockfile");
 
-            spans.push(KrateSpan {
-                span: span_start..span_end,
-            });
+            let total = span_start..sl.len() - 1;
+            let source = total.end - source.len();
+            spans.push(KrateSpan { total, source });
 
             let mut sl2 = String::with_capacity(4 * 1024);
             let mut deps_map = HashMap::new();
@@ -223,14 +218,14 @@ impl KrateSpans {
 
     #[inline]
     pub fn label_for_index(&self, krate_index: usize, msg: impl Into<String>) -> Label {
-        Label::secondary(self.file_id, self.spans[krate_index].span.clone()).with_message(msg)
+        Label::secondary(self.file_id, self.spans[krate_index].total.clone()).with_message(msg)
     }
 
     #[inline]
     pub fn get_coord(&self, krate_index: usize) -> KrateCoord {
         KrateCoord {
             file: self.file_id,
-            span: self.spans[krate_index].span.clone(),
+            span: self.spans[krate_index].total.clone(),
         }
     }
 }
