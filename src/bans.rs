@@ -286,7 +286,7 @@ pub fn check(
         let mut kids = smallvec::SmallVec::<[Dupe; 2]>::new();
 
         for dup in multi_detector.dupes.iter().cloned() {
-            let span = &ctx.krate_spans[dup];
+            let span = &ctx.krate_spans[dup].total;
 
             if span.start < all_start {
                 all_start = span.start;

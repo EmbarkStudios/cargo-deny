@@ -47,18 +47,9 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
         let mut sl = None;
         let label = || {
-            let mut span = ctx.krate_spans[i].clone();
-
-            // The krate span is the complete id, but we only want
-            // to highlight the source component
-            if let Some(last_space) = krate.id.repr.rfind(' ') {
-                span.start = span.start + last_space + 1;
-            } else {
-                // Nightly 1.77.0 has changed the internal representation
-                span.end = krate.id.repr.rfind('#').unwrap() - 1;
-            }
-
-            Label::primary(ctx.krate_spans.file_id, span).with_message("source")
+            let span = &ctx.krate_spans[i];
+            Label::primary(ctx.krate_spans.file_id, span.source..span.total.end)
+                .with_message("source")
         };
 
         // get allowed list of sources to check
