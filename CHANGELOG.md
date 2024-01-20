@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#588](https://github.com/EmbarkStudios/cargo-deny/pull/588) resolved an issue introduced in [0.14.4] where features that reference dev-only dependencies in non-workspace crates would cause a [panic](https://github.com/EmbarkStudios/krates/issues/66).
+
 ## [0.14.4] - 2024-01-19
 ### Fixed
 - [PR#586](https://github.com/EmbarkStudios/cargo-deny/pull/586) resolved 2 issues with crate graph creation, see [krates#60](https://github.com/EmbarkStudios/krates/issues/60) and [krates#64](https://github.com/EmbarkStudios/krates/issues/64) for more details.
