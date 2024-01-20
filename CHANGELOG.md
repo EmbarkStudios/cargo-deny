@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.5] - 2024-01-20
 ### Fixed
 - [PR#588](https://github.com/EmbarkStudios/cargo-deny/pull/588) resolved an issue introduced in [0.14.4] where features that reference dev-only dependencies in non-workspace crates would cause a [panic](https://github.com/EmbarkStudios/krates/issues/66).
 
@@ -491,7 +492,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.5...HEAD
+[0.14.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.4...0.14.5
 [0.14.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.3...0.14.4
 [0.14.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.1...0.14.2
