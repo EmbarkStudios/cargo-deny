@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.6] - 2024-01-21
 ### Fixed
 - [PR#590](https://github.com/EmbarkStudios/cargo-deny/pull/590) updated `krates` to fix an issue with crates that directly have a dependency on 2 or more versions of the same crate.
 
@@ -501,7 +502,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.6...HEAD
+[0.14.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.5...0.14.6
 [0.14.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.4...0.14.5
 [0.14.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.3...0.14.4
 [0.14.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.2...0.14.3
