@@ -26,6 +26,21 @@ wrappers = ["safe-wrapper"]
 }
 
 #[test]
+fn warns_on_unused_wrappers() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("allow_wrappers/maincrate"),
+        r#"
+[[deny]]
+name = "dangerous-dep"
+wrappers = ["safe-wrapper", "other-crate"]
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+#[test]
 fn disallows_denied() {
     let diags = gather_bans(
         func_name!(),

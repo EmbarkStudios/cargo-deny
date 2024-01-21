@@ -1,0 +1,69 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "allowed-by-wrapper",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "dangerous-dep",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "safe-wrapper",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "allow-wrappers-crate",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 8,
+          "line": 3,
+          "message": "banned here",
+          "span": "dangerous-dep"
+        },
+        {
+          "column": 13,
+          "line": 4,
+          "message": "allowed wrapper",
+          "span": "safe-wrapper"
+        }
+      ],
+      "message": "banned crate 'dangerous-dep = 0.1.0' allowed by wrapper 'safe-wrapper = 0.1.0'",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-wrapper",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 29,
+          "line": 4,
+          "message": "unmatched wrapper",
+          "span": "other-crate"
+        }
+      ],
+      "message": "wrapper for banned crate was not enountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

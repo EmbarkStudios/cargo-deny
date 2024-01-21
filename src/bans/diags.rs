@@ -50,6 +50,7 @@ pub enum Code {
     UnmatchedBypass,
     UnmatchedPathBypass,
     UnmatchedGlob,
+    UnusedWrapper,
 }
 
 impl From<Code> for String {
@@ -210,6 +211,23 @@ impl<'a> From<UnmatchedSkip<'a>> for Diag {
                 .skip_cfg
                 .into_label()
                 .with_message("unmatched skip configuration")])
+            .into()
+    }
+}
+
+pub(crate) struct UnusedWrapper {
+    pub(crate) wrapper_cfg: CfgCoord,
+}
+
+impl From<UnusedWrapper> for Diag {
+    fn from(us: UnusedWrapper) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message("wrapper for banned crate was not enountered")
+            .with_code(Code::UnusedWrapper)
+            .with_labels(vec![us
+                .wrapper_cfg
+                .into_label()
+                .with_message("unmatched wrapper")])
             .into()
     }
 }
