@@ -214,8 +214,61 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) =
-        denied.into_iter().map(|kb| (kb.id, kb.wrappers)).unzip();
+    struct BanWrappers {
+        map: std::collections::BTreeMap<usize, (usize, Vec<crate::Spanned<String>>)>,
+        hits: BitVec,
+    }
+
+    impl BanWrappers {
+        fn new(
+            mut map: std::collections::BTreeMap<usize, (usize, Vec<crate::Spanned<String>>)>,
+        ) -> Self {
+            let hits = BitVec::repeat(
+                false,
+                map.values_mut().fold(0, |sum, v| {
+                    v.0 = sum;
+                    sum + v.1.len()
+                }),
+            );
+
+            Self { map, hits }
+        }
+
+        #[inline]
+        fn has_wrappers(&self, i: usize) -> bool {
+            self.map.contains_key(&i)
+        }
+
+        #[inline]
+        fn check(&mut self, i: usize, name: &str) -> Option<crate::diag::Span> {
+            let (offset, wrappers) = &self.map[&i];
+            if let Some(pos) = wrappers.iter().position(|wrapper| wrapper.value == name) {
+                self.hits.set(*offset + pos, true);
+                Some(wrappers[pos].span.clone())
+            } else {
+                None
+            }
+        }
+    }
+
+    let (denied_ids, mut ban_wrappers) = {
+        let mut bw = std::collections::BTreeMap::new();
+
+        (
+            denied
+                .into_iter()
+                .enumerate()
+                .map(|(i, kb)| {
+                    if let Some(wrappers) = kb.wrappers.filter(|v| !v.is_empty()) {
+                        bw.insert(i, (0, wrappers));
+                    }
+
+                    kb.id
+                })
+                .collect::<Vec<_>>(),
+            BanWrappers::new(bw),
+        )
+    };
 
     let (feature_ids, features): (Vec<_>, Vec<_>) =
         features.into_iter().map(|cf| (cf.id, cf.features)).unzip();
@@ -390,6 +443,7 @@ pub fn check(
     let (_, build_packs) = rayon::join(
         || {
             let last = ctx.krates.len() - 1;
+
             for (i, krate) in ctx.krates.krates().enumerate() {
                 let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
@@ -401,24 +455,25 @@ pub fn check(
                             span: rm.id.span.clone(),
                         };
 
-                        // The crate is banned, but it might have be allowed if it's wrapped
-                        // by one or more particular crates
-                        let is_allowed_by_wrapper = if let Some(wrappers) =
-                            ban_wrappers.get(rm.index).and_then(|bw| bw.as_ref())
-                        {
+                        // The crate is banned, but it might be allowed if it's
+                        // wrapped by one or more particular crates
+                        let is_allowed_by_wrapper = if ban_wrappers.has_wrappers(rm.index) {
                             let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
 
                             // Ensure that every single crate that has a direct dependency
-                            // on the banned crate is an allowed wrapper
-                            ctx.krates.direct_dependents(nid).into_iter().all(|src| {
+                            // on the banned crate is an allowed wrapper, note we
+                            // check every one even after a failure so we don't get
+                            // extra warnings about unmatched wrappers
+                            let mut all = true;
+                            for src in ctx.krates.direct_dependents(nid) {
                                 let (diag, is_allowed): (Diag, _) =
-                                    match wrappers.iter().find(|aw| aw.value == src.krate.name) {
-                                        Some(aw) => (
+                                    match ban_wrappers.check(rm.index, &src.krate.name) {
+                                        Some(span) => (
                                             diags::BannedAllowedByWrapper {
                                                 ban_cfg: ban_cfg.clone(),
                                                 ban_exception_cfg: CfgCoord {
                                                     file: file_id,
-                                                    span: aw.span.clone(),
+                                                    span,
                                                 },
                                                 banned_krate: krate,
                                                 wrapper_krate: src.krate,
@@ -438,8 +493,10 @@ pub fn check(
                                     };
 
                                 pack.push(diag);
-                                is_allowed
-                            })
+                                all = all && is_allowed;
+                            }
+
+                            all
                         } else {
                             false
                         };
@@ -846,7 +903,7 @@ pub fn check(
     for skip in skip_hit
         .into_iter()
         .zip(skipped.into_iter())
-        .filter_map(|(hit, skip)| if !hit { Some(skip) } else { None })
+        .filter_map(|(hit, skip)| (!hit).then_some(skip))
     {
         pack.push(diags::UnmatchedSkip {
             skip_cfg: CfgCoord {
@@ -854,6 +911,20 @@ pub fn check(
                 span: skip.span,
             },
             skipped_krate: &skip.value,
+        });
+    }
+
+    for wrapper in ban_wrappers
+        .hits
+        .into_iter()
+        .zip(ban_wrappers.map.into_values().flat_map(|(_, w)| w))
+        .filter_map(|(hit, wrapper)| (!hit).then_some(wrapper))
+    {
+        pack.push(diags::UnusedWrapper {
+            wrapper_cfg: CfgCoord {
+                file: file_id,
+                span: wrapper.span,
+            },
         });
     }
 

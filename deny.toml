@@ -31,8 +31,8 @@ deny = [
     { name = "libssh2-sys" },
     # There is literally never a reason to use this
     { name = "cmake" },
-    # https://github.com/Byron/gitoxide/pull/1245
-    { name = "windows", wrappers = ["gix-sec"] },
+    # Ditto
+    { name = "windows" },
 ]
 skip = [
     # strum_macros + maybe-async
