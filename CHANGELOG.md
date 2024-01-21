@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#590](https://github.com/EmbarkStudios/cargo-deny/pull/590) updated `krates` to fix an issue with crates that directly have a dependency on 2 or more versions of the same crate.
+
+### Added
+- [PR#590](https://github.com/EmbarkStudios/cargo-deny/pull/590) resolved [#405](https://github.com/EmbarkStudios/cargo-deny/issues/405) by emitting warnings when a `wrapper` crate for a banned crate does not have a dependency on that crate.
+
+### Changed
+- [PR#591](https://github.com/EmbarkStudios/cargo-deny/pull/591) updated `gix` and `tame-index`.
+
 ## [0.14.5] - 2024-01-20
 ### Fixed
 - [PR#588](https://github.com/EmbarkStudios/cargo-deny/pull/588) resolved an issue introduced in [0.14.4] where features that reference dev-only dependencies in non-workspace crates would cause a [panic](https://github.com/EmbarkStudios/krates/issues/66).

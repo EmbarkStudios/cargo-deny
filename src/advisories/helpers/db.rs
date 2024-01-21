@@ -132,6 +132,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     let db_url = &url;
     let db_path = url_to_db_path(root_db_path, db_url)?;
 
+    let fetch_start = std::time::Instant::now();
     match fetch {
         Fetch::Allow => {
             debug!("Fetching advisory database from '{db_url}'");
@@ -164,6 +165,11 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
                     .checked_sub(max_staleness)
                     .context("unable to compute oldest allowable update timestamp")?,
             "repository is stale (last update: {fetch_time})"
+        );
+    } else {
+        info!(
+            "advisory database {db_url} fetched in {:?}",
+            fetch_start.elapsed()
         );
     }
 
