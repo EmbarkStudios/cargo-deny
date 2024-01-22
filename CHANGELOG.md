@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.7] - 2024-01-22
 ### Fixed
 - [PR#591](https://github.com/EmbarkStudios/cargo-deny/pull/591) updated `krates` _again_ to pull in [krates#71](https://github.com/EmbarkStudios/krates/pull/71).
 
@@ -505,7 +506,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.6...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.7...HEAD
+[0.14.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.6...0.14.7
 [0.14.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.5...0.14.6
 [0.14.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.4...0.14.5
 [0.14.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.3...0.14.4
