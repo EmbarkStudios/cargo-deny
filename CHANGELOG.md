@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#591](https://github.com/EmbarkStudios/cargo-deny/pull/591) updated `krates` _again_ to pull in [krates#71](https://github.com/EmbarkStudios/krates/pull/71).
+
 ## [0.14.6] - 2024-01-21
 ### Fixed
 - [PR#590](https://github.com/EmbarkStudios/cargo-deny/pull/590) updated `krates` to fix an issue with crates that directly have a dependency on 2 or more versions of the same crate.
