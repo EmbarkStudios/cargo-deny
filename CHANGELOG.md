@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#592](https://github.com/EmbarkStudios/cargo-deny/pull/592) updated `krates` _again_ to pull in [krates#73](https://github.com/EmbarkStudios/krates/pull/73).
+
 ## [0.14.7] - 2024-01-22
 ### Fixed
 - [PR#591](https://github.com/EmbarkStudios/cargo-deny/pull/591) updated `krates` _again_ to pull in [krates#71](https://github.com/EmbarkStudios/krates/pull/71).
