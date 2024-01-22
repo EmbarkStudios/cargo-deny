@@ -1720,9 +1720,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.16.2"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "930c7df5d5cc675e69384a0ff046fdb7fcd08ff53825bafd619dcec7aa18d1b9"
+checksum = "db32da4c91258a3212514393ffc075446b6b40d80b5e990d78965ab55dda1f5f"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",
@@ -2034,9 +2034,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.10.2"
+version = "1.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "380b951a9c5e80ddfd6136919eef32310721aa4aacd4889a8d39124b026ab343"
+checksum = "b62dbe01f0b06f9d8dc7d49e05a0785f153b00b2c227856282f671e0318c9b15"
 dependencies = [
  "aho-corasick",
  "memchr",
