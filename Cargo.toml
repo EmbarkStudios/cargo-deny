@@ -41,7 +41,7 @@ native-certs = ["reqwest/rustls-tls-native-roots", "tame-index/native-certs"]
 
 [dependencies]
 # Output coloring
-nu-ansi-term = "0.49"
+nu-ansi-term = "0.50"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
