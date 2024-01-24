@@ -22,6 +22,7 @@
 //! ```
 
 use crate::{
+    cfg::ValidationContext,
     diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Spanned,
 };
@@ -226,12 +227,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
     /// 1. Ensures the same license is not both allowed and denied
-    fn validate(
-        self,
-        cfg_file: FileId,
-        _files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
+    fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
         use rayon::prelude::*;
 
         let mut ignore_sources = Vec::with_capacity(self.private.ignore_sources.len());
@@ -242,10 +238,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     ignore_sources.push(url);
                 }
                 Err(pe) => {
-                    diags.push(
+                    ctx.push(
                         Diagnostic::error()
                             .with_message("failed to parse url")
-                            .with_labels(vec![Label::primary(cfg_file, aurl.span.clone())
+                            .with_labels(vec![Label::primary(ctx.cfg_id, aurl.span.clone())
                                 .with_message(pe.to_string())]),
                     );
                 }
@@ -254,12 +250,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         let mut denied = Vec::with_capacity(self.deny.len());
         for d in &self.deny {
-            parse_license(d, &mut denied, diags, cfg_file);
+            parse_license(d, &mut denied, ctx.diagnostics, ctx.cfg_id);
         }
 
         let mut allowed: Vec<Licensee> = Vec::with_capacity(self.allow.len());
         for a in &self.allow {
-            parse_license(a, &mut allowed, diags, cfg_file);
+            parse_license(a, &mut allowed, ctx.diagnostics, ctx.cfg_id);
         }
 
         denied.par_sort();
@@ -270,14 +266,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
             let mut allowed = Vec::with_capacity(exc.allow.len());
 
             for allow in &exc.allow {
-                parse_license(allow, &mut allowed, diags, cfg_file);
+                parse_license(allow, &mut allowed, ctx.diagnostics, ctx.cfg_id);
             }
 
             exceptions.push(ValidException {
                 name: exc.name,
                 version: exc.version,
                 allowed,
-                file_id: cfg_file,
+                file_id: ctx.cfg_id,
             });
         }
 
@@ -286,13 +282,13 @@ impl crate::cfg::UnvalidatedConfig for Config {
         // they should pick one
         for (di, d) in denied.iter().enumerate() {
             if let Ok(ai) = allowed.binary_search(d) {
-                diags.push(
+                ctx.push(
                     Diagnostic::error()
                         .with_message("a license id was specified in both `allow` and `deny`")
                         .with_labels(vec![
-                            Label::secondary(cfg_file, denied[di].span.clone())
+                            Label::secondary(ctx.cfg_id, self.deny[di].span.clone())
                                 .with_message("deny"),
-                            Label::secondary(cfg_file, allowed[ai].span.clone())
+                            Label::secondary(ctx.cfg_id, self.allow[ai].span.clone())
                                 .with_message("allow"),
                         ]),
                 );
@@ -307,10 +303,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     let offset = c.expression.span.start + 1;
                     let expr_span = offset + err.span.start..offset + err.span.end;
 
-                    diags.push(
+                    ctx.push(
                         Diagnostic::error()
                             .with_message("unable to parse license expression")
-                            .with_labels(vec![Label::primary(cfg_file, expr_span)
+                            .with_labels(vec![Label::primary(ctx.cfg_id, expr_span)
                                 .with_message(err.reason.to_string())]),
                     );
 
@@ -331,7 +327,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         }
 
         ValidConfig {
-            file_id: cfg_file,
+            file_id: ctx.cfg_id,
             private: self.private,
             unlicensed: self.unlicensed,
             copyleft: self.copyleft,
@@ -459,10 +455,11 @@ mod test {
         let mut cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
 
         let mut diags = Vec::new();
-        let validated = cd
-            .config
-            .licenses
-            .validate(cd.id, &mut cd.files, &mut diags);
+        let validated = cd.config.licenses.validate(ValidationContext {
+            cfg_id: cd.id,
+            files: &mut cd.files,
+            diagnostics: &mut diags,
+        });
         assert!(diags.is_empty());
 
         assert_eq!(validated.file_id, cd.id);

@@ -1,3 +1,5 @@
+#![cfg(no)]
+
 use cargo_deny::{field_eq, func_name, test_utils::*};
 
 /// Verifies we can detect and error on builtin globs

@@ -67,10 +67,15 @@ impl ValidConfig {
         let id = files.add(&cfg_path, cfg_contents);
 
         let mut diags = Vec::new();
-        let advisories = cfg
-            .advisories
-            .unwrap_or_default()
-            .validate(id, files, &mut diags);
+
+        let advisories =
+            cfg.advisories
+                .unwrap_or_default()
+                .validate(cargo_deny::cfg::ValidationContext {
+                    cfg_id: id,
+                    files,
+                    diagnostics: &mut diags,
+                });
 
         let has_errors = diags
             .iter()

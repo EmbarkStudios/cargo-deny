@@ -192,7 +192,7 @@ impl<'a> From<Wildcards<'a>> for Pack {
 pub(crate) struct UnmatchedSkip<'a> {
     pub(crate) skip_cfg: CfgCoord,
     pub(crate) skipped_krate: &'a PackageSpec,
-    pub(crate) reason: &'a Option<Spanned<String>>,
+    pub(crate) reason: Option<&'a Spanned<String>>,
 }
 
 impl<'a> From<UnmatchedSkip<'a>> for Diag {
@@ -797,7 +797,7 @@ impl<'a> From<UnmatchedBypass<'a>> for Diag {
             .with_code(Code::UnmatchedBypass)
             .with_labels(vec![Label::primary(
                 ubc.file_id,
-                ubc.unmatched.id.span.clone(),
+                ubc.unmatched.spec.span.clone(),
             )
             .with_message("unmatched bypass")])
             .into()

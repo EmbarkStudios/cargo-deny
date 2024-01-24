@@ -1,5 +1,9 @@
 use super::OrgType;
-use crate::{cfg, diag::FileId, LintLevel, Spanned};
+use crate::{
+    cfg::{self, ValidationContext},
+    diag::FileId,
+    LintLevel, Spanned,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize, Default)]
@@ -84,7 +88,7 @@ fn default_allow_registry() -> Vec<Spanned<String>> {
     // use this source
     vec![Spanned::new(
         super::CRATES_IO_URL.to_owned(),
-        0..super::CRATES_IO_URL.len(),
+        (0..super::CRATES_IO_URL.len()).into(),
     )]
 }
 
@@ -107,12 +111,7 @@ use crate::diag::{Diagnostic, Label};
 impl cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(
-        self,
-        cfg_file: FileId,
-        _files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
+    fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
         let mut allowed_sources = Vec::with_capacity(
             self.allow_registry.len() + self.allow_git.len() + self.private.len(),
         );
@@ -129,11 +128,11 @@ impl cfg::UnvalidatedConfig for Config {
 
             if let Some(start_scheme) = astr.find("://") {
                 if let Some(i) = astr[..start_scheme].find('+') {
-                    diags.push(
+                    ctx.push(
                         Diagnostic::warning()
                             .with_message("scheme modifiers are unnecessary")
                             .with_labels(vec![Label::primary(
-                                cfg_file,
+                                ctx.cfg_id,
                                 aurl.span.start..aurl.span.start + start_scheme,
                             )]),
                     );
@@ -157,11 +156,11 @@ impl cfg::UnvalidatedConfig for Config {
                     });
                 }
                 Err(pe) => {
-                    diags.push(
+                    ctx.push(
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(cfg_file, aurl.span).with_message(pe.to_string())
+                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string())
                             ]),
                     );
                 }
@@ -188,7 +187,7 @@ impl cfg::UnvalidatedConfig for Config {
             .collect();
 
         ValidConfig {
-            file_id: cfg_file,
+            file_id: ctx.cfg_id,
             unknown_registry: self.unknown_registry,
             unknown_git: self.unknown_git,
             allowed_sources,
@@ -233,7 +232,11 @@ mod test {
         let mut cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
 
         let mut diags = Vec::new();
-        let validated = cd.config.sources.validate(cd.id, &mut cd.files, &mut diags);
+        let validated = cd.config.sources.validate(ValidationContext {
+            cfg_id: cd.id,
+            files: &mut cd.files,
+            diagnostics: &mut diags,
+        });
 
         let diags: Vec<_> = diags
             .into_iter()

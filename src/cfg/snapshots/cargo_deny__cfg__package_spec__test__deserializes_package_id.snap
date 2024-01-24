@@ -1,0 +1,14 @@
+---
+source: src/cfg/package_spec.rs
+expression: vtc
+---
+ValidTestCfg {
+    bare: bare-name = None,
+    specific: ValidBoop { id: specific = Some(VersionReq { comparators: [Comparator { op: Exact, major: 0, minor: Some(1), patch: Some(0), pre: Prerelease("") }] }), data: None },
+    range: ValidBoop { id: range = Some(VersionReq { comparators: [Comparator { op: LessEq, major: 1, minor: Some(0), patch: None, pre: Prerelease("") }] }), data: None },
+    mixed: [
+        bare-name-1 = None,
+        ValidBoop { id: range-2 = Some(VersionReq { comparators: [Comparator { op: GreaterEq, major: 1, minor: Some(0), patch: None, pre: Prerelease("") }, Comparator { op: LessEq, major: 2, minor: Some(0), patch: None, pre: Prerelease("") }] }), data: None },
+        specific-3 = Some(VersionReq { comparators: [Comparator { op: Exact, major: 0, minor: Some(2), patch: Some(1), pre: Prerelease("") }] }),
+    ],
+}

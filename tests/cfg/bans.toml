@@ -11,13 +11,13 @@ allow = [
     "specific-versionb@0.1.2",
     "any-version",
 ]
-deny = ["specific-versiond@0.1.9"]
+deny = [
+    "specific-versiond@0.1.9",
+    { name = "all-versionsd", wrappers = [
+        "specific-versiona",
+    ], reason = "we want to get rid of this crate but there is still one user of it" },
+]
 skip-tree = [{ name = "blah", depth = 20 }]
-
-[[bans.deny]]
-name = "all-versionsd"
-wrappers = ["specific-versiona"]
-reason = "we want to get rid of this crate but there is still one user of it"
 
 [[bans.skip]]
 name = "rand"

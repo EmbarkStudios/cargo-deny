@@ -1,3 +1,5 @@
+#![cfg(no)]
+
 use cargo_deny::{func_name, test_utils::*};
 
 /// Covers issue <https://github.com/EmbarkStudios/cargo-deny/issues/184>

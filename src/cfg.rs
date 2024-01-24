@@ -1,13 +1,53 @@
 mod package_spec;
-pub use package_spec::{
-    ConfigWithSpec, EmbeddedSpec, PackageSpec, PackageSpecOrExtended, Reason, WithReason,
-};
+pub mod toml;
+
+pub use package_spec::{ConfigWithSpec, EmbeddedSpec, PackageSpec, PackageSpecOrExtended};
 
 use crate::diag;
 use serde::{de, ser};
 use std::fmt;
 
-pub type Span = std::ops::Range<usize>;
+#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl Span {
+    #[inline]
+    pub fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.start == 0 && self.end == 0
+    }
+}
+
+impl From<Span> for (usize, usize) {
+    fn from(Span { start, end }: Span) -> (usize, usize) {
+        (start, end)
+    }
+}
+
+impl From<std::ops::Range<usize>> for Span {
+    fn from(s: std::ops::Range<usize>) -> Self {
+        Self {
+            start: s.start,
+            end: s.end,
+        }
+    }
+}
+
+impl From<Span> for std::ops::Range<usize> {
+    fn from(s: Span) -> Self {
+        Self {
+            start: s.start,
+            end: s.end,
+        }
+    }
+}
 
 pub struct ValidationContext<'ctx> {
     pub cfg_id: diag::FileId,
@@ -16,55 +56,62 @@ pub struct ValidationContext<'ctx> {
 }
 
 impl<'ctx> ValidationContext<'ctx> {
-    pub fn convert_embedded<T, V>(
-        &self,
-        input: PackageSpecOrExtended<T>,
-        convert: impl Fn(T, package_spec::ConvertCtx<'ctx>) -> anyhow::Result<ConfigWithSpec<V>>,
-    ) -> Option<ConfigWithSpec<V>> {
-        match input {
-            PackageSpecOrExtended::Simple(spec) => Some(ConfigWithSpec { spec, inner: None }),
-            PackageSpecOrExtended::Extended(ext) => {
-                let ctx = package_spec::ConvertCtx {
-                    doc: self.files.source(self.cfg_id).as_str(),
-                    range: ext.span.clone(),
-                };
+    // pub fn convert_embedded<T, V>(
+    //     &mut self,
+    //     input: PackageSpecOrExtended<T>,
+    //     convert: impl Fn(T, package_spec::ConvertCtx<'_>) -> anyhow::Result<ConfigWithSpec<V>>,
+    // ) -> Option<ConfigWithSpec<V>> {
+    //     match input {
+    //         PackageSpecOrExtended::Simple(spec) => Some(ConfigWithSpec { spec, inner: None }),
+    //         PackageSpecOrExtended::Extended(ext) => {
+    //             let doc = self.files.source(self.cfg_id);
 
-                let inner = ext.value;
-                match convert(inner, ctx) {
-                    Ok(cs) => Some(cs),
-                    Err(err) => {
-                        self.diagnostics.push(
-                            diag::Diagnostic::error()
-                                .with_message(err.to_string())
-                                .with_labels(vec![diag::Label::secondary(self.cfg_id, ext.span)]),
-                        );
+    //             let ctx = package_spec::ConvertCtx {
+    //                 doc: doc.as_str(),
+    //                 span: ext.span,
+    //             };
 
-                        None
-                    }
-                }
-            }
-        }
-    }
+    //             let inner = ext.value;
+    //             match convert(inner, ctx) {
+    //                 Ok(cs) => Some(cs),
+    //                 Err(err) => {
+    //                     self.diagnostics.push(
+    //                         diag::Diagnostic::error()
+    //                             .with_message(err.to_string())
+    //                             .with_labels(vec![diag::Label::secondary(self.cfg_id, ext.span)]),
+    //                     );
+
+    //                     None
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+    // #[inline]
+    // pub fn convert_spanned(&mut self, span: Span, spec: EmbeddedSpec) -> Option<PackageSpec> {
+    //     let ctx = package_spec::ConvertCtx {
+    //         doc: self.files.source(self.cfg_id).as_str(),
+    //         span,
+    //     };
+
+    //     match PackageSpec::from_embedded(spec, ctx) {
+    //         Ok(ps) => Some(ps),
+    //         Err(err) => {
+    //             self.diagnostics.push(
+    //                 diag::Diagnostic::error()
+    //                     .with_message(err.to_string())
+    //                     .with_labels(vec![diag::Label::secondary(self.cfg_id, span)]),
+    //             );
+
+    //             None
+    //         }
+    //     }
+    // }
 
     #[inline]
-    pub fn convert_spanned(&self, range: Span, spec: EmbeddedSpec) -> Option<PackageSpec> {
-        let ctx = package_spec::ConvertCtx {
-            doc: self.files.source(self.cfg_id).as_str(),
-            range,
-        };
-
-        match PackageSpec::from_embedded(spec, ctx) {
-            Ok(ps) => Some(ps),
-            Err(err) => {
-                self.diagnostics.push(
-                    diag::Diagnostic::error()
-                        .with_message(err.to_string())
-                        .with_labels(vec![diag::Label::secondary(self.cfg_id, range)]),
-                );
-
-                None
-            }
-        }
+    pub fn push(&mut self, diag: diag::Diagnostic) {
+        self.diagnostics.push(diag);
     }
 }
 
@@ -111,7 +158,7 @@ where
         #[allow(clippy::reversed_empty_ranges)]
         Spanned {
             value: self,
-            span: 0..0,
+            span: Default::default(),
         }
     }
 }
@@ -181,6 +228,14 @@ where
     }
 }
 
+pub(crate) mod span_tags {
+    pub const NAME: &str = "$__serde_spanned_private_Spanned";
+    pub const START: &str = "$__serde_spanned_private_start";
+    pub const END: &str = "$__serde_spanned_private_end";
+    pub const VALUE: &str = "$__serde_spanned_private_value";
+    pub const FIELDS: [&str; 3] = [START, END, VALUE];
+}
+
 impl<'de, T> de::Deserialize<'de> for Spanned<T>
 where
     T: de::Deserialize<'de>,
@@ -189,11 +244,6 @@ where
     where
         D: de::Deserializer<'de>,
     {
-        pub(crate) const NAME: &str = "$__serde_spanned_private_Spanned";
-        pub(crate) const START: &str = "$__serde_spanned_private_start";
-        pub(crate) const END: &str = "$__serde_spanned_private_end";
-        pub(crate) const VALUE: &str = "$__serde_spanned_private_value";
-
         struct SpannedVisitor<T>(::std::marker::PhantomData<T>);
 
         impl<'de, T> de::Visitor<'de> for SpannedVisitor<T>
@@ -210,35 +260,31 @@ where
             where
                 V: de::MapAccess<'de>,
             {
-                if visitor.next_key()? != Some(START) {
-                    return Err(de::Error::custom("spanned start key not found"));
-                }
+                let start: usize = visitor
+                    .next_entry()?
+                    .and_then(|(k, v): (&str, _)| (k == span_tags::START).then_some(v))
+                    .ok_or(de::Error::custom("spanned start key not found"))?;
 
-                let start: usize = visitor.next_value()?;
+                let end: usize = visitor
+                    .next_entry()?
+                    .and_then(|(k, v): (&str, _)| (k == span_tags::END).then_some(v))
+                    .ok_or(de::Error::custom("spanned start key not found"))?;
 
-                if visitor.next_key()? != Some(END) {
-                    return Err(de::Error::custom("spanned end key not found"));
-                }
-
-                let end: usize = visitor.next_value()?;
-
-                if visitor.next_key()? != Some(VALUE) {
+                if visitor.next_key()? != Some(span_tags::VALUE) {
                     return Err(de::Error::custom("spanned value key not found"));
                 }
 
                 let value: T = visitor.next_value()?;
 
                 Ok(Spanned {
-                    span: start..end,
+                    span: (start..end).into(),
                     value,
                 })
             }
         }
 
         let visitor = SpannedVisitor(::std::marker::PhantomData);
-
-        static FIELDS: [&str; 3] = [START, END, VALUE];
-        deserializer.deserialize_struct(NAME, &FIELDS, visitor)
+        deserializer.deserialize_struct(span_tags::NAME, &span_tags::FIELDS, visitor)
     }
 }
 
@@ -268,6 +314,8 @@ pub(crate) fn parse_url(
                 ])
         })
 }
+
+pub type Reason = Option<Spanned<String>>;
 
 #[cfg(test)]
 pub(crate) mod test {

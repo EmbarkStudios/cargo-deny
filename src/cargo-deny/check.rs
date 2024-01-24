@@ -1,11 +1,14 @@
 use crate::stats::{AllStats, Stats};
 use anyhow::{Context, Error};
 use cargo_deny::{
-    advisories, bans,
+    advisories, //bans,
     diag::{
         CargoSpans, Diagnostic, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity,
     },
-    licenses, sources, CheckCtx, PathBuf,
+    licenses,
+    sources,
+    CheckCtx,
+    PathBuf,
 };
 use log::error;
 use serde::Deserialize;
@@ -118,7 +121,7 @@ pub struct Args {
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 struct Config {
     advisories: Option<advisories::cfg::Config>,
-    bans: Option<bans::cfg::Config>,
+    //bans: Option<bans::cfg::Config>,
     licenses: Option<licenses::Config>,
     sources: Option<sources::Config>,
     #[serde(default)]
@@ -139,7 +142,7 @@ struct Config {
 
 struct ValidConfig {
     advisories: advisories::cfg::ValidConfig,
-    bans: bans::cfg::ValidConfig,
+    //bans: bans::cfg::ValidConfig,
     licenses: licenses::ValidConfig,
     sources: sources::ValidConfig,
     targets: Vec<(krates::Target, Vec<String>)>,
@@ -191,16 +194,31 @@ impl ValidConfig {
 
             let mut diags = Vec::new();
 
-            let advisories = cfg
-                .advisories
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
+            let advisories =
+                cfg.advisories
+                    .unwrap_or_default()
+                    .validate(cargo_deny::cfg::ValidationContext {
+                        cfg_id: id,
+                        files,
+                        diagnostics: &mut diags,
+                    });
 
-            let bans = cfg.bans.unwrap_or_default().validate(id, files, &mut diags);
-            let mut licenses = cfg
-                .licenses
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
+            // let bans = cfg
+            //     .bans
+            //     .unwrap_or_default()
+            //     .validate(cargo_deny::cfg::ValidationContext {
+            //         cfg_id: id,
+            //         files,
+            //         diagnostics: &mut diags,
+            //     });
+            let mut licenses =
+                cfg.licenses
+                    .unwrap_or_default()
+                    .validate(cargo_deny::cfg::ValidationContext {
+                        cfg_id: id,
+                        files,
+                        diagnostics: &mut diags,
+                    });
 
             // Allow for project-local exceptions. Relevant in corporate environments.
             // https://github.com/EmbarkStudios/cargo-deny/issues/541
@@ -208,10 +226,14 @@ impl ValidConfig {
                 licenses::cfg::load_exceptions(&mut licenses, ecp, files, &mut diags);
             };
 
-            let sources = cfg
-                .sources
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
+            let sources =
+                cfg.sources
+                    .unwrap_or_default()
+                    .validate(cargo_deny::cfg::ValidationContext {
+                        cfg_id: id,
+                        files,
+                        diagnostics: &mut diags,
+                    });
 
             let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
             let exclude = cfg.exclude;
@@ -225,7 +247,7 @@ impl ValidConfig {
                 diags,
                 Self {
                     advisories,
-                    bans,
+                    //bans,
                     licenses,
                     sources,
                     targets,
@@ -276,7 +298,7 @@ pub(crate) fn cmd(
     let mut files = Files::new();
     let ValidConfig {
         advisories,
-        bans,
+        //bans,
         licenses,
         sources,
         targets,
@@ -543,54 +565,54 @@ pub(crate) fn cmd(
             });
         }
 
-        if check_bans {
-            let output_graph = graph_out_dir.map(|pb| -> Box<bans::OutputGraph> {
-                let output_dir = pb.join("graph_output");
-                let _ = std::fs::remove_dir_all(&output_dir);
+        // if check_bans {
+        //     let output_graph = graph_out_dir.map(|pb| -> Box<bans::OutputGraph> {
+        //         let output_dir = pb.join("graph_output");
+        //         let _ = std::fs::remove_dir_all(&output_dir);
 
-                match std::fs::create_dir_all(&output_dir) {
-                    Ok(_) => Box::new(move |dup_graph: bans::DupGraph| {
-                        std::fs::write(
-                            output_dir.join(format!("{}.dot", dup_graph.duplicate)),
-                            dup_graph.graph.as_bytes(),
-                        )?;
+        //         match std::fs::create_dir_all(&output_dir) {
+        //             Ok(_) => Box::new(move |dup_graph: bans::DupGraph| {
+        //                 std::fs::write(
+        //                     output_dir.join(format!("{}.dot", dup_graph.duplicate)),
+        //                     dup_graph.graph.as_bytes(),
+        //                 )?;
 
-                        Ok(())
-                    }),
-                    Err(err) => {
-                        error!("unable to create directory '{output_dir}': {err}");
+        //                 Ok(())
+        //             }),
+        //             Err(err) => {
+        //                 error!("unable to create directory '{output_dir}': {err}");
 
-                        Box::new(move |dup_graph: bans::DupGraph| {
-                            anyhow::bail!(
-                                "unable to write {}.dot: could not create parent directory",
-                                dup_graph.duplicate
-                            );
-                        })
-                    }
-                }
-            });
+        //                 Box::new(move |dup_graph: bans::DupGraph| {
+        //                     anyhow::bail!(
+        //                         "unable to write {}.dot: could not create parent directory",
+        //                         dup_graph.duplicate
+        //                     );
+        //                 })
+        //             }
+        //         }
+        //     });
 
-            let bans_sink = ErrorSink {
-                overrides: overrides.clone(),
-                channel: tx.clone(),
-            };
+        //     let bans_sink = ErrorSink {
+        //         overrides: overrides.clone(),
+        //         channel: tx.clone(),
+        //     };
 
-            let ctx = CheckCtx {
-                cfg: bans,
-                krates,
-                krate_spans: &krate_spans,
-                serialize_extra,
-                colorize,
-            };
+        //     let ctx = CheckCtx {
+        //         cfg: bans,
+        //         krates,
+        //         krate_spans: &krate_spans,
+        //         serialize_extra,
+        //         colorize,
+        //     };
 
-            s.spawn(|_| {
-                log::info!("checking bans...");
-                let start = Instant::now();
-                bans::check(ctx, output_graph, cargo_spans, bans_sink);
+        //     s.spawn(|_| {
+        //         log::info!("checking bans...");
+        //         let start = Instant::now();
+        //         bans::check(ctx, output_graph, cargo_spans, bans_sink);
 
-                log::info!("bans checked in {}ms", start.elapsed().as_millis());
-            });
-        }
+        //         log::info!("bans checked in {}ms", start.elapsed().as_millis());
+        //     });
+        // }
 
         if check_sources {
             let sources_sink = ErrorSink {

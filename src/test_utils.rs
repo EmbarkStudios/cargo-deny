@@ -140,7 +140,11 @@ where
     }
 
     let mut cfg_diags = Vec::new();
-    let cfg = config.validate(cfg_id, &mut files, &mut cfg_diags);
+    let cfg = config.validate(crate::cfg::ValidationContext {
+        cfg_id,
+        files: &mut files,
+        diagnostics: &mut cfg_diags,
+    });
 
     if cfg_diags
         .iter()
@@ -235,39 +239,39 @@ macro_rules! overrides {
     }
 }
 
-#[inline]
-pub fn gather_bans(
-    name: &str,
-    kg: KrateGather<'_>,
-    cfg: impl Into<Config<crate::bans::cfg::Config>>,
-) -> Vec<serde_json::Value> {
-    let krates = kg.gather();
-    let cfg = cfg.into();
+// #[inline]
+// pub fn gather_bans(
+//     name: &str,
+//     kg: KrateGather<'_>,
+//     cfg: impl Into<Config<crate::bans::cfg::Config>>,
+// ) -> Vec<serde_json::Value> {
+//     let krates = kg.gather();
+//     let cfg = cfg.into();
 
-    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-        crate::bans::check(ctx, None, cs, tx);
-    })
-}
+//     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
+//         crate::bans::check(ctx, None, cs, tx);
+//     })
+// }
 
-#[inline]
-pub fn gather_bans_with_overrides(
-    name: &str,
-    kg: KrateGather<'_>,
-    cfg: impl Into<Config<crate::bans::cfg::Config>>,
-    overrides: diag::DiagnosticOverrides,
-) -> Vec<serde_json::Value> {
-    let krates = kg.gather();
-    let cfg = cfg.into();
+// #[inline]
+// pub fn gather_bans_with_overrides(
+//     name: &str,
+//     kg: KrateGather<'_>,
+//     cfg: impl Into<Config<crate::bans::cfg::Config>>,
+//     overrides: diag::DiagnosticOverrides,
+// ) -> Vec<serde_json::Value> {
+//     let krates = kg.gather();
+//     let cfg = cfg.into();
 
-    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-        crate::bans::check(
-            ctx,
-            None,
-            cs,
-            ErrorSink {
-                overrides: Some(std::sync::Arc::new(overrides)),
-                channel: tx,
-            },
-        );
-    })
-}
+//     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
+//         crate::bans::check(
+//             ctx,
+//             None,
+//             cs,
+//             ErrorSink {
+//                 overrides: Some(std::sync::Arc::new(overrides)),
+//                 channel: tx,
+//             },
+//         );
+//     })
+// }

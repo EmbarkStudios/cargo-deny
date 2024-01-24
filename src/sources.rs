@@ -31,7 +31,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         (
             rgs.value,
             CfgCoord {
-                span: rgs.span.clone(),
+                span: rgs.span.into(),
                 file: ctx.cfg.file_id,
             },
         )
@@ -94,7 +94,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
                 type_name,
                 allow_cfg: CfgCoord {
                     file: ctx.cfg.file_id,
-                    span: ctx.cfg.allowed_sources[ind].url.span.clone(),
+                    span: ctx.cfg.allowed_sources[ind].url.span.into(),
                 },
             }
             .into()
@@ -115,7 +115,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
                     src_label: sl.get_or_insert_with(label),
                     org_cfg: CfgCoord {
                         file: ctx.cfg.file_id,
-                        span: ctx.cfg.allowed_orgs[ind].1.span.clone(),
+                        span: ctx.cfg.allowed_orgs[ind].1.span.into(),
                     },
                 }
                 .into()
@@ -155,7 +155,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
         pack.push(diags::UnmatchedAllowSource {
             allow_src_cfg: CfgCoord {
-                span: src.url.span,
+                span: src.url.span.into(),
                 file: ctx.cfg.file_id,
             },
         });

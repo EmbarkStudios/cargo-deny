@@ -1,4 +1,5 @@
 use crate::{
+    cfg::ValidationContext,
     diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Spanned,
 };
@@ -8,12 +9,12 @@ use url::Url;
 
 #[allow(clippy::reversed_empty_ranges)]
 const fn yanked() -> Spanned<LintLevel> {
-    Spanned::new(LintLevel::Warn, 0..0)
+    Spanned::new(LintLevel::Warn, crate::cfg::Span { start: 0, end: 0 })
 }
 
 #[allow(clippy::reversed_empty_ranges)]
 fn ninety_days() -> Spanned<String> {
-    Spanned::new("P90D".to_owned(), 0..0)
+    Spanned::new("P90D".to_owned(), Default::default())
 }
 
 #[derive(Deserialize)]
@@ -85,22 +86,17 @@ impl Default for Config {
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(
-        self,
-        cfg_file: FileId,
-        _files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
+    fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
         let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
         ignored.sort();
 
         let mut db_urls: Vec<_> = self
             .db_urls
             .into_iter()
-            .filter_map(|dburl| match crate::cfg::parse_url(cfg_file, dburl) {
+            .filter_map(|dburl| match crate::cfg::parse_url(ctx.cfg_id, dburl) {
                 Ok(u) => Some(u),
                 Err(diag) => {
-                    diags.push(diag);
+                    ctx.push(diag);
                     None
                 }
             })
@@ -112,12 +108,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
         if db_urls.len() > 1 {
             for window in db_urls.windows(2) {
                 if window[0] == window[1] {
-                    diags.push(
+                    ctx.push(
                         Diagnostic::warning()
                             .with_message("duplicate advisory database url detected")
                             .with_labels(vec![
-                                Label::secondary(cfg_file, window[0].span.clone()),
-                                Label::secondary(cfg_file, window[1].span.clone()),
+                                Label::secondary(ctx.cfg_id, window[0].span.clone()),
+                                Label::secondary(ctx.cfg_id, window[1].span.clone()),
                             ]),
                     );
                 }
@@ -129,10 +125,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
         // Require that each url has a valid domain name for when we splat it to a local path
         for url in &db_urls {
             if url.value.domain().is_none() {
-                diags.push(
+                ctx.push(
                     Diagnostic::error()
                         .with_message("advisory database url doesn't have a domain name")
-                        .with_labels(vec![Label::secondary(cfg_file, url.span.clone())]),
+                        .with_labels(vec![Label::secondary(ctx.cfg_id, url.span.clone())]),
                 );
             }
         }
@@ -140,11 +136,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
         let maximum_db_staleness = match parse_rfc3339_duration(&self.maximum_db_staleness.value) {
             Ok(mds) => mds,
             Err(err) => {
-                diags.push(
+                ctx.push(
                     Diagnostic::error()
                         .with_message("failed to parse RFC3339 duration")
                         .with_labels(vec![Label::secondary(
-                            cfg_file,
+                            ctx.cfg_id,
                             self.maximum_db_staleness.span.clone(),
                         )])
                         .with_notes(vec![err.to_string()]),
@@ -155,7 +151,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         };
 
         ValidConfig {
-            file_id: cfg_file,
+            file_id: ctx.cfg_id,
             db_path: self.db_path,
             db_urls,
             ignore: ignored,
@@ -359,10 +355,11 @@ mod test {
 
         let mut cd: ConfigData<Advisories> = load("tests/cfg/advisories.toml");
         let mut diags = Vec::new();
-        let validated = cd
-            .config
-            .advisories
-            .validate(cd.id, &mut cd.files, &mut diags);
+        let validated = cd.config.advisories.validate(ValidationContext {
+            cfg_id: cd.id,
+            files: &mut cd.files,
+            diagnostics: &mut diags,
+        });
         assert!(
             !diags
                 .iter()

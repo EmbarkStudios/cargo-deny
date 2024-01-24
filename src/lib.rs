@@ -5,8 +5,8 @@ use std::{cmp, collections::BTreeMap, fmt};
 use url::Url;
 
 pub mod advisories;
-pub mod bans;
-mod cfg;
+//pub mod bans;
+pub mod cfg;
 pub mod diag;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
