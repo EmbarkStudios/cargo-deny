@@ -20,6 +20,16 @@ The source of the SPDX expression used to evaluate the crate by is obtained in t
 1. The [`license`][cargo-md] field from the crate's Cargo.toml manifest will be used if it exists.
 1. The [`license-file`][cargo-md] field, as well as **all** other `LICENSE(-*)?` files will be parsed to determine the SPDX license identifier, and then all of those identifiers will be joined with the `AND` operator, meaning that you must accept **all** of the licenses detected.
 
+
+*Importantly*, this precedence, combined with the trust that licensing data is handled correctly,
+means the following edge cases are **not** handled. This is not an exhaustive list, but are rather
+a sample of the kinds of things a program is not able to completely prevent, even if more checks
+are added:
+
+1. **Absences**: If the package contains inadequate licensing data, in e.g. the event of a crate not reflecting the license of code it is linked with.
+1. **Mismatches:** If the Cargo.toml documents a given SPDX expression that does not match the actual license files in the package, this is not checked.
+1. **Inventiveness**: It is possible to place licensing data somewhere that is not in these locations, or have names that start with things other than `LICENSE`. There is no guarantee such placements inside a package would lose their legal force, even if there is other licensing data that cargo-deny may detect first and assume is comprehensive.
+
 ### Evaluation Precedence
 
 Currently, the precedence for determining whether a particular license is accepted or rejected is as follows:
