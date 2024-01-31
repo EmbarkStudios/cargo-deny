@@ -8,13 +8,21 @@ cargo deny check licenses
 
 ## SPDX
 
-cargo-deny uses [SPDX license expressions][SPDX] as the source of truth for the license requirements of a crate. Note however, that cargo-deny does **not** (currently)exhaustively search the entirety of the source code of every crate to find every possible license that could be attributed to the crate, as there are a ton of edge cases to that approach.
+cargo-deny uses [SPDX license expressions][SPDX] to interpret the license requirements of a crate.
+In the event that it cannot obtain an SPDX license expression directly from metadata, it tries to
+derive such within the confidence threshold you specify. Note that cargo-deny currently does
+**not** exhaustively search the entirety of the source code of every crate to find every possible
+license that could be attributed to the crate. There are many edge cases to that approach, and
+human ingenuity, or even human error, can always outwit a statically-compiled program.
 
-cargo-deny rather assumes that each crate correctly defines its license requirements, but it provides a mechanism for manually specifying the license requirements for crates in the, from our experience, rare circumstance that they cannot be gathered automatically.
+cargo-deny makes a good-faith assumption each crate correctly defines its license requirements.
+In the (in our experience, rare) circumstance such data cannot be gathered automatically, it
+provides a mechanism for manually specifying the license requirements for crates.
 
 ### Expression Source Precedence
 
-The source of the SPDX expression used to evaluate the crate by is obtained in the following order.
+The source of the SPDX expression used to evaluate the crate's licensing requirement is obtained
+in the following order:
 
 1. If the crate in question has a [Clarification](cfg.md#the-clarify-field-optional) applied to it, and the source file(s) in the crate's source still match, the expression from the clarification will be used.
 1. The [`license`][cargo-md] field from the crate's Cargo.toml manifest will be used if it exists.
