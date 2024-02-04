@@ -96,6 +96,22 @@ allow-wildcard-paths = true
     insta::assert_json_snapshot!(diags);
 }
 
+/// Ensures that dependencies with wildcard and git are allowed for private packages
+#[test]
+fn allow_git_wildcards_private_package() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("wildcards/allow-git"),
+        r#"
+multiple-versions = 'allow'
+wildcards = 'deny'
+allow-wildcard-paths = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Ensures that multiple versions are always deterministically sorted by
 /// version number
 /// See <https://github.com/EmbarkStudios/cargo-deny/issues/384>

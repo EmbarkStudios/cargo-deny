@@ -786,12 +786,13 @@ pub fn check(
                                 let is_private = krate.is_private(&[]);
 
                                 wildcards.retain(|dep| {
+                                    let is_path_or_git = is_path_or_git_dependency(dep);
                                     if is_private {
-                                        dep.path.is_none()
+                                        !is_path_or_git
                                     } else {
-                                        let is_path_dev_dependency = dep.path.is_some()
+                                        let is_path_non_dev_dependency = is_path_or_git
                                             && dep.kind != DependencyKind::Development;
-                                        is_path_dev_dependency || dep.path.is_none()
+                                        is_path_non_dev_dependency || !is_path_or_git
                                     }
                                 });
                             }
@@ -1414,4 +1415,16 @@ fn validate_file_checksum(path: &crate::Path, expected: &cfg::Checksum) -> anyho
     let file = std::fs::File::open(path)?;
     validate_checksum(std::io::BufReader::new(file), expected)?;
     Ok(())
+}
+
+/// Returns true if the dependency has a `path` or `git` source.
+///
+/// TODO: Possibly what we actually care about, where this is used in the wildcard check, is
+/// “is not using any registry source”.
+fn is_path_or_git_dependency(dep: &krates::cm::Dependency) -> bool {
+    dep.path.is_some()
+        || dep
+            .source
+            .as_ref()
+            .is_some_and(|url| url.starts_with("git+"))
 }
