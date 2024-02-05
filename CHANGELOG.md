@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#599](https://github.com/EmbarkStudios/cargo-deny/pull/599) resolved [#488](https://github.com/EmbarkStudios/cargo-deny/issues/488) by treating git and path sources differently. Thanks [@kpreid](https://github.com/kpreid)!
+
 ## [0.14.10] - 2024-01-24
 ### Fixed
 - [PR#596](https://github.com/EmbarkStudios/cargo-deny/pull/596) updated `krates` _again_ to pull in [krates#77](https://github.com/EmbarkStudios/krates/pull/77).
