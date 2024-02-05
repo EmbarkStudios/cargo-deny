@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.11] - 2024-02-05
 ### Fixed
 - [PR#599](https://github.com/EmbarkStudios/cargo-deny/pull/599) resolved [#488](https://github.com/EmbarkStudios/cargo-deny/issues/488) by treating git and path sources differently. Thanks [@kpreid](https://github.com/kpreid)!
 
@@ -521,7 +522,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.10...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.11...HEAD
+[0.14.11]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.10...0.14.11
 [0.14.10]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.9...0.14.10
 [0.14.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.8...0.14.9
 [0.14.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.7...0.14.8
