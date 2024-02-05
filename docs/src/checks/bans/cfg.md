@@ -32,11 +32,11 @@ Determines what happens when a dependency is specified with the `*` (wildcard) v
 
 If specified, alters how the `wildcard` field behaves:
 
-* [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) `dependencies` in **private** crates will no longer emit a warning or error.
-* path `dev-dependencies` in both public and private crates will no longer emit a warning or error.
-* path `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
+* [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) or [git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) `dependencies` in **private** crates will no longer emit a warning or error.
+* path or git `dev-dependencies` in both public and private crates will no longer emit a warning or error.
+* path or git `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
 
-Being limited to private crates is due to crates.io not allowing packages to be published with `path` dependencies except for `dev-dependencies`.
+Being limited to private crates is due to crates.io not allowing packages to be published with `path` or `git` dependencies except for `dev-dependencies`.
 
 ### The `highlight` field (optional)
 
