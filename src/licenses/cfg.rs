@@ -290,9 +290,9 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     Diagnostic::error()
                         .with_message("a license id was specified in both `allow` and `deny`")
                         .with_labels(vec![
-                            Label::secondary(cfg_file, self.deny[di].span.clone())
+                            Label::secondary(cfg_file, denied[di].span.clone())
                                 .with_message("deny"),
-                            Label::secondary(cfg_file, self.allow[ai].span.clone())
+                            Label::secondary(cfg_file, allowed[ai].span.clone())
                                 .with_message("allow"),
                         ]),
                 );
@@ -448,14 +448,14 @@ mod test {
     use super::*;
     use crate::cfg::{test::*, *};
 
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Licenses {
+        licenses: Config,
+    }
+
     #[test]
     fn deserializes_licenses_cfg() {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Licenses {
-            licenses: Config,
-        }
-
         let mut cd: ConfigData<Licenses> = load("tests/cfg/licenses.toml");
 
         let mut diags = Vec::new();
@@ -510,5 +510,39 @@ mod test {
                 expr_offset: 450,
             }]
         );
+    }
+
+    #[test]
+    fn correct_duplicate_license_spans() {
+        let cfg = r#"[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "CC0-1.0",
+    "Unicode-DFS-2016",
+]
+deny = [
+   "MIT",
+    "GPL-1.0",
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+]"#;
+
+        let mut cd: ConfigData<Licenses> = load_str("license-in-allow-and-deny", cfg);
+        let mut diags = Vec::new();
+        let _validated = cd
+            .config
+            .licenses
+            .validate(cd.id, &mut cd.files, &mut diags);
+
+        let diags: Vec<_> = diags
+            .into_iter()
+            .map(|d| crate::diag::diag_to_json(d.into(), &cd.files, None))
+            .collect();
+
+        insta::assert_json_snapshot!(diags);
     }
 }
