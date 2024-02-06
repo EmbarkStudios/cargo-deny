@@ -220,14 +220,22 @@ pub(crate) mod test {
         pub(crate) id: FileId,
     }
 
+    pub(crate) fn load_str<T: serde::de::DeserializeOwned>(
+        name: impl Into<std::ffi::OsString>,
+        contents: impl Into<String>,
+    ) -> ConfigData<T> {
+        let contents = contents.into();
+        let config = toml::from_str(&contents).unwrap();
+        let mut files = Files::new();
+        let id = files.add(name, contents);
+
+        ConfigData { config, files, id }
+    }
+
     pub(crate) fn load<T: serde::de::DeserializeOwned>(path: impl Into<PathBuf>) -> ConfigData<T> {
         let path = path.into();
         let contents = std::fs::read_to_string(&path).unwrap();
 
-        let config = toml::from_str(&contents).unwrap();
-        let mut files = Files::new();
-        let id = files.add(&path, contents);
-
-        ConfigData { config, files, id }
+        load_str(path, contents)
     }
 }
