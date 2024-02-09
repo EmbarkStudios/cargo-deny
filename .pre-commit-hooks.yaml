@@ -1,0 +1,9 @@
+- id: cargo-deny
+  name: check Cargo dependencies
+  description: check Cargo dependencies
+  entry: cargo-deny
+  language: rust
+  types: [file, toml]
+  files: Cargo\.(toml|lock)
+  pass_filenames: false
+  args: ["--all-features", "check"]

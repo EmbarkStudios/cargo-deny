@@ -93,6 +93,18 @@ cargo deny check sources
 
 ![sources output](docs/src/output/sources.svg)
 
+### Pre-commit hook
+
+You can use `cargo-deny` with [pre-commit](https://pre-commit.com). Add it to your local `.pre-commit-config.yaml` as follows:
+
+```yaml
+- repo: https://github.com/EmbarkStudios/cargo-deny
+  rev: 0.14.11 # choose your preferred tag
+  hooks:
+    - id: cargo-deny
+    - args: ["--all-features", "check"] # optionally modify the arguments for cargo-deny (default arguments shown here)
+```
+
 ## Contributing
 
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](CODE_OF_CONDUCT.md)
