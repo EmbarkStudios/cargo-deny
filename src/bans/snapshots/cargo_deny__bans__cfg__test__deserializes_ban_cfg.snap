@@ -1,0 +1,143 @@
+---
+source: src/bans/cfg.rs
+expression: validated
+---
+{
+  "file_id": 1,
+  "multiple_versions": "deny",
+  "multiple_versions_include_dev": false,
+  "highlight": "SimplestPath",
+  "denied": [
+    {
+      "spec": {
+        "name": "specific-versiond",
+        "version-req": "=0.1.9"
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "all-versionsd",
+        "version-req": null
+      },
+      "inner": {
+        "wrappers": [
+          "specific-versiona"
+        ],
+        "reason": "we want to get rid of this crate but there is still one user of it",
+        "use_instead": null
+      }
+    }
+  ],
+  "denied_multiple_versions": [],
+  "allowed": [
+    {
+      "spec": {
+        "name": "all-versionsa",
+        "version-req": null
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "version-rangea",
+        "version-req": "<0.1.1"
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "specific-versionb",
+        "version-req": "=0.1.2"
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "any-version",
+        "version-req": null
+      },
+      "inner": null
+    }
+  ],
+  "features": [
+    {
+      "spec": {
+        "name": "featured-krate",
+        "version-req": "^1.0"
+      },
+      "features": {
+        "allow": [
+          "good-feature"
+        ],
+        "deny": [
+          "bad-feature"
+        ],
+        "exact": true
+      },
+      "reason": "`bad-feature` is bad"
+    }
+  ],
+  "external_default_features": "deny",
+  "workspace_default_features": "warn",
+  "skipped": [
+    {
+      "spec": {
+        "name": "rand",
+        "version-req": "=0.6.5"
+      },
+      "inner": null
+    }
+  ],
+  "tree_skipped": [
+    {
+      "spec": {
+        "name": "blah",
+        "version-req": null
+      },
+      "inner": {
+        "depth": 20,
+        "reason": null
+      }
+    }
+  ],
+  "wildcards": "deny",
+  "allow_wildcard_paths": true,
+  "build": {
+    "allow_build_scripts": [
+      {
+        "name": "all-versionsa",
+        "version-req": null
+      }
+    ],
+    "executables": "warn",
+    "script_extensions": [
+      "cs"
+    ],
+    "bypass": [
+      {
+        "spec": {
+          "name": "allversionsa",
+          "version-req": null
+        },
+        "build_script": "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7",
+        "required_features": [
+          "feature-used-at-build-time"
+        ],
+        "allow_globs": [
+          "scripts/*.cs"
+        ],
+        "allow": [
+          {
+            "path": "bin/x86_64-linux",
+            "checksum": "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
+          }
+        ]
+      }
+    ],
+    "include_dependencies": true,
+    "include_workspace": true,
+    "include_archives": true,
+    "interpreted": "deny"
+  }
+}

@@ -1,3 +1,4 @@
+pub mod general;
 mod grapher;
 mod sink;
 
@@ -6,7 +7,7 @@ pub use sink::{DiagnosticOverrides, ErrorSink};
 
 use std::{collections::HashMap, ops::Range};
 
-use crate::{cfg::Span, Kid, Krates};
+use crate::{Kid, Krates, Span};
 pub use codespan_reporting::diagnostic::Severity;
 
 pub use codespan::FileId;
@@ -192,7 +193,10 @@ impl KrateSpans {
 
             let total = span_start..sl.len() - 1;
             let source = total.end - source.len();
-            spans.push(KrateSpan { total, source });
+            spans.push(KrateSpan {
+                total: total.into(),
+                source,
+            });
 
             let mut sl2 = String::with_capacity(4 * 1024);
             let mut deps_map = HashMap::new();
@@ -216,14 +220,14 @@ impl KrateSpans {
 
     #[inline]
     pub fn label_for_index(&self, krate_index: usize, msg: impl Into<String>) -> Label {
-        Label::secondary(self.file_id, self.spans[krate_index].total.clone()).with_message(msg)
+        Label::secondary(self.file_id, self.spans[krate_index].total).with_message(msg)
     }
 
     #[inline]
     pub fn get_coord(&self, krate_index: usize) -> KrateCoord {
         KrateCoord {
             file: self.file_id,
-            span: self.spans[krate_index].total.clone(),
+            span: self.spans[krate_index].total,
         }
     }
 }

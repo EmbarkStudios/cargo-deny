@@ -1,14 +1,54 @@
 ---
 source: src/cfg/package_spec.rs
-expression: vtc
+expression: validated
 ---
-ValidTestCfg {
-    bare: bare-name = None,
-    specific: ValidBoop { id: specific = Some(VersionReq { comparators: [Comparator { op: Exact, major: 0, minor: Some(1), patch: Some(0), pre: Prerelease("") }] }), data: None },
-    range: ValidBoop { id: range = Some(VersionReq { comparators: [Comparator { op: LessEq, major: 1, minor: Some(0), patch: None, pre: Prerelease("") }] }), data: None },
-    mixed: [
-        bare-name-1 = None,
-        ValidBoop { id: range-2 = Some(VersionReq { comparators: [Comparator { op: GreaterEq, major: 1, minor: Some(0), patch: None, pre: Prerelease("") }, Comparator { op: LessEq, major: 2, minor: Some(0), patch: None, pre: Prerelease("") }] }), data: None },
-        specific-3 = Some(VersionReq { comparators: [Comparator { op: Exact, major: 0, minor: Some(2), patch: Some(1), pre: Prerelease("") }] }),
-    ],
+{
+  "bare": {
+    "spec": {
+      "name": "bare-name",
+      "version-req": null
+    },
+    "inner": null
+  },
+  "specific": {
+    "spec": {
+      "name": "specific",
+      "version-req": "=0.1.0"
+    },
+    "inner": null
+  },
+  "range": {
+    "spec": {
+      "name": "range",
+      "version-req": "<=1.0"
+    },
+    "inner": {
+      "data": 10
+    }
+  },
+  "mixed": [
+    {
+      "spec": {
+        "name": "bare-name-1",
+        "version-req": null
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "range-2",
+        "version-req": ">=1.0, <=2.0"
+      },
+      "inner": {
+        "data": 20
+      }
+    },
+    {
+      "spec": {
+        "name": "specific-3",
+        "version-req": "=0.2.1"
+      },
+      "inner": null
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 use crate::{
-    diag::{self, CargoSpans, ErrorSink, Files, KrateSpans, PackChannel},
-    CheckCtx,
+    cfg::ValidationContext,
+    diag::{self, CargoSpans, ErrorSink, FileId, Files, KrateSpans, PackChannel},
+    CheckCtx, PathBuf,
 };
 
 #[derive(Default, Clone)]
@@ -69,33 +70,143 @@ where
 
 impl<C> Config<C>
 where
-    C: serde::de::DeserializeOwned,
+    C: toml_file::DeserializeOwned,
 {
     pub fn new(config: impl Into<String>) -> Self {
         let config = config.into();
+        let mut val = toml_file::parse(&config).expect("failed to parse test config");
+        let deserialized = C::deserialize(&mut val).expect("failed to deserialize test config");
         Self {
-            deserialized: toml::from_str(&config).expect("failed to deserialize test config"),
+            deserialized,
             config,
         }
     }
 }
 
-impl<'s, C> From<&'s str> for Config<C>
+impl<'de, C> From<&'de str> for Config<C>
 where
-    C: serde::de::DeserializeOwned + Default,
+    C: toml_file::DeserializeOwned,
 {
-    fn from(s: &'s str) -> Self {
+    fn from(s: &'de str) -> Self {
         Self::new(s)
     }
 }
 
 impl<C> From<String> for Config<C>
 where
-    C: serde::de::DeserializeOwned + Default,
+    C: toml_file::DeserializeOwned + Default,
 {
     fn from(s: String) -> Self {
         Self::new(s)
     }
+}
+
+pub struct ConfigData<T> {
+    pub config: T,
+    pub files: Files,
+    pub id: FileId,
+}
+
+impl<T> ConfigData<T> {
+    pub fn file(&self) -> &str {
+        self.files.source(self.id)
+    }
+}
+
+impl<T> ConfigData<T>
+where
+    T: toml_file::DeserializeOwned,
+{
+    pub fn load_str(name: impl Into<std::ffi::OsString>, contents: impl Into<String>) -> Self {
+        let contents: String = contents.into();
+
+        let res = {
+            let mut cval = toml_file::parse(&contents).expect("failed to parse toml");
+            T::deserialize(&mut cval)
+        };
+
+        let mut files = Files::new();
+        let id = files.add(name, contents);
+
+        let config = match res {
+            Ok(v) => v,
+            Err(derr) => {
+                let diag_str = write_diagnostics(
+                    &files,
+                    derr.errors.into_iter().map(|err| err.to_diagnostic(id)),
+                );
+                panic!("failed to deserialize:\n---\n{diag_str}\n---");
+            }
+        };
+
+        ConfigData { config, files, id }
+    }
+
+    pub fn load(path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        let contents = std::fs::read_to_string(&path).unwrap();
+
+        Self::load_str(path, contents)
+    }
+}
+
+impl<T> ConfigData<T> {
+    pub fn validate<IV, V>(mut self, conv: impl FnOnce(T) -> IV) -> V
+    where
+        IV: super::UnvalidatedConfig<ValidCfg = V>,
+    {
+        let uvc = conv(self.config);
+
+        let mut diagnostics = Vec::new();
+        let vcfg = uvc.validate(ValidationContext {
+            cfg_id: self.id,
+            files: &mut self.files,
+            diagnostics: &mut diagnostics,
+        });
+
+        if diagnostics.is_empty() {
+            vcfg
+        } else {
+            let diag_str = write_diagnostics(&self.files, diagnostics.into_iter());
+
+            panic!("failed to validate config:\n---\n{diag_str}\n---");
+        }
+    }
+
+    pub fn validate_with_diags<IV, V>(
+        mut self,
+        conv: impl FnOnce(T) -> IV,
+        on_diags: impl FnOnce(&Files, Vec<crate::diag::Diagnostic>),
+    ) -> V
+    where
+        IV: super::UnvalidatedConfig<ValidCfg = V>,
+    {
+        let uvc = conv(self.config);
+
+        let mut diagnostics = Vec::new();
+        let vcfg = uvc.validate(ValidationContext {
+            cfg_id: self.id,
+            files: &mut self.files,
+            diagnostics: &mut diagnostics,
+        });
+
+        on_diags(&self.files, diagnostics);
+        vcfg
+    }
+}
+
+pub(crate) fn write_diagnostics(
+    files: &Files,
+    errors: impl Iterator<Item = crate::diag::Diagnostic>,
+) -> String {
+    let mut s = codespan_reporting::term::termcolor::NoColor::new(Vec::new());
+    let config = codespan_reporting::term::Config::default();
+
+    for diag in errors {
+        codespan_reporting::term::emit(&mut s, &config, files, &diag).unwrap();
+    }
+
+    String::from_utf8(s.into_inner()).unwrap()
 }
 
 #[inline]
@@ -108,7 +219,7 @@ pub fn gather_diagnostics<C, VC, R>(
 where
     C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel) + Send,
+    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel, &mut Files) + Send,
 {
     gather_diagnostics_with_files(krates, test_name, cfg, Files::new(), runner)
 }
@@ -123,7 +234,7 @@ pub fn gather_diagnostics_with_files<C, VC, R>(
 where
     C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel) + Send,
+    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel, &mut Files) + Send,
 {
     let (spans, content, hashmap) = KrateSpans::synthesize(krates);
 
@@ -166,7 +277,7 @@ where
                 serialize_extra: true,
                 colorize: false,
             };
-            runner(ctx, newmap, tx);
+            runner(ctx, newmap, tx, &mut files);
         },
         || {
             let mut diagnostics = Vec::new();
@@ -178,7 +289,7 @@ where
                 crossbeam::select! {
                     recv(rx) -> msg => {
                         if let Ok(pack) = msg {
-                            diagnostics.extend(pack.into_iter().map(|d| diag::diag_to_json(d, &files, Some(&grapher))));
+                            diagnostics.extend(pack);
                         } else {
                             // Yay, the sender was dopped (i.e. check was finished)
                             break;
@@ -194,7 +305,11 @@ where
         },
     );
 
-    gathered.unwrap()
+    gathered
+        .unwrap()
+        .into_iter()
+        .map(|d| diag::diag_to_json(d, &files, Some(&grapher)))
+        .collect()
 }
 
 #[macro_export]
@@ -239,39 +354,39 @@ macro_rules! overrides {
     }
 }
 
-// #[inline]
-// pub fn gather_bans(
-//     name: &str,
-//     kg: KrateGather<'_>,
-//     cfg: impl Into<Config<crate::bans::cfg::Config>>,
-// ) -> Vec<serde_json::Value> {
-//     let krates = kg.gather();
-//     let cfg = cfg.into();
+#[inline]
+pub fn gather_bans(
+    name: &str,
+    kg: KrateGather<'_>,
+    cfg: impl Into<Config<crate::bans::cfg::Config>>,
+) -> Vec<serde_json::Value> {
+    let krates = kg.gather();
+    let cfg = cfg.into();
 
-//     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-//         crate::bans::check(ctx, None, cs, tx);
-//     })
-// }
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx, _| {
+        crate::bans::check(ctx, None, cs, tx);
+    })
+}
 
-// #[inline]
-// pub fn gather_bans_with_overrides(
-//     name: &str,
-//     kg: KrateGather<'_>,
-//     cfg: impl Into<Config<crate::bans::cfg::Config>>,
-//     overrides: diag::DiagnosticOverrides,
-// ) -> Vec<serde_json::Value> {
-//     let krates = kg.gather();
-//     let cfg = cfg.into();
+#[inline]
+pub fn gather_bans_with_overrides(
+    name: &str,
+    kg: KrateGather<'_>,
+    cfg: impl Into<Config<crate::bans::cfg::Config>>,
+    overrides: diag::DiagnosticOverrides,
+) -> Vec<serde_json::Value> {
+    let krates = kg.gather();
+    let cfg = cfg.into();
 
-//     gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx| {
-//         crate::bans::check(
-//             ctx,
-//             None,
-//             cs,
-//             ErrorSink {
-//                 overrides: Some(std::sync::Arc::new(overrides)),
-//                 channel: tx,
-//             },
-//         );
-//     })
-// }
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx, _| {
+        crate::bans::check(
+            ctx,
+            None,
+            cs,
+            ErrorSink {
+                overrides: Some(std::sync::Arc::new(overrides)),
+                channel: tx,
+            },
+        );
+    })
+}

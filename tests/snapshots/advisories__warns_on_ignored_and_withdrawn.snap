@@ -8,10 +8,10 @@ expression: "diags.iter().find(|diag|\n            field_eq!(diag, \"/fields/cod
     "graphs": [],
     "labels": [
       {
-        "column": 11,
+        "column": 12,
         "line": 4,
         "message": "no crate matched advisory criteria",
-        "span": "'RUSTSEC-2020-0053'"
+        "span": "RUSTSEC-2020-0053"
       }
     ],
     "message": "advisory was not encountered",

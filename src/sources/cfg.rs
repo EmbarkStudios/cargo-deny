@@ -4,25 +4,49 @@ use crate::{
     diag::FileId,
     LintLevel, Spanned,
 };
-use serde::Deserialize;
+use toml_file::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
-#[derive(Deserialize, Default)]
+#[derive(Default)]
 pub struct Orgs {
     /// The list of Github organizations that crates can be sourced from.
-    #[serde(default)]
     github: Vec<Spanned<String>>,
     /// The list of Gitlab organizations that crates can be sourced from.
-    #[serde(default)]
     gitlab: Vec<Spanned<String>>,
     /// The list of Bitbucket organizations that crates can be sourced from.
-    #[serde(default)]
     bitbucket: Vec<Spanned<String>>,
+}
+
+impl<'de> Deserialize<'de> for Orgs {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+        let github = th.optional("github").unwrap_or_default();
+        let gitlab = th.optional("gitlab").unwrap_or_default();
+        let bitbucket = th.optional("bitbucket").unwrap_or_default();
+        th.finalize(None)?;
+
+        Ok(Self {
+            github,
+            gitlab,
+            bitbucket,
+        })
+    }
 }
 
 /// The types of specifiers that can be used on git sources by cargo, in order
 /// of their specificity from least to greatest
-#[derive(Deserialize, PartialEq, Eq, Debug, PartialOrd, Ord, Clone, Copy, Default)]
-#[serde(rename_all = "snake_case")]
+#[derive(
+    PartialEq,
+    Eq,
+    Debug,
+    PartialOrd,
+    Ord,
+    Clone,
+    Copy,
+    Default,
+    strum::VariantArray,
+    strum::VariantNames,
+)]
+#[strum(serialize_all = "kebab-case")]
 pub enum GitSpec {
     /// Specifies the HEAD of the `master` branch, though eventually this might
     /// change to the default branch
@@ -35,6 +59,8 @@ pub enum GitSpec {
     /// Specifies an exact commit
     Rev,
 }
+
+crate::enum_deser!(GitSpec);
 
 use std::fmt;
 
@@ -49,47 +75,51 @@ impl fmt::Display for GitSpec {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// How to handle registries that weren't listed
-    #[serde(default = "crate::lint_warn")]
     pub unknown_registry: LintLevel,
     /// How to handle git sources that weren't listed
-    #[serde(default = "crate::lint_warn")]
     pub unknown_git: LintLevel,
     /// The list of registries that crates can be sourced from.
     /// Defaults to the crates.io registry if not specified.
-    #[serde(default = "default_allow_registry")]
     pub allow_registry: Vec<Spanned<String>>,
     /// The list of git repositories that crates can be sourced from.
-    #[serde(default)]
     pub allow_git: Vec<Spanned<String>>,
     /// The lists of source control organizations that crates can be sourced from.
-    #[serde(default)]
     pub allow_org: Orgs,
     /// The list of hosts with optional paths from which one or more git repos
     /// can be sourced.
-    #[serde(default)]
     pub private: Vec<Spanned<String>>,
     /// The minimum specification required for git sources. Defaults to allowing
     /// any.
-    #[serde(default)]
     pub required_git_spec: Option<Spanned<GitSpec>>,
 }
 
-#[inline]
-fn default_allow_registry() -> Vec<Spanned<String>> {
-    // This is always valid, so we don't have to worry about the span being fake,
-    // this is actually a lie though because if we try to print this span it will
-    // fail if it falls outside of the range of the config file, and even if it
-    // doesn't will just point to whatever text happens to be there, so we instead
-    // lie and just ignore it instead since a vast majority of usage should
-    // use this source
-    vec![Spanned::new(
-        super::CRATES_IO_URL.to_owned(),
-        (0..super::CRATES_IO_URL.len()).into(),
-    )]
+impl<'de> Deserialize<'de> for Config {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+        let unknown_registry = th.optional("unknown-registry").unwrap_or(LintLevel::Warn);
+        let unknown_git = th.optional("unknown-git").unwrap_or(LintLevel::Warn);
+        let allow_registry = th
+            .optional("allow-registry")
+            .unwrap_or_else(|| vec![Spanned::new(super::CRATES_IO_URL.to_owned())]);
+        let allow_git = th.optional("allow-git").unwrap_or_default();
+        let allow_org = th.optional("allow-org").unwrap_or_default();
+        let private = th.optional("private").unwrap_or_default();
+        let required_git_spec = th.optional("required-git-spec");
+
+        th.finalize(None)?;
+
+        Ok(Self {
+            unknown_registry,
+            unknown_git,
+            allow_registry,
+            allow_git,
+            allow_org,
+            private,
+            required_git_spec,
+        })
+    }
 }
 
 impl Default for Config {
@@ -97,7 +127,7 @@ impl Default for Config {
         Self {
             unknown_registry: LintLevel::Warn,
             unknown_git: LintLevel::Warn,
-            allow_registry: default_allow_registry(),
+            allow_registry: vec![Spanned::new(super::CRATES_IO_URL.to_owned())],
             allow_git: Vec::new(),
             allow_org: Orgs::default(),
             private: Vec::new(),
@@ -206,6 +236,7 @@ pub struct UrlSource {
 }
 
 #[doc(hidden)]
+#[cfg_attr(test, derive(Debug))]
 pub struct ValidConfig {
     pub file_id: FileId,
 
@@ -219,78 +250,34 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::{test::*, *};
+    use crate::test_utils::{write_diagnostics, ConfigData};
 
     #[test]
     fn deserializes_sources_cfg() {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
         struct Sources {
             sources: Config,
         }
 
-        let mut cd: ConfigData<Sources> = load("tests/cfg/sources.toml");
+        impl<'de> toml_file::Deserialize<'de> for Sources {
+            fn deserialize(
+                value: &mut toml_file::value::Value<'de>,
+            ) -> Result<Self, toml_file::DeserError> {
+                let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+                let sources = th.required("sources").unwrap();
+                th.finalize(None)?;
+                Ok(Self { sources })
+            }
+        }
 
-        let mut diags = Vec::new();
-        let validated = cd.config.sources.validate(ValidationContext {
-            cfg_id: cd.id,
-            files: &mut cd.files,
-            diagnostics: &mut diags,
-        });
-
-        let diags: Vec<_> = diags
-            .into_iter()
-            .map(|d| crate::diag::diag_to_json(d.into(), &cd.files, None))
-            .collect();
-
-        insta::assert_json_snapshot!(diags);
-
-        assert_eq!(validated.file_id, cd.id);
-        assert_eq!(validated.unknown_registry, LintLevel::Allow);
-        assert_eq!(validated.unknown_git, LintLevel::Deny);
-
-        let expected = [
-            UrlSource {
-                url: url::Url::parse("https://sekretz.com/registry/index")
-                    .unwrap()
-                    .fake(),
-                exact: true,
+        let cd = ConfigData::<Sources>::load("tests/cfg/sources.toml");
+        let validated = cd.validate_with_diags(
+            |s| s.sources,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                insta::assert_snapshot!(diags);
             },
-            UrlSource {
-                url: url::Url::parse("https://fake.sparse.com").unwrap().fake(),
-                exact: true,
-            },
-            UrlSource {
-                url: url::Url::parse("https://notgithub.com/orgname/reponame")
-                    .unwrap()
-                    .fake(),
-                exact: true,
-            },
-            UrlSource {
-                url: url::Url::parse("https://internal-host/repos")
-                    .unwrap()
-                    .fake(),
-                exact: false,
-            },
-        ];
-
-        assert_eq!(
-            validated.allowed_sources, expected,
-            "{:#?} != {:#?}",
-            validated.allowed_sources, expected
         );
 
-        // Obviously order could change here, but for now just hardcode it
-        assert_eq!(
-            validated.allowed_orgs,
-            vec![
-                (OrgType::Github, "yourghid".to_owned().fake()),
-                (OrgType::Github, "YourOrg".to_owned().fake()),
-                (OrgType::Gitlab, "gitlab-org".to_owned().fake()),
-                (OrgType::Bitbucket, "atlassian".to_owned().fake()),
-            ]
-        );
-
-        assert_eq!(validated.required_git_spec.unwrap().value, GitSpec::Tag);
+        insta::assert_debug_snapshot!(validated);
     }
 }

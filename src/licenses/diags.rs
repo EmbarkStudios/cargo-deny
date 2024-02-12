@@ -102,7 +102,7 @@ pub(crate) struct MissingClarificationFile<'a> {
 
 impl<'a> From<MissingClarificationFile<'a>> for Label {
     fn from(mcf: MissingClarificationFile<'a>) -> Self {
-        Label::secondary(mcf.cfg_file_id, mcf.expected.span.clone())
+        Label::secondary(mcf.cfg_file_id, mcf.expected.span)
             .with_message("unable to locate specified license file")
     }
 }

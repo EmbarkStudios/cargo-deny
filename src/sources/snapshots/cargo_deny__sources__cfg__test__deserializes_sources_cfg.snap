@@ -2,20 +2,10 @@
 source: src/sources/cfg.rs
 expression: diags
 ---
-[
-  {
-    "fields": {
-      "labels": [
-        {
-          "column": 5,
-          "line": 7,
-          "message": "",
-          "span": "sparse+http"
-        }
-      ],
-      "message": "scheme modifiers are unnecessary",
-      "severity": "warning"
-    },
-    "type": "diagnostic"
-  }
-]
+warning: scheme modifiers are unnecessary
+  ┌─ tests/cfg/sources.toml:7:6
+  │
+7 │     "sparse+https://fake.sparse.com",
+  │      ^^^^^^^^^^^^
+
+

@@ -169,10 +169,10 @@ expression: diags
           "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs"
         },
         {
-          "column": 18,
+          "column": 19,
           "line": 3,
           "message": "organization allowance",
-          "span": "'marshallpierce'"
+          "span": "marshallpierce"
         }
       ],
       "message": "source allowed by organization allowance",

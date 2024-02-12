@@ -1,8 +1,11 @@
 use crate::{cfg::Span, Spanned};
-use clap::builder::ValueParserFactory;
 use semver::VersionReq;
-use serde::Deserialize;
 use std::fmt;
+use toml_file::{
+    de_helpers::{expected, TableHelper},
+    value::{Value, ValueInner},
+    DeserError, Deserialize,
+};
 
 /// A package identifier, consisting of a package name and a version requirement
 ///
@@ -11,79 +14,15 @@ use std::fmt;
 /// of a [`semver::Version`] as Cargo's are meant for disambiguating graph operations
 /// whereas ours may be targeting single or multiple packages. In practice this
 /// is mainly just a superset of Cargo's version
-#[derive(Clone, PartialEq, Eq, Deserialize)]
-#[serde(try_from = "Spanned<String>")]
+#[derive(Clone, PartialEq, Eq)]
 pub struct PackageSpec {
-    pub name: String,
+    pub name: Spanned<String>,
     pub version_req: Option<VersionReq>,
-    pub span: Span,
-}
-
-pub struct ConvertCtx<'ctx> {
-    pub span: Span,
-    pub doc: &'ctx str,
-}
-
-impl PackageSpec {
-    // / Recreate a PackageId from span information for a larger struct and the
-    // / original string we are deserializing
-    // /
-    // / toml::Spanned has a problem when we are doing flattened or untagged enums
-    // / as serde will first deserialize into a generic container, which is problematic
-    // / since the toml::Spanned relies on the deserializer detecting special state
-    // / which is lost in that transition. This is easy to fix for a the simple
-    // / situation in [`PackageIdOrExtended`], but is problematic for having a
-    // / split or contiguous id in the case of [`EmbeddedId`] since it's flattened
-    // / into a larger struct. Rather than have special deserialization code for
-    // / each struct that has this embedded id, we cheat by capturing the span
-    // / information for the value as a whole, then do a simple string search
-    // / for the expected ids to to get the real span information
-    // pub fn from_embedded(embedded: EmbeddedSpec, ctx: ConvertCtx<'_>) -> anyhow::Result<Self> {
-    //     let find = |key: &str| -> anyhow::Result<Span> {
-    //         let vrange = &ctx.doc[std::ops::Range::from(ctx.span)];
-
-    //         let key = vrange
-    //             .find(key)
-    //             .ok_or_else(|| anyhow::anyhow!("failed to locate '{key}' in '{vrange}'"))?;
-
-    //         for delim in ['"', '\''] {
-    //             let Some(start) = vrange[key..].find(delim) else {
-    //                 continue;
-    //             };
-
-    //             // Note we don't handle multiline strings here, there should be
-    //             // no reason to use them in this particular context
-    //             let Some(end) = vrange[key + start..].find(delim) else {
-    //                 continue;
-    //             };
-
-    //             let rstart = ctx.span.start + key;
-    //             return Ok((rstart + start..rstart + end).into());
-    //         }
-
-    //         anyhow::bail!("unable to locate '{key}' value")
-    //     };
-
-    //     match embedded {
-    //         EmbeddedSpec::Simple { spec } => {
-    //             let crate_span = find("crate")?;
-    //             Ok(Spanned::new(spec, crate_span).try_into()?)
-    //         }
-    //         EmbeddedSpec::Split { name, version } => {
-    //             let name_span = find("name")?;
-    //             Ok(Self {
-    //                 name,
-    //                 version_req: version,
-    //                 span: name_span,
-    //             })
-    //         }
-    //     }
-    // }
 }
 
 impl fmt::Display for PackageSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.name)?;
+        f.write_str(&self.name.value)?;
 
         if let Some(vr) = &self.version_req {
             write!(f, " = {vr}")?;
@@ -95,160 +34,175 @@ impl fmt::Display for PackageSpec {
 
 impl fmt::Debug for PackageSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} = {:?}", self.name, self.version_req)
+        write!(f, "{} = {:?}", self.name.value, self.version_req)
     }
 }
 
-impl TryFrom<Spanned<String>> for PackageSpec {
-    type Error = anyhow::Error;
+impl<'de> Deserialize<'de> for PackageSpec {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        use std::borrow::Cow;
 
-    fn try_from(mut value: Spanned<String>) -> Result<Self, Self::Error> {
-        let (vstr, make_exact) = if let Some((_n, v)) = value.value.split_once('@') {
-            (Some(v), true)
-        } else if let Some((_n, v)) = value.value.split_once(':') {
-            (Some(v), false)
-        } else {
-            (None, false)
+        struct Ctx<'de> {
+            inner: Cow<'de, str>,
+            split: Option<(usize, bool)>,
+            span: Span,
+        }
+
+        impl<'de> Ctx<'de> {
+            fn from_str(bs: Cow<'de, str>, span: Span) -> Self {
+                let split = bs
+                    .find('@')
+                    .map(|i| (i, true))
+                    .or_else(|| bs.find(':').map(|i| (i, false)));
+                Self {
+                    inner: bs,
+                    split,
+                    span,
+                }
+            }
+        }
+
+        let ctx = match value.take() {
+            ValueInner::String(s) => Ctx::from_str(s, value.span),
+            ValueInner::Table(tab) => {
+                let mut th = TableHelper::from(tab);
+
+                if let Some(mut val) = th.table.remove(&"crate".into()) {
+                    let s = val.take_string(Some("a crate spec"))?;
+                    th.finalize(Some(value))?;
+
+                    Ctx::from_str(s, val.span)
+                } else {
+                    let name = th.required("name")?;
+                    let version = th.optional::<Spanned<Cow<'_, str>>>("version");
+
+                    th.finalize(Some(value))?;
+
+                    let version_req = if let Some(vr) = version {
+                        Some(vr.value.parse().map_err(|e: semver::Error| {
+                            toml_file::Error::from((
+                                toml_file::ErrorKind::Custom(e.to_string()),
+                                vr.span,
+                            ))
+                        })?)
+                    } else {
+                        None
+                    };
+
+                    return Ok(Self { name, version_req });
+                }
+            }
+            other => return Err(expected("a string or table", other, value.span).into()),
         };
 
-        let version_req = if let Some(vstr) = vstr {
-            let mut v: VersionReq = vstr.parse()?;
+        let (name, version_req) = if let Some((i, make_exact)) = ctx.split {
+            let mut v: VersionReq = ctx.inner[i + 1..].parse().map_err(|e: semver::Error| {
+                toml_file::Error::from((
+                    toml_file::ErrorKind::Custom(e.to_string()),
+                    Span::new(ctx.span.start + i + 1, ctx.span.end),
+                ))
+            })?;
             if make_exact {
                 if let Some(comp) = v.comparators.get_mut(0) {
                     comp.op = semver::Op::Exact;
                 }
             }
 
-            let len = vstr.len() + 1;
-            value.value.truncate(value.value.len() - len);
-
-            Some(v)
+            (
+                Spanned::with_span(
+                    ctx.inner[..i].into(),
+                    Span::new(ctx.span.start, ctx.span.start + i),
+                ),
+                Some(v),
+            )
         } else {
-            None
+            (Spanned::with_span(ctx.inner.into(), ctx.span), None)
         };
 
-        let span = value.span;
-        let name = value.value;
-
-        Ok(Self {
-            name,
-            version_req,
-            span,
-        })
+        Ok(Self { name, version_req })
     }
 }
 
-#[derive(Deserialize)]
-pub enum PackageSpecOrExtended<T> {
-    Simple(PackageSpec),
-    Extended {
-        #[serde(flatten)]
-        spec: EmbeddedSpec,
-        #[serde(flatten)]
-        inner: Option<T>,
-    },
-}
-
-// impl<'de, T> Deserialize<'de> for PackageSpecOrExtended<T>
-// where
-//     T: Deserialize<'de>,
-// {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         let content = <Spanned<serde::__private::de::Content<'de>>>::deserialize(deserializer)?;
-//         let deserializer =
-//             serde::__private::de::ContentRefDeserializer::<D::Error>::new(&content.value);
-
-//         if let Ok(simple) = String::deserialize(deserializer).and_then(|s| {
-//             let pid = Spanned::new(s, content.span.clone())
-//                 .try_into()
-//                 .map_err(serde::de::Error::custom)?;
-//             Ok(PackageSpecOrExtended::Simple(pid))
-//         }) {
-//             return Ok(simple);
-//         }
-//         if let Ok(ext) = T::deserialize(deserializer)
-//             .map(|ext| PackageSpecOrExtended::Extended(Spanned::new(ext, content.span)))
-//         {
-//             return Ok(ext);
-//         }
-
-//         Err(serde::de::Error::custom(
-//             "data did not match any variant of untagged enum PackageSpecOrExtended",
-//         ))
-//     }
-// }
-
-impl<T> fmt::Debug for PackageSpecOrExtended<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Simple(spec) => write!(f, "{spec:?}"),
-            Self::Extended { spec, .. } => match spec {
-                EmbeddedSpec::Simple { spec } => write!(f, "{spec:?}"),
-                EmbeddedSpec::Split { name, version } => {
-                    write!(f, "{name:?}")?;
-                    if let Some(v) = version {
-                        write!(f, ":{v}")?;
-                    }
-
-                    Ok(())
-                }
-            },
-        }
+#[cfg(test)]
+impl serde::Serialize for PackageSpec {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("name", &self.name.value)?;
+        map.serialize_entry("version-req", &self.version_req)?;
+        map.end()
     }
 }
 
-pub struct ConfigWithSpec<T> {
+#[cfg_attr(test, derive(serde::Serialize))]
+pub struct PackageSpecOrExtended<T> {
     pub spec: PackageSpec,
     pub inner: Option<T>,
 }
 
-impl<T, U> TryFrom<PackageSpecOrExtended<T>> for ConfigWithSpec<U>
-where
-    U: TryFrom<T>,
-{
-    type Error = <U as TryFrom<T>>::Error;
+impl<T> PackageSpecOrExtended<T> {
+    pub fn try_convert<V, E>(self) -> Result<PackageSpecOrExtended<V>, E>
+    where
+        V: TryFrom<T, Error = E>,
+    {
+        let inner = if let Some(i) = self.inner {
+            Some(V::try_from(i)?)
+        } else {
+            None
+        };
 
-    fn try_from(value: PackageSpecOrExtended<T>) -> Result<Self, Self::Error> {
-        match value {
-            PackageSpecOrExtended::Simple(spec) => Ok(Self { spec, inner: None }),
-            PackageSpecOrExtended::Extended { spec, inner } => {
-                let spec = match spec {
-                    EmbeddedSpec::Simple { spec } => spec,
-                    EmbeddedSpec::Split { name, version } => PackageSpec {
-                        name: name.value,
-                        version_req: version,
-                        span: name.span,
-                    },
-                };
+        Ok(PackageSpecOrExtended {
+            spec: self.spec,
+            inner,
+        })
+    }
 
-                let inner = if let Some(inner) = inner {
-                    Some(inner.try_into()?)
-                } else {
-                    None
-                };
-
-                Ok(Self { spec, inner })
-            }
+    pub fn convert<V>(self) -> PackageSpecOrExtended<V>
+    where
+        V: From<T>,
+    {
+        PackageSpecOrExtended {
+            spec: self.spec,
+            inner: self.inner.map(V::from),
         }
     }
 }
 
-impl<T> fmt::Debug for ConfigWithSpec<T>
+impl<'de, T> toml_file::Deserialize<'de> for PackageSpecOrExtended<T>
+where
+    T: toml_file::Deserialize<'de>,
+{
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let spec = PackageSpec::deserialize(value)?;
+
+        // If more keys exist in the table (or string) then try to deserialize
+        // the rest as the "extended" portion
+        let inner = if value.has_keys() {
+            Some(T::deserialize(value)?)
+        } else {
+            None
+        };
+
+        Ok(Self { spec, inner })
+    }
+}
+
+impl<T> fmt::Debug for PackageSpecOrExtended<T>
 where
     T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ConfigWithSpec")
+        f.debug_struct("PackageSpecOrExtended")
             .field("spec", &self.spec)
             .field("inner", &self.inner)
             .finish()
     }
 }
 
-impl<T> Clone for ConfigWithSpec<T>
+impl<T> Clone for PackageSpecOrExtended<T>
 where
     T: Clone,
 {
@@ -260,84 +214,87 @@ where
     }
 }
 
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(untagged)]
-pub enum EmbeddedSpec {
-    Simple {
-        #[serde(rename = "crate")]
-        spec: PackageSpec,
-    },
-    Split {
-        name: Spanned<String>,
-        version: Option<VersionReq>,
-    },
+#[cfg(test)]
+#[allow(dead_code)]
+mod test {
+    use super::*;
+    use crate::{cfg::ValidationContext, test_utils::ConfigData};
+
+    #[test]
+    fn deserializes_package_id() {
+        struct Boop {
+            data: Option<Spanned<u32>>,
+        }
+
+        impl<'de> Deserialize<'de> for Boop {
+            fn deserialize(value: &mut toml_file::value::Value<'de>) -> Result<Self, DeserError> {
+                let mut th = TableHelper::new(value)?;
+                let data = th.optional_s("data");
+                th.finalize(None)?;
+                Ok(Self { data })
+            }
+        }
+
+        #[derive(serde::Serialize)]
+        struct ValidBoop {
+            data: Option<Spanned<u32>>,
+        }
+
+        impl From<Boop> for ValidBoop {
+            fn from(value: Boop) -> Self {
+                Self { data: value.data }
+            }
+        }
+
+        struct TestCfg {
+            bare: PackageSpecOrExtended<Boop>,
+            specific: PackageSpecOrExtended<Boop>,
+            range: PackageSpecOrExtended<Boop>,
+            mixed: Vec<PackageSpecOrExtended<Boop>>,
+        }
+
+        impl<'de> Deserialize<'de> for TestCfg {
+            fn deserialize(value: &mut toml_file::value::Value<'de>) -> Result<Self, DeserError> {
+                let mut th = TableHelper::new(value)?;
+                let bare = th.required("bare")?;
+                let specific = th.required("specific")?;
+                let range = th.required("range")?;
+                let mixed = th.required("mixed")?;
+                th.finalize(None)?;
+
+                Ok(Self {
+                    bare,
+                    specific,
+                    range,
+                    mixed,
+                })
+            }
+        }
+
+        #[derive(serde::Serialize)]
+        struct ValidTestCfg {
+            bare: PackageSpecOrExtended<ValidBoop>,
+            specific: PackageSpecOrExtended<ValidBoop>,
+            range: PackageSpecOrExtended<ValidBoop>,
+            mixed: Vec<PackageSpecOrExtended<ValidBoop>>,
+        }
+
+        impl crate::cfg::UnvalidatedConfig for TestCfg {
+            type ValidCfg = ValidTestCfg;
+
+            fn validate(self, mut _ctx: ValidationContext<'_>) -> Self::ValidCfg {
+                ValidTestCfg {
+                    bare: self.bare.convert(),
+                    specific: self.specific.convert(),
+                    range: self.range.convert(),
+                    mixed: self.mixed.into_iter().map(|m| m.convert()).collect(),
+                }
+            }
+        }
+
+        let cd = ConfigData::<TestCfg>::load("tests/cfg/package-specs.toml");
+        let validated = cd.validate(|s| s);
+
+        insta::assert_json_snapshot!(validated);
+    }
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-
-//     #[test]
-//     fn deserializes_package_id() {
-//         #[derive(Deserialize)]
-//         struct Boop {
-//             data: Option<Spanned<u32>>,
-//         }
-
-//         #[derive(Debug)]
-//         struct ValidBoop {
-//             data: Option<Spanned<u32>>,
-//         }
-
-//         impl TryFrom<Boop> for ValidBoop {
-//             type Error = anyhow::Error;
-
-//             fn try_from(value: Boop) -> Result<Self, Self::Error> {
-//                 Ok(Self { data: value.data })
-//             }
-//         }
-
-//         #[derive(Deserialize)]
-//         struct TestCfg {
-//             bare: PackageSpecOrExtended<Boop>,
-//             specific: PackageSpecOrExtended<Boop>,
-//             range: PackageSpecOrExtended<Boop>,
-//             mixed: Vec<PackageSpecOrExtended<Boop>>,
-//         }
-
-//         #[derive(Debug)]
-//         struct ValidTestCfg {
-//             bare: ConfigWithSpec<ValidBoop>,
-//             specific: ConfigWithSpec<ValidBoop>,
-//             range: ConfigWithSpec<ValidBoop>,
-//             mixed: Vec<ConfigWithSpec<ValidBoop>>,
-//         }
-
-//         const TEST_DATA: &str = r#"
-// bare = "bare-name"
-// specific = { name = "specific", version = "=0.1.0" }
-// range = { crate = "range:<=1.0" }
-// mixed = [
-//     "bare-name-1",
-//     { name = "range-2", version = ">=1.0,<=2.0" },
-//     "specific-3@0.2.1",
-// ]
-// "#;
-
-//         let tc: TestCfg = crate::cfg::deserialize_spanned(TEST_DATA).unwrap();
-
-//         let vtc = ValidTestCfg {
-//             bare: tc.bare.try_into().unwrap(),
-//             specific: tc.specific.try_into().unwrap(),
-//             range: tc.range.try_into().unwrap(),
-//             mixed: tc
-//                 .mixed
-//                 .into_iter()
-//                 .map(|tc| tc.try_into().unwrap())
-//                 .collect(),
-//         };
-
-//         insta::assert_debug_snapshot!(vtc);
-//     }
-// }

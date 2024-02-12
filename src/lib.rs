@@ -5,25 +5,32 @@ use std::{cmp, collections::BTreeMap, fmt};
 use url::Url;
 
 pub mod advisories;
-//pub mod bans;
+pub mod bans;
 pub mod cfg;
 pub mod diag;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
+pub mod root_cfg;
 pub mod sources;
 
 #[doc(hidden)]
 pub mod test_utils;
 
 pub use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
-pub use cfg::{Spanned, UnvalidatedConfig};
+pub use cfg::UnvalidatedConfig;
 use krates::cm;
 pub use krates::{DepKind, Kid};
+pub use toml_file::{
+    span::{Span, Spanned},
+    Deserialize, Error,
+};
 
 /// The possible lint levels for the various lints. These function similarly
 /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
-#[derive(serde::Deserialize, PartialEq, Eq, Clone, Copy, Debug, Default)]
-#[serde(rename_all = "snake_case")]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Default, strum::VariantNames, strum::VariantArray)]
+#[cfg_attr(test, derive(serde::Serialize))]
+#[cfg_attr(test, serde(rename_all = "kebab-case"))]
+#[strum(serialize_all = "kebab-case")]
 pub enum LintLevel {
     /// A debug or info diagnostic _may_ be emitted if the lint is violated
     Allow,
@@ -36,17 +43,37 @@ pub enum LintLevel {
     Deny,
 }
 
-const fn lint_allow() -> LintLevel {
-    LintLevel::Allow
+#[macro_export]
+macro_rules! enum_deser {
+    ($enum:ty) => {
+        impl<'de> toml_file::Deserialize<'de> for $enum {
+            fn deserialize(
+                value: &mut toml_file::value::Value<'de>,
+            ) -> Result<Self, toml_file::DeserError> {
+                let s = value.take_string(Some(stringify!($enum)))?;
+
+                use strum::{VariantArray, VariantNames};
+
+                let Some(pos) = <$enum as VariantNames>::VARIANTS
+                    .iter()
+                    .position(|v| *v == s.as_ref())
+                else {
+                    return Err(toml_file::Error::from((
+                        toml_file::ErrorKind::UnexpectedValue {
+                            expected: <$enum as VariantNames>::VARIANTS,
+                        },
+                        value.span,
+                    ))
+                    .into());
+                };
+
+                Ok(<$enum as VariantArray>::VARIANTS[pos])
+            }
+        }
+    };
 }
 
-const fn lint_warn() -> LintLevel {
-    LintLevel::Warn
-}
-
-const fn lint_deny() -> LintLevel {
-    LintLevel::Deny
-}
+enum_deser!(LintLevel);
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Source {
@@ -429,10 +456,10 @@ pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
 
 #[inline]
 pub fn match_krate(krate: &Krate, pid: &cfg::PackageSpec) -> bool {
-    krate.name == pid.name && match_req(&krate.version, pid.version_req.as_ref())
+    krate.name == pid.name.value && match_req(&krate.version, pid.version_req.as_ref())
 }
 
-use sources::GitSpec;
+use sources::cfg::GitSpec;
 
 #[inline]
 pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {

@@ -1,4 +1,5 @@
-use anyhow::{Context, Error};
+use crate::common::ValidConfig;
+use anyhow::{Context as _, Error};
 use cargo_deny::{diag::Files, licenses, Kid, PathBuf};
 use nu_ansi_term::Color;
 use serde::Serialize;
@@ -38,96 +39,6 @@ pub struct Args {
     layout: Layout,
 }
 
-#[derive(serde::Deserialize)]
-struct Config {
-    #[serde(default)]
-    targets: Vec<crate::common::Target>,
-    #[serde(default)]
-    exclude: Vec<String>,
-}
-
-struct ValidConfig {
-    targets: Vec<(krates::Target, Vec<String>)>,
-    exclude: Vec<String>,
-}
-
-impl ValidConfig {
-    fn load(
-        cfg_path: Option<PathBuf>,
-        files: &mut Files,
-        log_ctx: crate::common::LogContext,
-    ) -> Result<Self, Error> {
-        let (cfg_contents, cfg_path) = match cfg_path {
-            Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path)
-                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
-                cfg_path,
-            ),
-            Some(cfg_path) => {
-                log::warn!(
-                    "config path '{cfg_path}' doesn't exist, falling back to default config"
-                );
-
-                return Ok(Self {
-                    targets: Vec::new(),
-                    exclude: Vec::new(),
-                });
-            }
-            None => {
-                log::warn!("unable to find a config path, falling back to default config");
-
-                return Ok(Self {
-                    targets: Vec::new(),
-                    exclude: Vec::new(),
-                });
-            }
-        };
-
-        let cfg: Config = toml::from_str(&cfg_contents)
-            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
-
-        log::info!("using config from {cfg_path}");
-
-        let id = files.add(&cfg_path, cfg_contents);
-
-        use cargo_deny::diag::Diagnostic;
-
-        let validate = || -> Result<(Vec<Diagnostic>, Self), Vec<Diagnostic>> {
-            let mut diagnostics = Vec::new();
-            let targets = crate::common::load_targets(cfg.targets, &mut diagnostics, id);
-            let exclude = cfg.exclude;
-
-            Ok((diagnostics, Self { targets, exclude }))
-        };
-
-        let print = |diags: Vec<Diagnostic>| {
-            if diags.is_empty() {
-                return;
-            }
-
-            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
-                let mut lock = printer.lock();
-                for diag in diags {
-                    lock.print(diag, files);
-                }
-            }
-        };
-
-        match validate() {
-            Ok((diags, vc)) => {
-                print(diags);
-                Ok(vc)
-            }
-            Err(diags) => {
-                print(diags);
-
-                anyhow::bail!("failed to validate configuration file {cfg_path}");
-            }
-        }
-    }
-}
-
-#[allow(clippy::cognitive_complexity)]
 pub fn cmd(
     log_ctx: crate::common::LogContext,
     args: Args,
@@ -136,11 +47,18 @@ pub fn cmd(
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
 
+    let cfg_path = krate_ctx.get_config_path(args.config.clone());
+
     let mut files = Files::new();
-    let cfg = ValidConfig::load(krate_ctx.get_config_path(args.config), &mut files, log_ctx)?;
+    let ValidConfig { graph, .. } = ValidConfig::load(
+        cfg_path,
+        krate_ctx.get_local_exceptions_path(),
+        &mut files,
+        log_ctx,
+    )?;
 
     let (krates, store) = rayon::join(
-        || krate_ctx.gather_krates(cfg.targets, cfg.exclude),
+        || krate_ctx.gather_krates(graph.targets, graph.exclude),
         crate::common::load_license_store,
     );
 

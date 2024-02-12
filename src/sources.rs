@@ -1,6 +1,6 @@
-mod cfg;
+pub mod cfg;
 mod diags;
-pub use cfg::{Config, GitSpec, ValidConfig};
+use cfg::ValidConfig;
 pub use diags::Code;
 
 use crate::{
@@ -31,7 +31,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         (
             rgs.value,
             CfgCoord {
-                span: rgs.span.into(),
+                span: rgs.span,
                 file: ctx.cfg.file_id,
             },
         )
@@ -94,7 +94,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
                 type_name,
                 allow_cfg: CfgCoord {
                     file: ctx.cfg.file_id,
-                    span: ctx.cfg.allowed_sources[ind].url.span.into(),
+                    span: ctx.cfg.allowed_sources[ind].url.span,
                 },
             }
             .into()
@@ -115,7 +115,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
                     src_label: sl.get_or_insert_with(label),
                     org_cfg: CfgCoord {
                         file: ctx.cfg.file_id,
-                        span: ctx.cfg.allowed_orgs[ind].1.span.into(),
+                        span: ctx.cfg.allowed_orgs[ind].1.span,
                     },
                 }
                 .into()
@@ -155,7 +155,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
         pack.push(diags::UnmatchedAllowSource {
             allow_src_cfg: CfgCoord {
-                span: src.url.span.into(),
+                span: src.url.span,
                 file: ctx.cfg.file_id,
             },
         });

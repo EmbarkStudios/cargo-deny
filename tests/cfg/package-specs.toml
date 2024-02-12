@@ -1,0 +1,8 @@
+bare = "bare-name"
+specific = { name = "specific", version = "=0.1.0" }
+range = { crate = "range:<=1.0", data = 10 }
+mixed = [
+    "bare-name-1",
+    { name = "range-2", version = ">=1.0,<=2.0", data = 20 },
+    "specific-3@0.2.1",
+]

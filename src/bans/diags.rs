@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     bans::cfg,
-    cfg::PackageSpec,
+    cfg::{PackageSpec, Reason},
     diag::{
         CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
     },
@@ -192,7 +192,7 @@ impl<'a> From<Wildcards<'a>> for Pack {
 pub(crate) struct UnmatchedSkip<'a> {
     pub(crate) skip_cfg: CfgCoord,
     pub(crate) skipped_krate: &'a PackageSpec,
-    pub(crate) reason: Option<&'a Spanned<String>>,
+    pub(crate) reason: Option<&'a Reason>,
 }
 
 impl<'a> From<UnmatchedSkip<'a>> for Diag {
@@ -431,8 +431,9 @@ impl From<FeatureBanned<'_>> for Diag {
                 fed.feature.value, fed.krate,
             ))
             .with_code(Code::FeatureBanned)
-            .with_labels(vec![Label::primary(fed.file_id, fed.feature.span.clone())
-                .with_message("feature denied here")]);
+            .with_labels(vec![
+                Label::primary(fed.file_id, fed.feature.span).with_message("feature denied here")
+            ]);
 
         Diag {
             diag,
@@ -462,7 +463,7 @@ impl From<UnknownFeature<'_>> for Diag {
             ))
             .with_code(Code::UnknownFeature)
             .with_labels(vec![
-                Label::primary(uf.file_id, uf.feature.span.clone()).with_message("unknown feature")
+                Label::primary(uf.file_id, uf.feature.span).with_message("unknown feature")
             ]);
 
         Diag {
@@ -493,7 +494,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
             ))
             .with_code(Code::DefaultFeatureEnabled)
             .with_labels(vec![
-                Label::primary(dfe.file_id, dfe.level.span.clone()).with_message("lint level")
+                Label::primary(dfe.file_id, dfe.level.span).with_message("lint level")
             ]);
 
         Diag {
@@ -537,12 +538,14 @@ pub(crate) struct ExplicitPathAllowance<'a> {
 impl From<ExplicitPathAllowance<'_>> for Diag {
     fn from(pa: ExplicitPathAllowance<'_>) -> Diag {
         let mut labels =
-            vec![Label::primary(pa.file_id, pa.allowed.path.span.clone())
-                .with_message("allowed path")];
+            vec![Label::primary(pa.file_id, pa.allowed.path.span).with_message("allowed path")];
 
-        labels.extend(pa.allowed.checksum.as_ref().map(|chk| {
-            Label::secondary(pa.file_id, chk.span.clone()).with_message("matched checksum")
-        }));
+        labels.extend(
+            pa.allowed
+                .checksum
+                .as_ref()
+                .map(|chk| Label::secondary(pa.file_id, chk.span).with_message("matched checksum")),
+        );
         let diag = Diagnostic::new(Severity::Help)
             .with_message("file explicitly allowed")
             .with_code(Code::PathBypassed)
@@ -564,9 +567,9 @@ fn globs_to_labels(file_id: FileId, globs: Vec<&cfg::GlobPattern>) -> Vec<Label>
         .into_iter()
         .map(|gp| match gp {
             cfg::GlobPattern::Builtin((glob, id)) => {
-                Label::secondary(*id, glob.span.clone()).with_message("builtin")
+                Label::secondary(*id, glob.span).with_message("builtin")
             }
-            cfg::GlobPattern::User(glob) => Label::secondary(file_id, glob.span.clone()),
+            cfg::GlobPattern::User(glob) => Label::secondary(file_id, glob.span),
         })
         .collect()
 }
@@ -609,7 +612,7 @@ impl From<ChecksumMatch<'_>> for Diag {
             .with_notes(vec![format!("path = '{}'", cm.path)])
             .with_code(Code::ChecksumMatch)
             .with_labels(vec![
-                Label::primary(cm.file_id, cm.checksum.span.clone()).with_message("checksum")
+                Label::primary(cm.file_id, cm.checksum.span).with_message("checksum")
             ]);
 
         Diag {
@@ -643,8 +646,9 @@ impl From<ChecksumMismatch<'_>> for Diag {
             .with_message("file did not match the expected checksum")
             .with_notes(notes)
             .with_code(Code::ChecksumMismatch)
-            .with_labels(vec![Label::primary(cm.file_id, cm.checksum.span.clone())
-                .with_message("expected checksum")]);
+            .with_labels(vec![
+                Label::primary(cm.file_id, cm.checksum.span).with_message("expected checksum")
+            ]);
 
         Diag {
             diag,
@@ -771,7 +775,7 @@ impl From<FeaturesEnabled<'_>> for Diag {
             .with_labels(
                 fe.enabled_features
                     .into_iter()
-                    .map(|ef| Label::secondary(fe.file_id, ef.span.clone()))
+                    .map(|ef| Label::secondary(fe.file_id, ef.span))
                     .collect(),
             );
 
@@ -797,7 +801,7 @@ impl<'a> From<UnmatchedBypass<'a>> for Diag {
             .with_code(Code::UnmatchedBypass)
             .with_labels(vec![Label::primary(
                 ubc.file_id,
-                ubc.unmatched.spec.span.clone(),
+                ubc.unmatched.spec.name.span,
             )
             .with_message("unmatched bypass")])
             .into()
@@ -814,10 +818,7 @@ impl<'a> From<UnmatchedPathBypass<'a>> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("allowed path was not encountered")
             .with_code(Code::UnmatchedPathBypass)
-            .with_labels(vec![Label::primary(
-                ua.file_id,
-                ua.unmatched.path.span.clone(),
-            )])
+            .with_labels(vec![Label::primary(ua.file_id, ua.unmatched.path.span)])
             .into()
     }
 }
@@ -832,7 +833,7 @@ impl<'a> From<UnmatchedGlob<'a>> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("glob was not encountered")
             .with_code(Code::UnmatchedGlob)
-            .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span.clone())])
+            .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span)])
             .into()
     }
 }

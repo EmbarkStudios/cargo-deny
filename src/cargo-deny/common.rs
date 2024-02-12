@@ -4,48 +4,12 @@ use cargo_deny::{
     PathBuf,
 };
 
+mod cfg;
+pub use cfg::ValidConfig;
+
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
     LicenseStore::from_cache()
-}
-
-#[derive(serde::Deserialize)]
-pub(crate) struct Target {
-    pub(crate) triple: cargo_deny::Spanned<String>,
-    #[serde(default)]
-    pub(crate) features: Vec<String>,
-}
-
-use cargo_deny::diag::Diagnostic;
-
-pub(crate) fn load_targets(
-    in_targets: Vec<Target>,
-    diagnostics: &mut Vec<Diagnostic>,
-    id: FileId,
-) -> Vec<(krates::Target, Vec<String>)> {
-    let mut targets = Vec::with_capacity(in_targets.len());
-    for target in in_targets {
-        let triple = target.triple.as_ref();
-
-        let filter: krates::Target = triple.into();
-
-        if let krates::Target::Unknown(_) = &filter {
-            diagnostics.push(
-                    Diagnostic::warning()
-                        .with_message(format!("unknown target `{triple}` specified"))
-                        .with_labels(vec![
-                    cargo_deny::diag::Label::primary(
-                        id,
-                        target.triple.span().clone()).with_message(
-                        "the triple won't be evaluated against cfg() sections, just explicit triples"),
-                    ]),
-                );
-        }
-
-        targets.push((filter, target.features));
-    }
-
-    targets
 }
 
 pub struct KrateContext {
@@ -147,7 +111,7 @@ impl KrateContext {
 
     pub fn gather_krates(
         self,
-        cfg_targets: Vec<(krates::Target, Vec<String>)>,
+        cfg_targets: Vec<cargo_deny::root_cfg::Target>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path);
@@ -177,7 +141,11 @@ impl KrateContext {
         if !self.targets.is_empty() {
             gb.include_targets(self.targets.into_iter().map(|t| (t, Vec::new())));
         } else if !cfg_targets.is_empty() {
-            gb.include_targets(cfg_targets);
+            gb.include_targets(
+                cfg_targets
+                    .into_iter()
+                    .map(|targ| (targ.filter.value, targ.features)),
+            );
         }
 
         gb.ignore_kind(

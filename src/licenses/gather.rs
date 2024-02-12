@@ -14,9 +14,8 @@ fn iter_clarifications<'a>(
     all: &'a [ValidClarification],
     krate: &'a Krate,
 ) -> impl Iterator<Item = &'a ValidClarification> {
-    all.iter().filter(move |vc| {
-        vc.name == krate.name && crate::match_req(&krate.version, vc.version.as_ref())
-    })
+    all.iter()
+        .filter(move |vc| crate::match_krate(krate, &vc.spec))
 }
 
 impl fmt::Debug for FileSource {

@@ -202,7 +202,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         // to the beginning and confuses users
         if !self.cfg.yanked.span.is_empty() {
             labels.push(
-                Label::primary(self.cfg.file_id, self.cfg.yanked.span.clone())
+                Label::primary(self.cfg.file_id, self.cfg.yanked.span)
                     .with_message("lint level defined here"),
             );
         }
@@ -238,7 +238,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory was not encountered")
                 .with_code(Code::AdvisoryNotDetected)
-                .with_labels(vec![Label::primary(self.cfg.file_id, not_hit.span.clone())
+                .with_labels(vec![Label::primary(self.cfg.file_id, not_hit.span)
                     .with_message("no crate matched advisory criteria")]),
         )
             .into()
@@ -250,8 +250,9 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory not found in any advisory database")
                 .with_code(Code::UnknownAdvisory)
-                .with_labels(vec![Label::primary(self.cfg.file_id, unknown.span.clone())
-                    .with_message("unknown advisory")]),
+                .with_labels(vec![
+                    Label::primary(self.cfg.file_id, unknown.span).with_message("unknown advisory")
+                ]),
         )
             .into()
     }

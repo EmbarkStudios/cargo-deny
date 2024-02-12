@@ -1,4 +1,8 @@
-use cargo_deny::{diag, field_eq, func_name, licenses, test_utils as tu, Krates};
+use cargo_deny::{
+    diag, field_eq, func_name,
+    licenses::{self, cfg::Config},
+    test_utils as tu, Krates,
+};
 use parking_lot::Once;
 use std::sync::Arc;
 
@@ -18,7 +22,7 @@ fn store() -> Arc<licenses::LicenseStore> {
 #[inline]
 pub fn gather_licenses_with_overrides(
     name: &str,
-    cfg: impl Into<tu::Config<crate::licenses::cfg::Config>>,
+    cfg: impl Into<tu::Config<Config>>,
     overrides: Option<diag::DiagnosticOverrides>,
 ) -> Vec<serde_json::Value> {
     let md: krates::cm::Metadata = serde_json::from_str(
@@ -34,30 +38,15 @@ pub fn gather_licenses_with_overrides(
         .with_store(store())
         .with_confidence_threshold(0.8);
 
-    let mut files = codespan::Files::new();
-
     let cfg = cfg.into();
-    let lic_cfg = {
-        let des: licenses::cfg::Config = toml::from_str(&cfg.config).unwrap();
-        let cfg_id = files.add("config.toml", cfg.config.clone());
 
-        let mut diags = Vec::new();
-        use cargo_deny::UnvalidatedConfig;
-        des.validate(cargo_deny::cfg::ValidationContext {
-            cfg_id,
-            files: &mut files,
-            diagnostics: &mut diags,
-        })
-    };
-
-    let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
-
-    tu::gather_diagnostics_with_files::<crate::licenses::cfg::Config, _, _>(
+    tu::gather_diagnostics_with_files::<Config, _, _>(
         &krates,
         name,
         cfg,
-        files,
-        |ctx, _cs, tx| {
+        codespan::Files::new(),
+        |ctx, _cs, tx, files| {
+            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
             crate::licenses::check(
                 ctx,
                 summary,
@@ -173,34 +162,18 @@ fn lax_fallback() {
         .with_store(store())
         .with_confidence_threshold(0.8);
 
-    let mut files = codespan::Files::new();
-
-    let cfg: tu::Config<crate::licenses::cfg::Config> = tu::Config::new(
+    let cfg = tu::Config::<Config>::new(
         "allow = ['GPL-2.0', 'LGPL-3.0']
     unlicensed = 'deny'",
     );
 
-    let lic_cfg = {
-        let des: licenses::cfg::Config = toml::from_str(&cfg.config).unwrap();
-        let cfg_id = files.add("config.toml", cfg.config.clone());
-
-        let mut diags = Vec::new();
-        use cargo_deny::UnvalidatedConfig;
-        des.validate(cargo_deny::cfg::ValidationContext {
-            cfg_id,
-            files: &mut files,
-            diagnostics: &mut diags,
-        })
-    };
-
-    let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
-
-    let diags = tu::gather_diagnostics_with_files::<crate::licenses::cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
         &krates,
         "lax_fallback",
         cfg,
-        files,
-        |ctx, _cs, tx| {
+        codespan::Files::new(),
+        |ctx, _cs, tx, files| {
+            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
             crate::licenses::check(
                 ctx,
                 summary,
@@ -229,9 +202,7 @@ fn clarifications() {
         .with_store(store())
         .with_confidence_threshold(0.8);
 
-    let mut files = codespan::Files::new();
-
-    let cfg: tu::Config<crate::licenses::cfg::Config> = tu::Config::new(
+    let cfg = tu::Config::<Config>::new(
         r#"
 allow = ["MIT", "Apache-2.0", "ISC"]
 private = { ignore = true }
@@ -262,27 +233,13 @@ license-files = [
 "#,
     );
 
-    let lic_cfg = {
-        let des: licenses::cfg::Config = toml::from_str(&cfg.config).unwrap();
-        let cfg_id = files.add("config.toml", cfg.config.clone());
-
-        let mut diags = Vec::new();
-        use cargo_deny::UnvalidatedConfig;
-        des.validate(cargo_deny::cfg::ValidationContext {
-            cfg_id,
-            files: &mut files,
-            diagnostics: &mut diags,
-        })
-    };
-
-    let summary = gatherer.gather(&krates, &mut files, Some(&lic_cfg));
-
-    let diags = tu::gather_diagnostics_with_files::<crate::licenses::cfg::Config, _, _>(
+    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
         &krates,
         "clarifications",
         cfg,
-        files,
-        |ctx, _cs, tx| {
+        codespan::Files::new(),
+        |ctx, _cs, tx, files| {
+            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
             crate::licenses::check(
                 ctx,
                 summary,

@@ -4,7 +4,7 @@ mod graph;
 
 use self::cfg::{ValidBuildConfig, ValidConfig, ValidTreeSkip};
 use crate::{
-    cfg::{PackageSpec, Reason, Span},
+    cfg::{PackageSpec, Reason, Span, Spanned},
     diag::{self, CfgCoord, FileId, KrateCoord},
     Kid, Krate, Krates, LintLevel,
 };
@@ -15,7 +15,7 @@ use semver::VersionReq;
 use std::fmt;
 
 struct ReqMatch<'vr> {
-    id: &'vr PackageSpec,
+    spec: &'vr PackageSpec,
     index: usize,
 }
 
@@ -28,7 +28,7 @@ fn matches<'v>(
     let matches: Vec<_> = arr
         .enumerate()
         .filter_map(|(index, req)| {
-            crate::match_krate(details, req).then_some(ReqMatch { id: req, index })
+            crate::match_krate(details, req).then_some(ReqMatch { spec: req, index })
         })
         .collect();
 
@@ -41,7 +41,7 @@ fn matches<'v>(
 
 struct SkipRoot {
     span: Span,
-    reason: Reason,
+    reason: Option<Reason>,
     skip_crates: Vec<Kid>,
     skip_hits: BitVec,
 }
@@ -64,8 +64,8 @@ impl TreeSkipper {
         for ts in skip_roots {
             let num_roots = roots.len();
 
-            for nid in krates.krates_by_name(&ts.value.id.name).filter_map(|km| {
-                crate::match_req(&km.krate.version, ts.value.id.version.as_ref())
+            for nid in krates.krates_by_name(&ts.spec.name.value).filter_map(|km| {
+                crate::match_req(&km.krate.version, ts.spec.version_req.as_ref())
                     .then_some(km.node_id)
             }) {
                 roots.push(Self::build_skip_root(ts.clone(), nid, krates));
@@ -77,7 +77,7 @@ impl TreeSkipper {
                 pack.push(diags::UnmatchedSkipRoot {
                     skip_root_cfg: CfgCoord {
                         file: cfg_file_id,
-                        span: ts.spec.span,
+                        span: ts.spec.name.span,
                     },
                 });
             }
@@ -116,7 +116,7 @@ impl TreeSkipper {
         let skip_hits = BitVec::repeat(false, skip_crates.len());
 
         SkipRoot {
-            span: ts.spec.span,
+            span: ts.spec.name.span,
             reason,
             skip_crates,
             skip_hits,
@@ -132,7 +132,7 @@ impl TreeSkipper {
                     krate,
                     skip_root_cfg: CfgCoord {
                         file: self.cfg_file_id,
-                        span: root.span.clone(),
+                        span: root.span,
                     },
                 });
 
@@ -192,20 +192,15 @@ pub fn check(
         sink.push(build_diags);
     }
 
-    struct PackageSpecWithReason {
-        spec: PackageSpec,
-        reason: Reason,
-    }
+    use std::collections::BTreeMap;
 
     struct BanWrappers {
-        map: std::collections::BTreeMap<usize, (usize, Vec<crate::Spanned<String>>)>,
+        map: BTreeMap<usize, (usize, Vec<Spanned<String>>)>,
         hits: BitVec,
     }
 
     impl BanWrappers {
-        fn new(
-            mut map: std::collections::BTreeMap<usize, (usize, Vec<crate::Spanned<String>>)>,
-        ) -> Self {
+        fn new(mut map: BTreeMap<usize, (usize, Vec<Spanned<String>>)>) -> Self {
             let hits = BitVec::repeat(
                 false,
                 map.values_mut().fold(0, |sum, v| {
@@ -223,32 +218,43 @@ pub fn check(
         }
 
         #[inline]
-        fn check(&mut self, i: usize, name: &str) -> Option<crate::diag::Span> {
+        fn check(&mut self, i: usize, name: &str) -> Option<Span> {
             let (offset, wrappers) = &self.map[&i];
             if let Some(pos) = wrappers.iter().position(|wrapper| wrapper.value == name) {
                 self.hits.set(*offset + pos, true);
-                Some(wrappers[pos].span.clone())
+                Some(wrappers[pos].span)
             } else {
                 None
             }
         }
     }
 
+    struct SpecAndReason {
+        spec: PackageSpec,
+        reason: Option<Reason>,
+    }
+
     let (denied_ids, mut ban_wrappers) = {
-        let mut bw = std::collections::BTreeMap::new();
+        let mut bw = BTreeMap::new();
 
         (
             denied
                 .into_iter()
                 .enumerate()
                 .map(|(i, kb)| {
-                    if let Some(wrappers) = kb.wrappers.filter(|v| !v.is_empty()) {
-                        bw.insert(i, (0, wrappers));
-                    }
+                    let reason = if let Some(ext) = kb.inner {
+                        if let Some(wrappers) = ext.wrappers.filter(|w| !w.is_empty()) {
+                            bw.insert(i, (0, wrappers));
+                        }
 
-                    PackageIdWithReason {
-                        id: kb.id,
-                        reason: kb.reason,
+                        ext.reason
+                    } else {
+                        None
+                    };
+
+                    SpecAndReason {
+                        spec: kb.spec,
+                        reason,
                     }
                 })
                 .collect::<Vec<_>>(),
@@ -256,26 +262,11 @@ pub fn check(
         )
     };
 
-    let (denied_ids, ban_wrappers): (Vec<_>, Vec<_>) = denied
-        .into_iter()
-        .map(|kb| {
-            let (reason, wrappers) = kb.inner.map_or((None, None), |kb| (kb.reason, kb.wrappers));
-
-            (
-                PackageSpecWithReason {
-                    spec: kb.spec,
-                    reason,
-                },
-                wrappers,
-            )
-        })
-        .unzip();
-
     let (feature_ids, features): (Vec<_>, Vec<_>) = features
         .into_iter()
         .map(|cf| {
             (
-                PackageSpecWithReason {
+                SpecAndReason {
                     spec: cf.spec,
                     reason: cf.reason,
                 },
@@ -463,7 +454,7 @@ pub fn check(
                     for rm in matches {
                         let ban_cfg = CfgCoord {
                             file: file_id,
-                            span: rm.id.span.clone(),
+                            span: rm.spec.name.span,
                         };
 
                         // The crate is banned, but it might be allowed if it's
@@ -528,7 +519,7 @@ pub fn check(
                                     krate,
                                     allow_cfg: CfgCoord {
                                         file: file_id,
-                                        span: rm.id.span.clone(),
+                                        span: rm.spec.name.span,
                                     },
                                 });
                             }
@@ -603,7 +594,7 @@ pub fn check(
                                         if !enabled_features.contains(&af.value) {
                                             Some(CfgCoord {
                                                 file: file_id,
-                                                span: af.span.clone(),
+                                                span: af.span,
                                             })
                                         } else {
                                             None
@@ -619,7 +610,7 @@ pub fn check(
                                         not_allowed: &not_explicitly_allowed,
                                         exact_coord: CfgCoord {
                                             file: file_id,
-                                            span: feature_bans.exact.span.clone(),
+                                            span: feature_bans.exact.span,
                                         },
                                         krate,
                                     });
@@ -676,7 +667,7 @@ pub fn check(
                                                 feature,
                                                 allowed: CfgCoord {
                                                     file: file_id,
-                                                    span: feature_bans.allow.span.clone(),
+                                                    span: feature_bans.allow.span,
                                                 },
                                             });
                                         }
@@ -761,7 +752,7 @@ pub fn check(
                                 krate,
                                 skip_cfg: CfgCoord {
                                     file: file_id,
-                                    span: rm.id.span.clone(),
+                                    span: rm.spec.name.span,
                                 },
                             });
 
@@ -920,10 +911,10 @@ pub fn check(
         pack.push(diags::UnmatchedSkip {
             skip_cfg: CfgCoord {
                 file: file_id,
-                span: skip.spec.span.clone(),
+                span: skip.spec.name.span,
             },
             skipped_krate: &skip.spec,
-            reason: skip.inner.as_ref().and_then(|r| r.as_ref()),
+            reason: skip.inner.as_ref(),
         });
     }
 
