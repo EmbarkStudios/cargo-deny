@@ -1,0 +1,105 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "build-script-not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libc",
+            "version": "0.2.147"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "cc",
+                "version": "1.0.83"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "ittapi-sys",
+                    "version": "0.3.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "build-bans",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "ring",
+                    "version": "0.16.20"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "build-bans",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "message": "crate 'libc = 0.2.147' has a build script but is not allowed to have one",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "checksum-match",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ring",
+            "version": "0.16.20"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "build-bans",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 8,
+          "message": "checksum",
+          "span": "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf"
+        }
+      ],
+      "message": "file checksum matched",
+      "notes": [
+        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs'"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]

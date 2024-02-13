@@ -1,5 +1,3 @@
-#![cfg(no)]
-
 use cargo_deny::{field_eq, func_name, test_utils::*};
 
 /// Verifies we can detect and error on builtin globs
@@ -144,9 +142,40 @@ fn skips_matching_build_scripts() {
         },
         Config::new(
             r#"
+[build]
+executables = "deny"
+
 [[build.bypass]]
 name = "ittapi-sys"
 build-script = "474a3eb189a698475d8a6f4b358eb0790db6379aea8b8a85ac925102784cd520"
+
+[[build.bypass]]
+name = "ring"
+build-script = "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf"
+"#,
+        ),
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Verifies that build scripts are denied if not allowed nor bypassed
+#[test]
+fn allows_build_scripts_or_bypass() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "build-bans",
+            features: &["mixed", "scripts"],
+            no_default_features: true,
+            targets: &["x86_64-unknown-linux-gnu"],
+            ..Default::default()
+        },
+        Config::new(
+            r#"
+[build]
+allow-build-scripts = ["ittapi-sys"]
+executables = "allow"
 
 [[build.bypass]]
 name = "ring"

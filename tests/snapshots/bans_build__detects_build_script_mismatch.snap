@@ -24,7 +24,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 16,
+          "column": 17,
           "line": 4,
           "message": "expected checksum",
           "span": "00abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef00"

@@ -24,7 +24,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 71,
+          "column": 72,
           "line": 5,
           "message": "checksum",
           "span": "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
@@ -59,7 +59,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 69,
+          "column": 70,
           "line": 7,
           "message": "checksum",
           "span": "151dfe76345298b055000c31376f925222ef3426d6b7892b8156421fdd3fd3c4"
@@ -94,7 +94,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 68,
+          "column": 69,
           "line": 8,
           "message": "checksum",
           "span": "2363256459ab02d5abdda2db52e96879f9417102d14086fe852d97d0380b79ff"
@@ -129,7 +129,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 67,
+          "column": 68,
           "line": 9,
           "message": "checksum",
           "span": "e7dff9c38bf0cbcf43f055b8269ea939d6b298f611de16481ba7d3e2eec0bc2f"
@@ -164,7 +164,7 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 66,
+          "column": 67,
           "line": 10,
           "message": "checksum",
           "span": "62e803f7433799af63acf605f7fe19108d22d0c73e82a475b27d3ff0cfbf1990"

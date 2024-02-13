@@ -986,24 +986,21 @@ pub fn check_build(
     krates: &Krates,
     pack: &mut Pack,
 ) -> Option<usize> {
-    if let Some(allow_build_scripts) = &config.allow_build_scripts {
+    let build_script_allowed = if let Some(allow_build_scripts) = &config.allow_build_scripts {
         let has_build_script = krate
             .targets
             .iter()
             .any(|t| t.kind.iter().any(|k| *k == "custom-build"));
 
-        if has_build_script {
-            let allowed_build_script = allow_build_scripts
+        !has_build_script
+            || allow_build_scripts
                 .iter()
-                .any(|id| crate::match_krate(krate, id));
+                .any(|id| crate::match_krate(krate, id))
+    } else {
+        true
+    };
 
-            if !allowed_build_script {
-                pack.push(diags::BuildScriptNotAllowed { krate });
-            }
-        }
-    }
-
-    if config.executables == LintLevel::Allow {
+    if build_script_allowed && config.executables == LintLevel::Allow {
         return None;
     }
 
@@ -1115,6 +1112,11 @@ pub fn check_build(
                 }
             }
         }
+    }
+
+    if !build_script_allowed {
+        pack.push(diags::BuildScriptNotAllowed { krate });
+        return kc_index;
     }
 
     let root = krate.manifest_path.parent().unwrap();
