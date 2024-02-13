@@ -18,7 +18,7 @@ impl<'de> Deserialize<'de> for Target {
         let (triple, features) = match value.take() {
             ValueInner::String(s) => (Spanned::with_span(s, value.span), Vec::new()),
             ValueInner::Table(tab) => {
-                let mut th = TableHelper::from(tab);
+                let mut th = TableHelper::from((tab, value.span));
                 let triple = th.required("triple")?;
                 let features = th.optional("features").unwrap_or_default();
                 th.finalize(None)?;
