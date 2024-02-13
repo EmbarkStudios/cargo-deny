@@ -41,16 +41,39 @@ impl ValidConfig {
             }
         };
 
-        let mut parsed = toml_file::parse(&cfg_contents)
+        let id = files.add(&cfg_path, cfg_contents);
+
+        let print = |files: &Files, diags: Vec<Diagnostic>| {
+            if diags.is_empty() {
+                return;
+            }
+
+            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
+                let mut lock = printer.lock();
+                for diag in diags {
+                    lock.print(diag, files);
+                }
+            }
+        };
+
+        let mut parsed = toml_file::parse(files.source(id))
             .with_context(|| format!("failed to parse config from '{cfg_path}'"))?;
 
         use cargo_deny::Deserialize;
-        let cfg = cargo_deny::root_cfg::RootConfig::deserialize(&mut parsed)
-            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
+        let cfg = match cargo_deny::root_cfg::RootConfig::deserialize(&mut parsed) {
+            Ok(c) => c,
+            Err(err) => {
+                let diags = err
+                    .errors
+                    .into_iter()
+                    .map(|d| d.to_diagnostic(id))
+                    .collect();
+                print(files, diags);
+                anyhow::bail!("failed to deserialize config from '{cfg_path}'");
+            }
+        };
 
         log::info!("using config from {cfg_path}");
-
-        let id = files.add(&cfg_path, cfg_contents);
 
         let validate = || -> (Vec<Diagnostic>, Self) {
             // Accumulate all configuration diagnostics rather than earlying out so
@@ -161,20 +184,7 @@ impl ValidConfig {
 
         let has_errors = diags.iter().any(|d| d.severity >= Severity::Error);
 
-        let print = |diags: Vec<Diagnostic>| {
-            if diags.is_empty() {
-                return;
-            }
-
-            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
-                let mut lock = printer.lock();
-                for diag in diags {
-                    lock.print(diag, files);
-                }
-            }
-        };
-
-        print(diags);
+        print(files, diags);
 
         // While we could continue in the face of configuration errors, the user
         // may end up with unexpected results, so just abort so they can fix them
