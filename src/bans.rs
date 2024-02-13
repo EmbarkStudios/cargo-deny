@@ -15,33 +15,42 @@ use semver::VersionReq;
 use std::fmt;
 
 struct ReqMatch<'vr> {
-    spec: &'vr PackageSpec,
+    specr: &'vr SpecAndReason,
     index: usize,
 }
 
-/// Returns the version requirements that matched the version, if any
-#[inline]
-fn matches<'v>(
-    arr: impl Iterator<Item = &'v PackageSpec>,
-    details: &Krate,
-) -> Option<Vec<ReqMatch<'v>>> {
-    let matches: Vec<_> = arr
-        .enumerate()
-        .filter_map(|(index, req)| {
-            crate::match_krate(details, req).then_some(ReqMatch { spec: req, index })
-        })
-        .collect();
+pub(crate) struct SpecAndReason {
+    spec: PackageSpec,
+    reason: Option<Reason>,
+    use_instead: Option<Spanned<String>>,
+    file_id: FileId,
+}
 
-    if matches.is_empty() {
-        None
-    } else {
-        Some(matches)
+struct SpecsAndReasons(Vec<SpecAndReason>);
+
+impl SpecsAndReasons {
+    /// Returns the specs that match the specified crate
+    #[inline]
+    fn matches<'s>(&'s self, details: &Krate) -> Option<Vec<ReqMatch<'s>>> {
+        let matches: Vec<_> = self
+            .0
+            .iter()
+            .enumerate()
+            .filter_map(|(index, req)| {
+                crate::match_krate(details, &req.spec).then_some(ReqMatch { specr: req, index })
+            })
+            .collect();
+
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
     }
 }
 
 struct SkipRoot {
-    span: Span,
-    reason: Option<Reason>,
+    specr: SpecAndReason,
     skip_crates: Vec<Kid>,
     skip_hits: BitVec,
 }
@@ -52,7 +61,6 @@ use bitvec::prelude::*;
 // each dependency as a skipped crate at the specific version
 struct TreeSkipper {
     roots: Vec<SkipRoot>,
-    cfg_file_id: FileId,
 }
 
 impl TreeSkipper {
@@ -68,7 +76,7 @@ impl TreeSkipper {
                 crate::match_req(&km.krate.version, ts.spec.version_req.as_ref())
                     .then_some(km.node_id)
             }) {
-                roots.push(Self::build_skip_root(ts.clone(), nid, krates));
+                roots.push(Self::build_skip_root(ts.clone(), cfg_file_id, nid, krates));
             }
 
             // If no roots were added, add a diagnostic that the user's configuration
@@ -83,10 +91,15 @@ impl TreeSkipper {
             }
         }
 
-        (Self { roots, cfg_file_id }, pack)
+        (Self { roots }, pack)
     }
 
-    fn build_skip_root(ts: ValidTreeSkip, krate_id: krates::NodeId, krates: &Krates) -> SkipRoot {
+    fn build_skip_root(
+        ts: ValidTreeSkip,
+        file_id: FileId,
+        krate_id: krates::NodeId,
+        krates: &Krates,
+    ) -> SkipRoot {
         let (max_depth, reason) = ts.inner.map_or((std::usize::MAX, None), |inn| {
             (inn.depth.unwrap_or(std::usize::MAX), inn.reason)
         });
@@ -116,8 +129,12 @@ impl TreeSkipper {
         let skip_hits = BitVec::repeat(false, skip_crates.len());
 
         SkipRoot {
-            span: ts.spec.name.span,
-            reason,
+            specr: SpecAndReason {
+                spec: ts.spec,
+                reason,
+                use_instead: None,
+                file_id,
+            },
             skip_crates,
             skip_hits,
         }
@@ -130,10 +147,7 @@ impl TreeSkipper {
             if let Ok(i) = root.skip_crates.binary_search(&krate.id) {
                 pack.push(diags::SkippedByRoot {
                     krate,
-                    skip_root_cfg: CfgCoord {
-                        file: self.cfg_file_id,
-                        span: root.span,
-                    },
+                    skip_root_cfg: &root.specr,
                 });
 
                 root.skip_hits.as_mut_bitslice().set(i, true);
@@ -229,35 +243,34 @@ pub fn check(
         }
     }
 
-    struct SpecAndReason {
-        spec: PackageSpec,
-        reason: Option<Reason>,
-    }
-
     let (denied_ids, mut ban_wrappers) = {
         let mut bw = BTreeMap::new();
 
         (
-            denied
-                .into_iter()
-                .enumerate()
-                .map(|(i, kb)| {
-                    let reason = if let Some(ext) = kb.inner {
-                        if let Some(wrappers) = ext.wrappers.filter(|w| !w.is_empty()) {
-                            bw.insert(i, (0, wrappers));
+            SpecsAndReasons(
+                denied
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, kb)| {
+                        let (reason, use_instead) = if let Some(ext) = kb.inner {
+                            if let Some(wrappers) = ext.wrappers.filter(|w| !w.is_empty()) {
+                                bw.insert(i, (0, wrappers));
+                            }
+
+                            (ext.reason, ext.use_instead)
+                        } else {
+                            (None, None)
+                        };
+
+                        SpecAndReason {
+                            spec: kb.spec,
+                            reason,
+                            use_instead,
+                            file_id,
                         }
-
-                        ext.reason
-                    } else {
-                        None
-                    };
-
-                    SpecAndReason {
-                        spec: kb.spec,
-                        reason,
-                    }
-                })
-                .collect::<Vec<_>>(),
+                    })
+                    .collect(),
+            ),
             BanWrappers::new(bw),
         )
     };
@@ -269,11 +282,15 @@ pub fn check(
                 SpecAndReason {
                     spec: cf.spec,
                     reason: cf.reason,
+                    use_instead: None,
+                    file_id,
                 },
                 cf.features,
             )
         })
         .unzip();
+
+    let feature_ids = SpecsAndReasons(feature_ids);
 
     // Keep track of all the crates we skip, and emit a warning if
     // we encounter a skip that didn't actually match any crate version
@@ -308,6 +325,42 @@ pub fn check(
         }
     };
 
+    let dmv = SpecsAndReasons(
+        denied_multiple_versions
+            .into_iter()
+            .map(|spec| SpecAndReason {
+                spec,
+                reason: None,
+                use_instead: None,
+                file_id,
+            })
+            .collect(),
+    );
+
+    let allowed = SpecsAndReasons(
+        allowed
+            .into_iter()
+            .map(|all| SpecAndReason {
+                spec: all.spec,
+                reason: all.inner,
+                use_instead: None,
+                file_id,
+            })
+            .collect(),
+    );
+
+    let skipped = SpecsAndReasons(
+        skipped
+            .into_iter()
+            .map(|skip| SpecAndReason {
+                spec: skip.spec,
+                reason: skip.inner,
+                use_instead: None,
+                file_id,
+            })
+            .collect(),
+    );
+
     let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
         if multi_detector.dupes.len() <= 1 {
             return;
@@ -315,7 +368,7 @@ pub fn check(
 
         let lint_level = if multi_detector.dupes.iter().any(|kindex| {
             let krate = &ctx.krates[*kindex];
-            matches(denied_multiple_versions.iter(), krate).is_some()
+            dmv.matches(krate).is_some()
         }) {
             LintLevel::Deny
         } else {
@@ -450,11 +503,11 @@ pub fn check(
                 let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
                 // Check if the crate has been explicitly banned
-                if let Some(matches) = matches(denied_ids.iter().map(|did| &did.spec), krate) {
+                if let Some(matches) = denied_ids.matches(krate) {
                     for rm in matches {
                         let ban_cfg = CfgCoord {
                             file: file_id,
-                            span: rm.spec.name.span,
+                            span: rm.specr.spec.name.span,
                         };
 
                         // The crate is banned, but it might be allowed if it's
@@ -485,7 +538,7 @@ pub fn check(
                                         ),
                                         None => (
                                             diags::BannedUnmatchedWrapper {
-                                                ban_cfg: ban_cfg.clone(),
+                                                ban_cfg: &rm.specr,
                                                 banned_krate: krate,
                                                 parent_krate: src.krate,
                                             }
@@ -504,23 +557,23 @@ pub fn check(
                         };
 
                         if !is_allowed_by_wrapper {
-                            pack.push(diags::ExplicitlyBanned { krate, ban_cfg });
+                            pack.push(diags::ExplicitlyBanned {
+                                krate,
+                                ban_cfg: &rm.specr,
+                            });
                         }
                     }
                 }
 
-                if !allowed.is_empty() {
+                if !allowed.0.is_empty() {
                     // Since only allowing specific crates is pretty draconian,
                     // also emit which allow filters actually passed each crate
-                    match matches(allowed.iter().map(|a| &a.spec), krate) {
+                    match allowed.matches(krate) {
                         Some(matches) => {
                             for rm in matches {
                                 pack.push(diags::ExplicitlyAllowed {
                                     krate,
-                                    allow_cfg: CfgCoord {
-                                        file: file_id,
-                                        span: rm.spec.name.span,
-                                    },
+                                    allow_cfg: &rm.specr,
                                 });
                             }
                         }
@@ -559,7 +612,7 @@ pub fn check(
                 }
 
                 // Check if the crate has had features denied/allowed or are required to be exact
-                if let Some(matches) = matches(feature_ids.iter().map(|f| &f.spec), krate) {
+                if let Some(matches) = feature_ids.matches(krate) {
                     for rm in matches {
                         let feature_bans = &features[rm.index];
 
@@ -746,14 +799,11 @@ pub fn check(
                 }
 
                 if should_add_dupe(&krate.id) {
-                    if let Some(matches) = matches(skipped.iter().map(|s| &s.spec), krate) {
+                    if let Some(matches) = skipped.matches(krate) {
                         for rm in matches {
                             pack.push(diags::Skipped {
                                 krate,
-                                skip_cfg: CfgCoord {
-                                    file: file_id,
-                                    span: rm.spec.name.span,
-                                },
+                                skip_cfg: &rm.specr,
                             });
 
                             // Mark each skip filter that is hit so that we can report unused
@@ -905,17 +955,10 @@ pub fn check(
 
     for skip in skip_hit
         .into_iter()
-        .zip(skipped.into_iter())
+        .zip(skipped.0.into_iter())
         .filter_map(|(hit, skip)| (!hit).then_some(skip))
     {
-        pack.push(diags::UnmatchedSkip {
-            skip_cfg: CfgCoord {
-                file: file_id,
-                span: skip.spec.name.span,
-            },
-            skipped_krate: &skip.spec,
-            reason: skip.inner.as_ref(),
-        });
+        pack.push(diags::UnmatchedSkip { skip_cfg: &skip });
     }
 
     for wrapper in ban_wrappers

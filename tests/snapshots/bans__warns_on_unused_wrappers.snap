@@ -32,13 +32,13 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 8,
+          "column": 9,
           "line": 3,
           "message": "banned here",
           "span": "dangerous-dep"
         },
         {
-          "column": 13,
+          "column": 14,
           "line": 4,
           "message": "allowed wrapper",
           "span": "safe-wrapper"
@@ -55,7 +55,7 @@ expression: diags
       "graphs": [],
       "labels": [
         {
-          "column": 29,
+          "column": 30,
           "line": 4,
           "message": "unmatched wrapper",
           "span": "other-crate"

@@ -62,10 +62,10 @@ expression: diags
           "span": "sparse+https://cargo.cloudsmith.io/embark/deny/"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://cargo.cloudsmith.io/embark/deny/'"
+          "span": "https://cargo.cloudsmith.io/embark/deny/"
         }
       ],
       "message": "'registry' source explicitly allowed",

@@ -9,10 +9,10 @@ expression: diags
       "graphs": [],
       "labels": [
         {
-          "column": 5,
+          "column": 15,
           "line": 4,
           "message": "unmatched skip configuration",
-          "span": "{ name = 'block-buffer', version = \"=0.7.3\" }"
+          "span": "block-buffer"
         }
       ],
       "message": "skipped crate 'block-buffer = =0.7.3' was not encountered",

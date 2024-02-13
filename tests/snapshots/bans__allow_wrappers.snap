@@ -32,14 +32,14 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 8,
+          "column": 9,
           "line": 3,
           "message": "banned here",
           "span": "dangerous-dep"
         },
         {
-          "column": 13,
-          "line": 4,
+          "column": 14,
+          "line": 5,
           "message": "allowed wrapper",
           "span": "safe-wrapper"
         }

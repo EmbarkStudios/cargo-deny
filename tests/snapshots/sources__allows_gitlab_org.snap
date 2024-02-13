@@ -31,10 +31,10 @@ expression: diags
           "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         },
         {
-          "column": 15,
+          "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "'amethyst-engine'"
+          "span": "amethyst-engine"
         }
       ],
       "message": "source allowed by organization allowance",
@@ -78,10 +78,10 @@ expression: diags
           "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         },
         {
-          "column": 15,
+          "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "'amethyst-engine'"
+          "span": "amethyst-engine"
         }
       ],
       "message": "source allowed by organization allowance",

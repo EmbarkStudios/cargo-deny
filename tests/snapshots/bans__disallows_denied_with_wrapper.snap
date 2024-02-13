@@ -1,0 +1,127 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unmatched-wrapper",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "dangerous-dep",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "safe-wrapper",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "allow-wrappers-crate",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 9,
+          "line": 3,
+          "message": "banned here",
+          "span": "dangerous-dep"
+        },
+        {
+          "column": 11,
+          "line": 4,
+          "message": "reason",
+          "span": "we shouldn't use it but it is used transitively"
+        },
+        {
+          "column": 16,
+          "line": 5,
+          "message": "use instead",
+          "span": "a-better-krate"
+        }
+      ],
+      "message": "direct parent 'safe-wrapper = 0.1.0' of banned crate 'dangerous-dep = 0.1.0' was not marked as a wrapper",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "banned",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "dangerous-dep",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "safe-wrapper",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "allow-wrappers-crate",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 9,
+          "line": 3,
+          "message": "banned here",
+          "span": "dangerous-dep"
+        },
+        {
+          "column": 11,
+          "line": 4,
+          "message": "reason",
+          "span": "we shouldn't use it but it is used transitively"
+        },
+        {
+          "column": 16,
+          "line": 5,
+          "message": "use instead",
+          "span": "a-better-krate"
+        }
+      ],
+      "message": "crate 'dangerous-dep = 0.1.0' is explicitly banned",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-wrapper",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 14,
+          "line": 6,
+          "message": "unmatched wrapper",
+          "span": "other-crate"
+        }
+      ],
+      "message": "wrapper for banned crate was not enountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

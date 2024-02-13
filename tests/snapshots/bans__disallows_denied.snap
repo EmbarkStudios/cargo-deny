@@ -32,10 +32,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 17,
+          "column": 10,
           "line": 1,
           "message": "banned here",
-          "span": "'dangerous-dep'"
+          "span": "dangerous-dep"
         }
       ],
       "message": "crate 'dangerous-dep = 0.1.0' is explicitly banned",

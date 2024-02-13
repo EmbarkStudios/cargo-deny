@@ -30,10 +30,10 @@ expression: diags
           "span": "registry+https://dl.cloudsmith.io/public/embark/deny/cargo/index.git"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://dl.cloudsmith.io/public/embark/deny/cargo/index.git'"
+          "span": "https://dl.cloudsmith.io/public/embark/deny/cargo/index.git"
         }
       ],
       "message": "'registry' source explicitly allowed",

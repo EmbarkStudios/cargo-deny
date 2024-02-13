@@ -54,7 +54,7 @@ pub trait UnvalidatedConfig {
 
 #[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq, serde::Serialize))]
-pub struct Reason(Spanned<String>);
+pub struct Reason(pub Spanned<String>);
 
 impl From<Spanned<String>> for Reason {
     fn from(s: Spanned<String>) -> Self {
