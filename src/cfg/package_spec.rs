@@ -65,7 +65,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
         let ctx = match value.take() {
             ValueInner::String(s) => Ctx::from_str(s, value.span),
             ValueInner::Table(tab) => {
-                let mut th = TableHelper::from(tab);
+                let mut th = TableHelper::from((tab, value.span));
 
                 if let Some(mut val) = th.table.remove(&"crate".into()) {
                     let s = val.take_string(Some("a crate spec"))?;
@@ -73,7 +73,14 @@ impl<'de> Deserialize<'de> for PackageSpec {
 
                     Ctx::from_str(s, val.span)
                 } else {
-                    let name = th.required("name")?;
+                    // Encourge user to use the 'crate' spec instead
+                    let name = th.required("name").map_err(|e| {
+                        if matches!(e.kind, toml_file::ErrorKind::MissingField(_)) {
+                            (toml_file::ErrorKind::MissingField("crate"), e.span).into()
+                        } else {
+                            e
+                        }
+                    })?;
                     let version = th.optional::<Spanned<Cow<'_, str>>>("version");
 
                     th.finalize(Some(value))?;
