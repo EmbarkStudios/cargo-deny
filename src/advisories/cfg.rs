@@ -466,7 +466,7 @@ mod test {
 
         let failures: String = FAILURES.iter().fold(String::new(), |mut acc, bad| {
             use std::fmt::Write;
-            writeln!(&mut acc, "{:?}", dur_parse(bad)).unwrap();
+            writeln!(&mut acc, "{:#?}", dur_parse(bad).unwrap_err()).unwrap();
             acc
         });
 

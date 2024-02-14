@@ -2,17 +2,17 @@
 source: src/advisories/cfg.rs
 expression: failures
 ---
-Err(duration requires 'P' prefix)
-Err(must supply at least one time unit)
-Err(must supply at least one time unit)
-Err('H' must be preceded with 'T')
-Err(unit not specified for value '2')
-Err(value not specified for 'M')
-Err(unit 'H' cannot follow 'M')
-Err(unit 'Y' cannot follow 'M')
-Err(unit 'Y' cannot follow 'W')
-Err(unit 'H' cannot follow 'W')
-Err('H' must be preceded with 'T')
-Err('S' must be preceded with 'T')
-Err(',' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead)
+duration requires 'P' prefix
+"must supply at least one time unit"
+"must supply at least one time unit"
+"'H' must be preceded with 'T'"
+"unit not specified for value '2'"
+"value not specified for 'M'"
+"unit 'H' cannot follow 'M'"
+"unit 'Y' cannot follow 'M'"
+"unit 'Y' cannot follow 'W'"
+"unit 'H' cannot follow 'W'"
+"'H' must be preceded with 'T'"
+"'S' must be preceded with 'T'"
+"',' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead"
 
