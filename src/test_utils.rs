@@ -70,11 +70,11 @@ where
 
 impl<C> Config<C>
 where
-    C: toml_file::DeserializeOwned,
+    C: toml_span::DeserializeOwned,
 {
     pub fn new(config: impl Into<String>) -> Self {
         let config = config.into();
-        let mut val = toml_file::parse(&config).expect("failed to parse test config");
+        let mut val = toml_span::parse(&config).expect("failed to parse test config");
         let deserialized = C::deserialize(&mut val).expect("failed to deserialize test config");
         Self {
             deserialized,
@@ -85,7 +85,7 @@ where
 
 impl<'de, C> From<&'de str> for Config<C>
 where
-    C: toml_file::DeserializeOwned,
+    C: toml_span::DeserializeOwned,
 {
     fn from(s: &'de str) -> Self {
         Self::new(s)
@@ -94,7 +94,7 @@ where
 
 impl<C> From<String> for Config<C>
 where
-    C: toml_file::DeserializeOwned + Default,
+    C: toml_span::DeserializeOwned + Default,
 {
     fn from(s: String) -> Self {
         Self::new(s)
@@ -115,13 +115,13 @@ impl<T> ConfigData<T> {
 
 impl<T> ConfigData<T>
 where
-    T: toml_file::DeserializeOwned,
+    T: toml_span::DeserializeOwned,
 {
     pub fn load_str(name: impl Into<std::ffi::OsString>, contents: impl Into<String>) -> Self {
         let contents: String = contents.into();
 
         let res = {
-            let mut cval = toml_file::parse(&contents).expect("failed to parse toml");
+            let mut cval = toml_span::parse(&contents).expect("failed to parse toml");
             T::deserialize(&mut cval)
         };
 

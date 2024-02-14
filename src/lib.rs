@@ -20,7 +20,7 @@ pub use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 pub use cfg::UnvalidatedConfig;
 use krates::cm;
 pub use krates::{DepKind, Kid};
-pub use toml_file::{
+pub use toml_span::{
     span::{Span, Spanned},
     Deserialize, Error,
 };
@@ -46,10 +46,10 @@ pub enum LintLevel {
 #[macro_export]
 macro_rules! enum_deser {
     ($enum:ty) => {
-        impl<'de> toml_file::Deserialize<'de> for $enum {
+        impl<'de> toml_span::Deserialize<'de> for $enum {
             fn deserialize(
-                value: &mut toml_file::value::Value<'de>,
-            ) -> Result<Self, toml_file::DeserError> {
+                value: &mut toml_span::value::Value<'de>,
+            ) -> Result<Self, toml_span::DeserError> {
                 let s = value.take_string(Some(stringify!($enum)))?;
 
                 use strum::{VariantArray, VariantNames};
@@ -58,8 +58,8 @@ macro_rules! enum_deser {
                     .iter()
                     .position(|v| *v == s.as_ref())
                 else {
-                    return Err(toml_file::Error::from((
-                        toml_file::ErrorKind::UnexpectedValue {
+                    return Err(toml_span::Error::from((
+                        toml_span::ErrorKind::UnexpectedValue {
                             expected: <$enum as VariantNames>::VARIANTS,
                         },
                         value.span,

@@ -111,7 +111,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml-file = { path = "../toml-file/toml-file", features = ["reporting"] }
+toml-span = { version = "0.1.0", features = ["reporting"] }
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
@@ -138,7 +138,7 @@ fs_extra = "1.3"
 insta = { version = "1.21", features = ["json"] }
 tame-index = { version = "0.9", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
-toml-file = { path = "../toml-file/toml-file", features = ["serde"] }
+toml-span = { version = "0.1.0", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 
@@ -147,3 +147,7 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
+
+[patch.crates-io]
+toml-span = { path = "../toml-span/toml-span" }
+tame-index = { path = "../tame-index" }

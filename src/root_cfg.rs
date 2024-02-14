@@ -2,7 +2,7 @@ use crate::{
     advisories::cfg::Config as AdvisoriesConfig, bans::cfg::Config as BansConfig,
     licenses::cfg::Config as LicensesConfig, sources::cfg::Config as SourcesConfig, Spanned,
 };
-use toml_file::{
+use toml_span::{
     de_helpers::TableHelper,
     value::{Value, ValueInner},
     DeserError, Deserialize,
@@ -27,7 +27,7 @@ impl<'de> Deserialize<'de> for Target {
             }
             other => {
                 return Err(
-                    toml_file::de_helpers::expected("a string or table", other, value.span).into(),
+                    toml_span::de_helpers::expected("a string or table", other, value.span).into(),
                 )
             }
         };
@@ -110,7 +110,7 @@ impl<'de> Deserialize<'de> for RootConfig {
 
         let mut graph: GraphConfig = th.optional("graph").unwrap_or_default();
 
-        fn deser<'de, T>(v: &mut Value<'de>, errors: &mut Vec<toml_file::Error>) -> T
+        fn deser<'de, T>(v: &mut Value<'de>, errors: &mut Vec<toml_span::Error>) -> T
         where
             T: Deserialize<'de> + Default,
         {

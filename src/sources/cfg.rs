@@ -4,7 +4,7 @@ use crate::{
     diag::FileId,
     LintLevel, Spanned,
 };
-use toml_file::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
 #[derive(Default)]
 pub struct Orgs {
@@ -258,11 +258,11 @@ mod test {
             sources: Config,
         }
 
-        impl<'de> toml_file::Deserialize<'de> for Sources {
+        impl<'de> toml_span::Deserialize<'de> for Sources {
             fn deserialize(
-                value: &mut toml_file::value::Value<'de>,
-            ) -> Result<Self, toml_file::DeserError> {
-                let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+                value: &mut toml_span::value::Value<'de>,
+            ) -> Result<Self, toml_span::DeserError> {
+                let mut th = toml_span::de_helpers::TableHelper::new(value)?;
                 let sources = th.required("sources").unwrap();
                 th.finalize(None)?;
                 Ok(Self { sources })

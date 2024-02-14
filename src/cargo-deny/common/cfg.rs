@@ -56,7 +56,7 @@ impl ValidConfig {
             }
         };
 
-        let mut parsed = toml_file::parse(files.source(id))
+        let mut parsed = toml_span::parse(files.source(id))
             .with_context(|| format!("failed to parse config from '{cfg_path}'"))?;
 
         use cargo_deny::Deserialize;

@@ -26,7 +26,7 @@ use crate::{
     diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Spanned,
 };
-use toml_file::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
 const DEFAULT_CONFIDENCE_THRESHOLD: f32 = 0.8;
 
@@ -194,8 +194,8 @@ impl<'de> Deserialize<'de> for Licensee {
             Err(pe) => {
                 let offset = value.span.start;
 
-                Err(toml_file::Error {
-                    kind: toml_file::ErrorKind::Custom(pe.reason.to_string()),
+                Err(toml_span::Error {
+                    kind: toml_span::ErrorKind::Custom(pe.reason.to_string()),
                     span: (pe.span.start + offset..pe.span.end + offset).into(),
                     line_info: None,
                 }
@@ -438,7 +438,7 @@ pub fn load_exceptions(
     let file_id = files.add(path, content);
 
     let get_exceptions = || -> Result<Vec<Exception>, DeserError> {
-        let mut parsed = toml_file::parse(files.source(file_id))?;
+        let mut parsed = toml_span::parse(files.source(file_id))?;
         let mut th = TableHelper::new(&mut parsed)?;
         let exceptions = th.required("exceptions")?;
         th.finalize(None)?;
@@ -523,11 +523,11 @@ mod test {
         licenses: Config,
     }
 
-    impl<'de> toml_file::Deserialize<'de> for Licenses {
+    impl<'de> toml_span::Deserialize<'de> for Licenses {
         fn deserialize(
-            value: &mut toml_file::value::Value<'de>,
-        ) -> Result<Self, toml_file::DeserError> {
-            let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+            value: &mut toml_span::value::Value<'de>,
+        ) -> Result<Self, toml_span::DeserError> {
+            let mut th = toml_span::de_helpers::TableHelper::new(value)?;
             let licenses = th.required("licenses").unwrap();
             th.finalize(None)?;
             Ok(Self { licenses })

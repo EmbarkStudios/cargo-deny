@@ -5,7 +5,7 @@ use crate::{
 };
 use rustsec::advisory;
 use time::Duration;
-use toml_file::{de_helpers::*, value::ValueInner};
+use toml_span::{de_helpers::*, value::ValueInner};
 use url::Url;
 
 pub struct Config {
@@ -65,11 +65,11 @@ impl Default for Config {
 
 const NINETY_DAYS: f64 = 90. * 24. * 60. * 60. * 60.;
 
-impl<'de> toml_file::Deserialize<'de> for Config {
+impl<'de> toml_span::Deserialize<'de> for Config {
     fn deserialize(
-        value: &mut toml_file::value::Value<'de>,
-    ) -> Result<Self, toml_file::DeserError> {
-        let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+        value: &mut toml_span::value::Value<'de>,
+    ) -> Result<Self, toml_span::DeserError> {
+        let mut th = toml_span::de_helpers::TableHelper::new(value)?;
 
         let db_path = th.optional::<String>("db-path").map(PathBuf::from);
         let db_urls = if let Some((_, mut urls)) = th.take("db-urls") {
@@ -132,7 +132,7 @@ impl<'de> toml_file::Deserialize<'de> for Config {
                     Ok(mds) => Some(Spanned::with_span(mds, val.span)),
                     Err(err) => {
                         th.errors
-                            .push((toml_file::ErrorKind::Custom(err.to_string()), val.span).into());
+                            .push((toml_span::ErrorKind::Custom(err.to_string()), val.span).into());
                         None
                     }
                 },
@@ -391,11 +391,11 @@ mod test {
             advisories: Config,
         }
 
-        impl<'de> toml_file::Deserialize<'de> for Advisories {
+        impl<'de> toml_span::Deserialize<'de> for Advisories {
             fn deserialize(
-                value: &mut toml_file::value::Value<'de>,
-            ) -> Result<Self, toml_file::DeserError> {
-                let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+                value: &mut toml_span::value::Value<'de>,
+            ) -> Result<Self, toml_span::DeserError> {
+                let mut th = toml_span::de_helpers::TableHelper::new(value)?;
                 let advisories = th.required("advisories").unwrap();
                 th.finalize(None)?;
                 Ok(Self { advisories })

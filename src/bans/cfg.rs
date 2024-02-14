@@ -3,7 +3,7 @@ use crate::{
     diag::{Diagnostic, FileId, Label},
     LintLevel, Spanned,
 };
-use toml_file::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
 //#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
@@ -157,10 +157,10 @@ impl<'de> Deserialize<'de> for Checksum {
         val.parse().map_err(|err| {
             let err = match err {
                 ChecksumParseError::InvalidLength(len) => {
-                    toml_file::Error::from((toml_file::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'")), value.span))
+                    toml_span::Error::from((toml_span::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'")), value.span))
                 }
                 ChecksumParseError::InvalidValue(c) => 
-                    toml_file::Error::from((toml_file::ErrorKind::Unexpected(c), value.span)),
+                    toml_span::Error::from((toml_span::ErrorKind::Unexpected(c), value.span)),
             };
             err.into()
         })
@@ -756,7 +756,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 fn load_builtin_globs(files: &mut crate::diag::Files, gsb: &mut GlobsetBuilder) {
     const BUILTIN_GLOBS: &str = include_str!("builtin_globs.toml");
 
-    let mut biv = toml_file::parse(BUILTIN_GLOBS).expect("failed to parse builtin_globs.toml");
+    let mut biv = toml_span::parse(BUILTIN_GLOBS).expect("failed to parse builtin_globs.toml");
     let mut th = TableHelper::new(&mut biv).expect("builtin_globs.toml does not have a root table");
 
     let globs: Vec<Spanned<String>> = th.required("globs").expect("failed to find 'globs' array");
@@ -933,11 +933,11 @@ mod test {
             bans: Config,
         }
 
-        impl<'de> toml_file::Deserialize<'de> for Bans {
+        impl<'de> toml_span::Deserialize<'de> for Bans {
             fn deserialize(
-                value: &mut toml_file::value::Value<'de>,
-            ) -> Result<Self, toml_file::DeserError> {
-                let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+                value: &mut toml_span::value::Value<'de>,
+            ) -> Result<Self, toml_span::DeserError> {
+                let mut th = toml_span::de_helpers::TableHelper::new(value)?;
                 let bans = th.required("bans").unwrap();
                 th.finalize(None)?;
                 Ok(Self { bans })

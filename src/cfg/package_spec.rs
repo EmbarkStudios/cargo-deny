@@ -1,7 +1,7 @@
 use crate::{cfg::Span, Spanned};
 use semver::VersionReq;
 use std::fmt;
-use toml_file::{
+use toml_span::{
     de_helpers::{expected, TableHelper},
     value::{Value, ValueInner},
     DeserError, Deserialize,
@@ -75,8 +75,8 @@ impl<'de> Deserialize<'de> for PackageSpec {
                 } else {
                     // Encourge user to use the 'crate' spec instead
                     let name = th.required("name").map_err(|e| {
-                        if matches!(e.kind, toml_file::ErrorKind::MissingField(_)) {
-                            (toml_file::ErrorKind::MissingField("crate"), e.span).into()
+                        if matches!(e.kind, toml_span::ErrorKind::MissingField(_)) {
+                            (toml_span::ErrorKind::MissingField("crate"), e.span).into()
                         } else {
                             e
                         }
@@ -87,8 +87,8 @@ impl<'de> Deserialize<'de> for PackageSpec {
 
                     let version_req = if let Some(vr) = version {
                         Some(vr.value.parse().map_err(|e: semver::Error| {
-                            toml_file::Error::from((
-                                toml_file::ErrorKind::Custom(e.to_string()),
+                            toml_span::Error::from((
+                                toml_span::ErrorKind::Custom(e.to_string()),
                                 vr.span,
                             ))
                         })?)
@@ -104,8 +104,8 @@ impl<'de> Deserialize<'de> for PackageSpec {
 
         let (name, version_req) = if let Some((i, make_exact)) = ctx.split {
             let mut v: VersionReq = ctx.inner[i + 1..].parse().map_err(|e: semver::Error| {
-                toml_file::Error::from((
-                    toml_file::ErrorKind::Custom(e.to_string()),
+                toml_span::Error::from((
+                    toml_span::ErrorKind::Custom(e.to_string()),
                     Span::new(ctx.span.start + i + 1, ctx.span.end),
                 ))
             })?;
@@ -178,9 +178,9 @@ impl<T> PackageSpecOrExtended<T> {
     }
 }
 
-impl<'de, T> toml_file::Deserialize<'de> for PackageSpecOrExtended<T>
+impl<'de, T> toml_span::Deserialize<'de> for PackageSpecOrExtended<T>
 where
-    T: toml_file::Deserialize<'de>,
+    T: toml_span::Deserialize<'de>,
 {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let spec = PackageSpec::deserialize(value)?;
@@ -234,7 +234,7 @@ mod test {
         }
 
         impl<'de> Deserialize<'de> for Boop {
-            fn deserialize(value: &mut toml_file::value::Value<'de>) -> Result<Self, DeserError> {
+            fn deserialize(value: &mut toml_span::value::Value<'de>) -> Result<Self, DeserError> {
                 let mut th = TableHelper::new(value)?;
                 let data = th.optional_s("data");
                 th.finalize(None)?;
@@ -261,7 +261,7 @@ mod test {
         }
 
         impl<'de> Deserialize<'de> for TestCfg {
-            fn deserialize(value: &mut toml_file::value::Value<'de>) -> Result<Self, DeserError> {
+            fn deserialize(value: &mut toml_span::value::Value<'de>) -> Result<Self, DeserError> {
                 let mut th = TableHelper::new(value)?;
                 let bare = th.required("bare")?;
                 let specific = th.required("specific")?;

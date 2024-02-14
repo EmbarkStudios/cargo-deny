@@ -2,7 +2,7 @@ mod package_spec;
 
 use crate::diag;
 pub use package_spec::{PackageSpec, PackageSpecOrExtended};
-pub use toml_file::span::{Span, Spanned};
+pub use toml_span::span::{Span, Spanned};
 
 pub struct ValidationContext<'ctx> {
     pub cfg_id: diag::FileId,
@@ -62,11 +62,11 @@ impl From<Spanned<String>> for Reason {
     }
 }
 
-impl<'de> toml_file::Deserialize<'de> for Reason {
+impl<'de> toml_span::Deserialize<'de> for Reason {
     fn deserialize(
-        value: &mut toml_file::value::Value<'de>,
-    ) -> Result<Self, toml_file::DeserError> {
-        let mut th = toml_file::de_helpers::TableHelper::new(value)?;
+        value: &mut toml_span::value::Value<'de>,
+    ) -> Result<Self, toml_span::DeserError> {
+        let mut th = toml_span::de_helpers::TableHelper::new(value)?;
         let r = th.required("reason")?;
         th.finalize(Some(value))?;
         Ok(Self(r))
