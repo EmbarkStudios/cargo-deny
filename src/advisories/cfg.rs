@@ -425,29 +425,56 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
 #[cfg(test)]
 mod test {
     use super::{parse_rfc3339_duration as dur_parse, *};
-    use crate::test_utils::ConfigData;
+    use crate::test_utils::{write_diagnostics, ConfigData};
+
+    struct Advisories {
+        advisories: Config,
+    }
+
+    impl<'de> toml_span::Deserialize<'de> for Advisories {
+        fn deserialize(
+            value: &mut toml_span::value::Value<'de>,
+        ) -> Result<Self, toml_span::DeserError> {
+            let mut th = toml_span::de_helpers::TableHelper::new(value)?;
+            let advisories = th.required("advisories").unwrap();
+            th.finalize(None)?;
+            Ok(Self { advisories })
+        }
+    }
 
     #[test]
     fn deserializes_advisories_cfg() {
-        struct Advisories {
-            advisories: Config,
-        }
-
-        impl<'de> toml_span::Deserialize<'de> for Advisories {
-            fn deserialize(
-                value: &mut toml_span::value::Value<'de>,
-            ) -> Result<Self, toml_span::DeserError> {
-                let mut th = toml_span::de_helpers::TableHelper::new(value)?;
-                let advisories = th.required("advisories").unwrap();
-                th.finalize(None)?;
-                Ok(Self { advisories })
-            }
-        }
-
         let cd = ConfigData::<Advisories>::load("tests/cfg/advisories.toml");
         let validated = cd.validate(|a| a.advisories);
 
         insta::assert_json_snapshot!(validated);
+    }
+
+    #[test]
+    fn warns_on_duplicates() {
+        let dupes = r#"
+[advisories]
+db-urls = [
+    "https://one.reg",
+    "https://github.com/rust-lang/crates.io-index",
+    "https://one.reg",
+]
+ignore = [
+    "RUSTSEC-0000-0001",
+    { crate = "boop" },
+    "RUSTSEC-0000-0001",
+    "boop",
+]
+"#;
+
+        let cd = ConfigData::<Advisories>::load_str("duplicates", dupes);
+        let _validated = cd.validate_with_diags(
+            |a| a.advisories,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                insta::assert_snapshot!(diags);
+            },
+        );
     }
 
     /// Validates we reject invalid formats, or at least ones we don't support
