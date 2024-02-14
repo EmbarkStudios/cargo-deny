@@ -1,12 +1,14 @@
+[graph]
 # cargo-deny is really only ever intended to run on the "normal" tier-1 targets
 targets = [
-    { triple = "x86_64-unknown-linux-gnu" },
-    { triple = "aarch64-unknown-linux-gnu" },
-    { triple = "x86_64-unknown-linux-musl" },
-    { triple = "aarch64-apple-darwin" },
-    { triple = "x86_64-apple-darwin" },
-    { triple = "x86_64-pc-windows-msvc" },
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
 ]
+all-features = true
 
 [advisories]
 vulnerability = "deny"
@@ -23,36 +25,24 @@ ignore = [
 multiple-versions = "deny"
 wildcards = 'deny'
 deny = [
-    # We use gix
-    { name = "git2" },
-    # NEVER AGAIN
-    { name = "openssl" },
-    { name = "openssl-sys" },
-    { name = "libssh2-sys" },
-    # There is literally never a reason to use this
-    { name = "cmake" },
-    # Ditto
-    { name = "windows" },
+    { crate = "git2", use-instead = "gix" },
+    { crate = "openssl", use-instead = "rustls" },
+    { crate = "openssl-sys", use-instead = "rustls" },
+    "libssh2-sys",
+    { crate = "cmake", use-instead = "cc" },
+    { crate = "windows", reason = "bloated and unnecessary", use-instead = "ideally inline bindings, practically, windows-sys" },
 ]
 skip = [
-    # strum_macros + maybe-async
-    { name = "syn", version = "=1.0.109" },
-    # security-framework uses an ooooold version
-    { name = "bitflags", version = "=1.3.2" },
+    # https://github.com/seanmonstar/reqwest/pull/2130 should be in the next reqwest release
+    { crate = "bitflags@1.3.2", reason = "reqwest -> system-configuration uses this old version" },
 ]
 skip-tree = [
-    # Sigh
-    { name = "windows-sys", version = "<=0.48" },
-    # cargo-lock uses an old version
-    { name = "toml", version = "=0.7.8" },
+    { crate = "windows-sys:<=0.48", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
 ]
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-
-# [sources.allow-org]
-# github = ["EmbarkStudios"]
 
 [licenses]
 unlicensed = "deny"
@@ -71,18 +61,18 @@ allow = [
 exceptions = [
     { allow = [
         "Zlib",
-    ], name = "tinyvec" },
+    ], crate = "tinyvec" },
     { allow = [
         "Unicode-DFS-2016",
-    ], name = "unicode-ident" },
+    ], crate = "unicode-ident" },
     { allow = [
         "OpenSSL",
-    ], name = "ring" },
+    ], crate = "ring" },
 ]
 
 # Sigh
 [[licenses.clarify]]
-name = "ring"
+crate = "ring"
 # SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
 # https://spdx.org/licenses/OpenSSL.html
 # ISC - Both BoringSSL and ring use this for their new files
@@ -94,12 +84,12 @@ expression = "ISC AND MIT AND OpenSSL"
 license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 
 [[licenses.clarify]]
-name = "webpki"
+crate = "webpki"
 expression = "ISC"
 license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
 
 # Actually "ISC-style"
 [[licenses.clarify]]
-name = "rustls-webpki"
+crate = "rustls-webpki"
 expression = "ISC"
 license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
