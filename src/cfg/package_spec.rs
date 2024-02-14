@@ -144,6 +144,95 @@ impl serde::Serialize for PackageSpec {
     }
 }
 
+use std::cmp::Ordering;
+
+impl Ord for PackageSpec {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.name.value.cmp(&other.name.value) {
+            Ordering::Equal => match (&self.version_req, &other.version_req) {
+                (None, None) => Ordering::Equal,
+                (Some(_), None) => Ordering::Less,
+                (None, Some(_)) => Ordering::Greater,
+                (Some(a), Some(b)) => {
+                    if a == b {
+                        Ordering::Equal
+                    } else {
+                        match a.comparators.len().cmp(&b.comparators.len()) {
+                            Ordering::Equal => {
+                                #[derive(PartialOrd, PartialEq, Ord, Eq)]
+                                enum Op {
+                                    Exact,
+                                    Greater,
+                                    GreaterEq,
+                                    Less,
+                                    LessEq,
+                                    Tilde,
+                                    Caret,
+                                    Wildcard,
+                                }
+
+                                impl From<semver::Op> for Op {
+                                    fn from(op: semver::Op) -> Self {
+                                        match op {
+                                            semver::Op::Exact => Self::Exact,
+                                            semver::Op::Greater => Self::Greater,
+                                            semver::Op::GreaterEq => Self::GreaterEq,
+                                            semver::Op::Less => Self::Less,
+                                            semver::Op::LessEq => Self::LessEq,
+                                            semver::Op::Tilde => Self::Tilde,
+                                            semver::Op::Caret => Self::Caret,
+                                            semver::Op::Wildcard => Self::Wildcard,
+                                            // I fucking despise non_exhaustive
+                                            _ => panic!("semver has added a new Op, but non_exhaustive means we can't detect that at compile time, so please open an issue so that the additional match arm can be added"),
+                                        }
+                                    }
+                                }
+
+                                for (acmp, bcmp) in a.comparators.iter().zip(b.comparators.iter()) {
+                                    match Op::from(acmp.op).cmp(&Op::from(bcmp.op)) {
+                                        Ordering::Equal => {}
+                                        o => return o,
+                                    }
+
+                                    match acmp.major.cmp(&bcmp.major) {
+                                        Ordering::Equal => {}
+                                        o => return o,
+                                    }
+
+                                    match acmp.minor.cmp(&bcmp.minor) {
+                                        Ordering::Equal => {}
+                                        o => return o,
+                                    }
+
+                                    match acmp.patch.cmp(&bcmp.patch) {
+                                        Ordering::Equal => {}
+                                        o => return o,
+                                    }
+
+                                    match acmp.pre.cmp(&bcmp.pre) {
+                                        Ordering::Equal => {}
+                                        o => return o,
+                                    }
+                                }
+
+                                Ordering::Equal
+                            }
+                            o => o,
+                        }
+                    }
+                }
+            },
+            o => o,
+        }
+    }
+}
+
+impl PartialOrd for PackageSpec {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg_attr(test, derive(serde::Serialize))]
 pub struct PackageSpecOrExtended<T> {
     pub spec: PackageSpec,
@@ -218,6 +307,26 @@ where
             spec: self.spec.clone(),
             inner: self.inner.clone(),
         }
+    }
+}
+
+impl<T> PartialEq for PackageSpecOrExtended<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.spec.eq(&other.spec)
+    }
+}
+
+impl<T> Eq for PackageSpecOrExtended<T> {}
+
+impl<T> Ord for PackageSpecOrExtended<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.spec.cmp(&other.spec)
+    }
+}
+
+impl<T> PartialOrd for PackageSpecOrExtended<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

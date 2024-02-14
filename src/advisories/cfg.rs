@@ -1,5 +1,5 @@
 use crate::{
-    cfg::ValidationContext,
+    cfg::{PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Spanned,
 };
@@ -24,7 +24,9 @@ pub struct Config {
     /// How to handle crates that have been marked with a notice in the advisory database
     pub notice: LintLevel,
     /// Ignore advisories for the given IDs
-    pub ignore: Vec<Spanned<advisory::Id>>,
+    pub ignore: Vec<AdvisoryId>,
+    /// Ignore yanked crates
+    pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
     ///
     /// Vulnerabilities with explicit CVSS info which have a severity below
@@ -50,6 +52,7 @@ impl Default for Config {
             db_path: None,
             db_urls: Vec::new(),
             ignore: Vec::new(),
+            ignore_yanked: Vec::new(),
             vulnerability: LintLevel::Deny,
             unmaintained: LintLevel::Warn,
             unsound: LintLevel::Warn,
@@ -101,15 +104,41 @@ impl<'de> toml_span::Deserialize<'de> for Config {
             .optional_s("yanked")
             .unwrap_or(Spanned::new(LintLevel::Warn));
         let notice = th.optional("notice").unwrap_or(LintLevel::Warn);
-        let ignore = if let Some((_, mut ignore)) = th.take("ignore") {
+        let (ignore, ignore_yanked) = if let Some((_, mut ignore)) = th.take("ignore") {
             let mut u = Vec::new();
+            let mut y = Vec::new();
 
             match ignore.take() {
                 ValueInner::Array(ida) => {
                     for mut v in ida {
-                        match parse(&mut v) {
-                            Ok(url) => u.push(Spanned::with_span(url, v.span)),
-                            Err(err) => th.errors.push(err),
+                        let inner = v.take();
+                        if let ValueInner::String(s) = &inner {
+                            // Attempt to parse an advisory id first, note we can't
+                            // just immediately use parse as the from_str implementation
+                            // for id will just blindly accept any string
+                            if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other {
+                                if let Ok(id) = s.parse::<advisory::Id>() {
+                                    u.push(Spanned::with_span(id, v.span));
+                                    continue;
+                                }
+                            }
+                        }
+
+                        let found = inner.type_str();
+                        v.set(inner);
+
+                        match PackageSpecOrExtended::deserialize(&mut v) {
+                            Ok(pse) => y.push(Spanned::with_span(pse, v.span)),
+                            Err(_err) => {
+                                th.errors.push(toml_span::Error {
+                                    kind: toml_span::ErrorKind::Wanted {
+                                        expected: "an advisory id or package spec",
+                                        found,
+                                    },
+                                    span: v.span,
+                                    line_info: None,
+                                });
+                            }
                         }
                     }
                 }
@@ -119,9 +148,9 @@ impl<'de> toml_span::Deserialize<'de> for Config {
             }
 
             u.sort();
-            u
+            (u, y)
         } else {
-            Vec::new()
+            (Vec::new(), Vec::new())
         };
         let severity_threshold = th.parse_opt("severity-threshold");
         let git_fetch_with_cli = th.optional("git-fetch-with-cli");
@@ -160,6 +189,7 @@ impl<'de> toml_span::Deserialize<'de> for Config {
             yanked,
             notice,
             ignore,
+            ignore_yanked,
             severity_threshold,
             git_fetch_with_cli,
             disable_yank_checking,
@@ -173,9 +203,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
     fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
         let mut ignore = self.ignore;
+        let mut ignore_yanked = self.ignore_yanked;
         let mut db_urls = self.db_urls;
 
         ctx.dedup(&mut ignore);
+        ctx.dedup(&mut ignore_yanked);
         ctx.dedup(&mut db_urls);
 
         // Require that each url has a valid domain name for when we splat it to a local path
@@ -194,6 +226,15 @@ impl crate::cfg::UnvalidatedConfig for Config {
             db_path: self.db_path,
             db_urls,
             ignore,
+            ignore_yanked: ignore_yanked
+                .into_iter()
+                .map(|s| crate::bans::SpecAndReason {
+                    spec: s.value.spec,
+                    reason: s.value.inner.map(|r| r),
+                    use_instead: None,
+                    file_id: ctx.cfg_id,
+                })
+                .collect(),
             vulnerability: self.vulnerability,
             unmaintained: self.unmaintained,
             unsound: self.unsound,
@@ -215,6 +256,7 @@ pub struct ValidConfig {
     pub db_path: Option<PathBuf>,
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<AdvisoryId>,
+    pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub vulnerability: LintLevel,
     pub unmaintained: LintLevel,
     pub unsound: LintLevel,

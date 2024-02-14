@@ -1,0 +1,93 @@
+---
+source: tests/advisories.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "yanked",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "crate-two",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "yank-check",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 2,
+          "message": "yanked version",
+          "span": "crate-two 0.1.0 registry+https://github.com/EmbarkStudios/cargo-test-index"
+        }
+      ],
+      "message": "detected yanked crate (try `cargo update -p crate-two`)",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "yanked-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.3.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "yank-check",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 16,
+          "line": 5,
+          "message": "yanked ignore",
+          "span": "spdx"
+        },
+        {
+          "column": 39,
+          "line": 5,
+          "message": "reason",
+          "span": "a new version has not been released yet"
+        }
+      ],
+      "message": "yanked crate 'spdx = 0.3.1' detected, but ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "yanked-not-detected",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 6,
+          "line": 7,
+          "message": "yanked crate not detected",
+          "span": "boop"
+        }
+      ],
+      "message": "yanked crate was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

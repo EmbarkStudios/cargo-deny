@@ -11,6 +11,24 @@ expression: validated
   "ignore": [
     "RUSTSEC-0000-0000"
   ],
+  "ignore_yanked": [
+    {
+      "spec": {
+        "name": "crate",
+        "version-req": "=0.1"
+      },
+      "reason": null,
+      "use-instead": null
+    },
+    {
+      "spec": {
+        "name": "yanked",
+        "version-req": null
+      },
+      "reason": "a new version has not been released",
+      "use-instead": null
+    }
+  ],
   "vulnerability": "deny",
   "unmaintained": "warn",
   "unsound": "warn",

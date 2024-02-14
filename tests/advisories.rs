@@ -189,32 +189,87 @@ fn detects_yanked() {
         .unwrap();
 
     let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
-
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
-
     let dbs = advisories::DbSet { dbs: Vec::new() };
 
-    let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
-            advisories::check(
-                ctx,
-                &dbs,
-                Option::<advisories::NoneReporter>::None,
-                Some(indices),
-                tx,
-            );
-        });
+    {
+        let cfg =
+            tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
-    let diags: Vec<_> = diags
-        .into_iter()
-        .filter(|v| {
-            v.pointer("/fields/message")
-                .and_then(|v| v.as_str())
-                .map_or(false, |v| v.starts_with("detected yanked crate"))
-        })
-        .collect();
+        let indices = advisories::Indices {
+            indices: Vec::new(),
+            cache: indices.cache.clone(),
+        };
 
-    insta::assert_json_snapshot!(diags);
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+            &krates,
+            func_name!(),
+            cfg,
+            |ctx, _, tx, _| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    Some(indices),
+                    tx,
+                );
+            },
+        );
+
+        let diags: Vec<_> = diags
+            .into_iter()
+            .filter(|v| {
+                v.pointer("/fields/message")
+                    .and_then(|v| v.as_str())
+                    .map_or(false, |v| v.starts_with("detected yanked crate"))
+            })
+            .collect();
+
+        insta::assert_json_snapshot!(diags);
+    }
+
+    {
+        let cfg = tu::Config::new(
+            r#"
+yanked = "deny"
+ignore = [
+    # This crate is in the graph, but we're ignoring it
+    { crate = "spdx@0.3.1", reason = "a new version has not been released yet" },
+    # This crate is not in the graph, so we should get a warning about it
+    "boop",
+]
+unmaintained = "allow"
+vulnerability = "allow"
+"#,
+        );
+
+        let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
+            &krates,
+            func_name!(),
+            cfg,
+            |ctx, _, tx, _| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    Some(indices),
+                    tx,
+                );
+            },
+        );
+
+        let diags: Vec<_> = diags
+            .into_iter()
+            .filter(|v| {
+                v.pointer("/fields/message")
+                    .and_then(|v| v.as_str())
+                    .map_or(false, |v| {
+                        v.starts_with("detected yanked crate") || v.starts_with("yanked crate")
+                    })
+            })
+            .collect();
+
+        insta::assert_json_snapshot!(diags);
+    }
 }
 
 /// Validates that if we fail to load 1 or more indices, all the crates sourced

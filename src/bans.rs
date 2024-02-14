@@ -20,10 +20,25 @@ struct ReqMatch<'vr> {
 }
 
 pub(crate) struct SpecAndReason {
-    spec: PackageSpec,
-    reason: Option<Reason>,
-    use_instead: Option<Spanned<String>>,
-    file_id: FileId,
+    pub(crate) spec: PackageSpec,
+    pub(crate) reason: Option<Reason>,
+    pub(crate) use_instead: Option<Spanned<String>>,
+    pub(crate) file_id: FileId,
+}
+
+#[cfg(test)]
+impl serde::Serialize for SpecAndReason {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("spec", &self.spec)?;
+        map.serialize_entry("reason", &self.reason)?;
+        map.serialize_entry("use-instead", &self.use_instead)?;
+        map.end()
+    }
 }
 
 struct SpecsAndReasons(Vec<SpecAndReason>);

@@ -60,7 +60,7 @@ impl From<Code> for String {
 }
 
 impl SpecAndReason {
-    fn to_labels(&self, spec_msg: Option<&str>) -> Vec<Label> {
+    pub(crate) fn to_labels(&self, spec_msg: Option<&str>) -> Vec<Label> {
         let mut v = Vec::new();
 
         {

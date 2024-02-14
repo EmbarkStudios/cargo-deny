@@ -6,5 +6,9 @@ unmaintained = "warn"
 unsound = "warn"
 yanked = "warn"
 notice = "warn"
-ignore = ["RUSTSEC-0000-0000"]
+ignore = [
+    "RUSTSEC-0000-0000",
+    "crate@0.1",
+    { crate = "yanked", reason = "a new version has not been released" },
+]
 severity-threshold = "medium"
