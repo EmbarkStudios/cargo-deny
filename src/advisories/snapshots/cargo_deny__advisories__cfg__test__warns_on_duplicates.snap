@@ -21,11 +21,10 @@ warning: duplicate items detected
    │      ----
 
 warning: duplicate items detected
-  ┌─ duplicates:4:6
+  ┌─ duplicates:5:6
   │
-4 │     "https://one.reg",
+5 │     "https://one.reg",
   │      ---------------
-5 │     "https://github.com/rust-lang/crates.io-index",
 6 │     "https://one.reg",
   │      ---------------
 

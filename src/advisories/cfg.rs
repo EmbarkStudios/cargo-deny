@@ -455,8 +455,8 @@ mod test {
         let dupes = r#"
 [advisories]
 db-urls = [
-    "https://one.reg",
     "https://github.com/rust-lang/crates.io-index",
+    "https://one.reg",
     "https://one.reg",
 ]
 ignore = [
