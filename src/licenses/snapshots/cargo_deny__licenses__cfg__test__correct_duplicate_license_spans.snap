@@ -2,26 +2,13 @@
 source: src/licenses/cfg.rs
 expression: diags
 ---
-[
-  {
-    "fields": {
-      "labels": [
-        {
-          "column": 4,
-          "line": 11,
-          "message": "deny",
-          "span": "MIT"
-        },
-        {
-          "column": 5,
-          "line": 3,
-          "message": "allow",
-          "span": "MIT"
-        }
-      ],
-      "message": "a license id was specified in both `allow` and `deny`",
-      "severity": "error"
-    },
-    "type": "diagnostic"
-  }
-]
+error: a license id was specified in both `allow` and `deny`
+   ┌─ license-in-allow-and-deny:3:6
+   │
+ 3 │     "MIT",
+   │      --- allow
+   ·
+11 │    "MIT",
+   │     --- deny
+
+

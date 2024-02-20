@@ -10,8 +10,6 @@
 //! requirements that are satisfied by the licenses you choose to use for your
 //! project, and notifies you via warnings or errors if the license requirements
 //! for any crate aren't compatible with your configuration.
-//!
-//!
 
 /// Configuration for license checking
 pub mod cfg;
@@ -26,7 +24,6 @@ use cfg::BlanketAgreement;
 pub use gather::{Gatherer, LicenseInfo, LicenseStore};
 use gather::{KrateLicense, LicenseExprInfo, LicenseExprSource, Summary};
 
-pub use cfg::{Config, ValidConfig};
 pub use diags::Code;
 
 use bitvec::prelude::*;
@@ -37,7 +34,7 @@ struct Hits {
 }
 
 fn evaluate_expression(
-    cfg: &ValidConfig,
+    cfg: &cfg::ValidConfig,
     krate_lic_nfo: &KrateLicense<'_>,
     expr: &spdx::Expression,
     nfo: &LicenseExprInfo,
@@ -77,10 +74,10 @@ fn evaluate_expression(
 
     // Check to see if the crate matches an exception, which is additional to
     // the general allow list
-    let exception_ind = cfg.exceptions.iter().position(|exc| {
-        exc.name.as_ref() == &krate_lic_nfo.krate.name
-            && crate::match_req(&krate_lic_nfo.krate.version, exc.version.as_ref())
-    });
+    let exception_ind = cfg
+        .exceptions
+        .iter()
+        .position(|exc| crate::match_krate(krate_lic_nfo.krate, &exc.spec));
 
     let eval_res = expr.evaluate_with_failures(|req| {
         // 1. Exceptions are additional per-crate licenses that aren't blanket
@@ -89,7 +86,7 @@ fn evaluate_expression(
         if let Some(ind) = exception_ind {
             let exception = &cfg.exceptions[ind];
             for allow in &exception.allowed {
-                if allow.value.satisfies(req) {
+                if allow.0.value.satisfies(req) {
                     // Note that hit the exception
                     hits.exceptions.as_mut_bitslice().set(ind, true);
                     allow!(ExplicitException);
@@ -104,7 +101,7 @@ fn evaluate_expression(
         // banning Apache-2.0, but allowing MIT, will allow the crate
         // to be used as you are upholding at least one license requirement
         for deny in &cfg.denied {
-            if deny.value.satisfies(req) {
+            if deny.0.value.satisfies(req) {
                 deny!(Denied);
             }
         }
@@ -112,7 +109,7 @@ fn evaluate_expression(
         // 3. A license that is specifically allowed will of course mean
         // that the requirement is met.
         for (i, allow) in cfg.allowed.iter().enumerate() {
-            if allow.value.satisfies(req) {
+            if allow.0.value.satisfies(req) {
                 hits.allowed.as_mut_bitslice().set(i, true);
                 allow!(ExplicitAllowance);
             }
@@ -269,7 +266,7 @@ fn evaluate_expression(
 }
 
 pub fn check(
-    ctx: crate::CheckCtx<'_, ValidConfig>,
+    ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     summary: Summary<'_>,
     mut sink: crate::diag::ErrorSink,
 ) {
@@ -356,7 +353,7 @@ pub fn check(
             pack.push(diags::UnmatchedLicenseException {
                 license_exc_cfg: CfgCoord {
                     file: exc.file_id,
-                    span: exc.name.span,
+                    span: exc.spec.name.span,
                 },
             });
         }
@@ -381,7 +378,7 @@ pub fn check(
                 severity: ctx.cfg.unused_allowed_license.into(),
                 allowed_license_cfg: CfgCoord {
                     file: ctx.cfg.file_id,
-                    span: allowed.span,
+                    span: allowed.0.span,
                 },
             });
         }

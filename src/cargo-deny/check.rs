@@ -1,14 +1,13 @@
-use crate::stats::{AllStats, Stats};
-use anyhow::{Context, Error};
+use crate::{
+    common::ValidConfig,
+    stats::{AllStats, Stats},
+};
 use cargo_deny::{
     advisories, bans,
-    diag::{
-        CargoSpans, Diagnostic, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity,
-    },
+    diag::{CargoSpans, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources, CheckCtx, PathBuf,
 };
 use log::error;
-use serde::Deserialize;
 use std::time::Instant;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
@@ -23,7 +22,7 @@ pub enum WhichCheck {
 }
 
 #[derive(strum::EnumString, Debug, Copy, Clone, PartialEq, Eq)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Level {
     Allowed,
     Warnings,
@@ -114,160 +113,6 @@ pub struct Args {
     pub which: Vec<WhichCheck>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-struct Config {
-    advisories: Option<advisories::cfg::Config>,
-    bans: Option<bans::cfg::Config>,
-    licenses: Option<licenses::Config>,
-    sources: Option<sources::Config>,
-    #[serde(default)]
-    targets: Vec<crate::common::Target>,
-    #[serde(default)]
-    exclude: Vec<String>,
-    #[serde(default)]
-    features: Vec<String>,
-    feature_depth: Option<u32>,
-    #[serde(default)]
-    all_features: bool,
-    #[serde(default)]
-    no_default_features: bool,
-    /// By default, dev dependencies for workspace crates are not ignored
-    #[serde(default)]
-    exclude_dev: bool,
-}
-
-struct ValidConfig {
-    advisories: advisories::cfg::ValidConfig,
-    bans: bans::cfg::ValidConfig,
-    licenses: licenses::ValidConfig,
-    sources: sources::ValidConfig,
-    targets: Vec<(krates::Target, Vec<String>)>,
-    exclude: Vec<String>,
-    features: Vec<String>,
-    feature_depth: Option<u32>,
-    all_features: bool,
-    no_default_features: bool,
-    exclude_dev: bool,
-}
-
-impl ValidConfig {
-    fn load(
-        cfg_path: Option<PathBuf>,
-        exceptions_cfg_path: Option<PathBuf>,
-        files: &mut Files,
-        log_ctx: crate::common::LogContext,
-    ) -> Result<Self, Error> {
-        use cargo_deny::UnvalidatedConfig;
-
-        let (cfg_contents, cfg_path) = match cfg_path {
-            Some(cfg_path) if cfg_path.exists() => (
-                std::fs::read_to_string(&cfg_path)
-                    .with_context(|| format!("failed to read config from {cfg_path}"))?,
-                cfg_path,
-            ),
-            Some(cfg_path) => {
-                log::warn!(
-                    "config path '{cfg_path}' doesn't exist, falling back to default config"
-                );
-                (String::new(), cfg_path)
-            }
-            None => {
-                log::warn!("unable to find a config path, falling back to default config");
-                (String::new(), PathBuf::from("deny.default.toml"))
-            }
-        };
-
-        let cfg: Config = toml::from_str(&cfg_contents)
-            .with_context(|| format!("failed to deserialize config from '{cfg_path}'"))?;
-
-        log::info!("using config from {cfg_path}");
-
-        let id = files.add(&cfg_path, cfg_contents);
-
-        let validate = || -> (Vec<Diagnostic>, Self) {
-            // Accumulate all configuration diagnostics rather than earlying out so
-            // the user has the full list of problems to fix
-
-            let mut diags = Vec::new();
-
-            let advisories = cfg
-                .advisories
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
-
-            let bans = cfg.bans.unwrap_or_default().validate(id, files, &mut diags);
-            let mut licenses = cfg
-                .licenses
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
-
-            // Allow for project-local exceptions. Relevant in corporate environments.
-            // https://github.com/EmbarkStudios/cargo-deny/issues/541
-            if let Some(ecp) = exceptions_cfg_path {
-                licenses::cfg::load_exceptions(&mut licenses, ecp, files, &mut diags);
-            };
-
-            let sources = cfg
-                .sources
-                .unwrap_or_default()
-                .validate(id, files, &mut diags);
-
-            let targets = crate::common::load_targets(cfg.targets, &mut diags, id);
-            let exclude = cfg.exclude;
-            let feature_depth = cfg.feature_depth;
-            let all_features = cfg.all_features;
-            let no_default_features = cfg.no_default_features;
-            let features = cfg.features;
-            let exclude_dev = cfg.exclude_dev;
-
-            (
-                diags,
-                Self {
-                    advisories,
-                    bans,
-                    licenses,
-                    sources,
-                    targets,
-                    exclude,
-                    feature_depth,
-                    all_features,
-                    no_default_features,
-                    features,
-                    exclude_dev,
-                },
-            )
-        };
-
-        let (diags, valid_cfg) = validate();
-
-        let has_errors = diags.iter().any(|d| d.severity >= Severity::Error);
-
-        let print = |diags: Vec<Diagnostic>| {
-            if diags.is_empty() {
-                return;
-            }
-
-            if let Some(printer) = crate::common::DiagPrinter::new(log_ctx, None, None) {
-                let mut lock = printer.lock();
-                for diag in diags {
-                    lock.print(diag, files);
-                }
-            }
-        };
-
-        print(diags);
-
-        // While we could continue in the face of configuration errors, the user
-        // may end up with unexpected results, so just abort so they can fix them
-        if has_errors {
-            anyhow::bail!("failed to validate configuration file {cfg_path}");
-        } else {
-            Ok(valid_cfg)
-        }
-    }
-}
-
 pub(crate) fn cmd(
     log_ctx: crate::common::LogContext,
     args: Args,
@@ -279,13 +124,8 @@ pub(crate) fn cmd(
         bans,
         licenses,
         sources,
-        targets,
-        exclude,
-        feature_depth,
-        all_features,
-        no_default_features,
-        features,
-        exclude_dev,
+        graph,
+        output,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.clone()),
         krate_ctx.get_local_exceptions_path(),
@@ -316,15 +156,15 @@ pub(crate) fn cmd(
             .iter()
             .any(|w| *w == WhichCheck::Sources || *w == WhichCheck::All);
 
-    let feature_depth = args.feature_depth.or(feature_depth);
+    let feature_depth = args.feature_depth.or(output.feature_depth);
 
-    krate_ctx.all_features |= all_features;
-    krate_ctx.no_default_features |= no_default_features;
-    krate_ctx.exclude_dev |= exclude_dev | args.exclude_dev;
+    krate_ctx.all_features |= graph.all_features;
+    krate_ctx.no_default_features |= graph.no_default_features;
+    krate_ctx.exclude_dev |= graph.exclude_dev | args.exclude_dev;
 
     // If not specified on the cmd line, fallback to the feature related config options
     if krate_ctx.features.is_empty() {
-        krate_ctx.features = features;
+        krate_ctx.features = graph.features;
     }
 
     let mut krates = None;
@@ -397,7 +237,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            let gathered = krate_ctx.gather_krates(targets, exclude);
+            let gathered = krate_ctx.gather_krates(graph.targets, graph.exclude);
 
             if let Ok(krates) = &gathered {
                 krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
@@ -416,7 +256,7 @@ pub(crate) fn cmd(
                         .map(|us| us.as_ref().clone())
                         .collect(),
                     if args.disable_fetch {
-                        advisories::Fetch::Disallow(advisories.maximum_db_staleness)
+                        advisories::Fetch::Disallow(advisories.maximum_db_staleness.value)
                     } else if advisories.git_fetch_with_cli {
                         advisories::Fetch::AllowWithGitCli
                     } else {

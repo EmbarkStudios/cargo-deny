@@ -10,6 +10,7 @@ fn cyclic_dependencies_do_not_cause_infinite_loop() {
     );
 }
 
+/// Validates a crate that is otherwise denied can be allowed by a wrapper
 #[test]
 fn allow_wrappers() {
     let diags = gather_bans(
@@ -18,6 +19,7 @@ fn allow_wrappers() {
         r#"
 [[deny]]
 name = "dangerous-dep"
+reason = "we need to update 'safe-wrapper' to not use this"
 wrappers = ["safe-wrapper"]
 "#,
     );
@@ -25,6 +27,7 @@ wrappers = ["safe-wrapper"]
     insta::assert_json_snapshot!(diags);
 }
 
+/// Validates a wrapper that doesn't exist emits a warning
 #[test]
 fn warns_on_unused_wrappers() {
     let diags = gather_bans(
@@ -40,12 +43,31 @@ wrappers = ["safe-wrapper", "other-crate"]
     insta::assert_json_snapshot!(diags);
 }
 
+/// Validates just a plain deny emits an error
 #[test]
 fn disallows_denied() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("allow_wrappers/maincrate"),
-        "deny = [{name = 'dangerous-dep'}]",
+        "deny = ['dangerous-dep']",
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Validates a crate is denied even if it has wrappers if
+#[test]
+fn disallows_denied_with_wrapper() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("allow_wrappers/maincrate"),
+        r#"
+[[deny]]
+name = "dangerous-dep"
+reason = "we shouldn't use it but it is used transitively"
+use-instead = "a-better-krate"
+wrappers = ["other-crate"]
+"#,
     );
 
     insta::assert_json_snapshot!(diags);
@@ -161,7 +183,7 @@ multiple-versions-include-dev = true
     let dup_graphs = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
 
     let duped_graphs = dup_graphs.clone();
-    gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx| {
+    gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx, _f| {
         bans::check(
             ctx,
             Some(Box::new(move |dg| {

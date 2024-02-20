@@ -1,47 +1,32 @@
 use crate::{
+    cfg::{PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Spanned,
 };
 use rustsec::advisory;
-use serde::Deserialize;
+use time::Duration;
+use toml_span::{de_helpers::*, value::ValueInner};
 use url::Url;
 
-#[allow(clippy::reversed_empty_ranges)]
-const fn yanked() -> Spanned<LintLevel> {
-    Spanned::new(LintLevel::Warn, 0..0)
-}
-
-#[allow(clippy::reversed_empty_ranges)]
-fn ninety_days() -> Spanned<String> {
-    Spanned::new("P90D".to_owned(), 0..0)
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
     pub db_path: Option<PathBuf>,
     /// List of urls to git repositories of different advisory databases.
-    #[serde(default)]
-    pub db_urls: Vec<Spanned<String>>,
+    pub db_urls: Vec<Spanned<Url>>,
     /// How to handle crates that have a security vulnerability
-    #[serde(default = "crate::lint_deny")]
     pub vulnerability: LintLevel,
     /// How to handle crates that have been marked as unmaintained in an advisory database
-    #[serde(default = "crate::lint_warn")]
     pub unmaintained: LintLevel,
     /// How to handle crates that have been marked as unsound in an advisory database
-    #[serde(default = "crate::lint_warn")]
     pub unsound: LintLevel,
     /// How to handle crates that have been yanked from eg crates.io
-    #[serde(default = "yanked")]
     pub yanked: Spanned<LintLevel>,
     /// How to handle crates that have been marked with a notice in the advisory database
-    #[serde(default = "crate::lint_warn")]
     pub notice: LintLevel,
     /// Ignore advisories for the given IDs
-    #[serde(default)]
-    pub ignore: Vec<Spanned<advisory::Id>>,
+    pub ignore: Vec<AdvisoryId>,
+    /// Ignore yanked crates
+    pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
     ///
     /// Vulnerabilities with explicit CVSS info which have a severity below
@@ -50,7 +35,6 @@ pub struct Config {
     /// Use the git executable to fetch advisory database rather than gitoxide
     pub git_fetch_with_cli: Option<bool>,
     /// If set to true, the local crates indices are not checked for yanked crates
-    #[serde(default)]
     pub disable_yank_checking: bool,
     /// The maximum duration, in RFC3339 format, that an advisory database is
     /// allowed to not have been updated. This only applies when fetching advisory
@@ -59,8 +43,7 @@ pub struct Config {
     /// Note that if fractional units are used in the format string they must
     /// use the '.' separator instead of ',' which is used by some locales and
     /// supported in the RFC3339 format, but not by this implementation
-    #[serde(default = "ninety_days")]
-    pub maximum_db_staleness: Spanned<String>,
+    pub maximum_db_staleness: Spanned<Duration>,
 }
 
 impl Default for Config {
@@ -69,96 +52,194 @@ impl Default for Config {
             db_path: None,
             db_urls: Vec::new(),
             ignore: Vec::new(),
+            ignore_yanked: Vec::new(),
             vulnerability: LintLevel::Deny,
             unmaintained: LintLevel::Warn,
             unsound: LintLevel::Warn,
-            yanked: yanked(),
+            yanked: Spanned::new(LintLevel::Warn),
             notice: LintLevel::Warn,
             severity_threshold: None,
             git_fetch_with_cli: None,
             disable_yank_checking: false,
-            maximum_db_staleness: ninety_days(),
+            maximum_db_staleness: Spanned::new(Duration::seconds_f64(NINETY_DAYS)),
         }
+    }
+}
+
+const NINETY_DAYS: f64 = 90. * 24. * 60. * 60. * 60.;
+
+impl<'de> toml_span::Deserialize<'de> for Config {
+    fn deserialize(
+        value: &mut toml_span::value::Value<'de>,
+    ) -> Result<Self, toml_span::DeserError> {
+        let mut th = toml_span::de_helpers::TableHelper::new(value)?;
+
+        let db_path = th.optional::<String>("db-path").map(PathBuf::from);
+        let db_urls = if let Some((_, mut urls)) = th.take("db-urls") {
+            let mut u = Vec::new();
+
+            match urls.take() {
+                ValueInner::Array(urla) => {
+                    for mut v in urla {
+                        match parse(&mut v) {
+                            Ok(url) => u.push(Spanned::with_span(url, v.span)),
+                            Err(err) => th.errors.push(err),
+                        }
+                    }
+                }
+                other => {
+                    th.errors.push(expected("an array", other, urls.span));
+                }
+            }
+
+            u.sort();
+            u
+        } else {
+            Vec::new()
+        };
+        let vulnerability = th.optional("vulnerability").unwrap_or(LintLevel::Deny);
+        let unmaintained = th.optional("unmaintained").unwrap_or(LintLevel::Warn);
+        let unsound = th.optional("unsound").unwrap_or(LintLevel::Warn);
+        let yanked = th
+            .optional_s("yanked")
+            .unwrap_or(Spanned::new(LintLevel::Warn));
+        let notice = th.optional("notice").unwrap_or(LintLevel::Warn);
+        let (ignore, ignore_yanked) = if let Some((_, mut ignore)) = th.take("ignore") {
+            let mut u = Vec::new();
+            let mut y = Vec::new();
+
+            match ignore.take() {
+                ValueInner::Array(ida) => {
+                    for mut v in ida {
+                        let inner = v.take();
+                        if let ValueInner::String(s) = &inner {
+                            // Attempt to parse an advisory id first, note we can't
+                            // just immediately use parse as the from_str implementation
+                            // for id will just blindly accept any string
+                            if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other {
+                                if let Ok(id) = s.parse::<advisory::Id>() {
+                                    u.push(Spanned::with_span(id, v.span));
+                                    continue;
+                                }
+                            }
+                        }
+
+                        let found = inner.type_str();
+                        v.set(inner);
+
+                        match PackageSpecOrExtended::deserialize(&mut v) {
+                            Ok(pse) => y.push(Spanned::with_span(pse, v.span)),
+                            Err(_err) => {
+                                th.errors.push(toml_span::Error {
+                                    kind: toml_span::ErrorKind::Wanted {
+                                        expected: "an advisory id or package spec",
+                                        found,
+                                    },
+                                    span: v.span,
+                                    line_info: None,
+                                });
+                            }
+                        }
+                    }
+                }
+                other => {
+                    th.errors.push(expected("an array", other, ignore.span));
+                }
+            }
+
+            u.sort();
+            (u, y)
+        } else {
+            (Vec::new(), Vec::new())
+        };
+        let severity_threshold = th.parse_opt("severity-threshold");
+        let git_fetch_with_cli = th.optional("git-fetch-with-cli");
+        let disable_yank_checking = th.optional("disable-yank-checking").unwrap_or_default();
+        let maximum_db_staleness = if let Some((_, mut val)) = th.take("maximum-db-staleness") {
+            match val.take_string(Some("an RFC3339 time duration")) {
+                Ok(mds) => match parse_rfc3339_duration(&mds) {
+                    Ok(mds) => Some(Spanned::with_span(mds, val.span)),
+                    Err(err) => {
+                        th.errors.push(
+                            (
+                                toml_span::ErrorKind::Custom(err.to_string().into()),
+                                val.span,
+                            )
+                                .into(),
+                        );
+                        None
+                    }
+                },
+                Err(err) => {
+                    th.errors.push(err);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        th.finalize(None)?;
+
+        // Use the 90 days default as a fallback
+        let maximum_db_staleness = maximum_db_staleness
+            .unwrap_or_else(|| Spanned::new(Duration::seconds_f64(NINETY_DAYS)));
+
+        Ok(Self {
+            db_path,
+            db_urls,
+            vulnerability,
+            unmaintained,
+            unsound,
+            yanked,
+            notice,
+            ignore,
+            ignore_yanked,
+            severity_threshold,
+            git_fetch_with_cli,
+            disable_yank_checking,
+            maximum_db_staleness,
+        })
     }
 }
 
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(
-        self,
-        cfg_file: FileId,
-        _files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
-        let mut ignored: Vec<_> = self.ignore.into_iter().map(AdvisoryId::from).collect();
-        ignored.sort();
+    fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
+        let mut ignore = self.ignore;
+        let mut ignore_yanked = self.ignore_yanked;
+        let mut db_urls = self.db_urls;
 
-        let mut db_urls: Vec<_> = self
-            .db_urls
-            .into_iter()
-            .filter_map(|dburl| match crate::cfg::parse_url(cfg_file, dburl) {
-                Ok(u) => Some(u),
-                Err(diag) => {
-                    diags.push(diag);
-                    None
-                }
-            })
-            .collect();
-
-        db_urls.sort();
-
-        // Warn about duplicates before removing them so the user can cleanup their config
-        if db_urls.len() > 1 {
-            for window in db_urls.windows(2) {
-                if window[0] == window[1] {
-                    diags.push(
-                        Diagnostic::warning()
-                            .with_message("duplicate advisory database url detected")
-                            .with_labels(vec![
-                                Label::secondary(cfg_file, window[0].span.clone()),
-                                Label::secondary(cfg_file, window[1].span.clone()),
-                            ]),
-                    );
-                }
-            }
-        }
-
-        db_urls.dedup();
+        ctx.dedup(&mut ignore);
+        ctx.dedup(&mut ignore_yanked);
+        ctx.dedup(&mut db_urls);
 
         // Require that each url has a valid domain name for when we splat it to a local path
         for url in &db_urls {
             if url.value.domain().is_none() {
-                diags.push(
+                ctx.push(
                     Diagnostic::error()
                         .with_message("advisory database url doesn't have a domain name")
-                        .with_labels(vec![Label::secondary(cfg_file, url.span.clone())]),
+                        .with_labels(vec![Label::secondary(ctx.cfg_id, url.span)]),
                 );
             }
         }
 
-        let maximum_db_staleness = match parse_rfc3339_duration(&self.maximum_db_staleness.value) {
-            Ok(mds) => mds,
-            Err(err) => {
-                diags.push(
-                    Diagnostic::error()
-                        .with_message("failed to parse RFC3339 duration")
-                        .with_labels(vec![Label::secondary(
-                            cfg_file,
-                            self.maximum_db_staleness.span.clone(),
-                        )])
-                        .with_notes(vec![err.to_string()]),
-                );
-                // Use the 90 days default as a fallback
-                time::Duration::seconds_f64(90. * 24. * 60. * 60. * 60.)
-            }
-        };
-
         ValidConfig {
-            file_id: cfg_file,
+            file_id: ctx.cfg_id,
             db_path: self.db_path,
             db_urls,
-            ignore: ignored,
+            ignore,
+            ignore_yanked: ignore_yanked
+                .into_iter()
+                .map(|s| crate::bans::SpecAndReason {
+                    spec: s.value.spec,
+                    reason: s.value.inner,
+                    use_instead: None,
+                    file_id: ctx.cfg_id,
+                })
+                .collect(),
             vulnerability: self.vulnerability,
             unmaintained: self.unmaintained,
             unsound: self.unsound,
@@ -167,18 +248,20 @@ impl crate::cfg::UnvalidatedConfig for Config {
             severity_threshold: self.severity_threshold,
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
             disable_yank_checking: self.disable_yank_checking,
-            maximum_db_staleness,
+            maximum_db_staleness: self.maximum_db_staleness,
         }
     }
 }
 
 pub(crate) type AdvisoryId = Spanned<advisory::Id>;
 
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub db_path: Option<PathBuf>,
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<AdvisoryId>,
+    pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub vulnerability: LintLevel,
     pub unmaintained: LintLevel,
     pub unsound: LintLevel,
@@ -187,7 +270,7 @@ pub struct ValidConfig {
     pub severity_threshold: Option<advisory::Severity>,
     pub git_fetch_with_cli: bool,
     pub disable_yank_checking: bool,
-    pub maximum_db_staleness: time::Duration,
+    pub maximum_db_staleness: Spanned<Duration>,
 }
 
 /// We need to implement this ourselves since time doesn't support it
@@ -206,7 +289,7 @@ pub struct ValidConfig {
 ///
 /// duration          = "P" (dur-date / dur-time / dur-week)
 /// ```
-fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
+fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
     use anyhow::Context as _;
 
     let mut value = value
@@ -277,7 +360,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
         }
     }
 
-    let mut duration = time::Duration::new(0, 0);
+    let mut duration = Duration::new(0, 0);
 
     // The format requires that the units are in a specific order, but each
     // unit is optional
@@ -347,54 +430,55 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<time::Duration> {
 #[cfg(test)]
 mod test {
     use super::{parse_rfc3339_duration as dur_parse, *};
-    use crate::cfg::{test::*, Fake, UnvalidatedConfig};
+    use crate::test_utils::{write_diagnostics, ConfigData};
+
+    struct Advisories {
+        advisories: Config,
+    }
+
+    impl<'de> toml_span::Deserialize<'de> for Advisories {
+        fn deserialize(
+            value: &mut toml_span::value::Value<'de>,
+        ) -> Result<Self, toml_span::DeserError> {
+            let mut th = toml_span::de_helpers::TableHelper::new(value)?;
+            let advisories = th.required("advisories").unwrap();
+            th.finalize(None)?;
+            Ok(Self { advisories })
+        }
+    }
 
     #[test]
     fn deserializes_advisories_cfg() {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Advisories {
-            advisories: Config,
-        }
+        let cd = ConfigData::<Advisories>::load("tests/cfg/advisories.toml");
+        let validated = cd.validate(|a| a.advisories);
 
-        let mut cd: ConfigData<Advisories> = load("tests/cfg/advisories.toml");
-        let mut diags = Vec::new();
-        let validated = cd
-            .config
-            .advisories
-            .validate(cd.id, &mut cd.files, &mut diags);
-        assert!(
-            !diags
-                .iter()
-                .any(|d| d.severity >= crate::diag::Severity::Error),
-            "{diags:#?}"
-        );
+        insta::assert_json_snapshot!(validated);
+    }
 
-        assert_eq!(validated.file_id, cd.id);
-        assert!(validated
-            .db_path
-            .iter()
-            .map(|dp| dp.as_str())
-            .eq(vec!["~/.cargo/advisory-dbs"]));
-        assert!(validated.db_urls.iter().eq(vec![&Url::parse(
-            "https://github.com/RustSec/advisory-db"
-        )
-        .unwrap()
-        .fake()]));
-        assert_eq!(validated.vulnerability, LintLevel::Deny);
-        assert_eq!(validated.unmaintained, LintLevel::Warn);
-        assert_eq!(validated.unsound, LintLevel::Warn);
-        assert_eq!(validated.yanked, LintLevel::Warn);
-        assert_eq!(validated.notice, LintLevel::Warn);
-        assert_eq!(
-            validated.ignore,
-            vec!["RUSTSEC-0000-0000"
-                .parse::<rustsec::advisory::Id>()
-                .unwrap()]
-        );
-        assert_eq!(
-            validated.severity_threshold,
-            Some(rustsec::advisory::Severity::Medium)
+    #[test]
+    fn warns_on_duplicates() {
+        let dupes = r#"
+[advisories]
+db-urls = [
+    "https://github.com/rust-lang/crates.io-index",
+    "https://one.reg",
+    "https://one.reg",
+]
+ignore = [
+    "RUSTSEC-0000-0001",
+    { crate = "boop" },
+    "RUSTSEC-0000-0001",
+    "boop",
+]
+"#;
+
+        let cd = ConfigData::<Advisories>::load_str("duplicates", dupes);
+        let _validated = cd.validate_with_diags(
+            |a| a.advisories,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                insta::assert_snapshot!(diags);
+            },
         );
     }
 
@@ -414,7 +498,7 @@ mod test {
 
         let failures: String = FAILURES.iter().fold(String::new(), |mut acc, bad| {
             use std::fmt::Write;
-            writeln!(&mut acc, "{:?}", dur_parse(bad)).unwrap();
+            writeln!(&mut acc, "{:#?}", dur_parse(bad).unwrap_err()).unwrap();
             acc
         });
 
@@ -462,7 +546,7 @@ mod test {
                 Ok(parsed) => {
                     assert_eq!(
                         parsed,
-                        time::Duration::seconds_f64(*secs),
+                        Duration::seconds_f64(*secs),
                         "unexpected duration for '{dur}'"
                     );
                 }

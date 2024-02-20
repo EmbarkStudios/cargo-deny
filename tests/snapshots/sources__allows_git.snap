@@ -31,10 +31,10 @@ expression: diags
           "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://gitlab.com/amethyst-engine/amethyst/'"
+          "span": "https://gitlab.com/amethyst-engine/amethyst/"
         }
       ],
       "message": "'git' source explicitly allowed",
@@ -78,10 +78,10 @@ expression: diags
           "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 3,
           "message": "source allowance",
-          "span": "'https://gitlab.com/amethyst-engine/amethyst/'"
+          "span": "https://gitlab.com/amethyst-engine/amethyst/"
         }
       ],
       "message": "'git' source explicitly allowed",
@@ -148,10 +148,10 @@ expression: diags
           "span": "git+https://github.com/EmbarkStudios/krates?branch=main"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 4,
           "message": "source allowance",
-          "span": "'https://github.com/EmbarkStudios/krates'"
+          "span": "https://github.com/EmbarkStudios/krates"
         }
       ],
       "message": "'git' source explicitly allowed",
@@ -187,10 +187,10 @@ expression: diags
           "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs"
         },
         {
-          "column": 9,
+          "column": 10,
           "line": 5,
           "message": "source allowance",
-          "span": "'https://bitbucket.org/marshallpierce/line-wrap-rs'"
+          "span": "https://bitbucket.org/marshallpierce/line-wrap-rs"
         }
       ],
       "message": "'git' source explicitly allowed",

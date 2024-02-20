@@ -55,8 +55,8 @@ camino = "1.1"
 # Argument parsing, kept aligned with cargo
 clap = { version = "4.3", features = ["derive", "env"] }
 # Used for diagnostic reporting
-codespan = "0.11"
-codespan-reporting = "0.11"
+codespan = { version = "0.11", features = ["serialization"] }
+codespan-reporting = { version = "0.11", features = ["serialization"] }
 # Brrrrr
 crossbeam = "0.8"
 # Logging utilities
@@ -88,7 +88,7 @@ reqwest = { version = "0.11", default-features = false }
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Used for interacting with advisory databases
-rustsec = { version = "0.28", default-features = false }
+rustsec = { version = "0.29", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -99,7 +99,7 @@ smallvec = "1.9"
 # Used for parsing and checking SPDX license expressions
 spdx = "0.10"
 # Lazy
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 # Index retrieval and querying
 tame-index = { version = "0.9", default-features = false, features = [
   "git",
@@ -111,7 +111,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml = "0.8"
+toml-span = { version = "0.1.0", features = ["reporting"] }
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
@@ -137,6 +137,8 @@ fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.21", features = ["json"] }
 tame-index = { version = "0.9", features = ["local-builder"] }
+time = { version = "0.3", features = ["serde"] }
+toml-span = { version = "0.1.0", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 

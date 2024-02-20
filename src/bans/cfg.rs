@@ -1,68 +1,83 @@
-use super::KrateId;
 use crate::{
+    cfg::{PackageSpec, PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
     LintLevel, Spanned,
 };
-use semver::VersionReq;
-use serde::Deserialize;
+use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
-#[derive(Deserialize, Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(deny_unknown_fields)]
-pub struct CrateId {
-    // The name of the crate
-    pub name: String,
-    /// The version constraints of the crate
-    pub version: Option<VersionReq>,
-}
-
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct CrateBan {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+pub struct CrateBanExtended {
     /// One or more crates that will allow this crate to be used if it is a
     /// direct dependency
     pub wrappers: Option<Spanned<Vec<Spanned<String>>>>,
-    /// Setting this to true will only emit an error if multiple
-    // versions of the crate are found
+    /// Setting this to true will only emit an error if multiple versions of the
+    /// crate are found
     pub deny_multiple_versions: Option<Spanned<bool>>,
+    /// The reason for banning the crate
+    pub reason: Option<Reason>,
+    /// The crate to use instead of the banned crate, could be just the crate name
+    /// or a URL
+    pub use_instead: Option<Spanned<String>>,
 }
 
-#[derive(Deserialize, Clone)]
+impl<'de> Deserialize<'de> for CrateBanExtended {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+
+        let wrappers = th.optional("wrappers");
+        let deny_multiple_versions = th.optional("deny-multiple-versions");
+        let reason = th.optional_s("reason");
+        let use_instead = th.optional("use-instead");
+        th.finalize(None)?;
+
+        Ok(Self {
+            wrappers,
+            deny_multiple_versions,
+            reason: reason.map(Reason::from),
+            use_instead,
+        })
+    }
+}
+
+//#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(deny_unknown_fields)]
 pub struct CrateFeatures {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    pub spec: PackageSpec,
     /// All features that are allowed to be used.
-    #[serde(default)]
     pub allow: Spanned<Vec<Spanned<String>>>,
     /// All features that are denied.
-    #[serde(default)]
     pub deny: Vec<Spanned<String>>,
     /// The actual feature set has to exactly match the `allow` set.
-    #[serde(default)]
     pub exact: Spanned<bool>,
+    /// The reason for specifying the crate features
+    pub reason: Option<Reason>,
 }
 
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub struct TreeSkip {
-    #[serde(flatten)]
-    pub id: CrateId,
-    pub depth: Option<usize>,
+impl<'de> Deserialize<'de> for CrateFeatures {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let spec = PackageSpec::deserialize(value)?;
+
+        let mut th = TableHelper::new(value)?;
+
+        let allow = th.optional("allow").unwrap_or_default();
+        let deny = th.optional("deny").unwrap_or_default();
+        let exact = th.optional("exact").unwrap_or_default();
+        let reason = th.optional_s("reason");
+        th.finalize(None)?;
+
+        Ok(Self {
+            spec,
+            allow,
+            deny,
+            exact,
+            reason: reason.map(Reason::from),
+        })
+    }
 }
 
-const fn highlight() -> GraphHighlight {
-    GraphHighlight::All
-}
-
-#[derive(Deserialize, PartialEq, Eq, Copy, Clone)]
-#[cfg_attr(test, derive(Debug))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+#[cfg_attr(test, derive(serde::Serialize))]
+#[derive(PartialEq, Eq, Copy, Clone, Default, strum::VariantArray, strum::VariantNames)]
+#[strum(serialize_all = "kebab-case")]
 pub enum GraphHighlight {
     /// Highlights the path to a duplicate dependency with the fewest number
     /// of total edges, which tends to make it the best candidate for removing
@@ -70,8 +85,11 @@ pub enum GraphHighlight {
     /// Highlights the path to the duplicate dependency with the lowest version
     LowestVersion,
     /// Highlights with all of the other configs
+    #[default]
     All,
 }
+
+crate::enum_deser!(GraphHighlight);
 
 impl GraphHighlight {
     #[inline]
@@ -132,44 +150,43 @@ impl std::str::FromStr for Checksum {
 }
 
 impl<'de> Deserialize<'de> for Checksum {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use serde::de::Error;
-        struct HexStrVisitor;
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let val = value.take_string(Some("a sha-256 hex encoded string"))?;
 
-        impl<'de> serde::de::Visitor<'de> for HexStrVisitor {
-            type Value = Checksum;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "a sha-256 hex encoded string")
-            }
-
-            fn visit_str<E: Error>(self, data: &str) -> Result<Self::Value, E> {
-                data.parse().map_err(|err| match err {
-                    ChecksumParseError::InvalidLength(len) => {
-                        serde::de::Error::invalid_length(len, &"a string with 64 characters")
-                    }
-                    ChecksumParseError::InvalidValue(c) => serde::de::Error::invalid_value(
-                        serde::de::Unexpected::Char(c),
-                        &"a hexadecimal character",
-                    ),
-                })
-            }
-
-            fn visit_borrowed_str<E: Error>(self, data: &'de str) -> Result<Self::Value, E> {
-                self.visit_str(data)
-            }
-        }
-
-        deserializer.deserialize_str(HexStrVisitor)
+        val.parse().map_err(|err| {
+            let err = match err {
+                ChecksumParseError::InvalidLength(len) => {
+                    toml_span::Error::from((toml_span::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'").into()), value.span))
+                }
+                ChecksumParseError::InvalidValue(c) => toml_span::Error::from((toml_span::ErrorKind::Unexpected(c), value.span)),
+            };
+            err.into()
+        })
     }
 }
 
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+#[cfg(test)]
+impl serde::Serialize for Checksum {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut hexs = [0; 64];
+
+        const CHARS: &[u8] = b"0123456789abcdef";
+
+        for (i, &byte) in self.0.iter().enumerate() {
+            let i = i * 2;
+            hexs[i] = CHARS[(byte >> 4) as usize];
+            hexs[i + 1] = CHARS[(byte & 0xf) as usize];
+        }
+
+        serializer.serialize_str(std::str::from_utf8(&hexs).unwrap())
+    }
+}
+
+#[derive(Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq, serde::Serialize))]
 pub struct BypassPath {
     /// The crate-relative path to the executable
     pub path: Spanned<crate::PathBuf>,
@@ -177,16 +194,28 @@ pub struct BypassPath {
     pub checksum: Option<Spanned<Checksum>>,
 }
 
-#[derive(Deserialize, Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+impl<'de> Deserialize<'de> for BypassPath {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+
+        let path: Spanned<String> = th.required_s("path")?;
+        let checksum = th.optional("checksum");
+        th.finalize(None)?;
+
+        Ok(Self {
+            path: path.map(),
+            checksum,
+        })
+    }
+}
+
+#[derive(Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Bypass {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    pub spec: PackageSpec,
     pub build_script: Option<Spanned<Checksum>>,
     /// List of features that, if matched, means the build script/proc macro is
     /// not actually executed/run
-    #[serde(default)]
     pub required_features: Vec<Spanned<String>>,
     /// List of glob patterns that are allowed. This is much more loose than
     /// `allow`, but can be useful in scenarios where things like test suites or
@@ -196,22 +225,37 @@ pub struct Bypass {
     pub allow_globs: Option<Vec<Spanned<String>>>,
     /// One or more executables that are allowed. If not set all executables are
     /// allowed.
-    #[serde(default)]
     pub allow: Vec<BypassPath>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+impl<'de> Deserialize<'de> for Bypass {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let spec = PackageSpec::deserialize(value)?;
+        let mut th = TableHelper::new(value)?;
+        let build_script = th.optional("build-script");
+        let required_features = th.optional("required-features").unwrap_or_default();
+        let allow_globs = th.optional("allow-globs");
+        let allow = th.optional("allow").unwrap_or_default();
+        th.finalize(None)?;
+
+        Ok(Self {
+            spec,
+            build_script,
+            required_features,
+            allow_globs,
+            allow,
+        })
+    }
+}
+
 pub struct BuildConfig {
     /// List of crates that are allowed to have build scripts. If this is set,
     /// any crates with a build script that aren't listed here will be banned
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Vec<PackageSpec>>,
     /// Lint level for when executables are detected within crates with build
     /// scripts or are proc macros, or are a dependency of either of them
-    #[serde(default = "crate::lint_deny")]
     pub executables: LintLevel,
     /// The lint level for interpreted scripts
-    #[serde(default = "crate::lint_allow")]
     pub interpreted: LintLevel,
     /// List of script extensions that are considered to be executable. These
     /// are always in addition to the builtin ones.
@@ -219,57 +263,96 @@ pub struct BuildConfig {
     /// The list of allowed executables, by crate
     pub bypass: Option<Vec<Bypass>>,
     /// If true, enables the built-in glob patterns
-    #[serde(default)]
     pub enable_builtin_globs: bool,
     /// If true, all dependencies of proc macro crates or crates with build
     /// scripts are also checked for executables/glob patterns
-    #[serde(default)]
     pub include_dependencies: bool,
     /// If true, workspace crates are included
-    #[serde(default)]
     pub include_workspace: bool,
     /// If true, archive files are counted as native executables
-    #[serde(default)]
     pub include_archives: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+impl<'de> Deserialize<'de> for BuildConfig {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+        let allow_build_scripts = th.optional("allow-build-scripts");
+        let executables = th.optional("executables").unwrap_or(LintLevel::Deny);
+        let interpreted = th.optional("interpreted").unwrap_or(LintLevel::Allow);
+        let script_extensions = th.optional("script-extensions");
+        let bypass = th.optional("bypass");
+        let enable_builtin_globs = th.optional("enable-builtin-globs").unwrap_or_default();
+        let include_dependencies = th.optional("include-dependencies").unwrap_or_default();
+        let include_workspace = th.optional("include-workspace").unwrap_or_default();
+        let include_archives = th.optional("include-archives").unwrap_or_default();
+        th.finalize(None)?;
+
+        Ok(Self {
+            allow_build_scripts,
+            executables,
+            interpreted,
+            script_extensions,
+            bypass,
+            enable_builtin_globs,
+            include_dependencies,
+            include_workspace,
+            include_archives,
+        })
+    }
+}
+
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq, serde::Serialize))]
+pub struct TreeSkipExtended {
+    pub depth: Option<usize>,
+    /// Reason the tree is being skipped
+    pub reason: Option<Reason>,
+}
+
+impl<'de> Deserialize<'de> for TreeSkipExtended {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let reason = if value.has_key("reason") {
+            Some(Reason::deserialize(value)?)
+        } else {
+            None
+        };
+
+        let mut th = TableHelper::new(value)?;
+        let depth = th.optional("depth");
+        th.finalize(None)?;
+        Ok(Self { depth, reason })
+    }
+}
+
+pub type CrateBan = PackageSpecOrExtended<CrateBanExtended>;
+pub type CrateAllow = PackageSpecOrExtended<Reason>;
+pub type CrateSkip = PackageSpecOrExtended<Reason>;
+pub type TreeSkip = PackageSpecOrExtended<TreeSkipExtended>;
+
 pub struct Config {
     /// How to handle multiple versions of the same crate
-    #[serde(default = "crate::lint_warn")]
     pub multiple_versions: LintLevel,
-    #[serde(default)]
     pub multiple_versions_include_dev: bool,
     /// How the duplicate graphs are highlighted
-    #[serde(default = "highlight")]
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
-    #[serde(default)]
     pub deny: Vec<CrateBan>,
     /// If specified, means only the listed crates are allowed
-    #[serde(default)]
-    pub allow: Vec<Spanned<CrateId>>,
+    pub allow: Vec<CrateAllow>,
     /// Allows specifying features that are or are not allowed on crates
-    #[serde(default)]
     pub features: Vec<CrateFeatures>,
     /// The default lint level for default features for external, non-workspace
     /// crates, can be overriden in `features` on a crate by crate basis
-    #[serde(default)]
     pub external_default_features: Option<Spanned<LintLevel>>,
     /// The default lint level for default features for workspace crates, can be
     /// overriden in `features` on a crate by crate basis
-    #[serde(default)]
     pub workspace_default_features: Option<Spanned<LintLevel>>,
     /// If specified, disregards the crate completely
-    #[serde(default)]
-    pub skip: Vec<Spanned<CrateId>>,
+    pub skip: Vec<CrateSkip>,
     /// If specified, disregards the crate's transitive dependencies
     /// down to a certain depth
-    #[serde(default)]
-    pub skip_tree: Vec<Spanned<TreeSkip>>,
+    pub skip_tree: Vec<TreeSkip>,
     /// How to handle wildcard dependencies
-    #[serde(default = "crate::lint_allow")]
     pub wildcards: LintLevel,
     /// Wildcard dependencies defined using path attributes will be treated as
     /// if they were [`LintLevel::Allow`] for private crates, but other wildcard
@@ -277,11 +360,10 @@ pub struct Config {
     ///
     /// crates.io does not allow packages to be published with path dependencies,
     /// thus this rule will not effect public packages.
-    #[serde(default)]
     pub allow_wildcard_paths: bool,
     /// Deprecated and moved into `build.allow_build_scripts`, will eventually
     /// be removed
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Spanned<Vec<PackageSpec>>>,
     /// Options for crates that run at build time
     pub build: Option<BuildConfig>,
 }
@@ -307,122 +389,151 @@ impl Default for Config {
     }
 }
 
+impl<'de> Deserialize<'de> for Config {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+
+        let multiple_versions = th.optional("multiple-versions").unwrap_or(LintLevel::Warn);
+        let multiple_versions_include_dev = th
+            .optional("multiple-versions-include-dev")
+            .unwrap_or_default();
+        let highlight = th.optional("highlight").unwrap_or_default();
+        let deny = th.optional("deny").unwrap_or_default();
+        let allow = th.optional("allow").unwrap_or_default();
+        let features = th.optional("features").unwrap_or_default();
+        let external_default_features = th.optional("external-default-features");
+        let workspace_default_features = th.optional("workspace-default-features");
+        let skip = th.optional("skip").unwrap_or_default();
+        let skip_tree = th.optional("skip-tree").unwrap_or_default();
+        let wildcards = th.optional("wildcards").unwrap_or(LintLevel::Allow);
+        let allow_wildcard_paths = th.optional("allow-wildcard-paths").unwrap_or_default();
+        let allow_build_scripts = th.optional("allow-build-scripts");
+        let build = th.optional("build");
+
+        th.finalize(None)?;
+
+        Ok(Self {
+            multiple_versions,
+            multiple_versions_include_dev,
+            highlight,
+            deny,
+            allow,
+            features,
+            external_default_features,
+            workspace_default_features,
+            skip,
+            skip_tree,
+            wildcards,
+            allow_wildcard_paths,
+            allow_build_scripts,
+            build,
+        })
+    }
+}
+
 impl crate::cfg::UnvalidatedConfig for Config {
     type ValidCfg = ValidConfig;
 
-    fn validate(
-        self,
-        cfg_file: FileId,
-        files: &mut crate::diag::Files,
-        diags: &mut Vec<Diagnostic>,
-    ) -> Self::ValidCfg {
-        let from = |s: Spanned<CrateId>| {
-            Skrate::new(
-                KrateId {
-                    name: s.value.name,
-                    version: s.value.version,
-                },
-                s.span,
-            )
+    fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
+        let cfg_id = ctx.cfg_id;
+
+        let (denied_multiple_versions, denied) = {
+            let mut dmulti = Vec::new();
+            let mut denied = Vec::new();
+            for deny_spec in self.deny {
+                let spec = deny_spec.spec;
+
+                let inner = if let Some(extended) = deny_spec.inner {
+                    let dmv = extended.deny_multiple_versions;
+                    let wrappers = extended.wrappers;
+
+                    if let Some((dmv, wrappers)) = dmv.as_ref().zip(wrappers.as_ref()) {
+                        if dmv.value && !wrappers.value.is_empty() {
+                            ctx.push(
+                                Diagnostic::error()
+                                    .with_message(
+                                        "a crate ban was specified with both `wrappers` and `deny-multiple-versions` = true",
+                                    )
+                                    .with_labels(vec![
+                                        Label::secondary(cfg_id, wrappers.span)
+                                            .with_message(format!("has {} `wrappers`", wrappers.value.len())),
+                                        Label::secondary(cfg_id, dmv.span)
+                                            .with_message("has `deny-multiple-versions` set to true"),
+                                    ]),
+                            );
+                            continue;
+                        }
+                    }
+
+                    if dmv.map_or(false, |d| d.value) {
+                        dmulti.push(spec);
+                        continue;
+                    }
+
+                    Some(KrateBan {
+                        wrappers: wrappers.map(|sv| sv.value),
+                        reason: extended.reason,
+                        use_instead: extended.use_instead,
+                    })
+                } else {
+                    None
+                };
+
+                denied.push(ValidKrateBan { spec, inner });
+            }
+
+            (dmulti, denied)
         };
 
-        let (deny_multiple_versions, deny): (Vec<_>, Vec<_>) =
-            self.deny.into_iter().partition(|kb| {
-                kb.deny_multiple_versions
-                    .as_ref()
-                    .map_or(false, |spanned| spanned.value)
-            });
+        let allowed = self.allow;
+        let skipped = self.skip;
 
-        let denied: Vec<_> = deny
-            .into_iter()
-            .map(|cb| KrateBan {
-                id: Skrate::new(
-                    KrateId {
-                        name: cb.name.value,
-                        version: cb.version,
-                    },
-                    cb.name.span,
-                ),
-                wrappers: cb.wrappers.map(|spanned| spanned.value),
-            })
-            .collect();
-
-        let denied_multiple_versions: Vec<_> = deny_multiple_versions
-            .into_iter()
-            .map(|cb| {
-                let wrappers = cb.wrappers.filter(|spanned| !spanned.value.is_empty());
-                if let Some(wrappers) = wrappers {
-                    // cb.multiple_versions is guaranteed to be Some(_) by the
-                    // earlier call to `partition`
-                    let multiple_versions = cb.deny_multiple_versions.unwrap();
-                    diags.push(
-                        Diagnostic::error()
-                            .with_message(
-                                "a crate ban was specified with both `wrappers` and `multiple-versions`",
-                            )
-                            .with_labels(vec![
-                                Label::secondary(cfg_file, wrappers.span)
-                                    .with_message("has one or more `wrappers`"),
-                                Label::secondary(cfg_file, multiple_versions.span)
-                                    .with_message("has `multiple-versions` set to true"),
-                            ]),
-                    );
-                }
-
-                Skrate::new(
-                    KrateId {
-                        name: cb.name.value,
-                        version: cb.version,
-                    },
-                    cb.name.span,
-                )
-            })
-            .collect();
-
-        let allowed: Vec<_> = self.allow.into_iter().map(from).collect();
-        let skipped: Vec<_> = self.skip.into_iter().map(from).collect();
-
-        let dupe_crate_diag = |first: (&Skrate, &str), second: (&Skrate, &str)| -> Diagnostic {
-            Diagnostic::error()
+        let dupe_crate_diag = |ctx: &mut ValidationContext<'_>,
+                               first: (&PackageSpec, &str),
+                               second: (&PackageSpec, &str)| {
+            let diag = Diagnostic::error()
                 .with_message(format!(
                     "a crate was specified in both `{}` and `{}`",
                     second.1, first.1
                 ))
                 .with_labels(vec![
-                    Label::secondary(cfg_file, first.0.span.clone())
+                    Label::secondary(cfg_id, first.0.name.span)
                         .with_message(format!("marked as `{}`", first.1)),
-                    Label::secondary(cfg_file, second.0.span.clone())
+                    Label::secondary(cfg_id, second.0.name.span)
                         .with_message(format!("marked as `{}`", second.1)),
-                ])
+                ]);
+
+            ctx.push(diag);
         };
 
-        let dupe_feature_diag = |krate: &Skrate,
+        let dupe_feature_diag = |ctx: &mut ValidationContext<'_>,
+                                 krate: &PackageSpec,
                                  allow: &Spanned<String>,
-                                 deny: &Spanned<String>|
-         -> Diagnostic {
-            Diagnostic::error()
+                                 deny: &Spanned<String>| {
+            let diag = Diagnostic::error()
                 .with_message("a crate feature was specified as both allowed and denied")
                 .with_labels(vec![
-                    Label::primary(cfg_file, krate.span.clone()).with_message("crate ban entry"),
-                    Label::secondary(cfg_file, allow.span.clone())
-                        .with_message("marked as `allow`"),
-                    Label::secondary(cfg_file, deny.span.clone()).with_message("marked as `deny`"),
-                ])
+                    Label::primary(cfg_id, krate.name.span).with_message("crate ban entry"),
+                    Label::secondary(cfg_id, allow.span).with_message("marked as `allow`"),
+                    Label::secondary(cfg_id, deny.span).with_message("marked as `deny`"),
+                ]);
+
+            ctx.push(diag);
         };
 
         for d in &denied {
-            if let Some(dupe) = exact_match(&allowed, &d.id.value) {
-                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "allow")));
+            if let Some(dupe) = exact_match(&allowed, &d.spec) {
+                dupe_crate_diag(&mut ctx, (&d.spec, "deny"), (dupe, "allow"));
             }
 
-            if let Some(dupe) = exact_match(&skipped, &d.id.value) {
-                diags.push(dupe_crate_diag((&d.id, "deny"), (dupe, "skip")));
+            if let Some(dupe) = exact_match(&skipped, &d.spec) {
+                dupe_crate_diag(&mut ctx, (&d.spec, "deny"), (dupe, "skip"));
             }
         }
 
         for all in &allowed {
-            if let Some(dupe) = exact_match(&skipped, &all.value) {
-                diags.push(dupe_crate_diag((all, "allow"), (dupe, "skip")));
+            if let Some(dupe) = exact_match(&skipped, &all.spec) {
+                dupe_crate_diag(&mut ctx, (&all.spec, "allow"), (dupe, "skip"));
             }
         }
 
@@ -431,27 +542,21 @@ impl crate::cfg::UnvalidatedConfig for Config {
             .features
             .into_iter()
             .map(|cf| {
-                let id = Skrate::new(
-                    KrateId {
-                        name: cf.name.value,
-                        version: cf.version,
-                    },
-                    cf.name.span,
-                );
-
+                let spec = cf.spec;
                 for allowed in &cf.allow.value {
                     if let Some(denied) = cf.deny.iter().find(|df| df.value == allowed.value) {
-                        diags.push(dupe_feature_diag(&id, allowed, denied));
+                        dupe_feature_diag(&mut ctx, &spec, allowed, denied);
                     }
                 }
 
-                KrateFeatures {
-                    id,
+                ValidKrateFeatures {
+                    spec,
                     features: Features {
                         allow: cf.allow,
                         deny: cf.deny,
                         exact: cf.exact,
                     },
+                    reason: cf.reason.map(Reason::from),
                 }
             })
             .collect();
@@ -463,24 +568,23 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 for ext in extensions {
                     // This top level config should only be extensions, not glob patterns
                     if !ext.value.is_ascii() {
-                        diags.push(
+                        ctx.diagnostics.push(
                             Diagnostic::error()
                                 .with_message("non-ascii file extension provided")
-                                .with_labels(vec![Label::primary(cfg_file, ext.span.clone())
+                                .with_labels(vec![Label::primary(ctx.cfg_id, ext.span)
                                     .with_message("invalid extension")]),
                         );
                         continue;
                     }
 
                     if let Some(i) = ext.value.chars().position(|c| !c.is_ascii_alphanumeric()) {
-                        diags.push(
+                        ctx.diagnostics.push(
                             Diagnostic::error()
                                 .with_message("invalid file extension provided")
                                 .with_labels(vec![
-                                    Label::primary(cfg_file, ext.span.clone())
-                                        .with_message("extension"),
+                                    Label::primary(ctx.cfg_id, ext.span).with_message("extension"),
                                     Label::secondary(
-                                        cfg_file,
+                                        ctx.cfg_id,
                                         ext.span.start + i..ext.span.start + i + 1,
                                     )
                                     .with_message("invalid character"),
@@ -494,10 +598,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             gsb.add(glob, GlobPattern::User(ext));
                         }
                         Err(err) => {
-                            diags.push(
+                            ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message(format!("invalid glob pattern: {err}"))
-                                    .with_labels(vec![Label::primary(cfg_file, ext.span.clone())
+                                    .with_labels(vec![Label::primary(ctx.cfg_id, ext.span)
                                         .with_message("extension")]),
                             );
                         }
@@ -506,11 +610,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
 
             if bc.enable_builtin_globs {
-                load_builtin_globs(files, &mut gsb);
+                load_builtin_globs(ctx.files, &mut gsb);
             }
 
             let script_extensions = gsb.build().unwrap_or_else(|err| {
-                diags
+                ctx.diagnostics
                     .push(Diagnostic::error().with_message(format!(
                         "failed to build script extensions glob set: {err}"
                     )));
@@ -521,6 +625,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 let mut aex = Vec::new();
 
                 for aexe in aexes {
+                    let spec = aexe.spec;
+
                     let allow_globs = if let Some(allow_globs) = aexe.allow_globs {
                         let mut gsb = GlobsetBuilder::new();
 
@@ -530,13 +636,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                     gsb.add(glob, GlobPattern::User(ag));
                                 }
                                 Err(err) => {
-                                    diags.push(
+                                    ctx.diagnostics.push(
                                         Diagnostic::error()
                                             .with_message(format!("invalid glob pattern: {err}"))
-                                            .with_labels(vec![Label::primary(
-                                                cfg_file,
-                                                ag.span.clone(),
-                                            )]),
+                                            .with_labels(vec![Label::primary(ctx.cfg_id, ag.span)]),
                                     );
                                 }
                             }
@@ -545,9 +648,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         match gsb.build() {
                             Ok(set) => Some(set),
                             Err(err) => {
-                                diags.push(Diagnostic::error().with_message(format!(
-                                    "failed to build script extensions glob set: {err}"
-                                )));
+                                ctx.diagnostics
+                                    .push(Diagnostic::error().with_message(format!(
+                                        "failed to build script extensions glob set: {err}"
+                                    )));
                                 None
                             }
                         }
@@ -559,13 +663,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     allow.retain(|ae| {
                         let keep = ae.path.value.is_relative();
                         if !keep {
-                            diags.push(
+                            ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message("absolute paths are not allowed")
-                                    .with_labels(vec![Label::primary(
-                                        cfg_file,
-                                        ae.path.span.clone(),
-                                    )]),
+                                    .with_labels(vec![Label::primary(ctx.cfg_id, ae.path.span)]),
                             );
                         }
 
@@ -574,8 +675,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     allow.sort_by(|a, b| a.path.value.cmp(&b.path.value));
 
                     aex.push(ValidBypass {
-                        name: aexe.name,
-                        version: aexe.version,
+                        spec,
                         build_script: aexe.build_script,
                         required_features: aexe.required_features,
                         allow,
@@ -598,14 +698,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 include_archives: bc.include_archives,
                 interpreted: bc.interpreted,
             })
-        } else if let Some(allow_build_scripts) = self.allow_build_scripts {
-            diags.push(Diagnostic::warning()
+        } else if let Some(abs) = self.allow_build_scripts {
+            ctx.push(Diagnostic::warning()
                 .with_message("[bans.allow-build-scripts] has been deprecated in favor of [bans.build.allow-build-scripts], this will become an error in the future")
                 .with_labels(vec![
-                    Label::primary(cfg_file, allow_build_scripts.span.clone())
+                    Label::primary(ctx.cfg_id, abs.span)
                 ]));
             Some(ValidBuildConfig {
-                allow_build_scripts: Some(allow_build_scripts),
+                allow_build_scripts: Some(abs.value),
                 executables: LintLevel::Allow,
                 script_extensions: ValidGlobSet::default(),
                 bypass: Vec::new(),
@@ -619,7 +719,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
         };
 
         ValidConfig {
-            file_id: cfg_file,
+            file_id: ctx.cfg_id,
             multiple_versions: self.multiple_versions,
             multiple_versions_include_dev: self.multiple_versions_include_dev,
             highlight: self.highlight,
@@ -632,11 +732,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             skipped,
             wildcards: self.wildcards,
             allow_wildcard_paths: self.allow_wildcard_paths,
-            tree_skipped: self
-                .skip_tree
-                .into_iter()
-                .map(crate::Spanned::from)
-                .collect(),
+            tree_skipped: self.skip_tree,
             build,
         }
     }
@@ -645,15 +741,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
 fn load_builtin_globs(files: &mut crate::diag::Files, gsb: &mut GlobsetBuilder) {
     const BUILTIN_GLOBS: &str = include_str!("builtin_globs.toml");
 
-    #[derive(Deserialize)]
-    struct Builtin {
-        globs: Vec<Spanned<String>>,
-    }
+    let mut biv = toml_span::parse(BUILTIN_GLOBS).expect("failed to parse builtin_globs.toml");
+    let mut th = TableHelper::new(&mut biv).expect("builtin_globs.toml does not have a root table");
 
-    let bi: Builtin = toml::from_str(BUILTIN_GLOBS).expect("failed to parse builtin_globs.toml");
+    let globs: Vec<Spanned<String>> = th.required("globs").expect("failed to find 'globs' array");
+
     let file_id = files.add("builtin_globs.toml", BUILTIN_GLOBS.to_owned());
 
-    for glob in bi.globs {
+    for glob in globs {
         gsb.add(
             globset::Glob::new(&glob.value).expect("failed to parse builtin glob"),
             GlobPattern::Builtin((glob, file_id)),
@@ -662,31 +757,38 @@ fn load_builtin_globs(files: &mut crate::diag::Files, gsb: &mut GlobsetBuilder) 
 }
 
 #[inline]
-pub(crate) fn exact_match<'v>(arr: &'v [Skrate], id: &'_ KrateId) -> Option<&'v Skrate> {
-    arr.iter().find(|sid| *sid == id)
+pub(crate) fn exact_match<'v, T>(
+    arr: &'v [PackageSpecOrExtended<T>],
+    id: &'_ PackageSpec,
+) -> Option<&'v PackageSpec> {
+    arr.iter()
+        .find_map(|sid| (&sid.spec == id).then_some(&sid.spec))
 }
 
-pub(crate) type Skrate = Spanned<KrateId>;
-
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) struct KrateBan {
-    pub id: Skrate,
     pub wrappers: Option<Vec<Spanned<String>>>,
+    pub reason: Option<Reason>,
+    pub use_instead: Option<Spanned<String>>,
 }
 
-#[cfg_attr(test, derive(Debug))]
+pub(crate) type ValidKrateBan = PackageSpecOrExtended<KrateBan>;
+
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Features {
     pub allow: Spanned<Vec<Spanned<String>>>,
     pub deny: Vec<Spanned<String>>,
     pub exact: Spanned<bool>,
 }
 
-#[cfg_attr(test, derive(Debug))]
-pub(crate) struct KrateFeatures {
-    pub id: Skrate,
+#[cfg_attr(test, derive(serde::Serialize))]
+pub(crate) struct ValidKrateFeatures {
+    pub spec: PackageSpec,
     pub features: Features,
+    pub reason: Option<Reason>,
 }
 
+#[cfg_attr(test, derive(serde::Serialize))]
 pub enum GlobPattern {
     Builtin((Spanned<String>, FileId)),
     User(Spanned<String>),
@@ -727,6 +829,21 @@ pub struct ValidGlobSet {
     pub(crate) patterns: Vec<GlobPattern>,
 }
 
+#[cfg(test)]
+impl serde::Serialize for ValidGlobSet {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_seq(self.patterns.iter().filter_map(|gp| {
+            let GlobPattern::User(gp) = gp else {
+                return None;
+            };
+            Some(gp)
+        }))
+    }
+}
+
 impl Default for ValidGlobSet {
     fn default() -> Self {
         Self {
@@ -748,17 +865,18 @@ impl ValidGlobSet {
     }
 }
 
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidBypass {
-    pub name: Spanned<String>,
-    pub version: Option<VersionReq>,
+    pub spec: PackageSpec,
     pub build_script: Option<Spanned<Checksum>>,
     pub required_features: Vec<Spanned<String>>,
     pub allow_globs: Option<ValidGlobSet>,
     pub allow: Vec<BypassPath>,
 }
 
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidBuildConfig {
-    pub allow_build_scripts: Option<Spanned<Vec<CrateId>>>,
+    pub allow_build_scripts: Option<Vec<PackageSpec>>,
     pub executables: LintLevel,
     pub script_extensions: ValidGlobSet,
     pub bypass: Vec<ValidBypass>,
@@ -768,19 +886,23 @@ pub struct ValidBuildConfig {
     pub interpreted: LintLevel,
 }
 
+pub type ValidTreeSkip = PackageSpecOrExtended<TreeSkipExtended>;
+pub type SpecAndReason = PackageSpecOrExtended<Reason>;
+
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub multiple_versions_include_dev: bool,
     pub highlight: GraphHighlight,
-    pub(crate) denied: Vec<KrateBan>,
-    pub(crate) denied_multiple_versions: Vec<Skrate>,
-    pub(crate) allowed: Vec<Skrate>,
-    pub(crate) features: Vec<KrateFeatures>,
+    pub(crate) denied: Vec<ValidKrateBan>,
+    pub(crate) denied_multiple_versions: Vec<PackageSpec>,
+    pub(crate) allowed: Vec<SpecAndReason>,
+    pub(crate) features: Vec<ValidKrateFeatures>,
     pub external_default_features: Option<Spanned<LintLevel>>,
     pub workspace_default_features: Option<Spanned<LintLevel>>,
-    pub(crate) skipped: Vec<Skrate>,
-    pub(crate) tree_skipped: Vec<Spanned<TreeSkip>>,
+    pub(crate) skipped: Vec<SpecAndReason>,
+    pub(crate) tree_skipped: Vec<ValidTreeSkip>,
     pub wildcards: LintLevel,
     pub allow_wildcard_paths: bool,
     pub build: Option<ValidBuildConfig>,
@@ -789,140 +911,28 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cfg::{test::*, *};
-
-    macro_rules! kid {
-        ($name:expr) => {
-            KrateId {
-                name: String::from($name),
-                version: None,
-            }
-        };
-
-        ($name:expr, $vs:expr) => {
-            KrateId {
-                name: String::from($name),
-                version: Some($vs.parse::<semver::VersionReq>().unwrap().into()),
-            }
-        };
-    }
-
-    impl PartialEq<KrateId> for KrateBan {
-        fn eq(&self, o: &KrateId) -> bool {
-            &self.id.value == o
-        }
-    }
+    use crate::test_utils::ConfigData;
 
     #[test]
     fn deserializes_ban_cfg() {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
         struct Bans {
             bans: Config,
         }
 
-        let mut cd: ConfigData<Bans> = load("tests/cfg/bans.toml");
+        impl<'de> toml_span::Deserialize<'de> for Bans {
+            fn deserialize(
+                value: &mut toml_span::value::Value<'de>,
+            ) -> Result<Self, toml_span::DeserError> {
+                let mut th = toml_span::de_helpers::TableHelper::new(value)?;
+                let bans = th.required("bans").unwrap();
+                th.finalize(None)?;
+                Ok(Self { bans })
+            }
+        }
 
-        let mut diags = Vec::new();
-        let validated = cd.config.bans.validate(cd.id, &mut cd.files, &mut diags);
-        assert!(diags.is_empty());
+        let cd = ConfigData::<Bans>::load("tests/cfg/bans.toml");
+        let validated = cd.validate(|b| b.bans);
 
-        assert_eq!(validated.file_id, cd.id);
-        assert_eq!(validated.multiple_versions, LintLevel::Deny);
-
-        assert_eq!(validated.wildcards, LintLevel::Deny);
-        assert!(validated.allow_wildcard_paths);
-
-        assert_eq!(validated.highlight, GraphHighlight::SimplestPath);
-        assert_eq!(
-            validated.external_default_features.unwrap().value,
-            LintLevel::Deny
-        );
-        assert_eq!(
-            validated.workspace_default_features.unwrap().value,
-            LintLevel::Warn
-        );
-
-        assert_eq!(
-            validated.allowed,
-            vec![kid!("all-versionsa"), kid!("specific-versiona", "<0.1.1")]
-        );
-
-        assert_eq!(
-            validated.denied,
-            vec![kid!("all-versionsd"), kid!("specific-versiond", "=0.1.9")]
-        );
-
-        assert_eq!(validated.skipped, vec![kid!("rand", "=0.6.5")]);
-
-        assert_eq!(
-            validated.tree_skipped,
-            vec![TreeSkip {
-                id: CrateId {
-                    name: "blah".to_owned(),
-                    version: None,
-                },
-                depth: Some(20),
-            }]
-        );
-
-        let kf = &validated.features[0];
-
-        assert_eq!(kf.id, kid!("featured-krate", "1.0"));
-        assert_eq!(kf.features.deny[0].value, "bad-feature");
-        assert_eq!(kf.features.allow.value[0].value, "good-feature");
-        assert!(kf.features.exact.value);
-
-        let mut bc = validated.build.expect("expected build config");
-        assert_eq!(
-            bc.allow_build_scripts.unwrap().value.pop().unwrap().name,
-            "all-versionsa"
-        );
-        assert_eq!(bc.executables, LintLevel::Warn);
-        assert_eq!(bc.interpreted, LintLevel::Deny);
-
-        assert!(bc.script_extensions.patterns.iter().any(|gp| {
-            let GlobPattern::User(gp) = gp else {
-                return false;
-            };
-            gp.value == "cs"
-        }));
-        assert!(bc.script_extensions.patterns.iter().any(|gp| {
-            let GlobPattern::Builtin(gp) = gp else {
-                return false;
-            };
-            gp.0.value == "*.py"
-        }));
-        assert!(bc.include_dependencies);
-        assert!(bc.include_workspace);
-        assert!(bc.include_archives);
-
-        let mut bypass = bc.bypass.pop().unwrap();
-        assert_eq!(bypass.name.value, "allversionsa");
-        assert!(bypass.version.is_none());
-        assert_eq!(
-            bypass.build_script.unwrap().value,
-            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
-                .parse()
-                .unwrap()
-        );
-        assert_eq!(
-            bypass.required_features.pop().unwrap().value,
-            "feature-used-at-build-time"
-        );
-        assert!(bypass.allow_globs.unwrap().patterns.iter().any(|gp| {
-            let GlobPattern::User(gp) = gp else {
-                return false;
-            };
-            gp.value == "scripts/*.cs"
-        }));
-        let ba = bypass.allow.pop().unwrap();
-        assert_eq!(ba.path.value, "bin/x86_64-linux");
-        assert_eq!(
-            ba.checksum.unwrap().value,
-            "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
-                .parse()
-                .unwrap()
-        );
+        insta::assert_json_snapshot!(validated);
     }
 }

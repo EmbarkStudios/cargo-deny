@@ -1,0 +1,54 @@
+---
+source: src/cfg/package_spec.rs
+expression: validated
+---
+{
+  "bare": {
+    "spec": {
+      "name": "bare-name",
+      "version-req": null
+    },
+    "inner": null
+  },
+  "specific": {
+    "spec": {
+      "name": "specific",
+      "version-req": "=0.1.0"
+    },
+    "inner": null
+  },
+  "range": {
+    "spec": {
+      "name": "range",
+      "version-req": "<=1.0"
+    },
+    "inner": {
+      "data": 10
+    }
+  },
+  "mixed": [
+    {
+      "spec": {
+        "name": "bare-name-1",
+        "version-req": null
+      },
+      "inner": null
+    },
+    {
+      "spec": {
+        "name": "range-2",
+        "version-req": ">=1.0, <=2.0"
+      },
+      "inner": {
+        "data": 20
+      }
+    },
+    {
+      "spec": {
+        "name": "specific-3",
+        "version-req": "=0.2.1"
+      },
+      "inner": null
+    }
+  ]
+}

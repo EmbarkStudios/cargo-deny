@@ -1,15 +1,19 @@
-use cargo_deny::{func_name, sources, test_utils::*};
+use cargo_deny::{
+    func_name,
+    sources::{self, cfg::Config},
+    test_utils::{self as tu, KrateGather},
+};
 
 #[inline]
 pub fn src_check(
     name: &str,
     kg: KrateGather<'_>,
-    cfg: impl Into<Config<sources::Config>>,
+    cfg: impl Into<tu::Config<Config>>,
 ) -> Vec<serde_json::Value> {
     let krates = kg.gather();
     let cfg = cfg.into();
 
-    gather_diagnostics::<sources::Config, _, _>(&krates, name, cfg, |ctx, _cs, tx| {
+    tu::gather_diagnostics::<Config, _, _>(&krates, name, cfg, |ctx, _cs, tx, _files| {
         sources::check(ctx, tx);
     })
 }
@@ -118,7 +122,7 @@ allow-registry = [
 
 #[test]
 fn validates_git_source_specs() {
-    use sources::GitSpec;
+    use sources::cfg::GitSpec;
 
     assert!(GitSpec::Rev > GitSpec::Tag);
     assert!(GitSpec::Tag > GitSpec::Branch);

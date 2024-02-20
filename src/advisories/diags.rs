@@ -22,9 +22,11 @@ pub enum Code {
     Unmaintained,
     Unsound,
     Yanked,
+    YankedIgnored,
     IndexFailure,
     IndexCacheLoadFailure,
     AdvisoryNotDetected,
+    YankedNotDetected,
     UnknownAdvisory,
 }
 
@@ -187,6 +189,18 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         pack
     }
 
+    pub(crate) fn diag_for_yanked_ignore(&self, krate: &crate::Krate, ignore: usize) -> Pack {
+        let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
+        pack.push(
+            Diagnostic::note()
+                .with_message(format!("yanked crate '{krate}' detected, but ignored",))
+                .with_code(Code::YankedIgnored)
+                .with_labels(self.cfg.ignore_yanked[ignore].to_labels(Some("yanked ignore"))),
+        );
+
+        pack
+    }
+
     pub(crate) fn diag_for_index_failure<D: std::fmt::Display>(
         &self,
         krate: &crate::Krate,
@@ -202,7 +216,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         // to the beginning and confuses users
         if !self.cfg.yanked.span.is_empty() {
             labels.push(
-                Label::primary(self.cfg.file_id, self.cfg.yanked.span.clone())
+                Label::primary(self.cfg.file_id, self.cfg.yanked.span)
                     .with_message("lint level defined here"),
             );
         }
@@ -238,8 +252,23 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory was not encountered")
                 .with_code(Code::AdvisoryNotDetected)
-                .with_labels(vec![Label::primary(self.cfg.file_id, not_hit.span.clone())
+                .with_labels(vec![Label::primary(self.cfg.file_id, not_hit.span)
                     .with_message("no crate matched advisory criteria")]),
+        )
+            .into()
+    }
+
+    #[allow(clippy::unused_self)]
+    pub(crate) fn diag_for_ignored_yanked_not_encountered(
+        &self,
+        not_hit: &crate::bans::SpecAndReason,
+    ) -> Pack {
+        (
+            Check::Advisories,
+            Diagnostic::new(Severity::Warning)
+                .with_message("yanked crate was not encountered")
+                .with_code(Code::YankedNotDetected)
+                .with_labels(not_hit.to_labels(Some("yanked crate not detected"))),
         )
             .into()
     }
@@ -250,8 +279,9 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             Diagnostic::new(Severity::Warning)
                 .with_message("advisory not found in any advisory database")
                 .with_code(Code::UnknownAdvisory)
-                .with_labels(vec![Label::primary(self.cfg.file_id, unknown.span.clone())
-                    .with_message("unknown advisory")]),
+                .with_labels(vec![
+                    Label::primary(self.cfg.file_id, unknown.span).with_message("unknown advisory")
+                ]),
         )
             .into()
     }

@@ -24,8 +24,8 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 16,
-          "line": 4,
+          "column": 17,
+          "line": 7,
           "message": "checksum",
           "span": "474a3eb189a698475d8a6f4b358eb0790db6379aea8b8a85ac925102784cd520"
         }
@@ -59,8 +59,8 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 16,
-          "line": 8,
+          "column": 17,
+          "line": 11,
           "message": "checksum",
           "span": "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf"
         }

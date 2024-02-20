@@ -9,10 +9,10 @@ expression: diags
       "graphs": [],
       "labels": [
         {
-          "column": 25,
+          "column": 26,
           "line": 3,
           "message": "unmatched license exception",
-          "span": "'bippity-boppity-boop'"
+          "span": "bippity-boppity-boop"
         }
       ],
       "message": "license exception was not encountered",

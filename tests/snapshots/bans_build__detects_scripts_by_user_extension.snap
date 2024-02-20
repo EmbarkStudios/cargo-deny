@@ -16,10 +16,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 22,
+          "column": 23,
           "line": 3,
           "message": "",
-          "span": "'cs'"
+          "span": "cs"
         }
       ],
       "message": "path disallowed by extension",

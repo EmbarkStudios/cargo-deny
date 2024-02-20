@@ -1,0 +1,50 @@
+---
+source: src/sources/cfg.rs
+expression: validated
+---
+ValidConfig {
+    file_id: FileId(
+        1,
+    ),
+    unknown_registry: Allow,
+    unknown_git: Deny,
+    allowed_sources: [
+        UrlSource {
+            url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("sekretz.com")), port: None, path: "/registry/index", query: None, fragment: None },
+            exact: true,
+        },
+        UrlSource {
+            url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("fake.sparse.com")), port: None, path: "/", query: None, fragment: None },
+            exact: true,
+        },
+        UrlSource {
+            url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("notgithub.com")), port: None, path: "/orgname/reponame", query: None, fragment: None },
+            exact: true,
+        },
+        UrlSource {
+            url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("internal-host")), port: None, path: "/repos", query: None, fragment: None },
+            exact: false,
+        },
+    ],
+    allowed_orgs: [
+        (
+            Github,
+            "yourghid",
+        ),
+        (
+            Github,
+            "YourOrg",
+        ),
+        (
+            Gitlab,
+            "gitlab-org",
+        ),
+        (
+            Bitbucket,
+            "atlassian",
+        ),
+    ],
+    required_git_spec: Some(
+        Tag,
+    ),
+}

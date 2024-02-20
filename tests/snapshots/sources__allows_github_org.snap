@@ -136,10 +136,10 @@ expression: diags
           "span": "git+https://github.com/EmbarkStudios/krates?branch=main"
         },
         {
-          "column": 15,
+          "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "'EmbarkStudios'"
+          "span": "EmbarkStudios"
         }
       ],
       "message": "source allowed by organization allowance",
@@ -208,10 +208,10 @@ expression: diags
           "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4"
         },
         {
-          "column": 15,
+          "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "'EmbarkStudios'"
+          "span": "EmbarkStudios"
         }
       ],
       "message": "source allowed by organization allowance",

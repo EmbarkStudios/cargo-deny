@@ -39,6 +39,7 @@ impl<'k> Indices<'k> {
             indices.push((source, index));
         }
 
+        #[allow(clippy::blocks_in_conditions)]
         let cargo_package_lock =
             match tame_index::utils::flock::LockOptions::cargo_package_lock(Some(cargo_home))
                 .expect("unreachable")

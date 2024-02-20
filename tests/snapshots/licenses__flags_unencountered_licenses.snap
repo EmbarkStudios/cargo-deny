@@ -9,10 +9,10 @@ expression: diags
       "graphs": [],
       "labels": [
         {
-          "column": 10,
+          "column": 11,
           "line": 1,
           "message": "unmatched license allowance",
-          "span": "'Aladdin'"
+          "span": "Aladdin"
         }
       ],
       "message": "license was not encountered",
