@@ -5,7 +5,6 @@ use crate::{
 };
 use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
-//#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct CrateBanExtended {
     /// One or more crates that will allow this crate to be used if it is a
