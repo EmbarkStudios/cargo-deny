@@ -16,7 +16,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: "clippy, rustfmt"
@@ -35,17 +35,10 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-22.04, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
-      # We need to disable conversion to CRLF line endings on windows because it's
-      # dumb and causes advisory tests to fails since the submodule is checked
-      # out with the broken line endings
-      - if: matrix.os == 'windows-2022'
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
@@ -54,22 +47,6 @@ jobs:
       - name: cargo test build
         run: cargo build --tests
       - run: cargo test
-
-  # Verifies we can build aarch64-apple-darwin binaries until GHA actually has
-  # runners for them that we can actually run tests on
-  build-aarch64-apple-darwin:
-    name: Build aarch64-apple-darwin
-    runs-on: macos-11
-    # Only run this PRs
-    if: false #github.ref != 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fetch --target aarch64-apple-darwin
-      - run: cargo build --release --target aarch64-apple-darwin
 
   self:
     name: Check Users
@@ -83,7 +60,7 @@ jobs:
     env:
       TARGET: x86_64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target }}
@@ -111,7 +88,7 @@ jobs:
     name: Build the book
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - env:
           version: "0.4.32"
         run: |
@@ -128,7 +105,7 @@ jobs:
     name: Publish Check
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
@@ -160,7 +137,7 @@ jobs:
             bin: cargo-deny
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -215,7 +192,7 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download book
         uses: actions/download-artifact@v1
         with:
