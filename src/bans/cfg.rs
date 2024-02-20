@@ -1,5 +1,5 @@
 use crate::{
-    cfg::{PackageSpec, PackageSpecOrExtended, ValidationContext, Reason},
+    cfg::{PackageSpec, PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
     LintLevel, Spanned,
 };
@@ -158,8 +158,7 @@ impl<'de> Deserialize<'de> for Checksum {
                 ChecksumParseError::InvalidLength(len) => {
                     toml_span::Error::from((toml_span::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'").into()), value.span))
                 }
-                ChecksumParseError::InvalidValue(c) => 
-                    toml_span::Error::from((toml_span::ErrorKind::Unexpected(c), value.span)),
+                ChecksumParseError::InvalidValue(c) => toml_span::Error::from((toml_span::ErrorKind::Unexpected(c), value.span)),
             };
             err.into()
         })
@@ -169,8 +168,9 @@ impl<'de> Deserialize<'de> for Checksum {
 #[cfg(test)]
 impl serde::Serialize for Checksum {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hexs = [0; 64];
 
         const CHARS: &[u8] = b"0123456789abcdef";
@@ -320,10 +320,7 @@ impl<'de> Deserialize<'de> for TreeSkipExtended {
         let mut th = TableHelper::new(value)?;
         let depth = th.optional("depth");
         th.finalize(None)?;
-        Ok(Self {
-            depth,
-            reason,
-        })
+        Ok(Self { depth, reason })
     }
 }
 
@@ -395,9 +392,11 @@ impl Default for Config {
 impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let mut th = TableHelper::new(value)?;
-        
+
         let multiple_versions = th.optional("multiple-versions").unwrap_or(LintLevel::Warn);
-        let multiple_versions_include_dev = th.optional("multiple-versions-include-dev").unwrap_or_default();
+        let multiple_versions_include_dev = th
+            .optional("multiple-versions-include-dev")
+            .unwrap_or_default();
         let highlight = th.optional("highlight").unwrap_or_default();
         let deny = th.optional("deny").unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
@@ -410,7 +409,7 @@ impl<'de> Deserialize<'de> for Config {
         let allow_wildcard_paths = th.optional("allow-wildcard-paths").unwrap_or_default();
         let allow_build_scripts = th.optional("allow-build-scripts");
         let build = th.optional("build");
-        
+
         th.finalize(None)?;
 
         Ok(Self {
@@ -480,10 +479,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     None
                 };
 
-                denied.push(ValidKrateBan {
-                    spec,
-                    inner,
-                });
+                denied.push(ValidKrateBan { spec, inner });
             }
 
             (dmulti, denied)
@@ -586,8 +582,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             Diagnostic::error()
                                 .with_message("invalid file extension provided")
                                 .with_labels(vec![
-                                    Label::primary(ctx.cfg_id, ext.span)
-                                        .with_message("extension"),
+                                    Label::primary(ctx.cfg_id, ext.span).with_message("extension"),
                                     Label::secondary(
                                         ctx.cfg_id,
                                         ext.span.start + i..ext.span.start + i + 1,
@@ -606,11 +601,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message(format!("invalid glob pattern: {err}"))
-                                    .with_labels(vec![Label::primary(
-                                        ctx.cfg_id,
-                                        ext.span,
-                                    )
-                                    .with_message("extension")]),
+                                    .with_labels(vec![Label::primary(ctx.cfg_id, ext.span)
+                                        .with_message("extension")]),
                             );
                         }
                     }
@@ -647,10 +639,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                     ctx.diagnostics.push(
                                         Diagnostic::error()
                                             .with_message(format!("invalid glob pattern: {err}"))
-                                            .with_labels(vec![Label::primary(
-                                                ctx.cfg_id,
-                                                ag.span,
-                                            )]),
+                                            .with_labels(vec![Label::primary(ctx.cfg_id, ag.span)]),
                                     );
                                 }
                             }
@@ -677,10 +666,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message("absolute paths are not allowed")
-                                    .with_labels(vec![Label::primary(
-                                        ctx.cfg_id,
-                                        ae.path.span,
-                                    )]),
+                                    .with_labels(vec![Label::primary(ctx.cfg_id, ae.path.span)]),
                             );
                         }
 
@@ -846,10 +832,13 @@ pub struct ValidGlobSet {
 #[cfg(test)]
 impl serde::Serialize for ValidGlobSet {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.collect_seq(self.patterns.iter().filter_map(|gp| {
-            let GlobPattern::User(gp) = gp else { return None; };
+            let GlobPattern::User(gp) = gp else {
+                return None;
+            };
             Some(gp)
         }))
     }
@@ -918,8 +907,6 @@ pub struct ValidConfig {
     pub allow_wildcard_paths: bool,
     pub build: Option<ValidBuildConfig>,
 }
-
-
 
 #[cfg(test)]
 mod test {
