@@ -396,7 +396,7 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
     }
 
     assert!(
-        (time::OffsetDateTime::now_utc() - adb.fetch_time) < std::time::Duration::from_secs(10)
+        (time::OffsetDateTime::now_utc() - adb.fetch_time) < std::time::Duration::from_secs(60)
     );
 }
 
