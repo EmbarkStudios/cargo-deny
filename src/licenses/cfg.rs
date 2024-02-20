@@ -4,7 +4,7 @@
 //! configuration.
 //!
 //! ```
-//! use cargo_deny::{LintLevel, licenses::Config};
+//! use cargo_deny::{LintLevel, licenses::cfg::Config};
 //!
 //! let dc = Config::default();
 //!
