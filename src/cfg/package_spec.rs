@@ -88,7 +88,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
                     let version_req = if let Some(vr) = version {
                         Some(vr.value.parse().map_err(|e: semver::Error| {
                             toml_span::Error::from((
-                                toml_span::ErrorKind::Custom(e.to_string()),
+                                toml_span::ErrorKind::Custom(e.to_string().into()),
                                 vr.span,
                             ))
                         })?)
@@ -105,7 +105,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
         let (name, version_req) = if let Some((i, make_exact)) = ctx.split {
             let mut v: VersionReq = ctx.inner[i + 1..].parse().map_err(|e: semver::Error| {
                 toml_span::Error::from((
-                    toml_span::ErrorKind::Custom(e.to_string()),
+                    toml_span::ErrorKind::Custom(e.to_string().into()),
                     Span::new(ctx.span.start + i + 1, ctx.span.end),
                 ))
             })?;
@@ -171,6 +171,7 @@ impl Ord for PackageSpec {
                                     Wildcard,
                                 }
 
+                                #[allow(clippy::fallible_impl_from)]
                                 impl From<semver::Op> for Op {
                                     fn from(op: semver::Op) -> Self {
                                         match op {

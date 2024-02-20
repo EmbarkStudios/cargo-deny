@@ -553,7 +553,7 @@ pub fn check(
                                         ),
                                         None => (
                                             diags::BannedUnmatchedWrapper {
-                                                ban_cfg: &rm.specr,
+                                                ban_cfg: rm.specr,
                                                 banned_krate: krate,
                                                 parent_krate: src.krate,
                                             }
@@ -574,7 +574,7 @@ pub fn check(
                         if !is_allowed_by_wrapper {
                             pack.push(diags::ExplicitlyBanned {
                                 krate,
-                                ban_cfg: &rm.specr,
+                                ban_cfg: rm.specr,
                             });
                         }
                     }
@@ -588,7 +588,7 @@ pub fn check(
                             for rm in matches {
                                 pack.push(diags::ExplicitlyAllowed {
                                     krate,
-                                    allow_cfg: &rm.specr,
+                                    allow_cfg: rm.specr,
                                 });
                             }
                         }
@@ -818,7 +818,7 @@ pub fn check(
                         for rm in matches {
                             pack.push(diags::Skipped {
                                 krate,
-                                skip_cfg: &rm.specr,
+                                skip_cfg: rm.specr,
                             });
 
                             // Mark each skip filter that is hit so that we can report unused

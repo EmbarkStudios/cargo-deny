@@ -195,7 +195,7 @@ impl<'de> Deserialize<'de> for Licensee {
                 let offset = value.span.start;
 
                 Err(toml_span::Error {
-                    kind: toml_span::ErrorKind::Custom(pe.reason.to_string()),
+                    kind: toml_span::ErrorKind::Custom(pe.reason.to_string().into()),
                     span: (pe.span.start + offset..pe.span.end + offset).into(),
                     line_info: None,
                 }

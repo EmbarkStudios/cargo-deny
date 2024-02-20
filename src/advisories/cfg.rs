@@ -160,8 +160,13 @@ impl<'de> toml_span::Deserialize<'de> for Config {
                 Ok(mds) => match parse_rfc3339_duration(&mds) {
                     Ok(mds) => Some(Spanned::with_span(mds, val.span)),
                     Err(err) => {
-                        th.errors
-                            .push((toml_span::ErrorKind::Custom(err.to_string()), val.span).into());
+                        th.errors.push(
+                            (
+                                toml_span::ErrorKind::Custom(err.to_string().into()),
+                                val.span,
+                            )
+                                .into(),
+                        );
                         None
                     }
                 },
@@ -230,7 +235,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 .into_iter()
                 .map(|s| crate::bans::SpecAndReason {
                     spec: s.value.spec,
-                    reason: s.value.inner.map(|r| r),
+                    reason: s.value.inner,
                     use_instead: None,
                     file_id: ctx.cfg_id,
                 })

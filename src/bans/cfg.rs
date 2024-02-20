@@ -156,7 +156,7 @@ impl<'de> Deserialize<'de> for Checksum {
         val.parse().map_err(|err| {
             let err = match err {
                 ChecksumParseError::InvalidLength(len) => {
-                    toml_span::Error::from((toml_span::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'")), value.span))
+                    toml_span::Error::from((toml_span::ErrorKind::Custom(format!("a sha-256 hex encoded string of length 64 but got a string of length '{len}'").into()), value.span))
                 }
                 ChecksumParseError::InvalidValue(c) => 
                     toml_span::Error::from((toml_span::ErrorKind::Unexpected(c), value.span)),

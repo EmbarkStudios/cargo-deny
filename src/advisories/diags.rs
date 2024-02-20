@@ -258,6 +258,7 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
             .into()
     }
 
+    #[allow(clippy::unused_self)]
     pub(crate) fn diag_for_ignored_yanked_not_encountered(
         &self,
         not_hit: &crate::bans::SpecAndReason,
