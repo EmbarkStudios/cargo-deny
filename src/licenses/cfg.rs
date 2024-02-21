@@ -278,7 +278,7 @@ impl<'de> Deserialize<'de> for Config {
         let mut fdeps = Vec::new();
 
         let private = th.optional("private").unwrap_or_default();
-        let unlicensed = th.optional("unlicensed").unwrap_or(LintLevel::Deny);
+        let unlicensed = deprecated(&mut th, "unlicensed", &mut fdeps).unwrap_or(LintLevel::Deny);
         let allow_osi_fsf_free =
             deprecated(&mut th, "allow-osi-fsf-free", &mut fdeps).unwrap_or_default();
         let copyleft = deprecated(&mut th, "copyleft", &mut fdeps).unwrap_or(LintLevel::Warn);
