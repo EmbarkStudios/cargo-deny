@@ -157,17 +157,20 @@ ignore = [
     let downgraded = [
         find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
         find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
-        diags
-            .iter()
-            .find(|v| {
-                v.pointer("/fields/code")
-                    .and_then(|s| s.as_str())
-                    .map_or(false, |s| s == "advisory-ignored")
-            })
-            .unwrap(),
     ];
 
     insta::assert_json_snapshot!(downgraded);
+
+    let ignored: Vec<_> = diags
+        .into_iter()
+        .filter(|v| {
+            v.pointer("/fields/code")
+                .and_then(|s| s.as_str())
+                .map_or(false, |s| s == "advisory-ignored")
+        })
+        .collect();
+
+    insta::assert_json_snapshot!(ignored);
 }
 
 /// Validates we can detect yanked crates from sparse, git, and
