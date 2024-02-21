@@ -29,23 +29,39 @@ impl From<Code> for String {
 }
 
 pub enum DeprecationReason {
-    WillBeRemoved,
+    WillBeRemoved(Option<&'static str>),
     Moved(&'static str),
     Renamed(&'static str),
     MovedAndRenamed {
         table: &'static str,
         key: &'static str,
     },
+    Removed(&'static str),
 }
 
 impl fmt::Display for DeprecationReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::WillBeRemoved => f.write_str("the key will be removed in a future update"),
-            Self::Moved(tab) => write!(f, "the key has been moved to [{tab}]"),
-            Self::Renamed(nname) => write!(f, "the key has been renamed to '{nname}'"),
+            Self::WillBeRemoved(url) => {
+                if let Some(url) = url {
+                    write!(
+                        f,
+                        "this key will be removed in a future update, see {url} for details"
+                    )
+                } else {
+                    f.write_str("this key will be removed in a future update")
+                }
+            }
+            Self::Moved(tab) => write!(f, "this key has been moved to [{tab}]"),
+            Self::Renamed(nname) => write!(f, "this key has been renamed to '{nname}'"),
             Self::MovedAndRenamed { table, key } => {
-                write!(f, "the key been moved to [{table}] and renamed to '{key}'")
+                write!(f, "this key been moved to [{table}] and renamed to '{key}'")
+            }
+            Self::Removed(url) => {
+                write!(
+                    f,
+                    "this key has been removed, see {url} for migration information"
+                )
             }
         }
     }

@@ -22,9 +22,9 @@
 //! ```
 
 use crate::{
-    cfg::{PackageSpec, ValidationContext},
+    cfg::{deprecated, PackageSpec, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    LintLevel, PathBuf, Spanned,
+    LintLevel, PathBuf, Span, Spanned,
 };
 use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
 
@@ -248,6 +248,7 @@ pub struct Config {
     /// If true, performs license checks for dev-dependencies for workspace
     /// crates as well
     pub include_dev: bool,
+    deprecated: Vec<Span>,
 }
 
 impl Default for Config {
@@ -265,6 +266,7 @@ impl Default for Config {
             clarify: Vec::new(),
             exceptions: Vec::new(),
             include_dev: false,
+            deprecated: Vec::new(),
         }
     }
 }
@@ -273,15 +275,18 @@ impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let mut th = TableHelper::new(value)?;
 
+        let mut fdeps = Vec::new();
+
         let private = th.optional("private").unwrap_or_default();
-        let unlicensed = th.optional("unlicensed").unwrap_or(LintLevel::Deny);
-        let allow_osi_fsf_free = th.optional("allow-osi-fsf-free").unwrap_or_default();
-        let copyleft = th.optional("copyleft").unwrap_or(LintLevel::Warn);
-        let default = th.optional("default").unwrap_or(LintLevel::Deny);
+        let unlicensed = deprecated(&mut th, "unlicensed", &mut fdeps).unwrap_or(LintLevel::Deny);
+        let allow_osi_fsf_free =
+            deprecated(&mut th, "allow-osi-fsf-free", &mut fdeps).unwrap_or_default();
+        let copyleft = deprecated(&mut th, "copyleft", &mut fdeps).unwrap_or(LintLevel::Warn);
+        let default = deprecated(&mut th, "default", &mut fdeps).unwrap_or(LintLevel::Deny);
         let confidence_threshold = th
             .optional("confidence-threshold")
             .unwrap_or(DEFAULT_CONFIDENCE_THRESHOLD);
-        let deny = th.optional("deny").unwrap_or_default();
+        let deny = deprecated(&mut th, "deny", &mut fdeps).unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
         let unused_allowed_license = th
             .optional("unused-allowed-license")
@@ -305,6 +310,7 @@ impl<'de> Deserialize<'de> for Config {
             clarify,
             exceptions,
             include_dev,
+            deprecated: fdeps,
         })
     }
 }
@@ -396,6 +402,23 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 expression: expr,
                 license_files,
             });
+        }
+
+        use crate::diag::general::{Deprecated, DeprecationReason};
+
+        // Output any deprecations, we'll remove the fields at the same time we
+        // remove all the logic they drive
+        for dep in self.deprecated {
+            ctx.push(
+                Deprecated {
+                    reason: DeprecationReason::WillBeRemoved(Some(
+                        "https://github.com/EmbarkStudios/cargo-deny/pull/606",
+                    )),
+                    key: dep,
+                    file_id: ctx.cfg_id,
+                }
+                .into(),
+            );
         }
 
         ValidConfig {
@@ -537,7 +560,13 @@ mod test {
     #[test]
     fn deserializes_licenses_cfg() {
         let cd = ConfigData::<Licenses>::load("tests/cfg/licenses.toml");
-        let validated = cd.validate(|l| l.licenses);
+        let validated = cd.validate_with_diags(
+            |l| l.licenses,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                insta::assert_snapshot!(diags);
+            },
+        );
 
         insta::assert_json_snapshot!(validated);
     }
