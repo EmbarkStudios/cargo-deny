@@ -1,0 +1,44 @@
+---
+source: src/advisories/cfg.rs
+expression: validated
+---
+{
+  "file_id": 1,
+  "db_path": "~/.cargo/advisory-dbs",
+  "db_urls": [
+    "https://github.com/RustSec/advisory-db"
+  ],
+  "ignore": [
+    "RUSTSEC-0000-0000"
+  ],
+  "ignore_yanked": [
+    {
+      "spec": {
+        "name": "crate",
+        "version-req": "=0.1"
+      },
+      "reason": null,
+      "use-instead": null
+    },
+    {
+      "spec": {
+        "name": "yanked",
+        "version-req": null
+      },
+      "reason": "a new version has not been released",
+      "use-instead": null
+    }
+  ],
+  "vulnerability": "deny",
+  "unmaintained": "warn",
+  "unsound": "warn",
+  "yanked": "warn",
+  "notice": "warn",
+  "severity_threshold": "medium",
+  "git_fetch_with_cli": false,
+  "disable_yank_checking": false,
+  "maximum_db_staleness": [
+    466560000,
+    0
+  ]
+}

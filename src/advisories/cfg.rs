@@ -1,7 +1,7 @@
 use crate::{
     cfg::{PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    LintLevel, PathBuf, Spanned,
+    LintLevel, PathBuf, Span, Spanned,
 };
 use rustsec::advisory;
 use time::Duration;
@@ -44,6 +44,7 @@ pub struct Config {
     /// use the '.' separator instead of ',' which is used by some locales and
     /// supported in the RFC3339 format, but not by this implementation
     pub maximum_db_staleness: Spanned<Duration>,
+    deprecated: Vec<Span>,
 }
 
 impl Default for Config {
@@ -62,6 +63,7 @@ impl Default for Config {
             git_fetch_with_cli: None,
             disable_yank_checking: false,
             maximum_db_staleness: Spanned::new(Duration::seconds_f64(NINETY_DAYS)),
+            deprecated: Vec::new(),
         }
     }
 }
@@ -97,13 +99,20 @@ impl<'de> toml_span::Deserialize<'de> for Config {
         } else {
             Vec::new()
         };
-        let vulnerability = th.optional("vulnerability").unwrap_or(LintLevel::Deny);
-        let unmaintained = th.optional("unmaintained").unwrap_or(LintLevel::Warn);
-        let unsound = th.optional("unsound").unwrap_or(LintLevel::Warn);
+
+        use crate::cfg::deprecated;
+
+        let mut fdeps = Vec::new();
+
+        let vulnerability =
+            deprecated(&mut th, "vulnerability", &mut fdeps).unwrap_or(LintLevel::Deny);
+        let unmaintained =
+            deprecated(&mut th, "unmaintained", &mut fdeps).unwrap_or(LintLevel::Warn);
+        let unsound = deprecated(&mut th, "unsound", &mut fdeps).unwrap_or(LintLevel::Warn);
         let yanked = th
             .optional_s("yanked")
             .unwrap_or(Spanned::new(LintLevel::Warn));
-        let notice = th.optional("notice").unwrap_or(LintLevel::Warn);
+        let notice = deprecated(&mut th, "notice", &mut fdeps).unwrap_or(LintLevel::Warn);
         let (ignore, ignore_yanked) = if let Some((_, mut ignore)) = th.take("ignore") {
             let mut u = Vec::new();
             let mut y = Vec::new();
@@ -152,7 +161,38 @@ impl<'de> toml_span::Deserialize<'de> for Config {
         } else {
             (Vec::new(), Vec::new())
         };
-        let severity_threshold = th.parse_opt("severity-threshold");
+        let st = |th: &mut TableHelper<'_>, fdeps: &mut Vec<Span>| {
+            let (k, mut v) = th.take("severity-threshold")?;
+
+            fdeps.push(k.span);
+            let s = match v.take_string(Some(
+                "https://docs.rs/rustsec/latest/rustsec/advisory/enum.Severity.html",
+            )) {
+                Ok(s) => s,
+                Err(err) => {
+                    th.errors.push(err);
+                    return None;
+                }
+            };
+
+            match s.parse() {
+                Ok(st) => Some(st),
+                Err(err) => {
+                    th.errors.push(
+                        (
+                            toml_span::ErrorKind::Custom(
+                                format!("failed to parse rustsec::Severity: {err}").into(),
+                            ),
+                            v.span,
+                        )
+                            .into(),
+                    );
+                    None
+                }
+            }
+        };
+
+        let severity_threshold = st(&mut th, &mut fdeps);
         let git_fetch_with_cli = th.optional("git-fetch-with-cli");
         let disable_yank_checking = th.optional("disable-yank-checking").unwrap_or_default();
         let maximum_db_staleness = if let Some((_, mut val)) = th.take("maximum-db-staleness") {
@@ -199,6 +239,7 @@ impl<'de> toml_span::Deserialize<'de> for Config {
             git_fetch_with_cli,
             disable_yank_checking,
             maximum_db_staleness,
+            deprecated: fdeps,
         })
     }
 }
@@ -224,6 +265,23 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         .with_labels(vec![Label::secondary(ctx.cfg_id, url.span)]),
                 );
             }
+        }
+
+        use crate::diag::general::{Deprecated, DeprecationReason};
+
+        // Output any deprecations, we'll remove the fields at the same time we
+        // remove all the logic they drive
+        for dep in self.deprecated {
+            ctx.push(
+                Deprecated {
+                    reason: DeprecationReason::WillBeRemoved(Some(
+                        "https://github.com/EmbarkStudios/cargo-deny/pull/606",
+                    )),
+                    key: dep,
+                    file_id: ctx.cfg_id,
+                }
+                .into(),
+            )
         }
 
         ValidConfig {
@@ -450,7 +508,13 @@ mod test {
     #[test]
     fn deserializes_advisories_cfg() {
         let cd = ConfigData::<Advisories>::load("tests/cfg/advisories.toml");
-        let validated = cd.validate(|a| a.advisories);
+        let validated = cd.validate_with_diags(
+            |a| a.advisories,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                insta::assert_snapshot!(diags);
+            },
+        );
 
         insta::assert_json_snapshot!(validated);
     }

@@ -72,3 +72,27 @@ impl<'de> toml_span::Deserialize<'de> for Reason {
         Ok(Self(r))
     }
 }
+
+/// Deserialize a field from the table if it exists, but append the key's span
+/// so it can be marked as deprecated
+pub fn deprecated<'de, T>(
+    th: &mut toml_span::de_helpers::TableHelper<'de>,
+    field: &'static str,
+    spans: &mut Vec<Span>,
+) -> Option<T>
+where
+    T: toml_span::Deserialize<'de>,
+{
+    let Some((k, mut v)) = th.take(field) else {
+        return None;
+    };
+    spans.push(k.span);
+
+    match T::deserialize(&mut v) {
+        Ok(v) => Some(v),
+        Err(mut err) => {
+            th.errors.append(&mut err.errors);
+            None
+        }
+    }
+}
