@@ -59,7 +59,7 @@ expression: diags
           "column": 16,
           "line": 5,
           "message": "yanked ignore",
-          "span": "spdx"
+          "span": "spdx@0.3.1"
         },
         {
           "column": 39,
