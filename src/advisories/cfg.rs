@@ -281,7 +281,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     file_id: ctx.cfg_id,
                 }
                 .into(),
-            )
+            );
         }
 
         ValidConfig {
