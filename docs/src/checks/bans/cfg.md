@@ -54,7 +54,7 @@ When multiple versions of the same crate are encountered and `multiple-versions`
 deny = ["package-spec"]
 ```
 
-Determines specific crates that are denied.
+Determines specific crates that are denied. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 #### The `wrappers` field (optional)
 
@@ -95,7 +95,7 @@ This is a shorthand for the most common case for banning a particular crate, whi
 deny = ["package-spec"]
 ```
 
-Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care.
+Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 #### The `allow.reason` field (optional)
 
@@ -143,7 +143,7 @@ allow = ["good-feature"]
 exact = true
 ```
 
-Allows specification of crate specific allow/deny lists of features.
+Allows specification of crate specific allow/deny lists of features. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 #### The `features.deny` field (optional)
 
@@ -159,11 +159,28 @@ If specified, requires that the features in `allow` exactly match the features e
 
 ### The `skip` field (optional)
 
+```ini
+skip = [
+    "package-spec",
+    { crate = "package-spec", reason = "an old version is used by crate-x, see <PR link> for updating it" },
+]
+```
+
 When denying duplicate versions, it's often the case that there is a window of time where you must wait for, for example, PRs to be accepted and new version published, before 1 or more duplicates are gone. The `skip` field allows you to temporarily ignore a crate during duplicate detection so that no errors are emitted, until it is no longer need.
 
 It is recommended to use specific version constraints for crates in the `skip` list, as cargo-deny will emit warnings when any entry in the `skip` list no longer matches a crate in your graph so that you can cleanup your configuration.
 
+Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
+
 ### The `skip-tree` field (optional)
+
+```ini
+skip-tree = [
+    "windows-sys<=0.52", # will skip this crate and _all_ direct and transitive dependencies
+    { crate = "windows-sys<=0.52", reason = "several crates use the outdated 0.42 and 0.45 versions" },
+    { crate = "windows-sys<=0.52", depth = 3, reason = "several crates use the outdated 0.42 and 0.45 versions" },
+]
+```
 
 When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the spectrum, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.
 
@@ -171,7 +188,9 @@ When dealing with duplicate versions, it's often the case that a particular crat
 
 Note that by default, the `depth` is infinite.
 
-**NOTE:** `skip-tree` is a very big hammer at the moment, and should be used with care.
+Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
+
+**NOTE:** `skip-tree` is a very big hammer, and should be used with care.
 
 ### The `build` field (optional)
 
