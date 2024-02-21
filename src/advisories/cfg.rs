@@ -5,8 +5,64 @@ use crate::{
 };
 use rustsec::advisory;
 use time::Duration;
-use toml_span::{de_helpers::*, value::ValueInner};
+use toml_span::{de_helpers::*, value::ValueInner, Deserialize, Value};
 use url::Url;
+
+pub(crate) type AdvisoryId = Spanned<advisory::Id>;
+
+#[cfg_attr(test, derive(serde::Serialize))]
+pub(crate) struct IgnoreId {
+    pub id: AdvisoryId,
+    pub reason: Option<Reason>,
+}
+
+impl<'de> Deserialize<'de> for IgnoreId {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, toml_span::DeserError> {
+        let mut th = TableHelper::new(value)?;
+        let ids = th.required_s::<std::borrow::Cow<'de, str>>("id")?;
+        let id = match ids.value.parse() {
+            Ok(id) => Spanned::with_span(id, ids.span),
+            Err(err) => {
+                return Err(toml_span::Error {
+                    kind: toml_span::ErrorKind::Custom(
+                        format!("failed to parse advisory id: {err}").into(),
+                    ),
+                    span: ids.span,
+                    line_info: None,
+                }
+                .into());
+            }
+        };
+        let reason = th.optional_s::<String>("reason");
+
+        th.finalize(None)?;
+
+        Ok(Self {
+            id,
+            reason: reason.map(Reason::from),
+        })
+    }
+}
+
+impl Ord for IgnoreId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for IgnoreId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for IgnoreId {
+    fn eq(&self, other: &Self) -> bool {
+        self.id.eq(&other.id)
+    }
+}
+
+impl Eq for IgnoreId {}
 
 pub struct Config {
     /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
@@ -24,7 +80,7 @@ pub struct Config {
     /// How to handle crates that have been marked with a notice in the advisory database
     pub notice: LintLevel,
     /// Ignore advisories for the given IDs
-    pub ignore: Vec<AdvisoryId>,
+    ignore: Vec<Spanned<IgnoreId>>,
     /// Ignore yanked crates
     pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
@@ -70,11 +126,9 @@ impl Default for Config {
 
 const NINETY_DAYS: f64 = 90. * 24. * 60. * 60. * 60.;
 
-impl<'de> toml_span::Deserialize<'de> for Config {
-    fn deserialize(
-        value: &mut toml_span::value::Value<'de>,
-    ) -> Result<Self, toml_span::DeserError> {
-        let mut th = toml_span::de_helpers::TableHelper::new(value)?;
+impl<'de> Deserialize<'de> for Config {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, toml_span::DeserError> {
+        let mut th = TableHelper::new(value)?;
 
         let db_path = th.optional::<String>("db-path").map(PathBuf::from);
         let db_urls = if let Some((_, mut urls)) = th.take("db-urls") {
@@ -120,33 +174,57 @@ impl<'de> toml_span::Deserialize<'de> for Config {
             match ignore.take() {
                 ValueInner::Array(ida) => {
                     for mut v in ida {
-                        let inner = v.take();
-                        if let ValueInner::String(s) = &inner {
-                            // Attempt to parse an advisory id first, note we can't
-                            // just immediately use parse as the from_str implementation
-                            // for id will just blindly accept any string
-                            if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other {
-                                if let Ok(id) = s.parse::<advisory::Id>() {
-                                    u.push(Spanned::with_span(id, v.span));
+                        match v.take() {
+                            ValueInner::String(s) => {
+                                // Attempt to parse an advisory id first, note we can't
+                                // just immediately use parse as the from_str implementation
+                                // for id will just blindly accept any string
+                                if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other {
+                                    if let Ok(id) = s.parse::<advisory::Id>() {
+                                        u.push(Spanned::with_span(
+                                            IgnoreId {
+                                                id: Spanned::with_span(id, v.span),
+                                                reason: None,
+                                            },
+                                            v.span,
+                                        ));
+                                        continue;
+                                    }
+                                }
+
+                                v.set(ValueInner::String(s));
+                            }
+                            ValueInner::Table(tab) => {
+                                if tab.contains_key(&"id".into()) {
+                                    v.set(ValueInner::Table(tab));
+                                    match IgnoreId::deserialize(&mut v) {
+                                        Ok(iid) => u.push(Spanned::with_span(iid, v.span)),
+                                        Err(mut err) => {
+                                            th.errors.append(&mut err.errors);
+                                        }
+                                    }
                                     continue;
                                 }
+
+                                v.set(ValueInner::Table(tab));
                             }
-                        }
-
-                        let found = inner.type_str();
-                        v.set(inner);
-
-                        match PackageSpecOrExtended::deserialize(&mut v) {
-                            Ok(pse) => y.push(Spanned::with_span(pse, v.span)),
-                            Err(_err) => {
+                            other => {
                                 th.errors.push(toml_span::Error {
                                     kind: toml_span::ErrorKind::Wanted {
                                         expected: "an advisory id or package spec",
-                                        found,
+                                        found: other.type_str(),
                                     },
                                     span: v.span,
                                     line_info: None,
                                 });
+                                continue;
+                            }
+                        }
+
+                        match PackageSpecOrExtended::deserialize(&mut v) {
+                            Ok(pse) => y.push(Spanned::with_span(pse, v.span)),
+                            Err(mut err) => {
+                                th.errors.append(&mut err.errors);
                             }
                         }
                     }
@@ -288,7 +366,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             file_id: ctx.cfg_id,
             db_path: self.db_path,
             db_urls,
-            ignore,
+            ignore: ignore.into_iter().map(|s| s.value).collect(),
             ignore_yanked: ignore_yanked
                 .into_iter()
                 .map(|s| crate::bans::SpecAndReason {
@@ -311,14 +389,12 @@ impl crate::cfg::UnvalidatedConfig for Config {
     }
 }
 
-pub(crate) type AdvisoryId = Spanned<advisory::Id>;
-
 #[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub db_path: Option<PathBuf>,
     pub db_urls: Vec<Spanned<Url>>,
-    pub(crate) ignore: Vec<AdvisoryId>,
+    pub(crate) ignore: Vec<IgnoreId>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub vulnerability: LintLevel,
     pub unmaintained: LintLevel,

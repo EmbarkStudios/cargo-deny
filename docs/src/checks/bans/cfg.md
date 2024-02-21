@@ -48,34 +48,18 @@ When multiple versions of the same crate are encountered and `multiple-versions`
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
 
-### Crate specifier
-
-The `allow`, `deny`, `features`, `skip`, `skip-tree`, and `build.allow` fields all use a crate identifier to specify what crate(s) they want to match against.
-
-```ini
-{ name = "some-crate-name-here", version = "<= 0.7.0" }
-```
-
-#### The `name` field
-
-The name of the crate.
-
-#### The `version` field (optional)
-
-An optional version constraint specifying the range of crate versions that will match. Defaults to any version.
-
 ### The `deny` field (optional)
 
 ```ini
-deny = [{ name = "crate-you-don't-want", version = "<= 0.7.0" }]
+deny = ["package-spec"]
 ```
 
-Determines specific crates that are denied.
+Determines specific crates that are denied. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 #### The `wrappers` field (optional)
 
 ```ini
-deny = [{ name = "crate-you-don't-want", version = "<= 0.7.0", wrappers = ["this-can-use-it"] }]
+deny = [{ crate = "crate-you-don't-want:<=0.7.0", wrappers = ["this-can-use-it"] }]
 ```
 
 This field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.
@@ -84,14 +68,42 @@ This field allows specific crates to have a direct dependency on the banned crat
 
 ```ini
 multiple-versions = 'allow'
-deny = [{ name = "crate-you-want-only-one-version-of", deny-multiple-versions = true }]
+deny = [{ crate = "crate-you-want-only-one-version-of", deny-multiple-versions = true }]
 ```
 
 This field allows specific crates to deny multiple versions of themselves, but allowing or warning on multiple versions for all other crates. This field cannot be set simultaneously with `wrappers`.
 
+#### The `deny.reason` field (optional)
+
+```ini
+deny = [{ crate = "package-spec", reason = "the reason this crate is banned"}]
+```
+
+This field provides the reason the crate is banned as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.
+
+#### The `deny.use-instead` field (optional)
+
+```ini
+deny = [{ crate = "openssl", use-instead = "rustls"}]
+```
+
+This is a shorthand for the most common case for banning a particular crate, which is that your project has chosen to use a different crate for that functionality.
+
 ### The `allow` field (optional)
 
-Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care.
+```ini
+deny = ["package-spec"]
+```
+
+Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
+
+#### The `allow.reason` field (optional)
+
+```ini
+allow = [{ crate = "package-spec", reason = "the reason this crate is allowed"}]
+```
+
+This field provides the reason the crate is allowed as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.
 
 ### The `external-default-features` field (optional)
 
@@ -104,7 +116,7 @@ For example, if `an-external-crate` had the `default` feature enabled it could b
 external-default-features = "deny"
 
 [[bans.features]]
-name = "an-external-crate"
+crate = "an-external-crate"
 allow = ["default"]
 ```
 
@@ -117,7 +129,7 @@ The workspace version of `external-default-features`.
 external-default-features = "allow"
 
 [[bans.features]]
-name = "a-workspace-crate"
+crate = "a-workspace-crate"
 deny = ["default"]
 ```
 
@@ -125,14 +137,13 @@ deny = ["default"]
 
 ```ini
 [[bans.features]]
-name = "featured-krate"
-version = "1.0"
+crate = "featured-krate:1.0"
 deny = ["bad-feature"]
 allow = ["good-feature"]
 exact = true
 ```
 
-Allows specification of crate specific allow/deny lists of features.
+Allows specification of crate specific allow/deny lists of features. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 #### The `features.deny` field (optional)
 
@@ -148,11 +159,28 @@ If specified, requires that the features in `allow` exactly match the features e
 
 ### The `skip` field (optional)
 
+```ini
+skip = [
+    "package-spec",
+    { crate = "package-spec", reason = "an old version is used by crate-x, see <PR link> for updating it" },
+]
+```
+
 When denying duplicate versions, it's often the case that there is a window of time where you must wait for, for example, PRs to be accepted and new version published, before 1 or more duplicates are gone. The `skip` field allows you to temporarily ignore a crate during duplicate detection so that no errors are emitted, until it is no longer need.
 
 It is recommended to use specific version constraints for crates in the `skip` list, as cargo-deny will emit warnings when any entry in the `skip` list no longer matches a crate in your graph so that you can cleanup your configuration.
 
+Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
+
 ### The `skip-tree` field (optional)
+
+```ini
+skip-tree = [
+    "windows-sys<=0.52", # will skip this crate and _all_ direct and transitive dependencies
+    { crate = "windows-sys<=0.52", reason = "several crates use the outdated 0.42 and 0.45 versions" },
+    { crate = "windows-sys<=0.52", depth = 3, reason = "several crates use the outdated 0.42 and 0.45 versions" },
+]
+```
 
 When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the spectrum, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.
 
@@ -160,7 +188,9 @@ When dealing with duplicate versions, it's often the case that a particular crat
 
 Note that by default, the `depth` is infinite.
 
-**NOTE:** `skip-tree` is a very big hammer at the moment, and should be used with care.
+Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
+
+**NOTE:** `skip-tree` is a very big hammer, and should be used with care.
 
 ### The `build` field (optional)
 
@@ -232,11 +262,11 @@ If `true`, archive files (eg. Windows .lib, Unix .a, C++ .o object files etc) ar
 
 While all the previous configuration is about configuration the global checks that run on compile time crates, the `allow` field is how one can suppress those lints on a crate-by-crate basis.
 
-Each entry uses the same [Crate specifier](#crate-specifier) as other parts of cargo-deny's configuration.
+Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
 ```ini
 [build.bypass]
-name = "crate-name"
+crate = "crate-name"
 ```
 
 ##### The `build-script` and `required-features` field (optional)
@@ -260,7 +290,7 @@ Bypasses scanning of files that match one or more of the glob patterns specified
 script-extensions = ["cs"]
 
 [[build.bypass]]
-name = "crate-name"
+crate = "crate-name"
 allow-globs = [
     "scripts/*.cs",
 ]
@@ -275,7 +305,7 @@ Bypasses scanning a single file.
 executables = "deny"
 
 [[build.bypass]]
-name = "crate-name"
+crate = "crate-name"
 allow = [
     { path = "bin/x86_64-linux", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" }
 ]
@@ -288,5 +318,3 @@ The path, relative to the crate root, of the file to bypass scanning.
 ###### The `checksum` field (optional)
 
 The 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2) checksum of the file. If the checksum does not match, an error is emitted.
-
-[](

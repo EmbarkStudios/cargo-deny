@@ -1,0 +1,122 @@
+---
+source: tests/advisories.rs
+expression: ignored
+---
+[
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 13,
+          "line": 5,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        },
+        {
+          "column": 43,
+          "line": 5,
+          "message": "ignore reason",
+          "span": "this is a test"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 13,
+          "line": 5,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        },
+        {
+          "column": 43,
+          "line": 5,
+          "message": "ignore reason",
+          "span": "this is a test"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libusb",
+            "version": "0.3.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 6,
+          "line": 4,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2016-0004"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  }
+]

@@ -720,6 +720,8 @@ impl<'db, 'k> Report<'db, 'k> {
             advisories.append(&mut db_advisories);
         }
 
+        advisories.sort_by(|a, b| a.1.cmp(&b.1));
+
         Self {
             advisories,
             serialized_reports,

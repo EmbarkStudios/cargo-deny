@@ -9,7 +9,10 @@ expression: validated
     "https://github.com/RustSec/advisory-db"
   ],
   "ignore": [
-    "RUSTSEC-0000-0000"
+    {
+      "id": "RUSTSEC-0000-0000",
+      "reason": null
+    }
   ],
   "ignore_yanked": [
     {

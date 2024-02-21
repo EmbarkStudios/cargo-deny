@@ -64,7 +64,18 @@ Determines what happens when a crate with a `notice` advisory is encountered.
 
 ### The `ignore` field (optional)
 
+```ini
+ignore = [
+   "RUSTSEC-0000-0000",
+   { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
+   "yanked@0.1.1",
+   { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
+]
+```
+
 Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.
+
+In addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-spec) with an optional `reason`.
 
 ### The `severity-threshold` field (optional)
 

@@ -115,13 +115,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
                 }
             }
 
-            (
-                Spanned::with_span(
-                    ctx.inner[..i].into(),
-                    Span::new(ctx.span.start, ctx.span.start + i),
-                ),
-                Some(v),
-            )
+            (Spanned::with_span(ctx.inner[..i].into(), ctx.span), Some(v))
         } else {
             (Spanned::with_span(ctx.inner.into(), ctx.span), None)
         };
