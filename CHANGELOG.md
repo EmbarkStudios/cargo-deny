@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) did a major refactor of configuration, both how it is deserialized and changing (hopefully improving) many options.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) moved `targets`, `exclude`, `all-features`, `features`, `no-default-features`, and `exclude` into the `[graph]` table.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) moved `feature-depth` into the `[output]` table.
+
+### Fixed
+- [PR#601](https://github.com/EmbarkStudios/cargo-deny/pull/601) resolved [#600](https://github.com/EmbarkStudios/cargo-deny/issues/600) by outputting the correct spans when a license was both allowed and denied.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) resolved [#264](https://github.com/EmbarkStudios/cargo-deny/issues/264) be replacing `toml` and `serde` with `toml-span`.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) resolved [#539](https://github.com/EmbarkStudios/cargo-deny/issues/539) by simplifying the very common `name = "<crate_name>", version = "<requirements>"` used to target specific crates into either a plain [package spec string](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#string-format) or the simpler `crate = "<package spec>"`.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) resolved [#578](https://github.com/EmbarkStudios/cargo-deny/issues/578) by adding a `reason = "<reason>"` field to _many_ fields within the configuration that are provided in diagnostics. `[bans.deny]` also has an additional `use-instead = "<url/crate_name>"`.
+- [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) resolved [#579](https://github.com/EmbarkStudios/cargo-deny/issues/579) by allowing yanked crates to be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-specs) in the `[advisories.ignore]` array.
+
 ## [0.14.11] - 2024-02-05
 ### Fixed
 - [PR#599](https://github.com/EmbarkStudios/cargo-deny/pull/599) resolved [#488](https://github.com/EmbarkStudios/cargo-deny/issues/488) by treating git and path sources differently. Thanks [@kpreid](https://github.com/kpreid)!
