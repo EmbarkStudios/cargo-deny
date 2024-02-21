@@ -23,7 +23,7 @@ allow = [
 # Custom license refs can be specified for crates which don't use a license
 # in the SPDX list
 [[licenses.clarify]]
-name = "a-crate"
+crate = "a-crate"
 expression = "LicenseRef-Embark-Custom"
 license-files = [
     { path = "LICENSE", hash = 0x001c7e6c },
@@ -97,13 +97,7 @@ allow = [ "GFDL-1.1", "GFDL-1.2", "GFDL-1.3", "GFDL-1.3-variants"]
 
 The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow additional licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.
 
-#### The `exceptions.name` field
-
-The name of the crate that you are adding an exception for
-
-#### The `exceptions.version` field (optional)
-
-An optional version constraint specifying the range of crate versions you are excepting. Defaults to any version.
+This field uses [PackageSpecs](../cfg.md#package-specs) to select the crate the exception applies to.
 
 ### Additional exceptions configuration file
 
@@ -116,7 +110,7 @@ Only the exceptions field should be set:
 ```ini
 exceptions = [
     # Each entry is the crate and version constraint, and its specific allow list.
-    { allow = ["CDDL-1.0"], name = "inferno", version = "*" },
+    { allow = ["CDDL-1.0"], crate = "inferno" },
 ]
 ```
 
@@ -134,7 +128,7 @@ exceptions = [
     # This is the only crate that cannot be licensed with either Apache-2.0
     # or MIT, so we just add an exception for it, meaning we'll get a warning
     # if we add another crate that also requires this license
-    { name = "cloudabi", allow = ["BSD-2-Clause"] },
+    { crate = "cloudabi", allow = ["BSD-2-Clause"] },
 ]
 ```
 
@@ -180,22 +174,16 @@ Determines what happens when a license is encountered that:
 
 In some exceptional cases, a crate will not have easily machine readable license information, and would by default be considered "unlicensed" by cargo-deny. As a (hopefully) temporary patch for using the crate, you can specify a clarification for the crate by manually assigning its SPDX expression, based on one or more files in the crate's source. cargo-deny will use that expression for as long as the source files in the crate exactly match the clarification's hashes.
 
+This field uses [PackageSpecs](../cfg.md#package-specs) to select the crate the clarification applies to.
+
 ```ini
 [[licenses.clarify]]
-name = "webpki"
+crate = "webpki"
 expression = "ISC"
 license-files = [
     { path = "LICENSE", hash = 0x001c7e6c },
 ]
 ```
-
-#### The `name` field
-
-The name of the crate that you are clarifying
-
-#### The `version` field (optional)
-
-An optional version constraint specifying the range of crate versions you are clarifying. Defaults to any version.
 
 #### The `expression` field
 
