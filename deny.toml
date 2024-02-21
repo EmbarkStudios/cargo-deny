@@ -33,11 +33,10 @@ deny = [
     { crate = "windows", reason = "bloated and unnecessary", use-instead = "ideally inline bindings, practically, windows-sys" },
 ]
 skip = [
-    # https://github.com/seanmonstar/reqwest/pull/2130 should be in the next reqwest release
-    { crate = "bitflags@1.3.2", reason = "reqwest -> system-configuration uses this old version" },
+    { crate = "bitflags@1.3.2", reason = "https://github.com/seanmonstar/reqwest/pull/2130 should be in the next version" },
 ]
 skip-tree = [
-    { crate = "windows-sys:<=0.48", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
+    { crate = "windows-sys@0.48.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
 ]
 
 [sources]
