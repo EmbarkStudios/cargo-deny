@@ -121,7 +121,7 @@ pub fn check<R, S>(
     // Check for advisory identifers that were set to be ignored, but
     // are not actually in any database.
     for ignored in &ctx.cfg.ignore {
-        if !advisory_dbs.has_advisory(&ignored.value) {
+        if !advisory_dbs.has_advisory(&ignored.id.value) {
             sink.push(ctx.diag_for_unknown_advisory(ignored));
         }
     }

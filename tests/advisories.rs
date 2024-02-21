@@ -53,10 +53,7 @@ fn iter_notes(diag: &serde_json::Value) -> Option<impl Iterator<Item = &str>> {
         .map(|array| array.iter().filter_map(|s| s.as_str()))
 }
 
-fn find_by_code<'a>(
-    diags: &'a [serde_json::Value],
-    code: &'_ str,
-) -> Option<&'a serde_json::Value> {
+fn find_by_code<'a>(diags: &'a [serde_json::Value], code: &str) -> Option<&'a serde_json::Value> {
     diags.iter().find(|v| match iter_notes(v) {
         Some(mut notes) => notes.any(|note| note.contains(code)),
         None => false,
@@ -137,7 +134,13 @@ fn downgrades_lint_levels() {
     let TestCtx { dbs, krates } = load();
 
     let cfg = tu::Config::new(
-        "unmaintained = 'warn'\nignore = ['RUSTSEC-2016-0004', 'RUSTSEC-2019-0001']",
+        r#"
+unmaintained = "warn"
+ignore = [
+    "RUSTSEC-2016-0004",
+    { id = "RUSTSEC-2019-0001", reason = "this is a test" },
+]
+"#,
     );
 
     let diags =
@@ -154,6 +157,14 @@ fn downgrades_lint_levels() {
     let downgraded = [
         find_by_code(&diags, "RUSTSEC-2016-0004").unwrap(),
         find_by_code(&diags, "RUSTSEC-2019-0001").unwrap(),
+        diags
+            .iter()
+            .find(|v| {
+                v.pointer("/fields/code")
+                    .and_then(|s| s.as_str())
+                    .map_or(false, |s| s == "advisory-ignored")
+            })
+            .unwrap(),
     ];
 
     insta::assert_json_snapshot!(downgraded);
