@@ -102,27 +102,6 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 }
             });
 
-            // let (lint_level, ty) = match &advisory.informational {
-            //     // Everything that isn't an informational advisory is a vulnerability
-            //     None => (self.cfg.vulnerability, AdvisoryType::Vulnerability),
-            //     Some(info) => match info {
-            //         // Security notices for a crate which are published on https://rustsec.org
-            //         // but don't represent a vulnerability in a crate itself.
-            //         Informational::Notice => (self.cfg.notice, AdvisoryType::Notice),
-
-            //         Informational::Unmaintained => {
-            //             (self.cfg.unmaintained, AdvisoryType::Unmaintained)
-            //         }
-            //         Informational::Unsound => (self.cfg.unsound, AdvisoryType::Unsound),
-            //         // Other types of informational advisories: left open-ended to add
-            //         // more of them in the future.
-            //         Informational::Other(_) => {
-
-            //         }
-            //         _ => unreachable!("unknown advisory type encountered"),
-            //     },
-            // };
-
             // Ok, we found a crate whose version lies within the range of an
             // advisory, but the user might have decided to ignore it
             // for "reasons", but in that case we still emit it to the log
