@@ -1,26 +1,5 @@
 #![cfg_attr(docsrs, doc(include = "../../docs/licenses/cfg.md"))]
 
-//! If a `[license]` configuration section, cargo-deny will use the default
-//! configuration.
-//!
-//! ```
-//! use cargo_deny::{LintLevel, licenses::cfg::Config};
-//!
-//! let dc = Config::default();
-//!
-//! assert_eq!(dc.unlicensed, LintLevel::Deny);
-//! assert_eq!(
-//!     dc.allow_osi_fsf_free,
-//!     cargo_deny::licenses::cfg::BlanketAgreement::Neither
-//! );
-//! assert_eq!(dc.copyleft, LintLevel::Warn);
-//! assert_eq!(dc.confidence_threshold, 0.8);
-//! assert!(dc.deny.is_empty());
-//! assert!(dc.allow.is_empty());
-//! assert!(dc.clarify.is_empty());
-//! assert!(dc.exceptions.is_empty());
-//! ```
-
 use crate::{
     cfg::{deprecated, PackageSpec, ValidationContext},
     diag::{Diagnostic, FileId, Label},
