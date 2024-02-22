@@ -11,11 +11,7 @@ expression: validated
       "sekrets"
     ]
   },
-  "unlicensed": "warn",
-  "copyleft": "deny",
   "unused_allowed_license": "warn",
-  "allow_osi_fsf_free": "Both",
-  "default": "warn",
   "confidence_threshold": 0.95,
   "denied": [
     "BSD-2-Clause",
@@ -53,5 +49,12 @@ expression: validated
     }
   ],
   "ignore_sources": [],
+  "deprecated": {
+    "unlicensed": "warn",
+    "allow_osi_fsf_free": "Both",
+    "copyleft": "deny",
+    "default": "warn",
+    "deny": []
+  },
   "include_dev": false
 }

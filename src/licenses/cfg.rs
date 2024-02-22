@@ -215,9 +215,8 @@ impl serde::Serialize for Licensee {
     }
 }
 
-/// Top level configuration for the a license check
-pub struct Config {
-    pub private: Private,
+#[cfg_attr(test, derive(serde::Serialize))]
+pub(crate) struct Deprecated {
     /// Determines what happens when license information cannot be determined
     /// for a crate
     pub unlicensed: LintLevel,
@@ -229,11 +228,16 @@ pub struct Config {
     /// Determines what happens when a license doesn't match any previous
     /// predicates
     pub default: LintLevel,
+    /// Licenses that will be rejected in a license expression
+    pub deny: Vec<Licensee>,
+}
+
+/// Top level configuration for the a license check
+pub struct Config {
+    pub private: Private,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     pub confidence_threshold: f32,
-    /// Licenses that will be rejected in a license expression
-    pub deny: Vec<Licensee>,
     /// Licenses that will be allowed in a license expression
     pub allow: Vec<Licensee>,
     /// Determines the response to licenses in th `allow`ed list which do not
@@ -248,25 +252,22 @@ pub struct Config {
     /// If true, performs license checks for dev-dependencies for workspace
     /// crates as well
     pub include_dev: bool,
-    deprecated: Vec<Span>,
+    deprecated: Option<Deprecated>,
+    deprecated_spans: Vec<Span>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             private: Private::default(),
-            unlicensed: LintLevel::Deny,
-            allow_osi_fsf_free: BlanketAgreement::default(),
-            copyleft: LintLevel::Warn,
-            default: LintLevel::Deny,
             unused_allowed_license: LintLevel::Warn,
             confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
-            deny: Vec::new(),
             allow: Vec::new(),
             clarify: Vec::new(),
             exceptions: Vec::new(),
             include_dev: false,
-            deprecated: Vec::new(),
+            deprecated: None,
+            deprecated_spans: Vec::new(),
         }
     }
 }
@@ -274,6 +275,8 @@ impl Default for Config {
 impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let mut th = TableHelper::new(value)?;
+
+        let version = th.optional("version").unwrap_or(1);
 
         let mut fdeps = Vec::new();
 
@@ -297,20 +300,28 @@ impl<'de> Deserialize<'de> for Config {
 
         th.finalize(None)?;
 
+        let deprecated = if version <= 1 {
+            Some(Deprecated {
+                unlicensed,
+                allow_osi_fsf_free,
+                copyleft,
+                default,
+                deny,
+            })
+        } else {
+            None
+        };
+
         Ok(Self {
             private,
-            unlicensed,
-            allow_osi_fsf_free,
-            copyleft,
-            default,
             confidence_threshold,
-            deny,
             allow,
             unused_allowed_license,
             clarify,
             exceptions,
             include_dev,
-            deprecated: fdeps,
+            deprecated,
+            deprecated_spans: fdeps,
         })
     }
 }
@@ -345,7 +356,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
-        let mut denied = self.deny;
+        let mut deprecated = self.deprecated;
+
+        let mut denied = deprecated
+            .as_mut()
+            .map_or(Vec::new(), |d| std::mem::take(&mut d.deny));
         let mut allowed = self.allow;
 
         denied.par_sort();
@@ -408,7 +423,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         // Output any deprecations, we'll remove the fields at the same time we
         // remove all the logic they drive
-        for dep in self.deprecated {
+        for dep in self.deprecated_spans {
             ctx.push(
                 Deprecated {
                     reason: DeprecationReason::WillBeRemoved(Some(
@@ -424,17 +439,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
         ValidConfig {
             file_id: ctx.cfg_id,
             private: self.private,
-            unlicensed: self.unlicensed,
-            copyleft: self.copyleft,
-            default: self.default,
             unused_allowed_license: self.unused_allowed_license,
-            allow_osi_fsf_free: self.allow_osi_fsf_free,
             confidence_threshold: self.confidence_threshold,
             clarifications,
             exceptions,
             denied,
             allowed,
             ignore_sources,
+            deprecated,
             include_dev: self.include_dev,
         }
     }
@@ -523,17 +535,14 @@ pub struct ValidException {
 pub struct ValidConfig {
     pub file_id: FileId,
     pub private: Private,
-    pub unlicensed: LintLevel,
-    pub copyleft: LintLevel,
     pub unused_allowed_license: LintLevel,
-    pub allow_osi_fsf_free: BlanketAgreement,
-    pub default: LintLevel,
     pub confidence_threshold: f32,
     pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
     pub ignore_sources: Vec<url::Url>,
+    pub(crate) deprecated: Option<Deprecated>,
     pub include_dev: bool,
 }
 

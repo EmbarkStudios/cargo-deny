@@ -64,30 +64,34 @@ impl PartialEq for IgnoreId {
 
 impl Eq for IgnoreId {}
 
-pub struct Config {
-    /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
-    pub db_path: Option<PathBuf>,
-    /// List of urls to git repositories of different advisory databases.
-    pub db_urls: Vec<Spanned<Url>>,
+#[cfg_attr(test, derive(serde::Serialize))]
+pub(crate) struct Deprecated {
     /// How to handle crates that have a security vulnerability
     pub vulnerability: LintLevel,
     /// How to handle crates that have been marked as unmaintained in an advisory database
     pub unmaintained: LintLevel,
     /// How to handle crates that have been marked as unsound in an advisory database
     pub unsound: LintLevel,
-    /// How to handle crates that have been yanked from eg crates.io
-    pub yanked: Spanned<LintLevel>,
     /// How to handle crates that have been marked with a notice in the advisory database
     pub notice: LintLevel,
-    /// Ignore advisories for the given IDs
-    ignore: Vec<Spanned<IgnoreId>>,
-    /// Ignore yanked crates
-    pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// CVSS Qualitative Severity Rating Scale threshold to alert at.
     ///
     /// Vulnerabilities with explicit CVSS info which have a severity below
     /// this threshold will be ignored.
     pub severity_threshold: Option<advisory::Severity>,
+}
+
+pub struct Config {
+    /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
+    pub db_path: Option<PathBuf>,
+    /// List of urls to git repositories of different advisory databases.
+    pub db_urls: Vec<Spanned<Url>>,
+    /// How to handle crates that have been yanked from eg crates.io
+    pub yanked: Spanned<LintLevel>,
+    /// Ignore advisories for the given IDs
+    ignore: Vec<Spanned<IgnoreId>>,
+    /// Ignore yanked crates
+    pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// Use the git executable to fetch advisory database rather than gitoxide
     pub git_fetch_with_cli: Option<bool>,
     /// If set to true, the local crates indices are not checked for yanked crates
@@ -100,7 +104,8 @@ pub struct Config {
     /// use the '.' separator instead of ',' which is used by some locales and
     /// supported in the RFC3339 format, but not by this implementation
     pub maximum_db_staleness: Spanned<Duration>,
-    deprecated: Vec<Span>,
+    deprecated: Option<Deprecated>,
+    deprecated_spans: Vec<Span>,
 }
 
 impl Default for Config {
@@ -110,16 +115,12 @@ impl Default for Config {
             db_urls: Vec::new(),
             ignore: Vec::new(),
             ignore_yanked: Vec::new(),
-            vulnerability: LintLevel::Deny,
-            unmaintained: LintLevel::Warn,
-            unsound: LintLevel::Warn,
             yanked: Spanned::new(LintLevel::Warn),
-            notice: LintLevel::Warn,
-            severity_threshold: None,
             git_fetch_with_cli: None,
             disable_yank_checking: false,
             maximum_db_staleness: Spanned::new(Duration::seconds_f64(NINETY_DAYS)),
-            deprecated: Vec::new(),
+            deprecated: None,
+            deprecated_spans: Vec::new(),
         }
     }
 }
@@ -129,6 +130,8 @@ const NINETY_DAYS: f64 = 90. * 24. * 60. * 60. * 60.;
 impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, toml_span::DeserError> {
         let mut th = TableHelper::new(value)?;
+
+        let version = th.optional("version").unwrap_or(1);
 
         let db_path = th.optional::<String>("db-path").map(PathBuf::from);
         let db_urls = if let Some((_, mut urls)) = th.take("db-urls") {
@@ -158,15 +161,14 @@ impl<'de> Deserialize<'de> for Config {
 
         let mut fdeps = Vec::new();
 
-        let vulnerability =
-            deprecated(&mut th, "vulnerability", &mut fdeps).unwrap_or(LintLevel::Deny);
-        let unmaintained =
-            deprecated(&mut th, "unmaintained", &mut fdeps).unwrap_or(LintLevel::Warn);
-        let unsound = deprecated(&mut th, "unsound", &mut fdeps).unwrap_or(LintLevel::Warn);
+        let vulnerability = deprecated(&mut th, "vulnerability", &mut fdeps);
+        let unmaintained = deprecated(&mut th, "unmaintained", &mut fdeps);
+        let unsound = deprecated(&mut th, "unsound", &mut fdeps);
+        let notice = deprecated(&mut th, "notice", &mut fdeps);
+
         let yanked = th
             .optional_s("yanked")
             .unwrap_or(Spanned::new(LintLevel::Warn));
-        let notice = deprecated(&mut th, "notice", &mut fdeps).unwrap_or(LintLevel::Warn);
         let (ignore, ignore_yanked) = if let Some((_, mut ignore)) = th.take("ignore") {
             let mut u = Vec::new();
             let mut y = Vec::new();
@@ -303,21 +305,29 @@ impl<'de> Deserialize<'de> for Config {
         let maximum_db_staleness = maximum_db_staleness
             .unwrap_or_else(|| Spanned::new(Duration::seconds_f64(NINETY_DAYS)));
 
+        let deprecated = if version <= 1 {
+            Some(Deprecated {
+                vulnerability: vulnerability.unwrap_or(LintLevel::Deny),
+                unmaintained: unmaintained.unwrap_or(LintLevel::Warn),
+                unsound: unsound.unwrap_or(LintLevel::Warn),
+                notice: notice.unwrap_or(LintLevel::Warn),
+                severity_threshold,
+            })
+        } else {
+            None
+        };
+
         Ok(Self {
             db_path,
             db_urls,
-            vulnerability,
-            unmaintained,
-            unsound,
             yanked,
-            notice,
             ignore,
             ignore_yanked,
-            severity_threshold,
             git_fetch_with_cli,
             disable_yank_checking,
             maximum_db_staleness,
-            deprecated: fdeps,
+            deprecated,
+            deprecated_spans: fdeps,
         })
     }
 }
@@ -349,7 +359,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         // Output any deprecations, we'll remove the fields at the same time we
         // remove all the logic they drive
-        for dep in self.deprecated {
+        for dep in self.deprecated_spans {
             ctx.push(
                 Deprecated {
                     reason: DeprecationReason::WillBeRemoved(Some(
@@ -376,12 +386,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     file_id: ctx.cfg_id,
                 })
                 .collect(),
-            vulnerability: self.vulnerability,
-            unmaintained: self.unmaintained,
-            unsound: self.unsound,
+            deprecated: self.deprecated,
             yanked: self.yanked,
-            notice: self.notice,
-            severity_threshold: self.severity_threshold,
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
             disable_yank_checking: self.disable_yank_checking,
             maximum_db_staleness: self.maximum_db_staleness,
@@ -396,12 +402,8 @@ pub struct ValidConfig {
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<IgnoreId>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
-    pub vulnerability: LintLevel,
-    pub unmaintained: LintLevel,
-    pub unsound: LintLevel,
+    pub(crate) deprecated: Option<Deprecated>,
     pub yanked: Spanned<LintLevel>,
-    pub notice: LintLevel,
-    pub severity_threshold: Option<advisory::Severity>,
     pub git_fetch_with_cli: bool,
     pub disable_yank_checking: bool,
     pub maximum_db_staleness: Spanned<Duration>,
