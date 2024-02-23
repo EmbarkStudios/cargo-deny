@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.12] - 2024-02-23
 ### Changed
 - [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) did a major refactor of configuration, both how it is deserialized and changing (hopefully improving) many options.
 - [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) moved `targets`, `exclude`, `all-features`, `features`, `no-default-features`, and `exclude` into the `[graph]` table.
@@ -552,7 +553,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.11...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.12...HEAD
+[0.14.12]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.11...0.14.12
 [0.14.11]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.10...0.14.11
 [0.14.10]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.9...0.14.10
 [0.14.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.8...0.14.9
