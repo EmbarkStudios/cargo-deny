@@ -113,8 +113,7 @@ jobs:
 
   release:
     name: Release
-    #needs: [test, self, doc-book]
-    #if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         include:
@@ -155,7 +154,7 @@ jobs:
         shell: bash
         run: |
           name=cargo-deny
-          tag=$(git describe --tags --abbrev=0 --always)
+          tag=$(git describe --tags --abbrev=0)
           release_name="$name-$tag-${{ matrix.target }}"
           release_tar="${release_name}.tar.gz"
           mkdir "$release_name"
@@ -177,13 +176,13 @@ jobs:
           else
             echo -n "$(shasum -ba 256 "${release_tar}" | cut -d " " -f 1)" > "${release_tar}.sha256"
           fi
-      # - name: Publish
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     draft: true
-      #     files: "cargo-deny*"
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: "cargo-deny*"
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
   publish:
     name: Publish Docs
