@@ -50,7 +50,6 @@ jobs:
 
   self:
     name: Check Users
-    if: false # disabled for now
     strategy:
       matrix:
         include:
@@ -80,8 +79,8 @@ jobs:
         run: cargo install --path . --debug --target ${{ matrix.target }}
       - name: self check
         run: cargo deny -L debug --all-features --locked check
-      - name: check external users
-        run: ./scripts/check_external.sh
+      # - name: check external users
+      #   run: ./scripts/check_external.sh
 
   # Build `mdBook` documentation and upload it as a temporary build artifact
   doc-book:
