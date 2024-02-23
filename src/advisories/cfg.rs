@@ -1,8 +1,9 @@
 use crate::{
     cfg::{PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    LintLevel, PathBuf, Span, Spanned,
+    utf8path, LintLevel, PathBuf, Span, Spanned,
 };
+use anyhow::Context as _;
 use rustsec::advisory;
 use time::Duration;
 use toml_span::{de_helpers::*, value::ValueInner, Deserialize, Value};
@@ -83,7 +84,7 @@ pub(crate) struct Deprecated {
 
 pub struct Config {
     /// Path to the root directory where advisory databases are stored (default: $CARGO_HOME/advisory-dbs)
-    pub db_path: Option<PathBuf>,
+    pub db_path: Option<Spanned<PathBuf>>,
     /// List of urls to git repositories of different advisory databases.
     pub db_urls: Vec<Spanned<Url>>,
     /// How to handle crates that have been yanked from eg crates.io
@@ -133,7 +134,7 @@ impl<'de> Deserialize<'de> for Config {
 
         let version = th.optional("version").unwrap_or(1);
 
-        let db_path = th.optional::<String>("db-path").map(PathBuf::from);
+        let db_path = th.optional_s::<String>("db-path").map(|s| s.map());
         let db_urls = if let Some((_, mut urls)) = th.take("db-urls") {
             let mut u = Vec::new();
 
@@ -355,6 +356,51 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
+        let db_path = if let Some(root) = self.db_path {
+            let exp_result;
+
+            // When testing we use a specific default otherwise it gets redacted by insta
+            #[cfg(test)]
+            {
+                exp_result = shellexpand(root, ctx.cfg_id, |exp| match exp {
+                    Expand::Home => Ok(Some("/home/you".into())),
+                    Expand::Var(var) => {
+                        unreachable!("unexpected expansion request for '{var}'")
+                    }
+                });
+            }
+            #[cfg(not(test))]
+            {
+                exp_result = shellexpand(root, ctx.cfg_id, normal_expand);
+            }
+
+            match exp_result {
+                Ok(expanded) => Some(expanded),
+                Err(err) => {
+                    ctx.diagnostics.push(err);
+                    None
+                }
+            }
+        } else {
+            fn def_path() -> anyhow::Result<PathBuf> {
+                utf8path(
+                    home::cargo_home()
+                        .context("failed to resolve CARGO_HOME or HOME")?
+                        .join("advisory-dbs"),
+                )
+            }
+
+            match def_path() {
+                Ok(pb) => Some(pb),
+                Err(err) => {
+                    ctx.diagnostics.push(Diagnostic::error()
+                        .with_message(format!("unable to obtain default advisory-dbs directory: {err:#}"))
+                        .with_notes(vec!["the default directory is determined by $CARGO_HOME -> $HOME/.cargo".into()]));
+                    None
+                }
+            }
+        };
+
         use crate::diag::general::{Deprecated, DeprecationReason};
 
         // Output any deprecations, we'll remove the fields at the same time we
@@ -363,7 +409,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             ctx.push(
                 Deprecated {
                     reason: DeprecationReason::WillBeRemoved(Some(
-                        "https://github.com/EmbarkStudios/cargo-deny/pull/606",
+                        "https://github.com/EmbarkStudios/cargo-deny/pull/611",
                     )),
                     key: dep,
                     file_id: ctx.cfg_id,
@@ -374,7 +420,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
         ValidConfig {
             file_id: ctx.cfg_id,
-            db_path: self.db_path,
+            db_path: db_path.unwrap_or_default(), // If we failed to get a path the default won't be used since errors will have occurred
             db_urls,
             ignore: ignore.into_iter().map(|s| s.value).collect(),
             ignore_yanked: ignore_yanked
@@ -398,7 +444,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 #[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
-    pub db_path: Option<PathBuf>,
+    pub db_path: PathBuf,
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<IgnoreId>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
@@ -563,8 +609,150 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
     Ok(duration)
 }
 
+/// We could just hardcode these, but this makes testing easier
+enum Expand<'v> {
+    Home,
+    Var(&'v str),
+}
+
+#[cfg_attr(test, allow(dead_code))]
+fn normal_expand(exp: Expand<'_>) -> anyhow::Result<Option<String>> {
+    match exp {
+        Expand::Home => {
+            let hd =
+                home::home_dir().context("HOME directory could not be obtained from the OS")?;
+            let uhd = utf8path(hd)?;
+            Ok(Some(uhd.into()))
+        }
+        // We treat this one variable specially
+        Expand::Var("CARGO_HOME") => Ok(Some(
+            utf8path(home::cargo_home().context("unable to determine CARGO_HOME")?)?.into(),
+        )),
+        Expand::Var(var_name) => match std::env::var(var_name) {
+            Ok(vv) => Ok(Some(vv)),
+            Err(std::env::VarError::NotPresent) => Ok(None),
+            Err(std::env::VarError::NotUnicode(original)) => {
+                anyhow::bail!("'{original:?}' is not utf-8")
+            }
+        },
+    }
+}
+
+/// This is a _basic_ shell expander, it's not meant to be fully featured, just
+/// support the basic options a user would normally use, namely `~` expansion
+/// and `$VAR_NAME` || `${VAR_NAME(?::-(default_value))?}` expansion
+fn shellexpand(
+    to_expand: Spanned<PathBuf>,
+    cfg_id: FileId,
+    expand: impl Fn(Expand<'_>) -> anyhow::Result<Option<String>>,
+) -> Result<PathBuf, Diagnostic> {
+    let span = to_expand.span;
+    let original = to_expand.value;
+    let te = original.as_str();
+
+    if !te.contains('~') && !te.contains('$') {
+        return Ok(original);
+    }
+
+    let mut exp = String::new();
+
+    let mut cursor = 0;
+
+    if te.starts_with('~') {
+        exp.push_str(
+            &expand(Expand::Home)
+                .map_err(|err| {
+                    Diagnostic::error()
+                        .with_message(format!("unable to obtain $HOME: {err:#}"))
+                        .with_labels(vec![Label::primary(cfg_id, span.start..span.start + 1)])
+                })?
+                .expect("this either fails or returns a path"),
+        );
+        cursor += 1;
+    }
+
+    while let Some(ind) = te[cursor..].find('$') {
+        exp.push_str(&te[cursor..cursor + ind]);
+        let sspan = span.start + cursor + ind;
+        cursor += ind;
+
+        let mut default = None;
+        let (var_name, next) = if te[cursor..].starts_with("${") {
+            let end = te[cursor..].find('}').ok_or_else(|| {
+                Diagnostic::error()
+                    .with_message("opening `{` is unbalanced")
+                    .with_labels(vec![Label::primary(cfg_id, sspan..span.end)])
+            })?;
+
+            // Check if a default value is available
+            let vname = if let Some((vname, def)) = te[cursor + 2..cursor + end].split_once(":-") {
+                default = Some(def);
+                vname
+            } else {
+                &te[cursor + 2..cursor + end]
+            };
+
+            // Ensure the variable name is valid so we can give a better error
+            // other than always failing to find a variable that can never exist
+            if vname
+                .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .is_some()
+            {
+                return Err(Diagnostic::error()
+                    .with_message("variable name is invalid")
+                    .with_labels(vec![Label::primary(
+                        cfg_id,
+                        sspan..span.start + cursor + end + 1,
+                    )]));
+            }
+
+            (vname, cursor + end + 1)
+        } else {
+            cursor += 1;
+            if let Some(end) = te[cursor..].find(|c: char| !(c.is_alphanumeric() || c == '_')) {
+                (&te[cursor..cursor + end], cursor + end)
+            } else {
+                (&te[cursor..], te.len())
+            }
+        };
+
+        if var_name.is_empty() {
+            return Err(Diagnostic::error()
+                .with_message("variable name cannot be empty")
+                .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+        }
+
+        match expand(Expand::Var(var_name)) {
+            Ok(Some(vv)) => {
+                exp.push_str(&vv);
+            }
+            Err(err) => {
+                return Err(Diagnostic::error()
+                    .with_message(format!("failed to expand variable: {err:#}"))
+                    .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+            }
+            Ok(None) => {
+                if let Some(default) = default {
+                    exp.push_str(default);
+                } else {
+                    return Err(Diagnostic::error()
+                        .with_message("failed to find variable")
+                        .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                }
+            }
+        }
+
+        cursor = next;
+    }
+
+    exp.push_str(&te[cursor..]);
+
+    Ok(exp.into())
+}
+
 #[cfg(test)]
 mod test {
+
     use super::{parse_rfc3339_duration as dur_parse, *};
     use crate::test_utils::{write_diagnostics, ConfigData};
 
@@ -697,5 +885,149 @@ ignore = [
                 }
             }
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn expands_path() {
+        use super::Expand;
+        use std::{ffi::OsStr, os::unix::ffi::OsStrExt as _};
+
+        // Überraschung in ISO_8859_15
+        const SURPRISE: &[u8] = &[220, 98, 101, 114, 114, 97, 115, 99, 104, 117, 110, 103];
+
+        macro_rules! expand {
+            ($expand:expr, $expected:literal, $value:expr) => {
+                if let Expand::Var(vn) = $expand {
+                    assert_eq!(vn, $expected);
+                    $value
+                } else {
+                    unreachable!("expected a variable name");
+                }
+            };
+        }
+
+        // These closurs need to be kept aligned with the toml array below
+        #[allow(clippy::type_complexity)]
+        let expanders: [Option<Box<dyn Fn(Expand<'_>) -> anyhow::Result<Option<String>>>>;
+            16] = [
+            Some(Box::new(|exp| {
+                if let Expand::Home = exp {
+                    anyhow::bail!("HOME directory could not be obtained from the OS");
+                } else {
+                    panic!("unexpected request")
+                }
+            })),
+            Some(Box::new(|exp| {
+                if let Expand::Home = exp {
+                    utf8path(std::ffi::OsStr::from_bytes(SURPRISE).into())?;
+                    unreachable!();
+                } else {
+                    panic!("unexpected request")
+                }
+            })),
+            Some(Box::new(|exp| {
+                if let Expand::Home = exp {
+                    Ok(Some("/this-home".into()))
+                } else {
+                    panic!("unexpected request")
+                }
+            })),
+            Some(Box::new(|exp| {
+                expand!(exp, "CARGO_HOME", Ok(Some("/default/.works".into())))
+            })),
+            Some(Box::new(|exp| {
+                expand!(exp, "CARGO_HOME2", Ok(Some("/this-also/.works".into())))
+            })),
+            None,
+            Some(Box::new(|exp| expand!(exp, "NOPE", Ok(None)))),
+            Some(Box::new(|exp| {
+                expand!(
+                    exp,
+                    "NON_UTF8",
+                    anyhow::bail!("'{:?}' is not utf-8", OsStr::from_bytes(SURPRISE))
+                )
+            })),
+            None,
+            None,
+            Some(Box::new(|exp| {
+                expand!(exp, "TRAILING", Ok(Some("trail".into())))
+            })),
+            Some(Box::new(|exp| {
+                expand!(exp, "WINDOWS", Ok(Some("windows".into())))
+            })),
+            None,
+            None,
+            Some(Box::new(|exp| {
+                expand!(exp, "IN_MID", Ok(Some("in-the-middle".into())))
+            })),
+            Some(Box::new(|exp| {
+                if matches!(exp, Expand::Var("FIRST")) {
+                    expand!(exp, "FIRST", Ok(Some("furst".into())))
+                } else {
+                    expand!(exp, "SECOND", Ok(Some("secund".into())))
+                }
+            })),
+        ];
+
+        let toml = r#"
+expansions = [
+    "~/nope", # can't find $HOME
+    "~/not-utf8", # $HOME is not a utf-8 path
+    "~/works", # expands to /this-home/works
+    "$CARGO_HOME/advisory-dbs", # expands to /default/.works/advisory-dbs
+    "${CARGO_HOME2}/advisory-dbs", # expands to /this-also/.works/advisory-dbs
+    "${no-end", # fails due to unclosed {
+    "/missing/${NOPE:-but i have a default}/", # expands to /missing/but i have a default/
+    "/non-utf8/$NON_UTF8", # fails due to NON_UTF8
+    "$/empty", # fails due to empty variable
+    "/also-empty/${}", # ditto
+    "/has-trailing/$TRAILING", # expands to /has-trailing/trail
+    "C:/Users/me/$WINDOWS/works", # expands to C:/Users/me/windows/works
+    "$!", # fails due to empty variable name
+    "${!}", # fails due to invalid character in variable name
+    "/expands/stuff-${IN_MID}-like-this", # /expands/stuff-in-the-middle-like-this
+    "/expands/$FIRST-item/${SECOND}-item/multiple", # /expands/furst-item/secund-item/multiple
+]
+"#;
+        let mut tv = toml_span::parse(toml).unwrap();
+        let toml_span::value::ValueInner::Table(mut tab) = tv.take() else {
+            unreachable!()
+        };
+        let mut expansions = tab.remove(&"expansions".into()).unwrap();
+        let toml_span::value::ValueInner::Array(exp) = expansions.take() else {
+            unreachable!()
+        };
+
+        use toml_span::Deserialize as _;
+
+        let mut files = crate::diag::Files::new();
+        let cfg_id = files.add("expansions.toml", toml.into());
+
+        let mut output = String::new();
+
+        for (mut expansion, expander) in exp.into_iter().zip(expanders.into_iter()) {
+            let expansion = toml_span::Spanned::<String>::deserialize(&mut expansion)
+                .unwrap()
+                .map();
+
+            let expander = expander.unwrap_or_else(|| {
+                Box::new(|_exp| {
+                    unreachable!("this should not be called");
+                })
+            });
+
+            match super::shellexpand(expansion, cfg_id, expander) {
+                Ok(pb) => output.push_str(pb.as_str()),
+                Err(err) => {
+                    let ds = crate::test_utils::write_diagnostics(&files, std::iter::once(err));
+                    output.push_str(&ds);
+                }
+            }
+
+            output.push('\n');
+        }
+
+        insta::assert_snapshot!(output);
     }
 }

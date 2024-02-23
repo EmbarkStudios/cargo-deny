@@ -50,7 +50,6 @@ jobs:
 
   self:
     name: Check Users
-    if: false # disabled for now
     strategy:
       matrix:
         include:
@@ -80,8 +79,8 @@ jobs:
         run: cargo install --path . --debug --target ${{ matrix.target }}
       - name: self check
         run: cargo deny -L debug --all-features --locked check
-      - name: check external users
-        run: ./scripts/check_external.sh
+      # - name: check external users
+      #   run: ./scripts/check_external.sh
 
   # Build `mdBook` documentation and upload it as a temporary build artifact
   doc-book:
@@ -211,3 +210,10 @@ jobs:
           GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
           BUILD_REPOSITORY_ID: ${{ github.repository }}
           BUILD_SOURCEVERSION: ${{ github.sha }}
+
+
+  test_success:
+    runs-on: ubuntu-22.04
+    needs: [lint,test,self,publish-check,doc-book]
+    steps:
+    - run: echo "All test jobs passed"

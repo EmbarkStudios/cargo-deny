@@ -2,34 +2,32 @@
 source: src/licenses/cfg.rs
 expression: diags
 ---
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/licenses.toml:2:1
   │
 2 │ unlicensed = "warn"
   │ ^^^^^^^^^^
 
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/licenses.toml:3:1
   │
 3 │ allow-osi-fsf-free = "both"
   │ ^^^^^^^^^^^^^^^^^^
 
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/licenses.toml:4:1
   │
 4 │ copyleft = "deny"
   │ ^^^^^^^^
 
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/licenses.toml:5:1
   │
 5 │ default = "warn"
   │ ^^^^^^^
 
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/licenses.toml:8:1
   │
 8 │ deny = [
   │ ^^^^
-
-

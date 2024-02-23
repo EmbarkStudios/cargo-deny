@@ -4,7 +4,7 @@ expression: validated
 ---
 {
   "file_id": 1,
-  "db_path": "~/.cargo/advisory-dbs",
+  "db_path": "/home/you/.cargo/advisory-dbs",
   "db_urls": [
     "https://github.com/RustSec/advisory-db"
   ],
