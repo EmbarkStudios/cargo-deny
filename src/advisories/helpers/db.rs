@@ -1,4 +1,4 @@
-use crate::{utf8path, Krate, Krates, Path, PathBuf};
+use crate::{Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
 pub use rustsec::{advisory::Id, Database};
@@ -41,47 +41,14 @@ impl fmt::Debug for AdvisoryDb {
 /// A collection of [`Database`]s that is used to query advisories
 /// in many different databases.
 ///
-/// [`Database`]: https://docs.rs/rustsec/0.25.0/rustsec/database/struct.Database.html
+/// [`Database`]: https://docs.rs/rustsec/latest/rustsec/database/struct.Database.html
 #[derive(Debug)]
 pub struct DbSet {
     pub dbs: Vec<AdvisoryDb>,
 }
 
 impl DbSet {
-    pub fn load(
-        root: Option<impl AsRef<Path>>,
-        mut urls: Vec<Url>,
-        fetch: Fetch,
-    ) -> anyhow::Result<Self> {
-        let root_db_path = match root {
-            Some(root) => {
-                let user_root = root.as_ref();
-                if let Ok(user_root) = user_root.strip_prefix("~") {
-                    if let Some(home) = home::home_dir() {
-                        utf8path(home.join(user_root))?
-                    } else {
-                        log::warn!(
-                            "unable to resolve path '{user_root}', falling back to the default advisory path"
-                        );
-
-                        // This would only succeed of CARGO_HOME was explicitly set
-                        utf8path(
-                            home::cargo_home()
-                                .context("failed to resolve CARGO_HOME")?
-                                .join("advisory-dbs"),
-                        )?
-                    }
-                } else {
-                    user_root.to_owned()
-                }
-            }
-            None => utf8path(
-                home::cargo_home()
-                    .context("failed to resolve CARGO_HOME")?
-                    .join("advisory-dbs"),
-            )?,
-        };
-
+    pub fn load(root: PathBuf, mut urls: Vec<Url>, fetch: Fetch) -> anyhow::Result<Self> {
         if urls.is_empty() {
             info!("No advisory database configured, falling back to default '{DEFAULT_URL}'");
             urls.push(Url::parse(DEFAULT_URL).unwrap());
@@ -89,7 +56,7 @@ impl DbSet {
 
         // Acquire an exclusive lock, even if we aren't fetching, to prevent
         // other cargo-deny processes from performing mutations
-        let lock_path = root_db_path.join("db.lock");
+        let lock_path = root.join("db.lock");
         let _lock = tame_index::utils::flock::LockOptions::new(&lock_path)
             .exclusive(false)
             .lock(|path| {
@@ -101,7 +68,7 @@ impl DbSet {
         use rayon::prelude::*;
         let mut dbs = Vec::with_capacity(urls.len());
         urls.into_par_iter()
-            .map(|url| load_db(url, root_db_path.clone(), fetch))
+            .map(|url| load_db(url, root.clone(), fetch))
             .collect_into_vec(&mut dbs);
 
         Ok(Self {

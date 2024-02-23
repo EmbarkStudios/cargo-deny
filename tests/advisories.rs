@@ -37,7 +37,7 @@ fn load() -> TestCtx {
 
     let db = {
         advisories::DbSet::load(
-            Some("tests/advisory-db"),
+            "tests/advisory-db".into(),
             vec![],
             advisories::Fetch::Disallow(time::Duration::days(100)),
         )
@@ -368,7 +368,7 @@ fn to_path(td: &tempfile::TempDir) -> Option<&cargo_deny::Path> {
 #[test]
 fn fails_on_stale_advisory_database() {
     assert!(advisories::DbSet::load(
-        Some("tests/advisory-db"),
+        "tests/advisory-db".into(),
         vec![],
         advisories::Fetch::Disallow(time::Duration::seconds(0)),
     )
@@ -394,8 +394,12 @@ const EXPECTED_TWO_ID: &str = "BOOP-2023-0002";
 const EXPECTED_TWO_DATE: &str = "2023-07-10";
 
 fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
-    let mut db_set =
-        advisories::DbSet::load(to_path(td), vec![TEST_DB_URL.parse().unwrap()], f).unwrap();
+    let mut db_set = advisories::DbSet::load(
+        to_path(td).unwrap().to_owned(),
+        vec![TEST_DB_URL.parse().unwrap()],
+        f,
+    )
+    .unwrap();
 
     db_set.dbs.pop().unwrap()
 }
