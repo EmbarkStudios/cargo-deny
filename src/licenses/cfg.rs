@@ -406,7 +406,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             ctx.push(
                 Deprecated {
                     reason: DeprecationReason::WillBeRemoved(Some(
-                        "https://github.com/EmbarkStudios/cargo-deny/pull/606",
+                        "https://github.com/EmbarkStudios/cargo-deny/pull/611",
                     )),
                     key: dep,
                     file_id: ctx.cfg_id,

@@ -11,10 +11,8 @@ error: a license id was specified in both `allow` and `deny`
 11 │    "MIT",
    │     --- deny
 
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/606 for details
+warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
    ┌─ license-in-allow-and-deny:10:1
    │
 10 │ deny = [
    │ ^^^^
-
-
