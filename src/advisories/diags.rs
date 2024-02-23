@@ -89,26 +89,18 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
         let (severity, ty) = {
-            let (lint_level, ty) = match &advisory.informational {
-                // Everything that isn't an informational advisory is a vulnerability
-                None => (self.cfg.vulnerability, AdvisoryType::Vulnerability),
-                Some(info) => match info {
-                    // Security notices for a crate which are published on https://rustsec.org
-                    // but don't represent a vulnerability in a crate itself.
-                    Informational::Notice => (self.cfg.notice, AdvisoryType::Notice),
+            let adv_ty = advisory.informational.as_ref().map_or(AdvisoryType::Vulnerability, |info| {
+                match info {
                     // Crate is unmaintained / abandoned
-                    Informational::Unmaintained => {
-                        (self.cfg.unmaintained, AdvisoryType::Unmaintained)
+                    Informational::Unmaintained => AdvisoryType::Unmaintained,
+                    Informational::Unsound => AdvisoryType::Unsound,
+                    Informational::Notice => AdvisoryType::Notice,
+                    Informational::Other(other) => {
+                        unreachable!("rustsec only returns Informational::Other({other}) advisories if we ask, and there are none at the moment to ask for");
                     }
-                    Informational::Unsound => (self.cfg.unsound, AdvisoryType::Unsound),
-                    // Other types of informational advisories: left open-ended to add
-                    // more of them in the future.
-                    Informational::Other(_) => {
-                        unreachable!("rustsec only returns these if we ask, and there are none at the moment to ask for");
-                    }
-                    _ => unreachable!("unknown advisory type encountered"),
-                },
-            };
+                    _ => unreachable!("non_exhaustive enums are the worst"),
+                }
+            });
 
             // Ok, we found a crate whose version lies within the range of an
             // advisory, but the user might have decided to ignore it
@@ -132,22 +124,29 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 );
 
                 LintLevel::Allow
-            } else if let Some(severity_threshold) = self.cfg.severity_threshold {
-                if let Some(advisory_severity) = advisory.cvss.as_ref().map(|cvss| cvss.severity())
-                {
-                    if advisory_severity < severity_threshold {
-                        LintLevel::Allow
-                    } else {
-                        lint_level
+            } else if let Some(deprecated) = &self.cfg.deprecated {
+                'll: {
+                    if let (Some(st), Some(sev)) = (
+                        deprecated.severity_threshold,
+                        advisory.cvss.as_ref().map(|c| c.severity()),
+                    ) {
+                        if sev < st {
+                            break 'll LintLevel::Allow;
+                        }
                     }
-                } else {
-                    lint_level
+
+                    match adv_ty {
+                        AdvisoryType::Vulnerability => deprecated.vulnerability,
+                        AdvisoryType::Unmaintained => deprecated.unmaintained,
+                        AdvisoryType::Unsound => deprecated.unsound,
+                        AdvisoryType::Notice => deprecated.notice,
+                    }
                 }
             } else {
-                lint_level
+                LintLevel::Deny
             };
 
-            (lint_level.into(), ty)
+            (lint_level.into(), adv_ty)
         };
 
         let mut notes = get_notes_from_advisory(advisory);

@@ -11,14 +11,9 @@ targets = [
 all-features = true
 
 [advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-notice = "deny"
-unsound = "deny"
+version = 2
 ignore = [
-    # rmp-serde used by askalono for the cache files, these are always utf-8 so
-    # the advisory is not relevant
-    "RUSTSEC-2022-0092",
+    { id = "RUSTSEC-2022-0092", reason = "askalono always provides valid utf-8 files from a cache, this is not relevant" },
 ]
 
 [bans]
@@ -44,9 +39,7 @@ unknown-registry = "deny"
 unknown-git = "deny"
 
 [licenses]
-unlicensed = "deny"
-allow-osi-fsf-free = "neither"
-copyleft = "deny"
+version = 2
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
 allow = [

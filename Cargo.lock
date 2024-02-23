@@ -2541,9 +2541,9 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d8d8b231dac2161abc5ac5abc07115fa29886f1defa6eae2bfcca40d6d61560"
+checksum = "ab9ccd31f158301d01e0bd1d3e2b1c3f2ad209f0301b4121d3ccb508aae5237d"
 dependencies = [
  "bytes",
  "camino",
@@ -2721,9 +2721,9 @@ dependencies = [
 
 [[package]]
 name = "toml-span"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32c5896fa509a428e0ffcb1e37c7954f183a507784cd2999cb76c3b7544bf52d"
+checksum = "369db38ce6d1fc320a54ea3f032d07c07a232ca19c40e287246aff06d57c2abe"
 dependencies = [
  "codespan-reporting",
  "serde",

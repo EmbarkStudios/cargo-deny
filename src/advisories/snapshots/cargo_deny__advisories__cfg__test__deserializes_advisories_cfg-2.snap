@@ -32,12 +32,14 @@ expression: validated
       "use-instead": null
     }
   ],
-  "vulnerability": "deny",
-  "unmaintained": "warn",
-  "unsound": "warn",
+  "deprecated": {
+    "vulnerability": "deny",
+    "unmaintained": "warn",
+    "unsound": "warn",
+    "notice": "warn",
+    "severity_threshold": "medium"
+  },
   "yanked": "warn",
-  "notice": "warn",
-  "severity_threshold": "medium",
   "git_fetch_with_cli": false,
   "disable_yank_checking": false,
   "maximum_db_staleness": [
