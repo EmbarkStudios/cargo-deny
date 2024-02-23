@@ -211,3 +211,10 @@ jobs:
           GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
           BUILD_REPOSITORY_ID: ${{ github.repository }}
           BUILD_SOURCEVERSION: ${{ github.sha }}
+
+
+  test_success:
+    runs-on: ubuntu-22.04
+    needs: [lint,test,self,publish-check,doc-book]
+    steps:
+    - run: echo "All test jobs passed"
