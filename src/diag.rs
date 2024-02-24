@@ -261,9 +261,10 @@ struct NodePrint {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DiagnosticCode {
     Advisory(crate::advisories::Code),
-    //Bans(crate::bans::Code),
+    Bans(crate::bans::Code),
     License(crate::licenses::Code),
     Source(crate::sources::Code),
+    General(general::Code),
 }
 
 impl DiagnosticCode {
@@ -271,18 +272,20 @@ impl DiagnosticCode {
         use strum::IntoEnumIterator;
         crate::advisories::Code::iter()
             .map(Self::Advisory)
-            //.chain(crate::bans::Code::iter().map(Self::Bans))
+            .chain(crate::bans::Code::iter().map(Self::Bans))
             .chain(crate::licenses::Code::iter().map(Self::License))
             .chain(crate::sources::Code::iter().map(Self::Source))
+            .chain(general::Code::iter().map(Self::General))
     }
 
     #[inline]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Advisory(code) => code.into(),
-            //Self::Bans(code) => code.into(),
+            Self::Bans(code) => code.into(),
             Self::License(code) => code.into(),
             Self::Source(code) => code.into(),
+            Self::General(code) => code.into(),
         }
     }
 }
@@ -301,9 +304,10 @@ impl std::str::FromStr for DiagnosticCode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.parse::<crate::advisories::Code>()
             .map(Self::Advisory)
-            //.or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
+            .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
             .or_else(|_err| s.parse::<crate::licenses::Code>().map(Self::License))
             .or_else(|_err| s.parse::<crate::sources::Code>().map(Self::Source))
+            .or_else(|_err| s.parse::<general::Code>().map(Self::General))
     }
 }
 
@@ -319,5 +323,7 @@ mod test {
                 panic!("existing code '{code}'");
             }
         }
+
+        insta::assert_debug_snapshot!(unique);
     }
 }
