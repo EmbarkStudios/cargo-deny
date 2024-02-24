@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.13] - 2024-02-24
 ### Fixed
 - [PR#615](https://github.com/EmbarkStudios/cargo-deny/pull/615) fixed an issue introduced in [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) where the various `bans` diagnostic codes could not have their lint level changed via the CLI. It also introduced the `deprecated` diagnostic code.
 
@@ -556,7 +557,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.12...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.13...HEAD
+[0.14.13]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.12...0.14.13
 [0.14.12]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.11...0.14.12
 [0.14.11]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.10...0.14.11
 [0.14.10]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.9...0.14.10
