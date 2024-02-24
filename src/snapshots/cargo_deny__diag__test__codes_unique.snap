@@ -16,6 +16,7 @@ expression: unique
     "checksum-mismatch",
     "default-feature-enabled",
     "denied-by-extension",
+    "deprecated",
     "detected-executable",
     "detected-executable-script",
     "duplicate",
