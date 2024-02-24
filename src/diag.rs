@@ -264,6 +264,7 @@ pub enum DiagnosticCode {
     Bans(crate::bans::Code),
     License(crate::licenses::Code),
     Source(crate::sources::Code),
+    General(general::Code),
 }
 
 impl DiagnosticCode {
@@ -274,6 +275,7 @@ impl DiagnosticCode {
             .chain(crate::bans::Code::iter().map(Self::Bans))
             .chain(crate::licenses::Code::iter().map(Self::License))
             .chain(crate::sources::Code::iter().map(Self::Source))
+            .chain(general::Code::iter().map(Self::General))
     }
 
     #[inline]
@@ -283,6 +285,7 @@ impl DiagnosticCode {
             Self::Bans(code) => code.into(),
             Self::License(code) => code.into(),
             Self::Source(code) => code.into(),
+            Self::General(code) => code.into(),
         }
     }
 }
@@ -304,6 +307,7 @@ impl std::str::FromStr for DiagnosticCode {
             .or_else(|_err| s.parse::<crate::bans::Code>().map(Self::Bans))
             .or_else(|_err| s.parse::<crate::licenses::Code>().map(Self::License))
             .or_else(|_err| s.parse::<crate::sources::Code>().map(Self::Source))
+            .or_else(|_err| s.parse::<general::Code>().map(Self::General))
     }
 }
 
