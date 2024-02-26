@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.14] - 2024-02-26
 ### Fixed
 - [PR#617](https://github.com/EmbarkStudios/cargo-deny/pull/617) resolved [#576](https://github.com/EmbarkStudios/cargo-deny/issues/576) by updating the SPDX license list to 3.23.
 
@@ -560,7 +561,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.13...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.14...HEAD
+[0.14.14]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.13...0.14.14
 [0.14.13]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.12...0.14.13
 [0.14.12]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.11...0.14.12
 [0.14.11]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.10...0.14.11
