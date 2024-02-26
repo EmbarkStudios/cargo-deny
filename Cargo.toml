@@ -45,7 +45,7 @@ nu-ansi-term = "0.50"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
-askalono = "0.4"
+askalono = { version = "0.4", default-features = false }
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
@@ -141,6 +141,11 @@ time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.2", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
+# divan = "0.1"
+
+# [[bench]]
+# name = "license_data"
+# harness = false
 
 [profile.dev.package.insta]
 opt-level = 3
