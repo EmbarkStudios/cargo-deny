@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#617](https://github.com/EmbarkStudios/cargo-deny/pull/617) resolved [#576](https://github.com/EmbarkStudios/cargo-deny/issues/576) by updating the SPDX license list to 3.23.
+
 ## [0.14.13] - 2024-02-24
 ### Fixed
 - [PR#615](https://github.com/EmbarkStudios/cargo-deny/pull/615) fixed an issue introduced in [PR#605](https://github.com/EmbarkStudios/cargo-deny/pull/605) where the various `bans` diagnostic codes could not have their lint level changed via the CLI. It also introduced the `deprecated` diagnostic code.
