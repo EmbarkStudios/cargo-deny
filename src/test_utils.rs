@@ -276,6 +276,7 @@ where
                 cfg,
                 serialize_extra: true,
                 colorize: false,
+                log_level: log::LevelFilter::Info,
             };
             runner(ctx, newmap, tx, &mut files);
         },

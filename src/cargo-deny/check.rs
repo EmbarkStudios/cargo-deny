@@ -343,6 +343,8 @@ pub(crate) fn cmd(
     let colorize = log_ctx.format == crate::Format::Human
         && crate::common::should_colorize(log_ctx.color, std::io::stderr());
 
+    let log_level = log_ctx.log_level;
+
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
@@ -372,6 +374,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 serialize_extra,
                 colorize,
+                log_level,
             };
 
             s.spawn(move |_| {
@@ -421,6 +424,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 serialize_extra,
                 colorize,
+                log_level,
             };
 
             s.spawn(|_| {
@@ -444,6 +448,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 serialize_extra,
                 colorize,
+                log_level,
             };
 
             s.spawn(|_| {
@@ -467,6 +472,7 @@ pub(crate) fn cmd(
                 krate_spans: &krate_spans,
                 serialize_extra,
                 colorize,
+                log_level,
             };
 
             s.spawn(move |_| {

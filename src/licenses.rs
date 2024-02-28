@@ -34,7 +34,7 @@ struct Hits {
 }
 
 fn evaluate_expression(
-    cfg: &cfg::ValidConfig,
+    ctx: &crate::CheckCtx<'_, cfg::ValidConfig>,
     krate_lic_nfo: &KrateLicense<'_>,
     expr: &spdx::Expression,
     nfo: &LicenseExprInfo,
@@ -72,6 +72,8 @@ fn evaluate_expression(
     }
 
     let mut warnings = 0;
+
+    let cfg = &ctx.cfg;
 
     // Check to see if the crate matches an exception, which is additional to
     // the general allow list
@@ -228,7 +230,37 @@ fn evaluate_expression(
         ),
     );
 
-    for (reason, failed_req) in reasons.into_iter().zip(expr.requirements()) {
+    let mut notes = Vec::new();
+
+    for ((reason, accepted), failed_req) in reasons.into_iter().zip(expr.requirements()) {
+        if accepted && ctx.log_level < log::LevelFilter::Info {
+            continue;
+        }
+
+        if severity == Severity::Error {
+            if let Some(id) = failed_req.req.license.id() {
+                notes.push(format!("{} - {}:", id.name, id.full_name));
+
+                if id.is_deprecated() {
+                    notes.push("  - **DEPRECATED**".into());
+                }
+
+                if id.is_osi_approved() {
+                    notes.push("  - OSI approved".into());
+                }
+
+                if id.is_fsf_free_libre() {
+                    notes.push("  - FSF Free/Libre".into());
+                }
+
+                if id.is_copyleft() {
+                    notes.push("  - Copyleft".into());
+                }
+            } else {
+                notes.push(format!("{} is not an SPDX license", failed_req.req));
+            }
+        }
+
         labels.push(
             Label::primary(
                 nfo.file_id,
@@ -237,8 +269,8 @@ fn evaluate_expression(
             )
             .with_message(format!(
                 "{}: {}",
-                if reason.1 { "accepted" } else { "rejected" },
-                match reason.0 {
+                if accepted { "accepted" } else { "rejected" },
+                match reason {
                     Reason::Denied => "explicitly denied",
                     Reason::IsFsfFree =>
                         "license is FSF approved https://www.gnu.org/licenses/license-list.en.html",
@@ -273,6 +305,7 @@ fn evaluate_expression(
             diags::Code::Rejected
         })
         .with_labels(labels)
+        .with_notes(notes)
 }
 
 pub fn check(
@@ -317,7 +350,7 @@ pub fn check(
         match &krate_lic_nfo.lic_info {
             LicenseInfo::SpdxExpression { expr, nfo } => {
                 pack.push(evaluate_expression(
-                    &ctx.cfg,
+                    &ctx,
                     &krate_lic_nfo,
                     expr,
                     nfo,
