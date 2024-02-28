@@ -52,15 +52,10 @@ allow = [
     "ISC",
 ]
 exceptions = [
-    { allow = [
-        "Zlib",
-    ], crate = "tinyvec" },
-    { allow = [
-        "Unicode-DFS-2016",
-    ], crate = "unicode-ident" },
-    { allow = [
-        "OpenSSL",
-    ], crate = "ring" },
+    # Use exceptions for these as they only have a single user
+    { allow = ["Zlib"], crate = "tinyvec" },
+    { allow = ["Unicode-DFS-2016"], crate = "unicode-ident" },
+    { allow = ["OpenSSL"], crate = "ring" },
 ]
 
 # Sigh

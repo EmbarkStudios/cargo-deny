@@ -445,6 +445,9 @@ pub struct CheckCtx<'ctx, T> {
     pub serialize_extra: bool,
     /// Allows for ANSI colorization of diagnostic content
     pub colorize: bool,
+    /// Log level specified by the user, may be used by checks to determine what
+    /// information to emit in diagnostics
+    pub log_level: log::LevelFilter,
 }
 
 /// Checks if a version satisfies the specifies the specified version requirement.

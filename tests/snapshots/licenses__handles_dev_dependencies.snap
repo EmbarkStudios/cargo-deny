@@ -46,6 +46,11 @@ expression: diags
         }
       ],
       "message": "failed to satisfy license requirements",
+      "notes": [
+        "MIT - MIT License:",
+        "  - OSI approved",
+        "  - FSF Free/Libre"
+      ],
       "severity": "error"
     },
     "type": "diagnostic"
@@ -85,6 +90,13 @@ expression: diags
         }
       ],
       "message": "failed to satisfy license requirements",
+      "notes": [
+        "GPL-3.0 - GNU General Public License v3.0 only:",
+        "  - **DEPRECATED**",
+        "  - OSI approved",
+        "  - FSF Free/Libre",
+        "  - Copyleft"
+      ],
       "severity": "error"
     },
     "type": "diagnostic"

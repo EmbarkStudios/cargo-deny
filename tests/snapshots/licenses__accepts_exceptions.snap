@@ -81,6 +81,17 @@ expression: diags
         }
       ],
       "message": "failed to satisfy license requirements",
+      "notes": [
+        "Zlib - zlib License:",
+        "  - OSI approved",
+        "  - FSF Free/Libre",
+        "Apache-2.0 - Apache License 2.0:",
+        "  - OSI approved",
+        "  - FSF Free/Libre",
+        "MIT - MIT License:",
+        "  - OSI approved",
+        "  - FSF Free/Libre"
+      ],
       "severity": "error"
     },
     "type": "diagnostic"
