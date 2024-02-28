@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#618](https://github.com/EmbarkStudios/cargo-deny/pull/618) added metadata notes to diagnostics when a license is rejected, as well as removing span information for accepted licenses unless the log level is `info` or higher to make the diagnostic clearer by default.
+
 ## [0.14.14] - 2024-02-26
 ### Fixed
 - [PR#617](https://github.com/EmbarkStudios/cargo-deny/pull/617) resolved [#576](https://github.com/EmbarkStudios/cargo-deny/issues/576) by updating the SPDX license list to 3.23.
