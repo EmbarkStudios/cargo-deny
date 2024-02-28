@@ -237,7 +237,7 @@ fn evaluate_expression(
             continue;
         }
 
-        if severity == Severity::Error {
+        if !accepted && severity == Severity::Error {
             if let Some(id) = failed_req.req.license.id() {
                 notes.push(format!("{} - {}:", id.name, id.full_name));
 
