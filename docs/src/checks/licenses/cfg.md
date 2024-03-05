@@ -45,25 +45,43 @@ allow = [
 
 If `true`, licenses are checked even for `dev-dependencies`. By default this is false as `dev-dependencies` are not used by downstream crates, nor part of binary artifacts.
 
+### The `version` field (optional)
+
+```ini
+version = 2
+```
+
+The licenses section has an upcoming breaking change, with deprecation warnings for several fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
+
+The breaking change is as follows:
+
+- `unlicensed` - Removed, if a crate is unlicensed you should open an issue/PR to fix it, and in the meantime, you may add a [clarification](#the-clarify-field-optional).
+- `deny` - Removed, all licenses are denied unless explicitly allowed
+- `copyleft` - Removed, all licenses are denied unless explicitly allowed
+- `allow-osi-fsf-free` - Removed, all licenses are denied unless explicitly allowed
+- `default` - Removed, all licenses are denied unless explicitly allowed
+
 ### The `unlicensed` field (optional)
 
 Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via `LICENSE*` files in the crate's source.
 
-* `deny` (default) - All unlicensed crates will emit an error and fail the license check
-* `allow` - All unlicensed crates will show a note, but will not fail the license check
-* `warn` - All unlicensed crates will show a warning, but will not fail the license check
+- `deny` (default) - All unlicensed crates will emit an error and fail the license check
+- `allow` - All unlicensed crates will show a note, but will not fail the license check
+- `warn` - All unlicensed crates will show a warning, but will not fail the license check
 
 ### The `allow` and `deny` fields (optional)
 
 The licenses that should be allowed or denied, note that the same license cannot
 appear in both the `allow` and `deny` lists.
 
+[`deny` is **DEPRECATED**](#the-version-field-optional)
+
 #### Note on GNU licenses
 
-* GPL
-* AGPL
-* LGPL
-* GFDL
+- GPL
+- AGPL
+- LGPL
+- GFDL
 
 The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either `allow` or `deny`, you **must not** use the suffixes `-only` or `-or-later`, as they can only be used by the license holder themselves to decide under which terms to license their code.
 
@@ -79,12 +97,12 @@ This gets worse with the GFDL licenses, which also have an `invariants` modifier
 
 Let's use [`GFDL-1.2`](https://spdx.org/licenses/GFDL-1.2-only.html) to show how license requirements are normalized.
 
-* `GFDL-1.2-invariants-only` => `GFDL-1.2-invariants`
-* `GFDL-1.2-invariants-or-later` => `GFDL-1.2-invariants+`
-* `GFDL-1.2-no-invariants-only` => `GFDL-1.2`
-* `GFDL-1.2-no-invariants-or-later` => `GFDL-1.2+`
-* `GFDL-1.2-only` => `GFDL-1.2`
-* `GFDL-1.2-or-later` => `GFDL-1.2+`
+- `GFDL-1.2-invariants-only` => `GFDL-1.2-invariants`
+- `GFDL-1.2-invariants-or-later` => `GFDL-1.2-invariants+`
+- `GFDL-1.2-no-invariants-only` => `GFDL-1.2`
+- `GFDL-1.2-no-invariants-or-later` => `GFDL-1.2+`
+- `GFDL-1.2-only` => `GFDL-1.2`
+- `GFDL-1.2-or-later` => `GFDL-1.2+`
 
 So, for example, if you wanted to allow all version (1.1, 1.2, and 1.3), but only invariants for 1.3 you could use the following configuration.
 
@@ -134,25 +152,31 @@ exceptions = [
 
 ### The `copyleft` field (optional)
 
+[**DEPRECATED**](#the-version-field-optional)
+
 Determines what happens when a license that is considered [copyleft](https://www.gnu.org/licenses/license-list.html) is encountered.
 
-* `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
-* `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true
-* `allow` - The license is accepted if it is copyleft
+- `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
+- `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true
+- `allow` - The license is accepted if it is copyleft
 
 ### The `allow-osi-fsf-free` field (optional)
 
+[**DEPRECATED**](#the-version-field-optional)
+
 Determines what happens when licenses aren't explicitly allowed or denied, but **are** marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.23 of the [SPDX License List](https://spdx.org/licenses/).
 
-* `both` - The license is accepted if it is both OSI approved and FSF Free
-* `either` - The license is accepted if it is either OSI approved or FSF Free
-* `osi` - The license is accepted if it is OSI approved
-* `fsf` - The license is accepted if it is FSF Free
-* `osi-only` - The license is accepted if it is OSI approved and not FSF Free
-* `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
-* `neither` (default) - No special consideration is given the license
+- `both` - The license is accepted if it is both OSI approved and FSF Free
+- `either` - The license is accepted if it is either OSI approved or FSF Free
+- `osi` - The license is accepted if it is OSI approved
+- `fsf` - The license is accepted if it is FSF Free
+- `osi-only` - The license is accepted if it is OSI approved and not FSF Free
+- `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
+- `neither` (default) - No special consideration is given the license
 
 ### The `default` field (optional)
+
+[**DEPRECATED**](#the-version-field-optional)
 
 Determines what happens when a license is encountered that:
 
@@ -160,9 +184,9 @@ Determines what happens when a license is encountered that:
 1. Isn't `copyleft`
 1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
 
-* `warn` - Will emit a warning that the license was detected, but will not fail the license check
-* `deny` (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true
-* `allow` - The license is accepted
+- `warn` - Will emit a warning that the license was detected, but will not fail the license check
+- `deny` (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true
+- `allow` - The license is accepted
 
 ### The `confidence-threshold` field (optional)
 
@@ -260,6 +284,6 @@ ignore-sources = ["https://sekretz.com/super/secret-index"]
 
 Determines what happens when one of the licenses that appears in the `allow` list is not encountered in the dependency graph.
 
-* `warn` (default) - A warning is emitted for each license that appears in `license.allow` but which is not used in any crate.
-* `allow` - Unused licenses in the `licenses.allow` list are ignored.
-* `deny` - An unused license in the `licenses.allow` list triggers an error, and cause the license check to fail.
+- `warn` (default) - A warning is emitted for each license that appears in `license.allow` but which is not used in any crate.
+- `allow` - Unused licenses in the `licenses.allow` list are ignored.
+- `deny` - An unused license in the `licenses.allow` list triggers an error, and cause the license check to fail.
