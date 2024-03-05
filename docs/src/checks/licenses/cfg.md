@@ -142,7 +142,7 @@ Determines what happens when a license that is considered [copyleft](https://www
 
 ### The `allow-osi-fsf-free` field (optional)
 
-Determines what happens when licenses aren't explicitly allowed or denied, but **are** marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.11 of the [SPDX License List](https://spdx.org/licenses/).
+Determines what happens when licenses aren't explicitly allowed or denied, but **are** marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.23 of the [SPDX License List](https://spdx.org/licenses/).
 
 * `both` - The license is accepted if it is both OSI approved and FSF Free
 * `either` - The license is accepted if it is either OSI approved or FSF Free
@@ -254,7 +254,7 @@ ignore = true
 ignore-sources = ["https://sekretz.com/super/secret-index"]
 ```
 
-[SPDX-expr]: https://spdx.org/spdx-specification-21-web-version#h.jxpfx0ykyb60
+[SPDX-expr]: https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/
 
 ### The `unused-allowed-license` field (optional)
 
