@@ -230,7 +230,7 @@ fn evaluate_expression(
         ),
     );
 
-    let mut notes = Vec::new();
+    let mut notes = krate_lic_nfo.notes.clone();
 
     for ((reason, accepted), failed_req) in reasons.into_iter().zip(expr.requirements()) {
         if accepted && ctx.log_level < log::LevelFilter::Info {
@@ -240,6 +240,8 @@ fn evaluate_expression(
         if !accepted && severity == Severity::Error {
             if let Some(id) = failed_req.req.license.id() {
                 notes.push(format!("{} - {}:", id.name, id.full_name));
+
+                let len = notes.len();
 
                 if id.is_deprecated() {
                     notes.push("  - **DEPRECATED**".into());
@@ -256,7 +258,13 @@ fn evaluate_expression(
                 if id.is_copyleft() {
                     notes.push("  - Copyleft".into());
                 }
+
+                if len == notes.len() {
+                    notes.push("  - No additional metadata available for license".into());
+                }
             } else {
+                // This would only happen if askalono used a newer license list than spdx, but we update
+                // both simultaneously
                 notes.push(format!("{} is not an SPDX license", failed_req.req));
             }
         }

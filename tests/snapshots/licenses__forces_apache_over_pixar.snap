@@ -1,0 +1,53 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "so-annoying",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 4,
+          "message": "license expression was not specified",
+          "span": ""
+        },
+        {
+          "column": 15,
+          "line": 5,
+          "message": "license expression retrieved via LICENSE-APACHE, LICENSE-PIXAR",
+          "span": "Apache-2.0 AND Pixar"
+        },
+        {
+          "column": 15,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "Apache-2.0"
+        },
+        {
+          "column": 30,
+          "line": 5,
+          "message": "rejected: not explicitly allowed",
+          "span": "Pixar"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "notes": [
+        "'LICENSE-APACHE' fuzzy matched to Pixar license, but it actually a normal Apache-2.0 license",
+        "Pixar - Pixar License:",
+        "  - No additional metadata available for license"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
