@@ -273,3 +273,45 @@ include-dev = true
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Ensures that an Apache-2.0 licenses without the appendix are not misidentified
+/// as Pixar, because Pixar is an almost exact copy of Apache-2.0. Fuck I hate licenses so much.
+#[test]
+fn forces_apache_over_pixar() {
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("tests/test_data/so-annoying/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let gatherer = licenses::Gatherer::default()
+        .with_store(store())
+        .with_confidence_threshold(0.8);
+
+    let cfg = tu::Config::new(
+        r#"
+    allow = ['Apache-2.0']
+    "#,
+    );
+
+    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
+        &krates,
+        func_name!(),
+        cfg,
+        codespan::Files::new(),
+        |ctx, _cs, tx, files| {
+            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
+            crate::licenses::check(
+                ctx,
+                summary,
+                diag::ErrorSink {
+                    overrides: None,
+                    channel: tx,
+                },
+            );
+        },
+    );
+
+    insta::assert_json_snapshot!(diags);
+}

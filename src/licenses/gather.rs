@@ -130,6 +130,7 @@ struct LicensePack {
 struct GatheredExpr {
     synthesized_toml: String,
     failures: Vec<Label>,
+    notes: Vec<String>,
     expr: spdx::Expression,
     file_sources: Vec<String>,
 }
@@ -220,6 +221,7 @@ impl LicensePack {
         }
 
         let mut failures = Vec::new();
+        let mut notes = Vec::new();
         synth_toml.push_str("license-files = [\n");
 
         for lic_contents in &self.license_files {
@@ -237,7 +239,27 @@ impl LicensePack {
                     let text = askalono::TextData::new(&data.content);
                     match strat.scan(&text) {
                         Ok(lic_match) => {
-                            if let Some(identified) = lic_match.license {
+                            if let Some(mut identified) = lic_match.license {
+                                // See https://github.com/EmbarkStudios/cargo-deny/issues/625
+                                // but the Pixar license is just a _slightly_ modified Apache-2.0 license, and since
+                                // the apache 2.0 license is so common, and the modification of removing the appendix,
+                                // which causes askalono to think it is pixar instead is probably common enough we need
+                                // to just explicitly handle it. Really this should be fixed in askalono but that library
+                                // is basically abandoned at this point and should be replaced https://github.com/EmbarkStudios/spdx/issues/67
+                                if identified.name == "Pixar" {
+                                    // Very loose, but just check if the title is actually for the pixar license or not
+                                    if !data
+                                        .content
+                                        .trim_start()
+                                        .starts_with("Modified Apache 2.0 License")
+                                    {
+                                        // emit a note about this, just in case
+                                        notes.push(format!("'{}' fuzzy matched to Pixar license, but it actually a normal Apache-2.0 license", lic_contents.path));
+
+                                        identified.name = "Apache-2.0";
+                                    }
+                                }
+
                                 // askalano doesn't report any matches below the confidence threshold
                                 // but we want to see what it thinks the license is if the confidence
                                 // is somewhat ok at least
@@ -312,6 +334,7 @@ impl LicensePack {
             Ok(GatheredExpr {
                 synthesized_toml: synth_toml,
                 failures,
+                notes,
                 expr: spdx::Expression::parse(&expr).unwrap(),
                 file_sources: sources,
             })
@@ -357,6 +380,8 @@ pub enum LicenseInfo {
 pub struct KrateLicense<'a> {
     pub krate: &'a Krate,
     pub lic_info: LicenseInfo,
+
+    pub(crate) notes: Vec<String>,
 
     // Reasons for why the license was determined (or not!) when
     // gathering the license information
@@ -579,6 +604,7 @@ impl Gatherer {
                                     },
                                 },
                                 labels,
+                                notes: Vec::new(),
                             };
                         }
                     }
@@ -616,6 +642,7 @@ impl Gatherer {
                                         },
                                     },
                                     labels,
+                                    notes: Vec::new(),
                                 };
                             }
                             Err(err) => {
@@ -653,6 +680,7 @@ impl Gatherer {
                                             },
                                         },
                                         labels,
+                                        notes: Vec::new(),
                                     };
                                 }
                             }
@@ -678,6 +706,7 @@ impl Gatherer {
                         Ok(GatheredExpr {
                             synthesized_toml,
                             failures,
+                            notes,
                             expr,
                             file_sources,
                         }) => {
@@ -721,6 +750,7 @@ impl Gatherer {
                                     },
                                 },
                                 labels,
+                                notes,
                             };
                         }
                         Err((new_toml, lic_file_lables)) => {
@@ -763,6 +793,7 @@ impl Gatherer {
                     krate,
                     lic_info: LicenseInfo::Unlicensed,
                     labels,
+                    notes: Vec::new(),
                 }
             })
             .collect();
