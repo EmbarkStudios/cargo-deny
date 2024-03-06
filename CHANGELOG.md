@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.16] - 2024-03-06
 ### Fixed
 - [PR#626](https://github.com/EmbarkStudios/cargo-deny/pull/626) resolved [#625](https://github.com/EmbarkStudios/cargo-deny/issues/625) by explicitly checking that a license identified as Pixar was actually (probably) the Pixar license, instead of a normal Apache-2.0 license.
 
@@ -568,7 +569,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.15...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.16...HEAD
+[0.14.16]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.15...0.14.16
 [0.14.15]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.14...0.14.15
 [0.14.14]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.13...0.14.14
 [0.14.13]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.12...0.14.13
