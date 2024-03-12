@@ -733,7 +733,7 @@ fn crates_io_source_replacement() {
 
         // Nuke spdx entirely
         let spath = index.cache_path("spdx".try_into().unwrap());
-        std::fs::remove_file(&spath).unwrap();
+        std::fs::remove_file(spath).unwrap();
 
         // Note we also need to nuke the spdx crate file otherwise the local registry
         // validation will fail, we don't care about this, we are screwing it up on purpose
@@ -750,11 +750,14 @@ fn crates_io_source_replacement() {
                 if line.contains(r#","vers":"1.6.1","#) {
                     continue;
                 }
-                file.write_vectored(&[
-                    std::io::IoSlice::new(line.as_bytes()),
-                    std::io::IoSlice::new(b"\n"),
-                ])
-                .unwrap();
+                assert_eq!(
+                    file.write_vectored(&[
+                        std::io::IoSlice::new(line.as_bytes()),
+                        std::io::IoSlice::new(b"\n"),
+                    ])
+                    .unwrap(),
+                    line.len() + 1
+                );
             }
 
             std::fs::remove_file(lrd.path().join("smallvec-1.6.1.crate")).unwrap();

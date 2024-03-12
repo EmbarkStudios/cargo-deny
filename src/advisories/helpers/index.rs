@@ -131,7 +131,7 @@ impl<'k> Indices<'k> {
             return Ok(false);
         };
 
-        let Some(entry) = self.cache.get(&(krate.name.as_str(), dbg!(src))) else {
+        let Some(entry) = self.cache.get(&(krate.name.as_str(), src)) else {
             panic!("we should have a cache entry for {krate} by now");
         };
 
