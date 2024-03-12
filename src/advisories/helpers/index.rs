@@ -5,9 +5,15 @@ use tame_index::{index::ComboIndexCache, Error, IndexLocation, IndexUrl};
 
 type YankMap = Vec<(semver::Version, bool)>;
 
+#[derive(Clone)]
+pub enum Entry {
+    Map(YankMap),
+    Error(String),
+}
+
 pub struct Indices<'k> {
     pub indices: Vec<(&'k Source, Result<ComboIndexCache, Error>)>,
-    pub cache: BTreeMap<(&'k str, &'k Source), YankMap>,
+    pub cache: BTreeMap<(&'k str, &'k Source), Entry>,
 }
 
 impl<'k> Indices<'k> {
@@ -69,18 +75,40 @@ impl<'k> Indices<'k> {
 
         let cache = set
             .into_par_iter()
-            .filter_map(|(name, src)| {
-                let index = indices
-                    .iter()
-                    .find_map(|(url, index)| index.as_ref().ok().filter(|_i| src == *url))?;
+            .map(|(name, src)| {
+                let read_entry = || -> Result<YankMap, String> {
+                    match indices
+                        .iter()
+                        .find_map(|(url, index)| (src == *url).then_some(index))
+                        .ok_or_else(|| "unable to locate index".to_owned())?
+                    {
+                        Ok(index) => {
+                            match index.cached_krate(
+                                name.try_into()
+                                    .map_err(|e: tame_index::Error| e.to_string())?,
+                                &cargo_package_lock,
+                            ) {
+                                Ok(Some(ik)) => {
+                                    let yank_map = Self::load_index_krate(ik);
+                                    Ok(yank_map)
+                                }
+                                Ok(None) => {
+                                    Err("unable to locate index entry for crate".to_owned())
+                                }
+                                Err(err) => Err(format!("{err:#}")),
+                            }
+                        }
+                        Err(err) => Err(format!("{err:#}")),
+                    }
+                };
 
-                index
-                    .cached_krate(name.try_into().ok()?, &cargo_package_lock)
-                    .ok()?
-                    .map(|ik| {
-                        let yank_map = Self::load_index_krate(ik);
-                        ((name, src), yank_map)
-                    })
+                (
+                    (name, src),
+                    match read_entry() {
+                        Ok(ym) => Entry::Map(ym),
+                        Err(err) => Entry::Error(err),
+                    },
+                )
             })
             .collect();
 
@@ -96,23 +124,26 @@ impl<'k> Indices<'k> {
     }
 
     #[inline]
-    pub fn is_yanked(&self, krate: &'k Krate) -> anyhow::Result<bool> {
-        use anyhow::Context as _;
-
+    pub fn is_yanked(&self, krate: &'k Krate) -> Result<bool, String> {
         // Ignore non-registry crates when checking, as a crate sourced
         // locally or via git can have the same name as a registry package
         let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else {
             return Ok(false);
         };
 
-        let cache_entry = self
-            .cache
-            .get(&(krate.name.as_str(), src))
-            .context("unable to locate index metadata")?;
-        let is_yanked = cache_entry
-            .iter()
-            .find_map(|kv| (kv.0 == krate.version).then_some(kv.1));
+        let Some(entry) = self.cache.get(&(krate.name.as_str(), src)) else {
+            panic!("we should have a cache entry for {krate} by now");
+        };
 
-        Ok(is_yanked.unwrap_or_default())
+        match entry {
+            Entry::Map(cache_entry) => {
+                let is_yanked = cache_entry
+                    .iter()
+                    .find_map(|kv| (kv.0 == krate.version).then_some(kv.1));
+
+                is_yanked.ok_or_else(|| format!("unable to locate version '{}'", krate.version))
+            }
+            Entry::Error(err) => Err(err.clone()),
+        }
     }
 }

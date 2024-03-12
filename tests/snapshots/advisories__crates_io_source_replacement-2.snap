@@ -1,0 +1,22 @@
+---
+source: tests/advisories.rs
+expression: diags
+---
+[
+  [
+    "crate-one",
+    "the cache entry's revision does not match the current revision"
+  ],
+  [
+    "crate-two",
+    "the cache entry is an old, unsupported version"
+  ],
+  [
+    "smallvec",
+    "unable to locate version '1.6.1'"
+  ],
+  [
+    "spdx",
+    "unable to locate index entry for crate"
+  ]
+]

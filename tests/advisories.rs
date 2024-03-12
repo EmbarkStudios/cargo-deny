@@ -294,7 +294,16 @@ fn warns_on_index_failures() {
 
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
-    let source = cargo_deny::Source::crates_io(true);
+    let source = cargo_deny::Source::crates_io(false);
+
+    let mut cache = std::collections::BTreeMap::new();
+
+    for krate in krates.krates() {
+        cache.insert(
+            (krate.name.as_str(), &source),
+            advisories::Entry::Error("this path is valid but we pretend it is non-utf8".into()),
+        );
+    }
 
     let indices = advisories::Indices {
         indices: vec![(
@@ -303,7 +312,7 @@ fn warns_on_index_failures() {
                 "this path is valid but we pretend it is non-utf8".into(),
             )),
         )],
-        cache: Default::default(),
+        cache,
     };
 
     let diags =
@@ -664,17 +673,19 @@ fn crates_io_source_replacement() {
     let mut cmd: krates::cm::MetadataCommand = cmd.into();
     cmd.env("CARGO_HOME", cargo_home);
 
+    let cargo_home: camino::Utf8PathBuf = cargo_home.to_owned().try_into().unwrap();
+
     let mut kb = krates::Builder::new();
     cargo_deny::krates_with_index(
         &mut kb,
         Some(to_path(&pkg_dir).unwrap().join("12_yank_check")),
-        Some(cargo_home.to_owned().try_into().unwrap()),
+        Some(cargo_home.clone()),
     )
     .unwrap();
 
     let krates: Krates = kb.build(cmd, krates::NoneFilter).unwrap();
 
-    let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
+    let indices = advisories::Indices::load(&krates, cargo_home.clone());
 
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
@@ -697,6 +708,124 @@ fn crates_io_source_replacement() {
             v.pointer("/fields/message")
                 .and_then(|v| v.as_str())
                 .map_or(false, |v| v.starts_with("detected yanked crate"))
+        })
+        .collect();
+
+    insta::assert_json_snapshot!(diags);
+
+    // Now that we've verified we can perform the yank checks against valid indices, go
+    // in and corrupt/remove the index entries and perform the check again to ensure we
+    // give good error messages to the user
+
+    {
+        let index = tame_index::index::ComboIndexCache::new(
+            tame_index::IndexLocation::new(
+                tame_index::IndexUrl::crates_io(
+                    Some(to_path(&pkg_dir).unwrap().join("12_yank_check")),
+                    Some(&cargo_home),
+                    None,
+                )
+                .unwrap(),
+            )
+            .with_root(Some(cargo_home.clone())),
+        )
+        .unwrap();
+
+        // Nuke spdx entirely
+        let spath = index.cache_path("spdx".try_into().unwrap());
+        std::fs::remove_file(spath).unwrap();
+
+        // Note we also need to nuke the spdx crate file otherwise the local registry
+        // validation will fail, we don't care about this, we are screwing it up on purpose
+        std::fs::remove_file(lrd.path().join("spdx-0.3.1.crate")).unwrap();
+
+        // Remove the specific version of smallvec pinned by the lockfile
+        {
+            let spath = index.cache_path("smallvec".try_into().unwrap());
+            let json = std::fs::read_to_string(&spath).unwrap();
+
+            let mut file = std::fs::File::create(spath).unwrap();
+            for line in json.lines() {
+                use std::io::Write as _;
+                if line.contains(r#","vers":"1.6.1","#) {
+                    continue;
+                }
+                assert_eq!(
+                    file.write_vectored(&[
+                        std::io::IoSlice::new(line.as_bytes()),
+                        std::io::IoSlice::new(b"\n"),
+                    ])
+                    .unwrap(),
+                    line.len() + 1
+                );
+            }
+
+            std::fs::remove_file(lrd.path().join("smallvec-1.6.1.crate")).unwrap();
+        }
+    }
+
+    // Change the version of the cache entry to a too old version that tame-index doesn't support
+    {
+        let index = tame_index::index::ComboIndexCache::new(
+            tame_index::IndexLocation::new(
+                "https://github.com/EmbarkStudios/cargo-test-index".into(),
+            )
+            .with_root(Some(cargo_home.clone())),
+        )
+        .unwrap();
+
+        let spath = index.cache_path("crate-two".try_into().unwrap());
+        let mut sc = std::fs::read(&spath).unwrap();
+        sc[0] = tame_index::index::cache::CURRENT_CACHE_VERSION /* 3 */ - 2;
+        std::fs::write(spath, sc).unwrap();
+    }
+
+    // Corrupt the entry by making the etag string invalid utf8
+    {
+        let index = tame_index::index::ComboIndexCache::new(
+            tame_index::IndexLocation::new(
+                "sparse+https://cargo.cloudsmith.io/embark/deny/".into(),
+            )
+            .with_root(Some(cargo_home.clone())),
+        )
+        .unwrap();
+
+        let spath = index.cache_path("crate-one".try_into().unwrap());
+        let mut sc = std::fs::read(&spath).unwrap();
+        sc[11] = 0xc0;
+        sc[12] = 0x80;
+        std::fs::write(spath, sc).unwrap();
+    }
+
+    let indices = advisories::Indices::load(&krates, cargo_home.clone());
+
+    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                Some(indices),
+                tx,
+            );
+        });
+
+    let diags: Vec<_> = diags
+        .into_iter()
+        .filter_map(|v| {
+            v.pointer("/fields/notes/0")
+                .and_then(|v| v.as_str())
+                .map(|n| {
+                    (
+                        v.pointer("/fields/graphs/0/Krate/name")
+                            .and_then(|v| v.as_str())
+                            .unwrap()
+                            .to_owned(),
+                        n.replace(cargo_home.as_str(), "$TEMP_LOCAL"),
+                    )
+                })
         })
         .collect();
 
