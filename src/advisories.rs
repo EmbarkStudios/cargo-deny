@@ -6,7 +6,7 @@ use crate::{diag, LintLevel};
 pub use diags::Code;
 pub use helpers::{
     db::{AdvisoryDb, DbSet, Fetch, Id, Report},
-    index::Indices,
+    index::{Entry, Indices},
 };
 
 pub trait AuditReporter {
