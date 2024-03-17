@@ -94,7 +94,7 @@ An [interpreted script](cfg.md#the-interpreted-field-optional) was detected.
 
 ### `unable-to-check-path`
 
-An I/O error occured when opening or reading a file from disk.
+An I/O error occurred when opening or reading a file from disk.
 
 ### `features-enabled`
 

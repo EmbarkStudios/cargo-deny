@@ -342,10 +342,10 @@ pub struct Config {
     /// Allows specifying features that are or are not allowed on crates
     pub features: Vec<CrateFeatures>,
     /// The default lint level for default features for external, non-workspace
-    /// crates, can be overriden in `features` on a crate by crate basis
+    /// crates, can be overridden in `features` on a crate by crate basis
     pub external_default_features: Option<Spanned<LintLevel>>,
     /// The default lint level for default features for workspace crates, can be
-    /// overriden in `features` on a crate by crate basis
+    /// overridden in `features` on a crate by crate basis
     pub workspace_default_features: Option<Spanned<LintLevel>>,
     /// If specified, disregards the crate completely
     pub skip: Vec<CrateSkip>,

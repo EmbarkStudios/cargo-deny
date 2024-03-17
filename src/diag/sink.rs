@@ -38,7 +38,7 @@ impl ErrorSink {
 
 use super::Severity;
 
-/// Each diagnostic will have a default severity, but these can be overriden
+/// Each diagnostic will have a default severity, but these can be overridden
 /// by the user via the CLI so that eg. warnings can be made into errors on CI
 pub struct DiagnosticOverrides {
     pub code_overrides: std::collections::BTreeMap<&'static str, Severity>,

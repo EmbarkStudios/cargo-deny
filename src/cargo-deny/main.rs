@@ -247,7 +247,7 @@ fn real_main() -> Result<(), Error> {
         mpath
     } else {
         // For now, use the context path provided by the user, but
-        // we've deprected it and it will go away at some point
+        // we've deprecated it and it will go away at some point
         let cwd =
             std::env::current_dir().context("unable to determine current working directory")?;
 

@@ -20,7 +20,7 @@ Feature requests will be tagged as `enhancement` and their status will be update
 
 ### Bugs
 
-When reporting a bug or unexpected behaviour in a project, make sure your issue descibes steps to reproduce the behaviour, including the platform you were using, what steps you took, and any error messages.
+When reporting a bug or unexpected behaviour in a project, make sure your issue describes steps to reproduce the behaviour, including the platform you were using, what steps you took, and any error messages.
 
 Reproducible bugs will be tagged as `bug` and their status will be updated in the comments of the issue.
 

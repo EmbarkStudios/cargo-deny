@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+request = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
     "brotli",
     "rustls-tls",
 ] }
@@ -15,17 +15,17 @@ serde = { version = "1.0.133", optional = true }
 git = { package = "git2", version = "0.15", default-features = false }
 
 [build-dependencies]
-reqest = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
+request = { version = "0.11", package = "reqwest", default-features = false, optional = true, features = [
     "cookies",
 ] }
 
 [features]
 default = ["simple"]
-blocking = ["simple", "reqest?/blocking"]
-json = ["reqest?/json"]
-multipart = ["reqest?/multipart"]
+blocking = ["simple", "request?/blocking"]
+json = ["request?/json"]
+multipart = ["request?/multipart"]
 simple = ["json"]
 serde = ["dep:serde", "rgb?/serde"]
-stream = ["reqest?/stream"]
-zlib = ["git/zlib-ng-compat", "reqest?/deflate"]
+stream = ["request?/stream"]
+zlib = ["git/zlib-ng-compat", "request?/deflate"]
 ssh = ["git/ssh", "git/ssh_key_from_memory"]

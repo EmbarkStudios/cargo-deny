@@ -963,9 +963,9 @@ ignore = [
             })),
             Some(Box::new(|exp| {
                 if matches!(exp, Expand::Var("FIRST")) {
-                    expand!(exp, "FIRST", Ok(Some("furst".into())))
+                    expand!(exp, "FIRST", Ok(Some("first".into())))
                 } else {
-                    expand!(exp, "SECOND", Ok(Some("secund".into())))
+                    expand!(exp, "SECOND", Ok(Some("second".into())))
                 }
             })),
         ];
@@ -987,7 +987,7 @@ expansions = [
     "$!", # fails due to empty variable name
     "${!}", # fails due to invalid character in variable name
     "/expands/stuff-${IN_MID}-like-this", # /expands/stuff-in-the-middle-like-this
-    "/expands/$FIRST-item/${SECOND}-item/multiple", # /expands/furst-item/secund-item/multiple
+    "/expands/$FIRST-item/${SECOND}-item/multiple", # /expands/first-item/second-item/multiple
 ]
 "#;
         let mut tv = toml_span::parse(toml).unwrap();

@@ -9,7 +9,7 @@ This example shows how to ban particular crates, and handle duplicate versions.
 version = "0.10.1"
 # Uncomment these to "fix" cargo deny check bans.
 # 1. By disabling default features we remove the use of native-tls, which
-# is impelemented via openssl-sys on linux
+# is implemented via openssl-sys on linux
 # 2. openssl-sys also depends on an old version of autocfg, so we remove a
 # duplicate as well!
 # default-features = false
@@ -42,5 +42,5 @@ skip = [
 
 ## Description
 
-This examle shows how the `bans` check works. `reqwest` by default uses native-tls, which on linux uses openssl. But we've decided to **deny** openssl, so adding a dependency on it triggers the lint. It also happens to pull in multiple
+This example shows how the `bans` check works. `reqwest` by default uses native-tls, which on linux uses openssl. But we've decided to **deny** openssl, so adding a dependency on it triggers the lint. It also happens to pull in multiple
 versions of a couple of dependencies, so we skip those. To "fix" this check, we would need to disable `reqwest`'s default features, and then enable the `"rustls"` feature, because we still want TLS!

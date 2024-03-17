@@ -151,7 +151,7 @@ multiple-versions-include-dev = true
     insta::assert_json_snapshot!(diags);
 }
 
-/// Ensures that dev dependendencies are ignored
+/// Ensures that dev dependencies are ignored
 #[test]
 fn ignores_dev() {
     let diags = gather_bans(

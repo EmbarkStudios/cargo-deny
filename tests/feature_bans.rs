@@ -155,7 +155,7 @@ fn workspace_default_features_warns_and_denies() {
     insta::assert_json_snapshot!(diags);
 }
 
-/// Ensures that a workspace default ban can be overriden by a crate specific allow = 'default'
+/// Ensures that a workspace default ban can be overridden by a crate specific allow = 'default'
 #[test]
 fn workspace_default_features_allow_override() {
     let diags = gather_bans(
@@ -204,7 +204,7 @@ fn external_default_features_warns_and_denies() {
     insta::assert_json_snapshot!(diags);
 }
 
-/// Ensures that a workspace default ban can be overriden by a crate specific allow = 'default'
+/// Ensures that a workspace default ban can be overridden by a crate specific allow = 'default'
 #[test]
 fn external_default_features_allow_override() {
     let diags = gather_bans(

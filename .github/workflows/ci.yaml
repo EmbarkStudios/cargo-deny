@@ -12,6 +12,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lightweight check for typos in any files
+  typos:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      # Typos check should be pinned to the very specific version
+      # to prevent sudden dictionary updates from making our CI fail
+      - uses: crate-ci/typos@v1.19.0
+
   lint:
     name: Lint
     runs-on: ubuntu-22.04

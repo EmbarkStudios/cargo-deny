@@ -118,7 +118,7 @@ pub fn check<R, S>(
         }
     }
 
-    // Check for advisory identifers that were set to be ignored, but
+    // Check for advisory identifiers that were set to be ignored, but
     // are not actually in any database.
     for ignored in &ctx.cfg.ignore {
         if !advisory_dbs.has_advisory(&ignored.id.value) {
@@ -126,7 +126,7 @@ pub fn check<R, S>(
         }
     }
 
-    // Check for advisory identifers that were set to be ignored, but
+    // Check for advisory identifiers that were set to be ignored, but
     // were not actually encountered, for cases where a crate, or specific
     // version of that crate, has been removed or replaced and the advisory
     // no longer applies to it, so that users can cleanup their configuration

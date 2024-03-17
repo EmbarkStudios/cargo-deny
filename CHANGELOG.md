@@ -370,7 +370,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [PR#262](https://github.com/EmbarkStudios/cargo-deny/pull/262) added the `fix` subcommand, which was added to bring `cargo-deny` to feature parity with `cargo-audit` so that it can take over for `cargo-audit` as the [official frontend](https://github.com/EmbarkStudios/cargo-deny/issues/194) for the the [RustSec Advisory Database](https://github.com/RustSec/advisory-db).
 
 ### Changed
-- `advisories.db-url` has been deprecated in favor of `advisories.db-urls` since multiple databses are now supported.
+- `advisories.db-url` has been deprecated in favor of `advisories.db-urls` since multiple databases are now supported.
 - `advisories.db-path` is now no longer the directory into which the advisory database is cloned into, but rather a root directory where each unique database is placed in a canonicalized directory similar to how `.cargo/registry/index` directories work.
 - [PR#274](https://github.com/EmbarkStudios/cargo-deny/pull/274) resolved [#115](https://github.com/EmbarkStudios/cargo-deny/issues/115) by normalizing git urls. Thanks [@senden9](https://github.com/senden9)!
 
@@ -431,7 +431,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a `fetch` subcommand that can be used to fetch external data, currently the crates.io index and the configured advisory database
 
 ### Changed
-- Upgraded to rustsec 0.18.0, which slighly reworks how yanked crate detection is done
+- Upgraded to rustsec 0.18.0, which slightly reworks how yanked crate detection is done
 
 ## [0.6.4] - 2020-02-08
 ### Fixed

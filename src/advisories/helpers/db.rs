@@ -447,7 +447,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
             &repo.find_remote("origin").unwrap(),
         )?;
     } else {
-        // If we didn't open a fresh repo we need to peform a fetch ourselves, and
+        // If we didn't open a fresh repo we need to perform a fetch ourselves, and
         // do the work of updating the HEAD to point at the latest remote HEAD, which
         // gix doesn't currently do.
         //
@@ -531,7 +531,7 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
 
 pub struct Report<'db, 'k> {
     pub advisories: Vec<(&'k Krate, krates::NodeId, &'db rustsec::Advisory)>,
-    /// For backwards compatiblity with cargo-audit, we optionally serialize the
+    /// For backwards compatibility with cargo-audit, we optionally serialize the
     /// reports to JSON and output them in addition to the normal cargo-deny
     /// diagnostics
     pub serialized_reports: Vec<serde_json::Value>,
@@ -738,7 +738,7 @@ mod test {
         }
 
         {
-            let url = Url::parse("https://example.com/countries/việt nam").unwrap();
+            let url = Url::parse("https://example.com/countries/việt name").unwrap();
 
             #[cfg(target_endian = "little")]
             assert_eq!(

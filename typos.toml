@@ -1,0 +1,17 @@
+# See documentation for this config file at https://github.com/crate-ci/typos/blob/master/docs/reference.md
+
+[default.extend-identifiers]
+# Crate name
+flate2 = "flate2"
+
+[files]
+extend-exclude = [
+  # We don't want `typos` to process the git submodules
+
+  # Exclude generated files that are checked in to source control
+  "Cargo.lock",
+  "/tests/test_data/features-galore/metadata.json",
+
+  # There are some typos in the advisories descriptions 😳
+  "docs/src/output/advisories.svg"
+]
