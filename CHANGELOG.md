@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#633](https://github.com/EmbarkStudios/cargo-deny/pull/633) updated `gix` -> 0.60.
+
 ## [0.14.16] - 2024-03-06
 ### Fixed
 - [PR#626](https://github.com/EmbarkStudios/cargo-deny/pull/626) resolved [#625](https://github.com/EmbarkStudios/cargo-deny/issues/625) by explicitly checking that a license identified as Pixar was actually (probably) the Pixar license, instead of a normal Apache-2.0 license.
