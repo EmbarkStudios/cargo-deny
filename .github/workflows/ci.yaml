@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Lightweight check for typos in any files
+  # Lightweight check for typos in any files. Config lives in 'typos.toml'
   typos:
     name: Typos
     runs-on: ubuntu-22.04
