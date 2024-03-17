@@ -1,3 +1,5 @@
+#:schema ./deny.schema.json
+
 # This template contains all of the possible sections and their default values
 
 # Note that all fields that take a lint level have these possible values:
