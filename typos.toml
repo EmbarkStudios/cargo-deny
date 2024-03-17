@@ -6,8 +6,6 @@ flate2 = "flate2"
 
 [files]
 extend-exclude = [
-  # We don't want `typos` to process the git submodules
-
   # Exclude generated files that are checked in to source control
   "Cargo.lock",
   "/tests/test_data/features-galore/metadata.json",
