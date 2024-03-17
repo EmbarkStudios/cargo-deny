@@ -738,7 +738,7 @@ mod test {
         }
 
         {
-            let url = Url::parse("https://example.com/countries/việt name").unwrap();
+            let url = Url::parse("https://example.com/countries/việt nam").unwrap();
 
             #[cfg(target_endian = "little")]
             assert_eq!(

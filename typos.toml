@@ -13,5 +13,13 @@ extend-exclude = [
   "/tests/test_data/features-galore/metadata.json",
 
   # There are some typos in the advisories descriptions 😳
-  "docs/src/output/advisories.svg"
+  "docs/src/output/advisories.svg",
+
+  # Specific files that contain false positives. Unfortunately
+  # we have to ignore the entire file because we can't granularly
+  # ignore a specific false positive in a specific file.
+
+  # 'việt nam' triggers a false positive because typos works at single-word
+  # level, and it wants to correct 'nam' to 'name'
+  "src/advisories/helpers/db.rs"
 ]
