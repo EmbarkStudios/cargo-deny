@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Changed
+- [PR#631](https://github.com/EmbarkStudios/cargo-deny/pull/631) improved the diagnostic for when the yank check fails due to some issue with retrieving or reading the index information.
 - [PR#633](https://github.com/EmbarkStudios/cargo-deny/pull/633) updated `gix` -> 0.60.
 
 ## [0.14.16] - 2024-03-06
