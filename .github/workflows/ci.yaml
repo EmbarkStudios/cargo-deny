@@ -14,6 +14,7 @@ concurrency:
 jobs:
   # Lightweight check for typos in any files
   typos:
+    name: Typos
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
