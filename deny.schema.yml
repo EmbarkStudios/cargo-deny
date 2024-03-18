@@ -22,15 +22,16 @@
 # still use it since extra properties don't break compatibility and there may
 # be other TOML LSPs that support newer versions of the JSON schema spec or
 # existing ones may be updated to support newer versions
+#
+# We also use some custom extensions by different TOML LSPs, such as `x-taplo`
+# to provide better documentation.
 
 $schema: https://json-schema.org/draft-07/schema#
 
 $id: https://github.com/EmbarkStudios/cargo-deny/deny.schema.json
 
 title: cargo-deny configuration file
-description: >
-  You can find the full documentation for the config file at
-  https://embarkstudios.github.io/cargo-deny/checks/cfg.html
+description: Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html
 
 type: object
 properties:
@@ -50,10 +51,8 @@ definitions:
       db-urls:
         type: array
         items: { type: string, format: uri }
-        description: |
-          URLs to one or more advisory databases.
-
-          Default: [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
+        default: [https://github.com/RustSec/advisory-db]
+        description: URLs to one or more advisory databases.
 
       db-path:
         type: string
@@ -92,27 +91,181 @@ definitions:
 
       vulnerability:
         deprecated: true
+        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        default: deny
         description: |
           **DEPRECATED** (see `version` field)
 
           Determines what happens when a crate with a security vulnerability is encountered.
 
-          - `deny` (default) - Will emit an error with details about each vulnerability, and fail the check.
-          - `warn` - Prints a warning for each vulnerability, but does not fail the check.
-          - `allow` - Prints a note about the security vulnerability, but does not fail the check.
-
       unmaintained:
         deprecated: true
-        enum: [deny, warn, allow]
-        x-taplo:
-          docs:
-            enumValues:
-              - Will emit an error with details about the problem, and fail the check.
-              - Prints a warning for each propblem, but does not fail the check.
-              - Prints a note about the problem, but does not fail the check.
+        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        default: warn
         description: |
+          **DEPRECATED** (see `version` field)
+
           Determines what happens when a crate with an `unmaintained` advisory is encountered.
-          Default: warn
+
+      unsound:
+        deprecated: true
+        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        default: warn
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with an `unsound` advisory is encountered.
+
+      notice:
+        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        default: warn
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with a `notice` advisory is encountered.
+
+          **NOTE**: As of 2019-12-17 there are no `notice` advisories in the
+          [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
+
+      yanked:
+        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        default: warn
+        description: |
+          Determines what happens when a crate with a version that has been yanked from its source
+          registry is encountered.
+
+      ignore:
+        type: array
+        items: { $ref: '#/definitions/advisories-ignore-item' }
+
+  advisories-ignore-item:
+    oneOf:
+      - type: string
+        description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
+      - { $ref: '#/definitions/ignore-advisory-object' }
+      - { $ref: '#/definitions/ignore-yanked-object' }
+
+    description: |
+      ```toml
+      ignore = [
+        "RUSTSEC-0000-0000",
+        { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
+        "yanked@0.1.1",
+        { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
+      ]
+      ```
+
+      Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
+      Putting an identifier in this array will cause the advisory to be treated as a note, rather
+      than a warning or error.
+
+      In addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
+      with an optional `reason`.
+
+  ignore-advisory-object:
+    type: object
+    examples: [RUSTSEC-2019-0001]
+    required: [id]
+    properties:
+      id:
+        type: string
+        description: The unique identifier of the advisory to ignore
+      reason: { $ref: '#/definitions/ignore-reason' }
+
+  ignore-yanked-object:
+    type: object
+    required: [crate]
+    properties:
+      crate: { $ref: '#/definitions/package-spec' }
+      reason: { $ref: '#/definitions/ignore-reason' }
+
+
+  ignore-reason:
+    type: string
+    description: Free-form string that can be used to describe the reason why the advisory is ignored.
+
+  lint-level:
+    deprecated: true
+    enum: [deny, warn, allow]
+    x-taplo:
+      docs:
+        enumValues:
+          - Emit an error with details about the problem, and fail the check.
+          - Print a warning for each propblem, but don't fail the check.
+          - Print a note about the problem, but don't fail the check.
+
+  package-spec:
+    type: string
+    description: |
+      Many configuration options require a package specifier at a minimum, which we'll describe here.
+      The options that use package specifiers will be called out in their individual documentation.
+      We'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.
+
+      ### String format
+
+      If the particular only requires a package spec at a minimum, then the string format can be used,
+      which comes in three forms.
+
+      #### Simple
+
+      ```toml
+      # Will match any version of the simple crate
+      deny = ["simple"]
+      ```
+
+      The simplest string is one which is just the crate name. In this case, the version requirement
+      used when checking will be `*` meaning it will match against all versions of that crate in the graph.
+
+      #### With Version Requirements
+
+      ```toml
+      # Will match only these versions of the simple crate that match the predicate(s)
+      deny = ["simple:<=0.1,>0.2"]
+      ```
+
+      If you want to apply version requirements (predicates) to the crate, simply append them following
+      a `:` separator.
+
+      #### Exact
+
+      ```toml
+      # Will match only this exact version of the simple crate
+      deny = [
+          "simple@0.1.0",
+          # This is semantically equivalent to the above
+          "simple:=0.1.0",
+      ]
+      ```
+
+      The exact form is a specialization of the version requirements, where the semver after the `@`
+      is transformed to be [= (Exact)](https://docs.rs/semver/latest/semver/enum.Op.html#opexact).
+
+      ### Table format
+
+      #### Crate format
+
+      ```toml
+      deny = [
+          { crate = "simple@0.1.0" }, # equivalent to "simple@0.1.0"
+          { crate = "simple", wrappers = ["example"] },
+      ]
+      ```
+
+      The crate format is a replacement for the old `name` and/or `version` table format. It uses
+      the string format described above in a single `crate` key.
+
+      #### Old format
+
+      ```toml
+      deny = [
+          { name = "simple" },
+          { name = "simple", version = "*" }
+          { name = "simple", wrappers = ["example"] }
+      ]
+      ```
+
+      The old format uses a required `name` key and an optional `version` key. This format is deprecated
+      and should not be used.
 
   graph:
     description: |
@@ -128,7 +281,7 @@ definitions:
           By default, cargo-deny will consider every single crate that is resolved by cargo, including
           target specific dependencies e.g.
 
-          ```ini
+          ```toml
           [target.x86_64-pc-windows-msvc.dependencies]
           winapi = "0.3.8"
 
@@ -217,7 +370,8 @@ definitions:
       feature-depth:
         type: integer
         minimum: 0
+        default: 1
         description: |
           The maximum depth that features will be displayed when inclusion graphs are included in
           diagnostics, unless specified via `--feature-depth` on the command line. Only applies to
-          diagnostics that actually print features. If not specified defaults to `1`.
+          diagnostics that actually print features.
