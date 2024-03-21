@@ -755,9 +755,9 @@ checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
 
 [[package]]
 name = "gix"
-version = "0.60.0"
+version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "027b87106e07ab0965541f71dadd7db87be3f2b26feda3cce50028566a4dff0c"
+checksum = "e4e0e59a44bf00de058ee98d6ecf3c9ed8f8842c1da642258ae4120d41ded8f7"
 dependencies = [
  "gix-actor",
  "gix-attributes",
@@ -811,9 +811,9 @@ dependencies = [
 
 [[package]]
 name = "gix-actor"
-version = "0.31.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eb3230825b44deba727ec2e9c886c4ab350d34333ae17555973ceb5e5261471"
+checksum = "45c3a3bde455ad2ee8ba8a195745241ce0b770a8a26faae59fcf409d01b28c46"
 dependencies = [
  "bstr",
  "gix-date",
@@ -1074,9 +1074,9 @@ dependencies = [
 
 [[package]]
 name = "gix-index"
-version = "0.31.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b7e07051ef3db0b124e0065e14b04f275d91a320fb7fadc273422ca91b87282"
+checksum = "549621f13d9ccf325a7de45506a3266af0d08f915181c5687abb5e8669bfd2e6"
 dependencies = [
  "bitflags 2.4.2",
  "bstr",
@@ -1139,9 +1139,9 @@ dependencies = [
 
 [[package]]
 name = "gix-object"
-version = "0.42.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03e9e56e790cdd548dee951019b4f0575a00cdd95092d34ceddeb3294b34ef08"
+checksum = "3d4f8efae72030df1c4a81d02dbe2348e748d9b9a11e108ed6efbd846326e051"
 dependencies = [
  "bstr",
  "gix-actor",
@@ -1235,9 +1235,9 @@ dependencies = [
 
 [[package]]
 name = "gix-pathspec"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca791acebbcb19703323c151115f029922fd8f91c5d187d50efbfe39447f6d8"
+checksum = "1a96ed0e71ce9084a471fddfa74e842576a7cbf02fe8bd50388017ac461aed97"
 dependencies = [
  "bitflags 2.4.2",
  "bstr",
@@ -1734,9 +1734,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.16.6"
+version = "0.16.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320d34cfe880f2c6243b4cfff8aab3e34eab6325d0a26729f23356418fbdc809"
+checksum = "b315eaab6cde3e2bcbd21810067a7b8bf4ced8cc63683ab7a96b18360c4e9df9"
 dependencies = [
  "cargo_metadata",
  "cfg-expr",
@@ -2562,9 +2562,9 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.9.8"
+version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a3dc3b9f827e89ffe4dfc37be3f5fce0c3ba42cd81f5acbac930bba9ac7a7a6"
+checksum = "e7a335aa76c6e2ee8029e58215cb197ef3dea60b95246c70c33cb413da826b73"
 dependencies = [
  "bytes",
  "camino",
