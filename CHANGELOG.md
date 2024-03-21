@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#638](https://github.com/EmbarkStudios/cargo-deny/pull/638) resolved [#636](https://github.com/EmbarkStudios/cargo-deny/issues/636) by updating `krates`.
+
 ## [0.14.17] - 2024-03-17
 ### Changed
 - [PR#631](https://github.com/EmbarkStudios/cargo-deny/pull/631) improved the diagnostic for when the yank check fails due to some issue with retrieving or reading the index information.
