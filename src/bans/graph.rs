@@ -4,6 +4,7 @@ use anyhow::{Context, Error};
 use krates::petgraph as pg;
 use semver::Version;
 use std::{
+    borrow::Cow,
     collections::{btree_map::Entry, BTreeMap, HashSet},
     fmt,
 };
@@ -52,7 +53,7 @@ pub enum Style {
 
 #[derive(Default)]
 struct NodeAttributes<'a> {
-    label: Option<&'a str>,
+    label: Option<Cow<'a, str>>,
     shape: Option<Shape>,
     style: Option<Style>,
     color: Option<&'static str>,
@@ -219,8 +220,7 @@ pub(crate) fn create_graph(
 
         while let Some(nid) = node_stack.pop() {
             let node = &graph[nid];
-            let mut iditer = node.kid.repr.splitn(3, ' ');
-            let name = iditer.next().unwrap();
+            let name = node.kid.name();
 
             match dupe_nodes.entry(name) {
                 Entry::Occupied(it) => {
@@ -268,27 +268,27 @@ pub(crate) fn create_graph(
         |node| {
             let node_weight = node.weight();
 
-            if let Some(feat) = &node_weight.feature {
+            if let Some(feat) = node_weight.feature {
                 NodeAttributes {
-                    label: Some(feat),
+                    label: Some(feat.into()),
                     shape: Some(Shape::diamond),
                     ..Default::default()
                 }
             } else {
-                let repr = &node_weight.kid.repr;
+                let kid = node_weight.kid;
 
-                let mut i = repr.splitn(3, ' ');
-                let name = i.next().unwrap();
-                let _version = i.next().unwrap();
-                let source = i.next().unwrap();
+                let name = kid.name();
+                let version = kid.version();
+                let source = kid.source();
 
                 if dupe_nodes.contains_key(name) {
-                    let label =
-                        if source != "(registry+https://github.com/rust-lang/crates.io-index)" {
-                            &repr[name.len() + 1..]
-                        } else {
-                            &repr[name.len() + 1..repr.len() - source.len() - 1]
-                        };
+                    // Add the source only if it is not crates.io
+                    let label = if source != "registry+https://github.com/rust-lang/crates.io-index"
+                    {
+                        format!("{version} {source}").into()
+                    } else {
+                        version.into()
+                    };
 
                     NodeAttributes {
                         label: Some(label),
@@ -299,7 +299,7 @@ pub(crate) fn create_graph(
                     }
                 } else {
                     NodeAttributes {
-                        label: Some(&repr[0..repr.len() - source.len() - 1]),
+                        label: Some(format!("{name} {version}").into()),
                         shape: Some(Shape::r#box),
                         style: Some(Style::rounded),
                         ..Default::default()
