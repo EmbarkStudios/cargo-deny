@@ -73,7 +73,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
 
                     Ctx::from_str(s, val.span)
                 } else {
-                    // Encourge user to use the 'crate' spec instead
+                    // Encourage user to use the 'crate' spec instead
                     let name = th.required("name").map_err(|e| {
                         if matches!(e.kind, toml_span::ErrorKind::MissingField(_)) {
                             (toml_span::ErrorKind::MissingField("crate"), e.span).into()

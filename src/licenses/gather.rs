@@ -201,7 +201,7 @@ impl LicensePack {
     fn get_expression(
         &self,
         file: FileId,
-        strat: &askalono::ScanStrategy<'_>,
+        strategy: &askalono::ScanStrategy<'_>,
         confidence: f32,
     ) -> Result<GatheredExpr, (String, Vec<Label>)> {
         use std::fmt::Write;
@@ -237,7 +237,7 @@ impl LicensePack {
                     write!(synth_toml, "hash = 0x{:08x}, ", data.hash).unwrap();
 
                     let text = askalono::TextData::new(&data.content);
-                    match strat.scan(&text) {
+                    match strategy.scan(&text) {
                         Ok(lic_match) => {
                             if let Some(mut identified) = lic_match.license {
                                 // See https://github.com/EmbarkStudios/cargo-deny/issues/625
@@ -753,7 +753,7 @@ impl Gatherer {
                                 notes,
                             };
                         }
-                        Err((new_toml, lic_file_lables)) => {
+                        Err((new_toml, lic_file_labels)) => {
                             // Push our synthesized license files toml content to the end of
                             // the other synthesized toml then fixup all of our spans
                             let old_end = {
@@ -768,7 +768,7 @@ impl Gatherer {
                                 old_end
                             };
 
-                            for label in lic_file_lables {
+                            for label in lic_file_labels {
                                 let span = label.range.start + old_end..label.range.end + old_end;
                                 labels.push(
                                     Label::secondary(label.file_id, span)

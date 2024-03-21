@@ -10,7 +10,7 @@ targets = [
 [bans]
 deny = [
     # We ban the nix package, but it's in the Cargo.toml! But that's ok
-    # because it is only built when targetting x86_64-unknown-linux-musl,
+    # because it is only built when targeting x86_64-unknown-linux-musl,
     # which we aren't
     { name = "nix" },
     # If we did build for windows, we definitely would not want version 0.2!

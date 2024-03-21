@@ -12,6 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lightweight check for typos in any files. Config lives in 'typos.toml'
+  typos:
+    name: Typos
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      # Typos check should be pinned to the very specific version
+      # to prevent sudden dictionary updates from making our CI fail
+      - uses: crate-ci/typos@v1.19.0
+
   lint:
     name: Lint
     runs-on: ubuntu-22.04
@@ -213,6 +223,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-22.04
-    needs: [lint,test,self,publish-check,doc-book]
+    needs: [typos,lint,test,self,publish-check,doc-book]
     steps:
     - run: echo "All test jobs passed"

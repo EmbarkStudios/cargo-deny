@@ -61,7 +61,7 @@ expression: diags
           "span": "other-crate"
         }
       ],
-      "message": "wrapper for banned crate was not enountered",
+      "message": "wrapper for banned crate was not encountered",
       "severity": "warning"
     },
     "type": "diagnostic"

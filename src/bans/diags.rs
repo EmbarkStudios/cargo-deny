@@ -237,7 +237,7 @@ pub(crate) struct UnusedWrapper {
 impl From<UnusedWrapper> for Diag {
     fn from(us: UnusedWrapper) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message("wrapper for banned crate was not enountered")
+            .with_message("wrapper for banned crate was not encountered")
             .with_code(Code::UnusedWrapper)
             .with_labels(vec![us
                 .wrapper_cfg
