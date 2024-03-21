@@ -83,9 +83,7 @@ pub fn deprecated<'de, T>(
 where
     T: toml_span::Deserialize<'de>,
 {
-    let Some((k, mut v)) = th.take(field) else {
-        return None;
-    };
+    let (k, mut v) = th.take(field)?;
     spans.push(k.span);
 
     match T::deserialize(&mut v) {

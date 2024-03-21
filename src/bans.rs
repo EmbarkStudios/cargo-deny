@@ -887,9 +887,7 @@ pub fn check(
             drop(tx);
         },
         || {
-            let Some((build_config, rx)) = rx else {
-                return None;
-            };
+            let (build_config, rx) = rx?;
 
             // Keep track of the individual crate configs so we can emit warnings
             // if they're configured but not actually used
