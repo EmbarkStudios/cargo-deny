@@ -101,7 +101,7 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.26", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.9", default-features = false, features = [
+tame-index = { version = "0.10", default-features = false, features = [
   "git",
   "sparse",
 ] }

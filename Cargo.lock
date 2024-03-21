@@ -266,7 +266,8 @@ dependencies = [
  "smallvec",
  "spdx",
  "strum",
- "tame-index",
+ "tame-index 0.10.0",
+ "tame-index 0.9.9",
  "tempfile",
  "time",
  "toml-span",
@@ -2568,6 +2569,28 @@ checksum = "e7a335aa76c6e2ee8029e58215cb197ef3dea60b95246c70c33cb413da826b73"
 dependencies = [
  "bytes",
  "camino",
+ "home",
+ "http",
+ "libc",
+ "memchr",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "smol_str",
+ "thiserror",
+ "toml-span",
+ "twox-hash",
+]
+
+[[package]]
+name = "tame-index"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcfbfbe5fedae2eaba27029008bb867958428b31ae0be838bddfcbebc26987f5"
+dependencies = [
+ "camino",
  "crossbeam-channel",
  "gix",
  "home",
@@ -2579,7 +2602,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "sha2",
  "smol_str",
  "thiserror",
  "tokio",
