@@ -43,8 +43,8 @@ definitions:
   advisories:
     description: |
       This section is considered when running `cargo deny check advisories`
-      More documentation for the advisories section can be found here:
-      https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+      More documentation for the advisories section can be found
+      [here](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html)
 
     type: object
     properties:
@@ -91,7 +91,7 @@ definitions:
 
       vulnerability:
         deprecated: true
-        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        $ref: '#/definitions/lint-level'
         default: deny
         description: |
           **DEPRECATED** (see `version` field)
@@ -100,7 +100,7 @@ definitions:
 
       unmaintained:
         deprecated: true
-        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        $ref: '#/definitions/lint-level'
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -109,7 +109,7 @@ definitions:
 
       unsound:
         deprecated: true
-        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        $ref: '#/definitions/lint-level'
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -117,7 +117,7 @@ definitions:
           Determines what happens when a crate with an `unsound` advisory is encountered.
 
       notice:
-        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        $ref: '#/definitions/lint-level'
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -128,64 +128,70 @@ definitions:
           [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
       yanked:
-        oneOf: [{ $ref: '#/definitions/lint-level' }]
+        $ref: '#/definitions/lint-level'
         default: warn
         description: |
           Determines what happens when a crate with a version that has been yanked from its source
           registry is encountered.
+        # x-taplo:
+        #   docs:
+        #     main: |
+        #       Determines what happens when a crate with a version that has been yanked from its source
+        #       registry is encountered.
 
       ignore:
         type: array
         items: { $ref: '#/definitions/advisories-ignore-item' }
+        description: |
+          ```toml
+          ignore = [
+            "RUSTSEC-0000-0000",
+            { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
+            "yanked@0.1.1",
+            { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
+          ]
+          ```
+
+          Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
+          Putting an identifier in this array will cause the advisory to be treated as a note, rather
+          than a warning or error.
+
+          In addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
+          with an optional `reason`.
 
   advisories-ignore-item:
     oneOf:
       - type: string
         description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
-      - { $ref: '#/definitions/ignore-advisory-object' }
-      - { $ref: '#/definitions/ignore-yanked-object' }
+      - { $ref: '#/definitions/advisories-ignore-advisory' }
+      - { $ref: '#/definitions/advisories-ignore-yanked' }
 
-    description: |
-      ```toml
-      ignore = [
-        "RUSTSEC-0000-0000",
-        { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
-        "yanked@0.1.1",
-        { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
-      ]
-      ```
-
-      Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
-      Putting an identifier in this array will cause the advisory to be treated as a note, rather
-      than a warning or error.
-
-      In addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
-      with an optional `reason`.
-
-  ignore-advisory-object:
+  advisories-ignore-advisory:
     type: object
-    examples: [RUSTSEC-2019-0001]
     required: [id]
     properties:
       id:
         type: string
+        examples: [RUSTSEC-2019-0001]
         description: The unique identifier of the advisory to ignore
       reason: { $ref: '#/definitions/ignore-reason' }
 
-  ignore-yanked-object:
+  advisories-ignore-yanked:
     type: object
     required: [crate]
     properties:
       crate: { $ref: '#/definitions/package-spec' }
       reason: { $ref: '#/definitions/ignore-reason' }
 
-
   ignore-reason:
     type: string
     description: Free-form string that can be used to describe the reason why the advisory is ignored.
 
   lint-level:
-    deprecated: true
+    # anyOf:
+    #   - { const: deny,  } # description: Emit an error with details about the problem, and fail the check. }
+    #   - { const: warn,  } # description: Print a warning for each propblem, but don't fail the check. }
+    #   - { const: allow, } #  description: Print a note about the problem, but don't fail the check. }
     enum: [deny, warn, allow]
     x-taplo:
       docs:
@@ -336,15 +342,15 @@ definitions:
 
   target:
     oneOf:
-      - $ref: '#/definitions/target-triple'
-      - $ref: '#/definitions/target-object'
+      - $ref: '#/definitions/target-string'
+      - $ref: '#/definitions/target-complex'
 
-  target-object:
+  target-complex:
     description: Advanced configurations to apply for the target triple
     type: object
     required: [triple]
     properties:
-      triple: { $ref: '#/definitions/target-triple' }
+      triple: { $ref: '#/definitions/target-string' }
       features:
         description: |
           Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
@@ -354,7 +360,7 @@ definitions:
           this writing, cargo-deny does not attempt to validate that the features you specify are
           actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
-  target-triple:
+  target-string:
     type: string
     description: |
       The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target
@@ -372,6 +378,6 @@ definitions:
         minimum: 0
         default: 1
         description: |
-          The maximum depth that features will be displayed when inclusion graphs are included in
+          The maximum depth that features will be displayed when inclusion graphs are shown in
           diagnostics, unless specified via `--feature-depth` on the command line. Only applies to
           diagnostics that actually print features.
