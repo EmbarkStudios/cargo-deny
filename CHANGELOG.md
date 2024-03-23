@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.20] - 2024-03-23
 ### Fixed
 - [PR#642](https://github.com/EmbarkStudios/cargo-deny/pull/642) resolved [#641](https://github.com/EmbarkStudios/cargo-deny/issues/641) by pinning `gix-transport` (and its unique dependencies) to 0.41.2 as a workaround for `cargo install` not using the lockfile. See [this issue](https://github.com/Byron/gitoxide/issues/1328) for more information.
 
@@ -585,7 +586,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.19...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.20...HEAD
+[0.14.20]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.19...0.14.20
 [0.14.19]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.18...0.14.19
 [0.14.18]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.17...0.14.18
 [0.14.17]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.16...0.14.17
