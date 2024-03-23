@@ -7,7 +7,7 @@ pub fn run() -> ExitCode {
         return ExitCode::SUCCESS;
     };
 
-    eprintln!("Exitting with error: {err:?}");
+    eprintln!("Exiting with error: {err:?}");
     ExitCode::FAILURE
 }
 
