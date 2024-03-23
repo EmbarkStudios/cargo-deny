@@ -1,0 +1,23 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Amazing CLI arg parser
+clap = { version = "4.3", features = ["derive"] }
+
+# The coolest serialization framework in the world
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Easy dynamic error handling
+anyhow = "1.0"
+
+# Awesome logging tools
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# The best iterators utilities
+itertools = "0.12"
