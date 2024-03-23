@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#642](https://github.com/EmbarkStudios/cargo-deny/pull/642) resolved [#641](https://github.com/EmbarkStudios/cargo-deny/issues/641) by pinning `gix-transport` (and its unique dependencies) to 0.41.2 as a workaround for `cargo install` not using the lockfile. See [this issue](https://github.com/Byron/gitoxide/issues/1328) for more information.
+
 ## [0.14.19] - 2024-03-21
 ### Changed
 - [PR#639](https://github.com/EmbarkStudios/cargo-deny/pull/639) updated tame-index to avoid an error if you don't used `--locked`.
