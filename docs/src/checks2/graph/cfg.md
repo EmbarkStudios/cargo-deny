@@ -1,4 +1,6 @@
-# The `[graph]` section
+# `graph` (optional)
+
+`object`
 
 The graph table configures how the dependency graph is constructed and thus which crates the
 checks are performed against
@@ -31,31 +33,16 @@ executed against.
 
 ### Items
 
-**One of the following:**
-
-`string`
-
-The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target
-you wish to filter target specific dependencies with. If the target triple specified is **not**
-one of the targets builtin to `rustc`, the configuration check for that target will be limited
-to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()`
-expressions require us to know the details about the target.
 
 
-#### Examples
+#### `graph.targets[N] (as String)` (as String)
 
-- ```toml
-    [graph]
-    targets = ["x86_64-unknown-linux-gnu"]
-    ```
-- ```toml
-    [graph]
-    targets = ["x86_64-pc-windows-msvc"]
-    ```
-- ```toml
-    [graph]
-    targets = ["aarch64-apple-darwin"]
-    ```
+
+
+#### `graph.targets[N] (as Advanced)` (as Advanced)
+
+`object`
+
 Advanced configurations to apply for the target triple
 
 ##### Examples
@@ -64,39 +51,18 @@ Advanced configurations to apply for the target triple
     [[graph.targets]]
     triple = "aarch64-apple-darwin"
     ```
+
 - ```toml
     [[graph.targets]]
     triple = "x86_64-pc-windows-msvc"
     features = ["some-feature"]
     ```
 
-##### `graph.targets[N].triple` (required)
-
-`string`
-
-The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target
-you wish to filter target specific dependencies with. If the target triple specified is **not**
-one of the targets builtin to `rustc`, the configuration check for that target will be limited
-to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()`
-expressions require us to know the details about the target.
+##### `graph.targets[N] (as Advanced).triple` (required)
 
 
-###### Examples
 
-- ```toml
-    [[graph.targets]]
-    triple = "x86_64-unknown-linux-gnu"
-    ```
-- ```toml
-    [[graph.targets]]
-    triple = "x86_64-pc-windows-msvc"
-    ```
-- ```toml
-    [[graph.targets]]
-    triple = "aarch64-apple-darwin"
-    ```
-
-##### `graph.targets[N].features` (optional)
+##### `graph.targets[N] (as Advanced).features` (optional)
 
 `string`
 
@@ -110,7 +76,7 @@ actually valid for the target triple, but this is [planned](https://github.com/E
 
 ## `graph.exclude` (optional)
 
-`array of string`
+`array`
 
 Just as with the [`--exclude`](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)
 command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html)
@@ -121,12 +87,16 @@ Note that excluding a crate is recursive, if any of its transitive dependencies 
 via the excluded crate, they will also be excluded from the crate graph.
 
 
-#### Example
+### Example
 
 ```toml
 [graph]
 exclude = "some-crate@0.1.0"
 ```
+
+### Items
+
+`string`
 
 ## `graph.all-features` (optional)
 
@@ -142,18 +112,22 @@ If set to `true`, `--no-default-features` will be used when collecting metadata.
 
 ## `graph.features` (optional)
 
-`array of string`
+`array`
 
 If set, and `--features` is not specified on the cmd line, these features will be used when
 collecting metadata.
 
 
-#### Example
+### Example
 
 ```toml
 [graph]
 features = "some-feature"
 ```
+
+### Items
+
+`string`
 
 ## `graph.exclude-dev` (optional)
 
@@ -164,4 +138,3 @@ in the crate graph used for any of the checks. This option can also be enabled o
 with `--exclude-dev` either [before](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)
 or [after](https://embarkstudios.github.io/cargo-deny/cli/check.html#--exclude-dev)
 the `check` subcommand.
-

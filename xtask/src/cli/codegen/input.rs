@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use indexmap::IndexMap;
-use itertools::Either;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -42,10 +41,10 @@ pub(crate) struct Schema {
     pub(crate) array_schema: Option<ArraySchema>,
 
     #[serde(skip_serializing_if = "Option::is_none", rename = "enum")]
-    pub(crate) enum_schema: Option<EnumSchema>,
+    pub(crate) enum_schema: Option<Vec<EnumVariantSchema>>,
 
     #[serde(skip_serializing_if = "Option::is_none", rename = "oneOf")]
-    pub(crate) one_of: Option<Vec<VariantSchema>>,
+    pub(crate) one_of: Option<Vec<OneOfVariantSchema>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) title: Option<String>,
@@ -66,20 +65,27 @@ pub(crate) struct Schema {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
-pub(crate) enum EnumSchema {
-    Custom(Vec<CustomEnumSchema>),
-    Standard(Vec<Value>),
+pub(crate) enum EnumVariantSchema {
+    Undocumented(Value),
+    Documented(DocumentedEnumSchema),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct CustomEnumSchema {
-    pub(crate) value: String,
+pub(crate) struct DocumentedEnumSchema {
+    #[serde(flatten)]
+    pub(crate) value: CustomEnumValue,
 
     pub(crate) description: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct VariantSchema {
+enum CustomEnumValue {
+    Named { value: Value, name: String },
+    Inferred { value: String },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct OneOfVariantSchema {
     /// Name of the variant. It's main use case is when generating a Rust enum,
     /// which requires a name for each variant. However, it's also useful for
     /// documentation purposes as a succinct display name for the variant.
@@ -182,7 +188,7 @@ impl Schema {
         Ok(())
     }
 
-    fn try_downcast_as<T>(&self, schema: &Option<T>, label: &str) -> Result<&T> {
+    fn try_downcast_as<'a, T>(&'a self, schema: &'a Option<T>, label: &str) -> Result<&'a T> {
         schema
             .as_ref()
             .with_context(|| format!("Expected {label} schema, but got {self:#?}"))
@@ -197,7 +203,8 @@ impl Schema {
     }
 
     pub(crate) fn try_into_array(self) -> Result<ArraySchema> {
-        self.try_downcast_into(self.array_schema, "array")
+        let array_schema = self.array_schema.clone();
+        self.try_downcast_into(array_schema, "array")
     }
 
     pub(crate) fn try_as_object(&self) -> Result<&ObjectSchema> {
@@ -205,24 +212,28 @@ impl Schema {
     }
 
     pub(crate) fn try_into_object(self) -> Result<ObjectSchema> {
-        self.try_downcast_into(self.object_schema, "object")
+        let object_schema = self.object_schema.clone();
+        self.try_downcast_into(object_schema, "object")
     }
 
-    pub(crate) fn try_as_enum(&self) -> Result<&EnumSchema> {
+    pub(crate) fn try_as_enum(&self) -> Result<&[EnumVariantSchema]> {
         self.try_downcast_as(&self.enum_schema, "enum")
+            .map(Vec::as_slice)
     }
 
-    pub(crate) fn try_into_enum(self) -> Result<EnumSchema> {
-        self.try_downcast_into(self.enum_schema, "enum")
+    pub(crate) fn try_into_enum(self) -> Result<Vec<EnumVariantSchema>> {
+        let enum_schema = self.enum_schema.clone();
+        self.try_downcast_into(enum_schema, "enum")
     }
 
-    pub(crate) fn try_as_one_of(&self) -> Result<&[VariantSchema]> {
+    pub(crate) fn try_as_one_of(&self) -> Result<&[OneOfVariantSchema]> {
         self.try_downcast_as(&self.one_of, "one-of")
             .map(Vec::as_slice)
     }
 
-    pub(crate) fn try_into_one_of(self) -> Result<Vec<VariantSchema>> {
-        self.try_downcast_into(self.one_of, "one-of")
+    pub(crate) fn try_into_one_of(self) -> Result<Vec<OneOfVariantSchema>> {
+        let one_of_schema = self.one_of.clone();
+        self.try_downcast_into(one_of_schema, "one-of")
     }
 
     pub(crate) fn try_description(&self) -> Result<&str> {
@@ -282,21 +293,24 @@ impl RootSchema {
     }
 }
 
-impl EnumSchema {
-    pub(crate) fn values_and_descriptions(&self) -> impl Iterator<Item = (Value, Option<&str>)> {
+impl CustomEnumValue {
+    fn to_json_value(&self) -> Value {
         match self {
-            EnumSchema::Custom(custom) => {
-                let iter = custom.iter().map(|custom| {
-                    let value = custom.value.clone().into();
-                    let description = custom.description.as_str();
-                    (value, Some(description))
-                });
-                Either::Left(iter)
+            CustomEnumValue::Named { value, name: _ } => value.clone(),
+            CustomEnumValue::Inferred { value } => value.clone().into(),
+        }
+    }
+}
+
+impl EnumVariantSchema {
+    pub(crate) fn value_and_description(&self) -> (Value, Option<&str>) {
+        match self {
+            EnumVariantSchema::Documented(schema) => {
+                let value = schema.value.to_json_value();
+                let description = schema.description.as_str();
+                (value, Some(description))
             }
-            EnumSchema::Standard(values) => {
-                let iter = values.iter().map(|value| (value.clone(), None));
-                Either::Right(iter)
-            }
+            EnumVariantSchema::Undocumented(value) => (value.clone().into(), None),
         }
     }
 }

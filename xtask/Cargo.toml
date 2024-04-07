@@ -7,6 +7,9 @@ edition = "2021"
 # Easy dynamic error handling
 anyhow = "1.0"
 
+# Much nicer paths
+camino = "1.1"
+
 # Amazing CLI arg parser
 clap = { version = "4.3", features = ["derive"] }
 

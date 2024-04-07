@@ -11,7 +11,7 @@
       "$ref": "#/definitions/output"
     }
   },
-  "title": "cargo-deny configuration file",
+  "title": "Configuration file for cargo-deny, by default called `deny.toml`.",
   "description": "Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html",
   "definitions": {
     "advisories": {
@@ -60,23 +60,39 @@
           "enum": [
             2
           ],
-          "description": "The advisories section has an upcoming breaking change, with deprecation warnings for several\nfields that will be removed. Setting `version = 2` will opt-in to the future default behavior.\n\nThe breaking change is as follows:\n\n- `vulnerability` - Removed, all vulnerability advisories now emit errors.\n- `unmaintained` - Removed, all unmaintained advisories now emit errors.\n- `unsound` - Removed, all unsound advisories now emit errors.\n- `notice` - Removed, all notice advisories now emit errors.\n- `severity-threshold` - Removed, all vulnerability advisories now emit errors.\n\nAs before, if you want to ignore a specific advisory, add it to the `ignore` field.\n"
+          "description": "The advisories section has an upcoming breaking change, with deprecation warnings for several\nfields that will be removed. Setting `version = 2` will opt-in to the future default behavior.\n\nThe breaking change is as follows:\n\n- `vulnerability` - Removed, all vulnerability advisories now emit errors.\n- `unmaintained` - Removed, all unmaintained advisories now emit errors.\n- `unsound` - Removed, all unsound advisories now emit errors.\n- `notice` - Removed, all notice advisories now emit errors.\n- `severity-threshold` - Removed, all vulnerability advisories now emit errors.\n\nAs before, if you want to ignore a specific advisory, add it to the `ignore` field.\n",
+          "x-taplo": {
+            "docs": {
+              "enumValues": [
+                ""
+              ]
+            }
+          }
         },
         "vulnerability": {
           "deprecated": true,
           "enum": [
-            "deny",
-            "warn",
-            "allow"
+            {
+              "value": "deny",
+              "description": "Emit an error with details about the problem, and fail the check."
+            },
+            {
+              "value": "warn",
+              "description": "Print a warning for each propblem, but don't fail the check."
+            },
+            {
+              "value": "allow",
+              "description": "Print a note about the problem, but don't fail the check."
+            }
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a security vulnerability is encountered.\n",
           "default": "deny",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "Emit an error with details about the problem, and fail the check.",
-                "Print a warning for each propblem, but don't fail the check.",
-                "Print a note about the problem, but don't fail the check."
+                "",
+                "",
+                ""
               ]
             }
           }
@@ -84,18 +100,27 @@
         "unmaintained": {
           "deprecated": true,
           "enum": [
-            "deny",
-            "warn",
-            "allow"
+            {
+              "value": "deny",
+              "description": "Emit an error with details about the problem, and fail the check."
+            },
+            {
+              "value": "warn",
+              "description": "Print a warning for each propblem, but don't fail the check."
+            },
+            {
+              "value": "allow",
+              "description": "Print a note about the problem, but don't fail the check."
+            }
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unmaintained` advisory is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "Emit an error with details about the problem, and fail the check.",
-                "Print a warning for each propblem, but don't fail the check.",
-                "Print a note about the problem, but don't fail the check."
+                "",
+                "",
+                ""
               ]
             }
           }
@@ -103,18 +128,27 @@
         "unsound": {
           "deprecated": true,
           "enum": [
-            "deny",
-            "warn",
-            "allow"
+            {
+              "value": "deny",
+              "description": "Emit an error with details about the problem, and fail the check."
+            },
+            {
+              "value": "warn",
+              "description": "Print a warning for each propblem, but don't fail the check."
+            },
+            {
+              "value": "allow",
+              "description": "Print a note about the problem, but don't fail the check."
+            }
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unsound` advisory is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "Emit an error with details about the problem, and fail the check.",
-                "Print a warning for each propblem, but don't fail the check.",
-                "Print a note about the problem, but don't fail the check."
+                "",
+                "",
+                ""
               ]
             }
           }
@@ -122,36 +156,54 @@
         "notice": {
           "deprecated": true,
           "enum": [
-            "deny",
-            "warn",
-            "allow"
+            {
+              "value": "deny",
+              "description": "Emit an error with details about the problem, and fail the check."
+            },
+            {
+              "value": "warn",
+              "description": "Print a warning for each propblem, but don't fail the check."
+            },
+            {
+              "value": "allow",
+              "description": "Print a note about the problem, but don't fail the check."
+            }
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a `notice` advisory is encountered.\n\n**NOTE**: As of 2019-12-17 there are no `notice` advisories in the\n[RustSec Advisory DB](https://github.com/RustSec/advisory-db)\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "Emit an error with details about the problem, and fail the check.",
-                "Print a warning for each propblem, but don't fail the check.",
-                "Print a note about the problem, but don't fail the check."
+                "",
+                "",
+                ""
               ]
             }
           }
         },
         "yanked": {
           "enum": [
-            "deny",
-            "warn",
-            "allow"
+            {
+              "value": "deny",
+              "description": "Emit an error with details about the problem, and fail the check."
+            },
+            {
+              "value": "warn",
+              "description": "Print a warning for each propblem, but don't fail the check."
+            },
+            {
+              "value": "allow",
+              "description": "Print a note about the problem, but don't fail the check."
+            }
           ],
           "description": "Determines what happens when a crate with a version that has been yanked from its source\nregistry is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "Emit an error with details about the problem, and fail the check.",
-                "Print a warning for each propblem, but don't fail the check.",
-                "Print a note about the problem, but don't fail the check."
+                "",
+                "",
+                ""
               ]
             }
           }
@@ -201,13 +253,16 @@
     "advisories-ignore-item": {
       "oneOf": [
         {
+          "name": "String",
           "type": "string",
           "description": "Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`)."
         },
         {
+          "name": "Advisory",
           "$ref": "#/definitions/advisories-ignore-advisory"
         },
         {
+          "name": "Yanked",
           "$ref": "#/definitions/advisories-ignore-yanked"
         }
       ]
@@ -277,16 +332,25 @@
     },
     "lint-level": {
       "enum": [
-        "deny",
-        "warn",
-        "allow"
+        {
+          "value": "deny",
+          "description": "Emit an error with details about the problem, and fail the check."
+        },
+        {
+          "value": "warn",
+          "description": "Print a warning for each propblem, but don't fail the check."
+        },
+        {
+          "value": "allow",
+          "description": "Print a note about the problem, but don't fail the check."
+        }
       ],
       "x-taplo": {
         "docs": {
           "enumValues": [
-            "Emit an error with details about the problem, and fail the check.",
-            "Print a warning for each propblem, but don't fail the check.",
-            "Print a note about the problem, but don't fail the check."
+            "",
+            "",
+            ""
           ]
         }
       }
@@ -309,14 +373,16 @@
     "target": {
       "oneOf": [
         {
+          "name": "String",
           "$ref": "#/definitions/target-string"
         },
         {
-          "$ref": "#/definitions/target-complex"
+          "name": "Advanced",
+          "$ref": "#/definitions/target-advanced"
         }
       ]
     },
-    "target-complex": {
+    "target-advanced": {
       "type": "object",
       "examples": [
         {
@@ -367,6 +433,6 @@
       "$ref": "#/definitions/output"
     }
   },
-  "title": "cargo-deny configuration file",
+  "title": "Configuration file for cargo-deny, by default called `deny.toml`.",
   "type": "object"
 }

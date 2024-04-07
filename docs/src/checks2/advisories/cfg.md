@@ -1,4 +1,6 @@
-# The `[advisories]` section
+# `advisories` (optional)
+
+`object`
 
 Checks advisory databases for crates with security vulnerabilities,
 or that have been marked as Unmaintained, or which have been yanked from
@@ -28,27 +30,24 @@ severity-threshold = "medium"
 
 ## `advisories.db-urls` (optional)
 
-`array of string (uri)`
+`array`
 
-#### Default
+URLs to one or more advisory databases.
+
+### Default
 
 ```toml
 [advisories]
 db-urls = ["https://github.com/RustSec/advisory-db"]
 ```
 
-URLs to one or more advisory databases.
+### Items
+
+`string (uri)`
 
 ## `advisories.db-path` (optional)
 
 `string`
-
-### Default
-
-```toml
-[advisories]
-db-path = "$CARGO_HOME/advisory-dbs"
-```
 
 Path to the root directory into which one or more advisory databases are cloned into.
 
@@ -65,14 +64,17 @@ This value supports basic shell expansion:
 Note that the path must be valid utf-8, after expansion.
 
 
+### Default
+
+```toml
+[advisories]
+db-path = "$CARGO_HOME/advisory-dbs"
+```
+
 ## `advisories.version` (optional)
 
+`integer`
 
-
-### Possible values
-
-* `2`
----
 The advisories section has an upcoming breaking change, with deprecation warnings for several
 fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
 
@@ -87,88 +89,53 @@ The breaking change is as follows:
 As before, if you want to ignore a specific advisory, add it to the `ignore` field.
 
 
-## `advisories.vulnerability` (optional)
-
-
-
 ### Possible values
 
-* `"deny"` - Emit an error with details about the problem, and fail the check.
-* `"warn"` - Print a warning for each propblem, but don't fail the check.
-* `"allow"` - Print a note about the problem, but don't fail the check.
----
-#### Default
+2
 
-```toml
-[advisories]
-vulnerability = "deny"
-```
+## `advisories.vulnerability` (optional)
 
 **DEPRECATED** (see `version` field)
 
 Determines what happens when a crate with a security vulnerability is encountered.
 
 
-## `advisories.unmaintained` (optional)
-
-
-
-### Possible values
-
-* `"deny"` - Emit an error with details about the problem, and fail the check.
-* `"warn"` - Print a warning for each propblem, but don't fail the check.
-* `"allow"` - Print a note about the problem, but don't fail the check.
----
-#### Default
+### Default
 
 ```toml
 [advisories]
-unmaintained = "warn"
+vulnerability = "deny"
 ```
+
+## `advisories.unmaintained` (optional)
 
 **DEPRECATED** (see `version` field)
 
 Determines what happens when a crate with an `unmaintained` advisory is encountered.
 
 
-## `advisories.unsound` (optional)
-
-
-
-### Possible values
-
-* `"deny"` - Emit an error with details about the problem, and fail the check.
-* `"warn"` - Print a warning for each propblem, but don't fail the check.
-* `"allow"` - Print a note about the problem, but don't fail the check.
----
-#### Default
+### Default
 
 ```toml
 [advisories]
-unsound = "warn"
+unmaintained = "warn"
 ```
+
+## `advisories.unsound` (optional)
 
 **DEPRECATED** (see `version` field)
 
 Determines what happens when a crate with an `unsound` advisory is encountered.
 
 
-## `advisories.notice` (optional)
-
-
-
-### Possible values
-
-* `"deny"` - Emit an error with details about the problem, and fail the check.
-* `"warn"` - Print a warning for each propblem, but don't fail the check.
-* `"allow"` - Print a note about the problem, but don't fail the check.
----
-#### Default
+### Default
 
 ```toml
 [advisories]
-notice = "warn"
+unsound = "warn"
 ```
+
+## `advisories.notice` (optional)
 
 **DEPRECATED** (see `version` field)
 
@@ -178,26 +145,25 @@ Determines what happens when a crate with a `notice` advisory is encountered.
 [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
 
+### Default
+
+```toml
+[advisories]
+notice = "warn"
+```
+
 ## `advisories.yanked` (optional)
 
+Determines what happens when a crate with a version that has been yanked from its source
+registry is encountered.
 
 
-### Possible values
-
-* `"deny"` - Emit an error with details about the problem, and fail the check.
-* `"warn"` - Print a warning for each propblem, but don't fail the check.
-* `"allow"` - Print a note about the problem, but don't fail the check.
----
-#### Default
+### Default
 
 ```toml
 [advisories]
 yanked = "warn"
 ```
-
-Determines what happens when a crate with a version that has been yanked from its source
-registry is encountered.
-
 
 ## `advisories.ignore` (optional)
 
@@ -211,7 +177,7 @@ In addition, yanked crate versions can be ignored by specifying a [PackageSpec](
 with an optional `reason`.
 
 
-#### Example
+### Example
 
 ```toml
 [advisories]
@@ -225,14 +191,19 @@ ignore = [
 
 ### Items
 
-**One of the following:**
+
+
+#### `advisories.ignore[N] (as String)` (as String)
 
 `string`
 
 Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
+#### `advisories.ignore[N] (as Advisory)` (as Advisory)
 
-##### `advisories.ignore[N].id` (required)
+`object`
+
+##### `advisories.ignore[N] (as Advisory).id` (required)
 
 `string`
 
@@ -241,18 +212,19 @@ The unique identifier of the advisory to ignore
 ###### Example
 
 ```toml
-[[advisories.ignore]]
-id = "RUSTSEC-2019-0001"
+[advisories]
+ignore = ["RUSTSEC-2019-0001"]
 ```
 
-##### `advisories.ignore[N].reason` (optional)
-
-`string`
-
-Free-form string that can be used to describe the reason why the advisory is ignored.
+##### `advisories.ignore[N] (as Advisory).reason` (optional)
 
 
-##### `advisories.ignore[N].crate` (required)
+
+#### `advisories.ignore[N] (as Yanked)` (as Yanked)
+
+`object`
+
+##### `advisories.ignore[N] (as Yanked).crate` (required)
 
 `string`
 
@@ -327,8 +299,5 @@ The old format uses a required `name` key and an optional `version` key. This fo
 and should not be used.
 
 
-##### `advisories.ignore[N].reason` (optional)
+##### `advisories.ignore[N] (as Yanked).reason` (optional)
 
-`string`
-
-Free-form string that can be used to describe the reason why the advisory is ignored.

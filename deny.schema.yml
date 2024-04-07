@@ -30,7 +30,7 @@ $schema: https://json-schema.org/draft-07/schema#
 
 $id: https://github.com/EmbarkStudios/cargo-deny/deny.schema.json
 
-title: cargo-deny configuration file
+title: Configuration file for cargo-deny, by default called `deny.toml`.
 description: Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html
 
 type: object
@@ -175,14 +175,14 @@ definitions:
 
   advisories-ignore-item:
     oneOf:
-      - variant: String
+      - name: String
         type: string
         description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
-      - variant: Advisory
+      - name: Advisory
         $ref: "#/definitions/advisories-ignore-advisory"
 
-      - variant: Yanked
+      - name: Yanked
         $ref: "#/definitions/advisories-ignore-yanked"
 
   advisories-ignore-advisory:
@@ -366,10 +366,10 @@ definitions:
 
   target:
     oneOf:
-      - variant: String
+      - name: String
         $ref: "#/definitions/target-string"
 
-      - variant: Advanced
+      - name: Advanced
         $ref: "#/definitions/target-advanced"
 
   target-advanced:

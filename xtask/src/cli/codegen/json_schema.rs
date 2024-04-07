@@ -1,6 +1,5 @@
-use super::input::{EnumSchema, RootSchema, Schema};
+use super::input::{EnumVariantSchema, RootSchema, Schema};
 use anyhow::Result;
-use std::mem;
 
 /// Generate the JSON schema based on the input YML schema.
 pub(crate) fn gen(root: &RootSchema) -> Result<()> {
@@ -55,21 +54,18 @@ impl<'a> GenContext<'a> {
     fn normalize_enum(&self, schema: &mut Schema) -> Result<()> {
         let mut inlined = self.root.inline_referenced_definition(schema)?;
 
-        let Some(enum_schema) = &mut inlined.enum_schema else {
+        let Some(enum_variants) = &mut inlined.enum_schema else {
             return Ok(());
         };
 
-        let EnumSchema::Custom(custom) = enum_schema else {
-            return Ok(());
-        };
-
-        let (values, descriptions): (Vec<_>, Vec<_>) = custom
+        let (values, descriptions): (Vec<_>, Vec<_>) = enum_variants
             .iter_mut()
-            .map(|custom| {
-                (
-                    mem::take(&mut custom.value).into(),
-                    mem::take(&mut custom.description),
-                )
+            .map(|variant| {
+                let (value, description) = variant.value_and_description();
+
+                let description = description.unwrap_or_default();
+
+                (EnumVariantSchema::Undocumented(value), description)
             })
             .unzip();
 
@@ -77,7 +73,7 @@ impl<'a> GenContext<'a> {
             "docs": { "enumValues": descriptions }
         }));
 
-        *enum_schema = EnumSchema::Standard(values);
+        *enum_variants = values;
 
         *schema = inlined;
 
