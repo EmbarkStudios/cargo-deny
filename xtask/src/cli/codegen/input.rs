@@ -45,7 +45,7 @@ pub(crate) struct Schema {
     pub(crate) enum_schema: Option<EnumSchema>,
 
     #[serde(skip_serializing_if = "Option::is_none", rename = "oneOf")]
-    pub(crate) one_of: Option<Vec<Schema>>,
+    pub(crate) one_of: Option<Vec<VariantSchema>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) title: Option<String>,
@@ -78,7 +78,16 @@ pub(crate) struct CustomEnumSchema {
     pub(crate) description: String,
 }
 
-pub(crate) struct OneOfSchema {}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct VariantSchema {
+    /// Name of the variant. It's main use case is when generating a Rust enum,
+    /// which requires a name for each variant. However, it's also useful for
+    /// documentation purposes as a succinct display name for the variant.
+    pub(crate) name: String,
+
+    #[serde(flatten)]
+    pub(crate) schema: Schema,
+}
 
 // /// Unfortunately we can't use an internally-tagged enum here with associated data
 // /// because when flattening such enum with `#[serde(flatten)]` we end up with
@@ -129,14 +138,25 @@ impl Schema {
         std::iter::from_fn(move || {
             let schema = stack.pop()?;
 
-            let properties = schema
+            let object_properties = schema
                 .object_schema
                 .iter()
                 .flat_map(|object| object.properties.values());
 
-            stack.extend(properties);
-            stack.extend(schema.array_schema.iter().map(|array| array.items.as_ref()));
-            stack.extend(schema.one_of.iter().flatten());
+            let one_of_variants = schema
+                .one_of
+                .iter()
+                .flatten()
+                .map(|variant| &variant.schema);
+
+            let array_items = schema.array_schema.iter().map(|array| array.items.as_ref());
+
+            stack.extend(itertools::chain!(
+                object_properties,
+                one_of_variants,
+                array_items
+            ));
+
             Some(schema)
         })
     }
@@ -153,16 +173,56 @@ impl Schema {
         }
 
         if let Some(one_of) = &mut self.one_of {
-            one_of.iter_mut().try_for_each(&visit)?;
+            one_of
+                .iter_mut()
+                .map(|variant| &mut variant.schema)
+                .try_for_each(&visit)?;
         }
 
         Ok(())
     }
 
-    pub(crate) fn try_as_object(&self) -> Result<&ObjectSchema> {
-        self.object_schema
+    fn try_downcast_as<T>(&self, schema: &Option<T>, label: &str) -> Result<&T> {
+        schema
             .as_ref()
-            .with_context(|| format!("Expected object schema, but got {self:#?}"))
+            .with_context(|| format!("Expected {label} schema, but got {self:#?}"))
+    }
+
+    fn try_downcast_into<T>(self, schema: Option<T>, label: &str) -> Result<T> {
+        schema.with_context(|| format!("Expected {label} schema, but got {self:#?}"))
+    }
+
+    pub(crate) fn try_as_array(&self) -> Result<&ArraySchema> {
+        self.try_downcast_as(&self.array_schema, "array")
+    }
+
+    pub(crate) fn try_into_array(self) -> Result<ArraySchema> {
+        self.try_downcast_into(self.array_schema, "array")
+    }
+
+    pub(crate) fn try_as_object(&self) -> Result<&ObjectSchema> {
+        self.try_downcast_as(&self.object_schema, "object")
+    }
+
+    pub(crate) fn try_into_object(self) -> Result<ObjectSchema> {
+        self.try_downcast_into(self.object_schema, "object")
+    }
+
+    pub(crate) fn try_as_enum(&self) -> Result<&EnumSchema> {
+        self.try_downcast_as(&self.enum_schema, "enum")
+    }
+
+    pub(crate) fn try_into_enum(self) -> Result<EnumSchema> {
+        self.try_downcast_into(self.enum_schema, "enum")
+    }
+
+    pub(crate) fn try_as_one_of(&self) -> Result<&[VariantSchema]> {
+        self.try_downcast_as(&self.one_of, "one-of")
+            .map(Vec::as_slice)
+    }
+
+    pub(crate) fn try_into_one_of(self) -> Result<Vec<VariantSchema>> {
+        self.try_downcast_into(self.one_of, "one-of")
     }
 
     pub(crate) fn try_description(&self) -> Result<&str> {

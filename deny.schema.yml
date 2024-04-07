@@ -35,9 +35,9 @@ description: Full documentation is at https://embarkstudios.github.io/cargo-deny
 
 type: object
 properties:
-  advisories: { $ref: '#/definitions/advisories' }
-  graph: { $ref: '#/definitions/graph' }
-  output: { $ref: '#/definitions/output' }
+  advisories: { $ref: "#/definitions/advisories" }
+  graph: { $ref: "#/definitions/graph" }
+  output: { $ref: "#/definitions/output" }
 
 definitions:
   advisories:
@@ -110,7 +110,7 @@ definitions:
 
       vulnerability:
         deprecated: true
-        $ref: '#/definitions/lint-level'
+        $ref: "#/definitions/lint-level"
         default: deny
         description: |
           **DEPRECATED** (see `version` field)
@@ -119,7 +119,7 @@ definitions:
 
       unmaintained:
         deprecated: true
-        $ref: '#/definitions/lint-level'
+        $ref: "#/definitions/lint-level"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -128,7 +128,7 @@ definitions:
 
       unsound:
         deprecated: true
-        $ref: '#/definitions/lint-level'
+        $ref: "#/definitions/lint-level"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -137,7 +137,7 @@ definitions:
 
       notice:
         deprecated: true
-        $ref: '#/definitions/lint-level'
+        $ref: "#/definitions/lint-level"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -148,7 +148,7 @@ definitions:
           [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
       yanked:
-        $ref: '#/definitions/lint-level'
+        $ref: "#/definitions/lint-level"
         default: warn
         description: |
           Determines what happens when a crate with a version that has been yanked from its source
@@ -156,7 +156,7 @@ definitions:
 
       ignore:
         type: array
-        items: { $ref: '#/definitions/advisories-ignore-item' }
+        items: { $ref: "#/definitions/advisories-ignore-item" }
         examples:
           - - RUSTSEC-0000-0000
             - id: "RUSTSEC-0000-0000"
@@ -175,10 +175,15 @@ definitions:
 
   advisories-ignore-item:
     oneOf:
-      - type: string
+      - variant: String
+        type: string
         description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
-      - { $ref: '#/definitions/advisories-ignore-advisory' }
-      - { $ref: '#/definitions/advisories-ignore-yanked' }
+
+      - variant: Advisory
+        $ref: "#/definitions/advisories-ignore-advisory"
+
+      - variant: Yanked
+        $ref: "#/definitions/advisories-ignore-yanked"
 
   advisories-ignore-advisory:
     type: object
@@ -188,14 +193,14 @@ definitions:
         type: string
         examples: [RUSTSEC-2019-0001]
         description: The unique identifier of the advisory to ignore
-      reason: { $ref: '#/definitions/ignore-reason' }
+      reason: { $ref: "#/definitions/ignore-reason" }
 
   advisories-ignore-yanked:
     type: object
     required: [crate]
     properties:
-      crate: { $ref: '#/definitions/package-spec' }
-      reason: { $ref: '#/definitions/ignore-reason' }
+      crate: { $ref: "#/definitions/package-spec" }
+      reason: { $ref: "#/definitions/ignore-reason" }
 
   ignore-reason:
     type: string
@@ -299,7 +304,7 @@ definitions:
     properties:
       targets:
         type: array
-        items: { $ref: '#/definitions/target' }
+        items: { $ref: "#/definitions/target" }
         description: |
           By default, cargo-deny will consider every single crate that is resolved by cargo, including
           target specific dependencies e.g.
@@ -361,15 +366,18 @@ definitions:
 
   target:
     oneOf:
-      - $ref: '#/definitions/target-string'
-      - $ref: '#/definitions/target-complex'
+      - variant: String
+        $ref: "#/definitions/target-string"
 
-  target-complex:
+      - variant: Advanced
+        $ref: "#/definitions/target-advanced"
+
+  target-advanced:
     description: Advanced configurations to apply for the target triple
     type: object
     required: [triple]
     properties:
-      triple: { $ref: '#/definitions/target-string' }
+      triple: { $ref: "#/definitions/target-string" }
       features:
         type: string
         description: |
