@@ -1,0 +1,300 @@
+use anyhow::{Context, Result};
+use indexmap::IndexMap;
+use itertools::Either;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
+
+type Object = BTreeMap<String, Value>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct RootSchema {
+    #[serde(flatten)]
+    pub(crate) schema: Schema,
+
+    pub(crate) definitions: BTreeMap<String, Schema>,
+
+    // Keep the rest of the fields in the schema so they are not lost during
+    // the deserialize -> serialize roundtrip.
+    #[serde(flatten)]
+    pub(crate) other: Object,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+
+pub(crate) struct Schema {
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub(crate) ty: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) format: Option<String>,
+
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) deprecated: bool,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) examples: Vec<Value>,
+
+    #[serde(flatten)]
+    pub(crate) object_schema: Option<ObjectSchema>,
+
+    #[serde(flatten)]
+    pub(crate) array_schema: Option<ArraySchema>,
+
+    #[serde(skip_serializing_if = "Option::is_none", rename = "enum")]
+    pub(crate) enum_schema: Option<EnumSchema>,
+
+    #[serde(skip_serializing_if = "Option::is_none", rename = "oneOf")]
+    pub(crate) one_of: Option<Vec<Schema>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) title: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) description: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none", rename = "$ref")]
+    pub(crate) reference: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) default: Option<Value>,
+
+    /// Extensions for taplo TOML language server
+    #[serde(skip_serializing_if = "Option::is_none", rename = "x-taplo")]
+    pub(crate) x_taplo: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub(crate) enum EnumSchema {
+    Custom(Vec<CustomEnumSchema>),
+    Standard(Vec<Value>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct CustomEnumSchema {
+    pub(crate) value: String,
+
+    pub(crate) description: String,
+}
+
+pub(crate) struct OneOfSchema {}
+
+// /// Unfortunately we can't use an internally-tagged enum here with associated data
+// /// because when flattening such enum with `#[serde(flatten)]` we end up with
+// /// duplicate data in `other: Object` field as well, which then results in broken
+// /// serialization that outputs duplicate keys in JSON objects. This is a bug in
+// /// serde: <https://github.com/serde-rs/serde/issues/2200>
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// #[serde(tag = "type", rename_all = "lowercase")]
+// pub(crate) enum SchemaType {
+//     Object,
+//     Array,
+//     String,
+//     Integer,
+//     Number,
+//     Boolean,
+//     Null,
+// }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct ObjectSchema {
+    /// Properties are defined via an [`IndexMap`] to preserve the order as they
+    /// are defined in the schema. This way we can put more important properties
+    /// at the top of the generated documentation by defining them first in the
+    /// schema.
+    pub(crate) properties: IndexMap<String, Schema>,
+
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub(crate) required: BTreeSet<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct ArraySchema {
+    pub(crate) items: Box<Schema>,
+}
+
+impl Schema {
+    pub(crate) fn is_primitive(&self) -> bool {
+        self.object_schema.is_none()
+            && self.array_schema.is_none()
+            && self.enum_schema.is_none()
+            && self.one_of.is_none()
+    }
+
+    /// Returns all schemas stored inside of this one. It doesn't resolve
+    /// references.
+    pub(crate) fn inner_schemas(&self) -> impl Iterator<Item = &Schema> {
+        let mut stack = vec![self];
+        std::iter::from_fn(move || {
+            let schema = stack.pop()?;
+
+            let properties = schema
+                .object_schema
+                .iter()
+                .flat_map(|object| object.properties.values());
+
+            stack.extend(properties);
+            stack.extend(schema.array_schema.iter().map(|array| array.items.as_ref()));
+            stack.extend(schema.one_of.iter().flatten());
+            Some(schema)
+        })
+    }
+
+    pub(crate) fn traverse_mut(&mut self, visit: impl Fn(&mut Schema) -> Result<()>) -> Result<()> {
+        visit(self)?;
+
+        if let Some(object) = &mut self.object_schema {
+            object.properties.values_mut().try_for_each(&visit)?;
+        }
+
+        if let Some(array) = &mut self.array_schema {
+            visit(&mut array.items)?;
+        }
+
+        if let Some(one_of) = &mut self.one_of {
+            one_of.iter_mut().try_for_each(&visit)?;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn try_as_object(&self) -> Result<&ObjectSchema> {
+        self.object_schema
+            .as_ref()
+            .with_context(|| format!("Expected object schema, but got {self:#?}"))
+    }
+
+    pub(crate) fn try_description(&self) -> Result<&str> {
+        self.description
+            .as_deref()
+            .with_context(|| format!("Expected description for schema, but found none: {self:#?}"))
+    }
+
+    pub(crate) fn referenced_definition(&self) -> Result<Option<&str>> {
+        let Some(reference) = &self.reference else {
+            return Ok(None);
+        };
+
+        let reference = reference.strip_prefix("#/definitions/").with_context(|| {
+            format!("Reference to anything but `#/definitions` is disallowed: {reference}")
+        })?;
+
+        Ok(Some(reference))
+    }
+}
+
+impl RootSchema {
+    pub(crate) fn find_definition(&self, def_name: &str) -> Result<&Schema> {
+        self.definitions
+            .get(def_name)
+            .with_context(|| format!("Reference to unknown definition: `{def_name}`"))
+    }
+
+    fn find_reference(&self, schema: &Schema) -> Result<Option<&Schema>> {
+        let Some(def_name) = schema.referenced_definition()? else {
+            return Ok(None);
+        };
+
+        let definition = self
+            .find_definition(def_name)
+            .with_context(|| format!("inside of schema: {schema:#?}"))?;
+
+        Ok(Some(definition))
+    }
+
+    pub(crate) fn inline_referenced_definition(&self, schema: &Schema) -> Result<Schema> {
+        let Some(definition) = self.find_reference(schema)? else {
+            return Ok(schema.clone());
+        };
+
+        let mut schema = schema.clone();
+        schema.reference = None;
+
+        let mut schema_value = serde_json::to_value(schema).unwrap();
+        let definition_value = serde_json::to_value(definition).unwrap();
+
+        merge_json_values_mut(&mut schema_value, definition_value);
+
+        let schema = serde_json::from_value(schema_value).unwrap();
+
+        Ok(schema)
+    }
+}
+
+impl EnumSchema {
+    pub(crate) fn values_and_descriptions(&self) -> impl Iterator<Item = (Value, Option<&str>)> {
+        match self {
+            EnumSchema::Custom(custom) => {
+                let iter = custom.iter().map(|custom| {
+                    let value = custom.value.clone().into();
+                    let description = custom.description.as_str();
+                    (value, Some(description))
+                });
+                Either::Left(iter)
+            }
+            EnumSchema::Standard(values) => {
+                let iter = values.iter().map(|value| (value.clone(), None));
+                Either::Right(iter)
+            }
+        }
+    }
+}
+
+pub(crate) fn merge_json_values(mut a: Value, b: Value) -> Value {
+    merge_json_values_mut(&mut a, b);
+    a
+}
+
+pub(crate) fn merge_json_values_mut(a: &mut Value, b: Value) {
+    use serde_json::map::Entry;
+
+    match (a, b) {
+        (Value::Object(a), Value::Object(b)) => {
+            for (key, b_value) in b {
+                match a.entry(key) {
+                    Entry::Occupied(mut a_value) => {
+                        merge_json_values_mut(a_value.get_mut(), b_value);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(b_value);
+                    }
+                }
+            }
+        }
+        (Value::Array(a), Value::Array(b)) => {
+            a.extend(b);
+        }
+        (a, b) => *a = b,
+    }
+}
+
+// fn merge_serializable<T: Serialize + DeserializeOwned>(a: &mut T, b: T) {
+//     let mut a_value = serde_json::to_value(&a).unwrap();
+//     let b_value = serde_json::to_value(b).unwrap();
+//     merge_json_values(&mut a_value, b_value);
+
+//     *a = serde_json::from_value(a_value).unwrap();
+// }
+
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// struct XTaplo {
+//     docs: XTaploDocs,
+
+//     #[serde(flatten)]
+//     untyped: Object,
+// }
+
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// struct XTaploDocs {
+//     enum_values: Vec<String>,
+
+//     #[serde(flatten)]
+//     untyped: Object,
+// }
+
+// impl Schema {
+//     fn merge(&mut self, other: &Schema) {
+//         merge_serializable(self, other.clone());
+//     }
+// }

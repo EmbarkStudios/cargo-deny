@@ -41,10 +41,28 @@ properties:
 
 definitions:
   advisories:
+    examples:
+      - db-path: ~/.cargo/advisory-dbs
+        db-urls: [https://github.com/RustSec/advisory-db]
+        vulnerability: deny
+        unmaintained: warn
+        unsound: warn
+        yanked: warn
+        notice: warn
+        ignore:
+          - RUSTSEC-0000-0000
+          - crate@0.1
+          - { crate: yanked, reason: a new version has not been released }
+        severity-threshold: medium
+
     description: |
-      This section is considered when running `cargo deny check advisories`
-      More documentation for the advisories section can be found
-      [here](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html)
+      Checks advisory databases for crates with security vulnerabilities,
+      or that have been marked as Unmaintained, or which have been yanked from
+      their source registry.
+
+      This section is considered when running `cargo deny check advisories`.
+    # More documentation for the advisories section can be found
+    # [here](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html)
 
     type: object
     properties:
@@ -56,6 +74,7 @@ definitions:
 
       db-path:
         type: string
+        default: $CARGO_HOME/advisory-dbs
         description: |
           Path to the root directory into which one or more advisory databases are cloned into.
 
@@ -71,10 +90,10 @@ definitions:
 
           Note that the path must be valid utf-8, after expansion.
 
-          Default: `$CARGO_HOME/advisory-dbs`
-
       version:
+        type: integer
         enum: [2]
+
         description: |
           The advisories section has an upcoming breaking change, with deprecation warnings for several
           fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
@@ -117,6 +136,7 @@ definitions:
           Determines what happens when a crate with an `unsound` advisory is encountered.
 
       notice:
+        deprecated: true
         $ref: '#/definitions/lint-level'
         default: warn
         description: |
@@ -133,25 +153,19 @@ definitions:
         description: |
           Determines what happens when a crate with a version that has been yanked from its source
           registry is encountered.
-        # x-taplo:
-        #   docs:
-        #     main: |
-        #       Determines what happens when a crate with a version that has been yanked from its source
-        #       registry is encountered.
 
       ignore:
         type: array
         items: { $ref: '#/definitions/advisories-ignore-item' }
-        description: |
-          ```toml
-          ignore = [
-            "RUSTSEC-0000-0000",
-            { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
-            "yanked@0.1.1",
-            { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
-          ]
-          ```
+        examples:
+          - - RUSTSEC-0000-0000
+            - id: "RUSTSEC-0000-0000"
+              reason: this vulnerability does not affect us as we don't use the particular code path
+            - yanked@0.1.1
+            - crate: yanked-crate@0.1.1
+              reason: a semver compatible version hasn't been published yet
 
+        description: |
           Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
           Putting an identifier in this array will cause the advisory to be treated as a note, rather
           than a warning or error.
@@ -188,17 +202,20 @@ definitions:
     description: Free-form string that can be used to describe the reason why the advisory is ignored.
 
   lint-level:
-    # anyOf:
-    #   - { const: deny,  } # description: Emit an error with details about the problem, and fail the check. }
-    #   - { const: warn,  } # description: Print a warning for each propblem, but don't fail the check. }
-    #   - { const: allow, } #  description: Print a note about the problem, but don't fail the check. }
-    enum: [deny, warn, allow]
-    x-taplo:
-      docs:
-        enumValues:
-          - Emit an error with details about the problem, and fail the check.
-          - Print a warning for each propblem, but don't fail the check.
-          - Print a note about the problem, but don't fail the check.
+    enum:
+      - value: deny
+        description: Emit an error with details about the problem, and fail the check.
+      - value: warn
+        description: Print a warning for each propblem, but don't fail the check.
+      - value: allow
+        description: Print a note about the problem, but don't fail the check.
+
+    # x-taplo:
+    #   docs:
+    #     enumValues:
+    #       -
+    #       -
+    #       -
 
   package-spec:
     type: string
@@ -315,6 +332,7 @@ definitions:
 
           Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced
           via the excluded crate, they will also be excluded from the crate graph.
+        examples: [some-crate@0.1.0]
 
       all-features:
         type: boolean
@@ -330,6 +348,7 @@ definitions:
         description: |
           If set, and `--features` is not specified on the cmd line, these features will be used when
           collecting metadata.
+        examples: [some-feature]
 
       exclude-dev:
         type: boolean
@@ -352,6 +371,7 @@ definitions:
     properties:
       triple: { $ref: '#/definitions/target-string' }
       features:
+        type: string
         description: |
           Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
           predicate, but at the moment, the only way to actually pass them when compiling is to use
@@ -360,8 +380,17 @@ definitions:
           this writing, cargo-deny does not attempt to validate that the features you specify are
           actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
+    examples:
+      - { triple: aarch64-apple-darwin }
+      - { triple: x86_64-pc-windows-msvc, features: [some-feature] }
+
   target-string:
     type: string
+    examples:
+      - x86_64-unknown-linux-gnu
+      - x86_64-pc-windows-msvc
+      - aarch64-apple-darwin
+
     description: |
       The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target
       you wish to filter target specific dependencies with. If the target triple specified is **not**
