@@ -36,6 +36,7 @@ description: Full documentation is at https://embarkstudios.github.io/cargo-deny
 type: object
 properties:
   advisories: { $ref: "#/definitions/Advisories" }
+  bans: { $ref: "#/definitions/Bans" }
   graph: { $ref: "#/definitions/Graph" }
   output: { $ref: "#/definitions/Output" }
 
@@ -55,14 +56,12 @@ definitions:
           - { crate: yanked, reason: a new version has not been released }
         severity-threshold: medium
 
-    description: |
+    title: |
       Checks advisory databases for crates with security vulnerabilities,
       or that have been marked as Unmaintained, or which have been yanked from
       their source registry.
 
       This section is considered when running `cargo deny check advisories`.
-    # More documentation for the advisories section can be found
-    # [here](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html)
 
     type: object
     properties:
@@ -289,8 +288,27 @@ definitions:
       The old format uses a required `name` key and an optional `version` key. This format is deprecated
       and should not be used.
 
-  Graph:
+  Bans:
+    title: |
+      Checks for specific crates in your graph, as well as duplicates.
+
+      This section is considered when running `cargo deny check bans`.
+
+    type: object
+    properties:
+      allow: { $ref: "#/definitions/BansAllow" }
+
+  BansAllow:
+    type: array
+    items: { $ref: "#/definitions/PackageSpec" }
     description: |
+      Determines specific crates that are allowed. If the `allow` list has one or more entries, then
+      any crate not in that list will be denied, so use with care. Each entry uses the same
+      [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
+      as other parts of cargo-deny's configuration.
+
+  Graph:
+    title: |
       The graph table configures how the dependency graph is constructed and thus which crates the
       checks are performed against
 
@@ -401,7 +419,7 @@ definitions:
       expressions require us to know the details about the target.
 
   Output:
-    description: The output table provides options for how/if diagnostics are outputted
+    title: The output table provides options for how/if diagnostics are outputted
     type: object
     properties:
       feature-depth:

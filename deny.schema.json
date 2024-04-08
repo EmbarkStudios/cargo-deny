@@ -4,6 +4,9 @@
     "advisories": {
       "$ref": "#/definitions/Advisories"
     },
+    "bans": {
+      "$ref": "#/definitions/Bans"
+    },
     "graph": {
       "$ref": "#/definitions/Graph"
     },
@@ -190,7 +193,7 @@
           "description": "Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.\nPutting an identifier in this array will cause the advisory to be treated as a note, rather\nthan a warning or error.\n\nIn addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nwith an optional `reason`.\n"
         }
       },
-      "description": "Checks advisory databases for crates with security vulnerabilities,\nor that have been marked as Unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n"
+      "title": "Checks advisory databases for crates with security vulnerabilities,\nor that have been marked as Unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n"
     },
     "AdvisoriesIgnoreAdvisory": {
       "type": "object",
@@ -241,6 +244,22 @@
         "crate"
       ]
     },
+    "Bans": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "$ref": "#/definitions/BansAllow"
+        }
+      },
+      "title": "Checks for specific crates in your graph, as well as duplicates.\n\nThis section is considered when running `cargo deny check bans`.\n"
+    },
+    "BansAllow": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PackageSpec"
+      },
+      "description": "Determines specific crates that are allowed. If the `allow` list has one or more entries, then\nany crate not in that list will be denied, so use with care. Each entry uses the same\n[PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nas other parts of cargo-deny's configuration.\n"
+    },
     "Graph": {
       "type": "object",
       "properties": {
@@ -284,7 +303,7 @@
           "description": "If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included\nin the crate graph used for any of the checks. This option can also be enabled on cmd line\nwith `--exclude-dev` either [before](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)\nor [after](https://embarkstudios.github.io/cargo-deny/cli/check.html#--exclude-dev)\nthe `check` subcommand.\n"
         }
       },
-      "description": "The graph table configures how the dependency graph is constructed and thus which crates the\nchecks are performed against\n"
+      "title": "The graph table configures how the dependency graph is constructed and thus which crates the\nchecks are performed against\n"
     },
     "IgnoreReason": {
       "type": "string",
@@ -316,7 +335,7 @@
           "default": 1
         }
       },
-      "description": "The output table provides options for how/if diagnostics are outputted"
+      "title": "The output table provides options for how/if diagnostics are outputted"
     },
     "PackageSpec": {
       "type": "string",
@@ -377,6 +396,9 @@
   "properties": {
     "advisories": {
       "$ref": "#/definitions/Advisories"
+    },
+    "bans": {
+      "$ref": "#/definitions/Bans"
     },
     "graph": {
       "$ref": "#/definitions/Graph"

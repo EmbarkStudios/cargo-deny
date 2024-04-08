@@ -27,6 +27,8 @@ impl Doc {
             let key = &section.data.key;
             let header = format!("The `[{key}]` section");
             let body = format!("See [{key} config]({key}/cfg.html) for more info.");
+            let body = itertools::chain(&section.data.title, [&body]).join("\n\n");
+
             RenderedSection::leaf(header, body)
         });
 
