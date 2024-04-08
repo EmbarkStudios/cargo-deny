@@ -2,19 +2,19 @@
   "type": "object",
   "properties": {
     "advisories": {
-      "$ref": "#/definitions/advisories"
+      "$ref": "#/definitions/Advisories"
     },
     "graph": {
-      "$ref": "#/definitions/graph"
+      "$ref": "#/definitions/Graph"
     },
     "output": {
-      "$ref": "#/definitions/output"
+      "$ref": "#/definitions/Output"
     }
   },
   "title": "Configuration file for cargo-deny, by default called `deny.toml`.",
   "description": "Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html",
   "definitions": {
-    "advisories": {
+    "Advisories": {
       "type": "object",
       "examples": [
         {
@@ -70,140 +70,100 @@
           }
         },
         "vulnerability": {
+          "type": "string",
           "deprecated": true,
           "enum": [
-            {
-              "value": "deny",
-              "description": "Emit an error with details about the problem, and fail the check."
-            },
-            {
-              "value": "warn",
-              "description": "Print a warning for each propblem, but don't fail the check."
-            },
-            {
-              "value": "allow",
-              "description": "Print a note about the problem, but don't fail the check."
-            }
+            "deny",
+            "warn",
+            "allow"
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a security vulnerability is encountered.\n",
           "default": "deny",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "",
-                "",
-                ""
+                "Emit an error with details about the problem, and fail the check.",
+                "Print a warning for each propblem, but don't fail the check.",
+                "Print a note about the problem, but don't fail the check."
               ]
             }
           }
         },
         "unmaintained": {
+          "type": "string",
           "deprecated": true,
           "enum": [
-            {
-              "value": "deny",
-              "description": "Emit an error with details about the problem, and fail the check."
-            },
-            {
-              "value": "warn",
-              "description": "Print a warning for each propblem, but don't fail the check."
-            },
-            {
-              "value": "allow",
-              "description": "Print a note about the problem, but don't fail the check."
-            }
+            "deny",
+            "warn",
+            "allow"
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unmaintained` advisory is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "",
-                "",
-                ""
+                "Emit an error with details about the problem, and fail the check.",
+                "Print a warning for each propblem, but don't fail the check.",
+                "Print a note about the problem, but don't fail the check."
               ]
             }
           }
         },
         "unsound": {
+          "type": "string",
           "deprecated": true,
           "enum": [
-            {
-              "value": "deny",
-              "description": "Emit an error with details about the problem, and fail the check."
-            },
-            {
-              "value": "warn",
-              "description": "Print a warning for each propblem, but don't fail the check."
-            },
-            {
-              "value": "allow",
-              "description": "Print a note about the problem, but don't fail the check."
-            }
+            "deny",
+            "warn",
+            "allow"
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unsound` advisory is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "",
-                "",
-                ""
+                "Emit an error with details about the problem, and fail the check.",
+                "Print a warning for each propblem, but don't fail the check.",
+                "Print a note about the problem, but don't fail the check."
               ]
             }
           }
         },
         "notice": {
+          "type": "string",
           "deprecated": true,
           "enum": [
-            {
-              "value": "deny",
-              "description": "Emit an error with details about the problem, and fail the check."
-            },
-            {
-              "value": "warn",
-              "description": "Print a warning for each propblem, but don't fail the check."
-            },
-            {
-              "value": "allow",
-              "description": "Print a note about the problem, but don't fail the check."
-            }
+            "deny",
+            "warn",
+            "allow"
           ],
           "description": "**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a `notice` advisory is encountered.\n\n**NOTE**: As of 2019-12-17 there are no `notice` advisories in the\n[RustSec Advisory DB](https://github.com/RustSec/advisory-db)\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "",
-                "",
-                ""
+                "Emit an error with details about the problem, and fail the check.",
+                "Print a warning for each propblem, but don't fail the check.",
+                "Print a note about the problem, but don't fail the check."
               ]
             }
           }
         },
         "yanked": {
+          "type": "string",
           "enum": [
-            {
-              "value": "deny",
-              "description": "Emit an error with details about the problem, and fail the check."
-            },
-            {
-              "value": "warn",
-              "description": "Print a warning for each propblem, but don't fail the check."
-            },
-            {
-              "value": "allow",
-              "description": "Print a note about the problem, but don't fail the check."
-            }
+            "deny",
+            "warn",
+            "allow"
           ],
           "description": "Determines what happens when a crate with a version that has been yanked from its source\nregistry is encountered.\n",
           "default": "warn",
           "x-taplo": {
             "docs": {
               "enumValues": [
-                "",
-                "",
-                ""
+                "Emit an error with details about the problem, and fail the check.",
+                "Print a warning for each propblem, but don't fail the check.",
+                "Print a note about the problem, but don't fail the check."
               ]
             }
           }
@@ -225,14 +185,14 @@
             ]
           ],
           "items": {
-            "$ref": "#/definitions/advisories-ignore-item"
+            "$ref": "#/definitions/AdvisoriesIgnoreItem"
           },
           "description": "Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.\nPutting an identifier in this array will cause the advisory to be treated as a note, rather\nthan a warning or error.\n\nIn addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nwith an optional `reason`.\n"
         }
       },
       "description": "Checks advisory databases for crates with security vulnerabilities,\nor that have been marked as Unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n"
     },
-    "advisories-ignore-advisory": {
+    "AdvisoriesIgnoreAdvisory": {
       "type": "object",
       "properties": {
         "id": {
@@ -243,14 +203,14 @@
           "description": "The unique identifier of the advisory to ignore"
         },
         "reason": {
-          "$ref": "#/definitions/ignore-reason"
+          "$ref": "#/definitions/IgnoreReason"
         }
       },
       "required": [
         "id"
       ]
     },
-    "advisories-ignore-item": {
+    "AdvisoriesIgnoreItem": {
       "oneOf": [
         {
           "name": "String",
@@ -259,35 +219,35 @@
         },
         {
           "name": "Advisory",
-          "$ref": "#/definitions/advisories-ignore-advisory"
+          "$ref": "#/definitions/AdvisoriesIgnoreAdvisory"
         },
         {
           "name": "Yanked",
-          "$ref": "#/definitions/advisories-ignore-yanked"
+          "$ref": "#/definitions/AdvisoriesIgnoreYanked"
         }
       ]
     },
-    "advisories-ignore-yanked": {
+    "AdvisoriesIgnoreYanked": {
       "type": "object",
       "properties": {
         "crate": {
-          "$ref": "#/definitions/package-spec"
+          "$ref": "#/definitions/PackageSpec"
         },
         "reason": {
-          "$ref": "#/definitions/ignore-reason"
+          "$ref": "#/definitions/IgnoreReason"
         }
       },
       "required": [
         "crate"
       ]
     },
-    "graph": {
+    "Graph": {
       "type": "object",
       "properties": {
         "targets": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/target"
+            "$ref": "#/definitions/Target"
           },
           "description": "By default, cargo-deny will consider every single crate that is resolved by cargo, including\ntarget specific dependencies e.g.\n\n```toml\n[target.x86_64-pc-windows-msvc.dependencies]\nwinapi = \"0.3.8\"\n\n[target.'cfg(target_os = \"fuchsia\")'.dependencies]\nfuchsia-cprng = \"0.1.1\"\n```\n\nBut unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is\nnever actually going to be compiled or linked into your project, so checking it is pointless for you.\n\nThe `targets` field allows you to specify one or more targets which you **actually** build for.\nEvery dependency link to a crate is checked against this list, and if none of the listed targets\nsatisfy the target constraint, the dependency link is ignored. If a crate has no dependency links\nto it, it is not included into the crate graph that the checks are\nexecuted against.\n"
         },
@@ -326,36 +286,28 @@
       },
       "description": "The graph table configures how the dependency graph is constructed and thus which crates the\nchecks are performed against\n"
     },
-    "ignore-reason": {
+    "IgnoreReason": {
       "type": "string",
       "description": "Free-form string that can be used to describe the reason why the advisory is ignored."
     },
-    "lint-level": {
+    "LintLevel": {
+      "type": "string",
       "enum": [
-        {
-          "value": "deny",
-          "description": "Emit an error with details about the problem, and fail the check."
-        },
-        {
-          "value": "warn",
-          "description": "Print a warning for each propblem, but don't fail the check."
-        },
-        {
-          "value": "allow",
-          "description": "Print a note about the problem, but don't fail the check."
-        }
+        "deny",
+        "warn",
+        "allow"
       ],
       "x-taplo": {
         "docs": {
           "enumValues": [
-            "",
-            "",
-            ""
+            "Emit an error with details about the problem, and fail the check.",
+            "Print a warning for each propblem, but don't fail the check.",
+            "Print a note about the problem, but don't fail the check."
           ]
         }
       }
     },
-    "output": {
+    "Output": {
       "type": "object",
       "properties": {
         "feature-depth": {
@@ -366,23 +318,23 @@
       },
       "description": "The output table provides options for how/if diagnostics are outputted"
     },
-    "package-spec": {
+    "PackageSpec": {
       "type": "string",
       "description": "Many configuration options require a package specifier at a minimum, which we'll describe here.\nThe options that use package specifiers will be called out in their individual documentation.\nWe'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.\n\n### String format\n\nIf the particular only requires a package spec at a minimum, then the string format can be used,\nwhich comes in three forms.\n\n#### Simple\n\n```toml\n# Will match any version of the simple crate\ndeny = [\"simple\"]\n```\n\nThe simplest string is one which is just the crate name. In this case, the version requirement\nused when checking will be `*` meaning it will match against all versions of that crate in the graph.\n\n#### With Version Requirements\n\n```toml\n# Will match only these versions of the simple crate that match the predicate(s)\ndeny = [\"simple:<=0.1,>0.2\"]\n```\n\nIf you want to apply version requirements (predicates) to the crate, simply append them following\na `:` separator.\n\n#### Exact\n\n```toml\n# Will match only this exact version of the simple crate\ndeny = [\n    \"simple@0.1.0\",\n    # This is semantically equivalent to the above\n    \"simple:=0.1.0\",\n]\n```\n\nThe exact form is a specialization of the version requirements, where the semver after the `@`\nis transformed to be [= (Exact)](https://docs.rs/semver/latest/semver/enum.Op.html#opexact).\n\n### Table format\n\n#### Crate format\n\n```toml\ndeny = [\n    { crate = \"simple@0.1.0\" }, # equivalent to \"simple@0.1.0\"\n    { crate = \"simple\", wrappers = [\"example\"] },\n]\n```\n\nThe crate format is a replacement for the old `name` and/or `version` table format. It uses\nthe string format described above in a single `crate` key.\n\n#### Old format\n\n```toml\ndeny = [\n    { name = \"simple\" },\n    { name = \"simple\", version = \"*\" }\n    { name = \"simple\", wrappers = [\"example\"] }\n]\n```\n\nThe old format uses a required `name` key and an optional `version` key. This format is deprecated\nand should not be used.\n"
     },
-    "target": {
+    "Target": {
       "oneOf": [
         {
           "name": "String",
-          "$ref": "#/definitions/target-string"
+          "$ref": "#/definitions/TargetString"
         },
         {
           "name": "Advanced",
-          "$ref": "#/definitions/target-advanced"
+          "$ref": "#/definitions/TargetAdvanced"
         }
       ]
     },
-    "target-advanced": {
+    "TargetAdvanced": {
       "type": "object",
       "examples": [
         {
@@ -397,7 +349,7 @@
       ],
       "properties": {
         "triple": {
-          "$ref": "#/definitions/target-string"
+          "$ref": "#/definitions/TargetString"
         },
         "features": {
           "type": "string",
@@ -409,7 +361,7 @@
       ],
       "description": "Advanced configurations to apply for the target triple"
     },
-    "target-string": {
+    "TargetString": {
       "type": "string",
       "examples": [
         "x86_64-unknown-linux-gnu",
@@ -424,13 +376,13 @@
   "description": "Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html",
   "properties": {
     "advisories": {
-      "$ref": "#/definitions/advisories"
+      "$ref": "#/definitions/Advisories"
     },
     "graph": {
-      "$ref": "#/definitions/graph"
+      "$ref": "#/definitions/Graph"
     },
     "output": {
-      "$ref": "#/definitions/output"
+      "$ref": "#/definitions/Output"
     }
   },
   "title": "Configuration file for cargo-deny, by default called `deny.toml`.",

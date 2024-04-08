@@ -1,14 +1,16 @@
-# `graph` (optional)
+# `graph`
 
-`object`
+**Type:** `object`<br>
+**Required:** `no`
 
 The graph table configures how the dependency graph is constructed and thus which crates the
 checks are performed against
 
 
-## `graph.targets` (optional)
+## `graph.targets`
 
-`array`
+**Type:** `array`<br>
+**Required:** `no`
 
 By default, cargo-deny will consider every single crate that is resolved by cargo, including
 target specific dependencies e.g.
@@ -35,36 +37,37 @@ executed against.
 
 
 
-#### `graph.targets[N] (as String)` (as String)
+#### Variant: `String`
 
+**Type:** [`TargetString`](/checks2/type-index.html#targetstring) `(string)`
 
+#### Variant: `Advanced`
 
-#### `graph.targets[N] (as Advanced)` (as Advanced)
-
-`object`
+**Type:** `object`
 
 Advanced configurations to apply for the target triple
 
 ##### Examples
 
 - ```toml
-    [[graph.targets]]
-    triple = "aarch64-apple-darwin"
-    ```
-
+  [[graph.targets]]
+  triple = "aarch64-apple-darwin"
+  ```
 - ```toml
-    [[graph.targets]]
-    triple = "x86_64-pc-windows-msvc"
-    features = ["some-feature"]
-    ```
+  [[graph.targets]]
+  triple = "x86_64-pc-windows-msvc"
+  features = ["some-feature"]
+  ```
 
-##### `graph.targets[N] (as Advanced).triple` (required)
+##### `graph.targets[N] (as Advanced).triple`
 
+**Type:** [`TargetString`](/checks2/type-index.html#targetstring) `(string)`<br>
+**Required:** `yes`
 
+##### `graph.targets[N] (as Advanced).features`
 
-##### `graph.targets[N] (as Advanced).features` (optional)
-
-`string`
+**Type:** `string`<br>
+**Required:** `no`
 
 Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
 predicate, but at the moment, the only way to actually pass them when compiling is to use
@@ -74,9 +77,10 @@ this writing, cargo-deny does not attempt to validate that the features you spec
 actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
 
-## `graph.exclude` (optional)
+## `graph.exclude`
 
-`array`
+**Type:** `array<string>`<br>
+**Required:** `no`
 
 Just as with the [`--exclude`](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)
 command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html)
@@ -94,25 +98,24 @@ via the excluded crate, they will also be excluded from the crate graph.
 exclude = "some-crate@0.1.0"
 ```
 
-### Items
+## `graph.all-features`
 
-`string`
-
-## `graph.all-features` (optional)
-
-`boolean`
+**Type:** `boolean`<br>
+**Required:** `no`
 
 If set to `true`, `--all-features` will be used when collecting metadata.
 
-## `graph.no-default-features` (optional)
+## `graph.no-default-features`
 
-`boolean`
+**Type:** `boolean`<br>
+**Required:** `no`
 
 If set to `true`, `--no-default-features` will be used when collecting metadata.
 
-## `graph.features` (optional)
+## `graph.features`
 
-`array`
+**Type:** `array<string>`<br>
+**Required:** `no`
 
 If set, and `--features` is not specified on the cmd line, these features will be used when
 collecting metadata.
@@ -125,13 +128,10 @@ collecting metadata.
 features = "some-feature"
 ```
 
-### Items
+## `graph.exclude-dev`
 
-`string`
-
-## `graph.exclude-dev` (optional)
-
-`boolean`
+**Type:** `boolean`<br>
+**Required:** `no`
 
 If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included
 in the crate graph used for any of the checks. This option can also be enabled on cmd line

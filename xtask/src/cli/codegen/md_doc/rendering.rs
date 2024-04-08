@@ -1,5 +1,5 @@
-use super::{SchemaKey, Section, SectionData};
-use crate::cli::codegen::md_doc::SchemaKeySegment;
+use super::{Doc, SchemaKey, Section, SectionData, TypeInfo};
+use crate::cli::codegen::md_doc::{SchemaKeyOrigin, SchemaKeySegment};
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
@@ -19,6 +19,42 @@ pub(crate) struct RenderedSection {
     header: String,
     body: String,
     children: Vec<RenderedSection>,
+}
+
+impl Doc {
+    pub(crate) fn render(&self, cfg: &RenderingConfig) -> Vec<File> {
+        let root_sections = self.root.children.iter().map(|section| {
+            let key = &section.data.key;
+            let header = format!("The `[{key}]` section");
+            let body = format!("See [{key} config]({key}/cfg.html) for more info.");
+            RenderedSection::leaf(header, body)
+        });
+
+        let mut rendered = cfg.root_file_base.clone();
+        rendered.children.extend(root_sections);
+
+        let root = File::new("cfg.md", rendered);
+
+        let child_files = self.root.children.iter().map(|section| {
+            let rendered = section.render();
+
+            let key = &section.data.key;
+
+            File::new(format!("{key}/cfg.md"), rendered)
+        });
+
+        let type_index_sections = self.type_index.values().map(Section::render).collect();
+
+        let type_index = RenderedSection {
+            header: "Type Index".to_owned(),
+            body: "This is an index of common types used across the schema.".to_owned(),
+            children: type_index_sections,
+        };
+
+        let type_index = File::new("type-index.md", type_index);
+
+        itertools::chain([root, type_index], child_files).collect()
+    }
 }
 
 impl RenderedSection {
@@ -46,48 +82,8 @@ impl RenderedSection {
     }
 }
 
-impl super::Doc {
-    pub(crate) fn render(&self, cfg: &RenderingConfig) -> Vec<File> {
-        let root_sections = self.root.children.iter().map(|section| {
-            let key = &section.data.key;
-            let header = format!("The `[{key}]` section");
-            let body = format!("See [{key} config]({key}/cfg.html) for more info.");
-            RenderedSection::leaf(header, body)
-        });
-
-        let mut rendered = cfg.root_file_base.clone();
-        rendered.children.extend(root_sections);
-
-        let root = File::new("cfg.md", rendered);
-
-        let child_files = self.root.children.iter().map(|section| {
-            let rendered = section.render();
-
-            let key = &section.data.key;
-
-            File::new(format!("{key}/cfg.md"), rendered)
-        });
-
-        itertools::chain([root], child_files).collect()
-    }
-}
-
 impl Section {
     fn render(&self) -> RenderedSection {
-        // let properties = gen_object_doc(root, 1, section, section.inner.try_as_object()?)?;
-
-        // let section_key = &section.key.last().unwrap();
-
-        //         let content = format!(
-        //             "\
-        // # The `[{section_key}]` section
-
-        // {properties}
-        // ",
-        //         );
-
-        //         write_file(format!("{section_key}/cfg.md"), &content)
-
         let children = [
             self.data.enum_doc(),
             self.data.default(),
@@ -104,14 +100,6 @@ impl Section {
 
         let header = self.data.header();
 
-        // if items.inner.is_primitive() && gen_generic_details(&items, paragraph_level)?.is_empty() {
-        //     let ty = primitive_type_label(&items)?;
-        //     return Ok(format!(
-        //         "`array of {ty}`\n\n\
-        //         {array_details}"
-        //     ));
-        // }
-
         RenderedSection {
             header,
             body: self.data.render_body(),
@@ -122,31 +110,82 @@ impl Section {
 
 impl SectionData {
     fn header(&self) -> String {
-        let suffix = match self.key.last_segment() {
-            SchemaKeySegment::Field(field) => {
-                let requirement = match field.required {
-                    true => "required",
-                    false => "optional",
-                };
-                format!("({requirement})")
-            }
-            SchemaKeySegment::Index => return "Items".to_owned(),
-            SchemaKeySegment::Variant(variant_name) => format!("(as {variant_name})"),
-        };
+        if let SchemaKeyOrigin::Definition(def) = &self.key.root {
+            return format!("`{def}`");
+        }
+        let last_segment = self.key.segments.last().unwrap_or_else(|| {
+            panic!(
+                "Last segment must always be present in a key with the origin \
+                 in root schema, but got empty key segments list: {:#?}",
+                self.key
+            )
+        });
 
-        let prefix = &self.key;
-
-        format!("`{prefix}` {suffix}")
+        match last_segment {
+            SchemaKeySegment::Field(_) => format!("`{}`", self.key),
+            SchemaKeySegment::Index => "Items".to_owned(),
+            SchemaKeySegment::Variant(variant_name) => format!("Variant: `{variant_name}`"),
+        }
     }
 
     fn render_body(&self) -> String {
-        let type_label = self.type_label().map(|label| format!("`{label}`"));
+        let top = [&self.type_info(), &self.format(), &self.field_requirement()];
 
-        let parts = [&type_label, &self.title, &self.description];
+        let top = top.into_iter().flatten().join("<br>\n");
+
+        let parts = [&Some(top), &self.title, &self.description];
 
         let body = parts.into_iter().flatten().join("\n\n");
 
         body
+    }
+
+    fn field_requirement(&self) -> Option<String> {
+        let SchemaKeySegment::Field(field) = self.key.segments.last()? else {
+            return None;
+        };
+
+        let requirement = match field.required {
+            true => "yes",
+            false => "no",
+        };
+        Some(format!("**Required:** `{requirement}`"))
+    }
+
+    fn format(&self) -> Option<String> {
+        let format = self
+            .format
+            .as_ref()
+            .or_else(|| self.type_index_ref.as_ref()?.format.as_ref())?;
+
+        Some(format!("**Format:** `{format}`"))
+    }
+
+    fn type_info(&self) -> Option<String> {
+        let ty_ref = self.type_index_ref.as_ref().map(|ty_ref| {
+            let definition = &ty_ref.definition;
+            let anchor = definition.to_lowercase();
+            format!("[`{definition}`](/checks2/type-index.html#{anchor})")
+        });
+
+        let ty = self
+            .ty
+            .as_ref()
+            .or_else(|| self.type_index_ref.as_ref()?.ty.as_ref());
+
+        let ty = if ty_ref.is_some() {
+            ty.map(|ty| format!("`({ty})`"))
+        } else {
+            ty.map(|ty| format!("`{ty}`"))
+        };
+
+        let parts = [ty_ref, ty].iter().flatten().join(" ");
+
+        if parts.is_empty() {
+            return None;
+        }
+
+        Some(format!("**Type:** {parts}"))
     }
 
     fn default(&self) -> Option<RenderedSection> {
@@ -158,16 +197,6 @@ impl SectionData {
     fn value_showcase(&self, header: &str, value: &Value) -> RenderedSection {
         let toml = self.key.render_value(value);
         RenderedSection::leaf(header, toml)
-    }
-
-    fn type_label(&self) -> Option<String> {
-        let ty = self.ty.as_deref()?;
-
-        let format = self.format.as_deref().map(|format| format!("({format})"));
-
-        let label = itertools::chain([ty], format.as_deref()).join(" ");
-
-        Some(label)
     }
 
     fn examples(&self) -> Option<RenderedSection> {
@@ -191,13 +220,13 @@ impl SectionData {
                         if i == 0 {
                             f(&line)
                         } else {
-                            f(&format_args!("    {}", line))
+                            f(&format_args!("  {line}"))
                         }
                     });
 
                 format!("- {example}")
             })
-            .join("\n\n");
+            .join("\n");
 
         Some(RenderedSection::leaf("Examples", examples))
     }
@@ -209,9 +238,10 @@ impl SectionData {
             .iter()
             .map(|enum_variant| {
                 let (value, description) = enum_variant.value_and_description();
-                let value = value.to_string();
-                let doc = itertools::chain([value.as_str()], description).join("-");
-                doc
+                let value = format!("`{value}`");
+                let doc = itertools::chain([value.as_str()], description).format(" - ");
+
+                format!("- {doc}")
             })
             .join("\n\n");
 
@@ -239,7 +269,15 @@ impl SchemaKey {
             }
         }
 
-        let value = wrap(&self.segments, value.clone());
+        let mut value = wrap(&self.segments, value.clone());
+
+        let is_primitive = !value.is_object() && !value.is_array();
+
+        // TOML doesn't support primitive values at the top level, so we use
+        // a hack to wrap it into an object
+        if is_primitive {
+            value = json!({ "value": value });
+        }
 
         let toml = toml::to_string_pretty(&value).unwrap_or_else(|err| {
             panic!(
@@ -267,9 +305,9 @@ impl File {
     pub(crate) fn write(&self, prefix: impl AsRef<Utf8Path>) -> Result<()> {
         let path = prefix.as_ref().join(&self.path);
 
-        std::fs::create_dir_all(&path.parent().unwrap())?;
+        std::fs::create_dir_all(path.parent().unwrap())?;
 
-        std::fs::write(&path, &self.rendered.to_markdown(1))
+        std::fs::write(&path, self.rendered.to_markdown(1))
             .with_context(|| format!("Failed to write to file: {path}"))
     }
 }

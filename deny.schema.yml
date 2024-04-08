@@ -35,12 +35,12 @@ description: Full documentation is at https://embarkstudios.github.io/cargo-deny
 
 type: object
 properties:
-  advisories: { $ref: "#/definitions/advisories" }
-  graph: { $ref: "#/definitions/graph" }
-  output: { $ref: "#/definitions/output" }
+  advisories: { $ref: "#/definitions/Advisories" }
+  graph: { $ref: "#/definitions/Graph" }
+  output: { $ref: "#/definitions/Output" }
 
 definitions:
-  advisories:
+  Advisories:
     examples:
       - db-path: ~/.cargo/advisory-dbs
         db-urls: [https://github.com/RustSec/advisory-db]
@@ -110,7 +110,7 @@ definitions:
 
       vulnerability:
         deprecated: true
-        $ref: "#/definitions/lint-level"
+        $ref: "#/definitions/LintLevel"
         default: deny
         description: |
           **DEPRECATED** (see `version` field)
@@ -119,7 +119,7 @@ definitions:
 
       unmaintained:
         deprecated: true
-        $ref: "#/definitions/lint-level"
+        $ref: "#/definitions/LintLevel"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -128,7 +128,7 @@ definitions:
 
       unsound:
         deprecated: true
-        $ref: "#/definitions/lint-level"
+        $ref: "#/definitions/LintLevel"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -137,7 +137,7 @@ definitions:
 
       notice:
         deprecated: true
-        $ref: "#/definitions/lint-level"
+        $ref: "#/definitions/LintLevel"
         default: warn
         description: |
           **DEPRECATED** (see `version` field)
@@ -148,7 +148,7 @@ definitions:
           [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
       yanked:
-        $ref: "#/definitions/lint-level"
+        $ref: "#/definitions/LintLevel"
         default: warn
         description: |
           Determines what happens when a crate with a version that has been yanked from its source
@@ -156,7 +156,7 @@ definitions:
 
       ignore:
         type: array
-        items: { $ref: "#/definitions/advisories-ignore-item" }
+        items: { $ref: "#/definitions/AdvisoriesIgnoreItem" }
         examples:
           - - RUSTSEC-0000-0000
             - id: "RUSTSEC-0000-0000"
@@ -173,19 +173,19 @@ definitions:
           In addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
           with an optional `reason`.
 
-  advisories-ignore-item:
+  AdvisoriesIgnoreItem:
     oneOf:
       - name: String
         type: string
         description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
       - name: Advisory
-        $ref: "#/definitions/advisories-ignore-advisory"
+        $ref: "#/definitions/AdvisoriesIgnoreAdvisory"
 
       - name: Yanked
-        $ref: "#/definitions/advisories-ignore-yanked"
+        $ref: "#/definitions/AdvisoriesIgnoreYanked"
 
-  advisories-ignore-advisory:
+  AdvisoriesIgnoreAdvisory:
     type: object
     required: [id]
     properties:
@@ -193,20 +193,21 @@ definitions:
         type: string
         examples: [RUSTSEC-2019-0001]
         description: The unique identifier of the advisory to ignore
-      reason: { $ref: "#/definitions/ignore-reason" }
+      reason: { $ref: "#/definitions/IgnoreReason" }
 
-  advisories-ignore-yanked:
+  AdvisoriesIgnoreYanked:
     type: object
     required: [crate]
     properties:
-      crate: { $ref: "#/definitions/package-spec" }
-      reason: { $ref: "#/definitions/ignore-reason" }
+      crate: { $ref: "#/definitions/PackageSpec" }
+      reason: { $ref: "#/definitions/IgnoreReason" }
 
-  ignore-reason:
+  IgnoreReason:
     type: string
     description: Free-form string that can be used to describe the reason why the advisory is ignored.
 
-  lint-level:
+  LintLevel:
+    type: string
     enum:
       - value: deny
         description: Emit an error with details about the problem, and fail the check.
@@ -215,14 +216,7 @@ definitions:
       - value: allow
         description: Print a note about the problem, but don't fail the check.
 
-    # x-taplo:
-    #   docs:
-    #     enumValues:
-    #       -
-    #       -
-    #       -
-
-  package-spec:
+  PackageSpec:
     type: string
     description: |
       Many configuration options require a package specifier at a minimum, which we'll describe here.
@@ -295,7 +289,7 @@ definitions:
       The old format uses a required `name` key and an optional `version` key. This format is deprecated
       and should not be used.
 
-  graph:
+  Graph:
     description: |
       The graph table configures how the dependency graph is constructed and thus which crates the
       checks are performed against
@@ -304,7 +298,7 @@ definitions:
     properties:
       targets:
         type: array
-        items: { $ref: "#/definitions/target" }
+        items: { $ref: "#/definitions/Target" }
         description: |
           By default, cargo-deny will consider every single crate that is resolved by cargo, including
           target specific dependencies e.g.
@@ -364,20 +358,20 @@ definitions:
           or [after](https://embarkstudios.github.io/cargo-deny/cli/check.html#--exclude-dev)
           the `check` subcommand.
 
-  target:
+  Target:
     oneOf:
       - name: String
-        $ref: "#/definitions/target-string"
+        $ref: "#/definitions/TargetString"
 
       - name: Advanced
-        $ref: "#/definitions/target-advanced"
+        $ref: "#/definitions/TargetAdvanced"
 
-  target-advanced:
+  TargetAdvanced:
     description: Advanced configurations to apply for the target triple
     type: object
     required: [triple]
     properties:
-      triple: { $ref: "#/definitions/target-string" }
+      triple: { $ref: "#/definitions/TargetString" }
       features:
         type: string
         description: |
@@ -392,7 +386,7 @@ definitions:
       - { triple: aarch64-apple-darwin }
       - { triple: x86_64-pc-windows-msvc, features: [some-feature] }
 
-  target-string:
+  TargetString:
     type: string
     examples:
       - x86_64-unknown-linux-gnu
@@ -406,7 +400,7 @@ definitions:
       to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()`
       expressions require us to know the details about the target.
 
-  output:
+  Output:
     description: The output table provides options for how/if diagnostics are outputted
     type: object
     properties:

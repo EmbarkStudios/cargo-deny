@@ -1,6 +1,7 @@
-# `advisories` (optional)
+# `advisories`
 
-`object`
+**Type:** `object`<br>
+**Required:** `no`
 
 Checks advisory databases for crates with security vulnerabilities,
 or that have been marked as Unmaintained, or which have been yanked from
@@ -28,9 +29,10 @@ ignore = [
 severity-threshold = "medium"
 ```
 
-## `advisories.db-urls` (optional)
+## `advisories.db-urls`
 
-`array`
+**Type:** `array`<br>
+**Required:** `no`
 
 URLs to one or more advisory databases.
 
@@ -43,11 +45,13 @@ db-urls = ["https://github.com/RustSec/advisory-db"]
 
 ### Items
 
-`string (uri)`
+**Type:** `string`<br>
+**Format:** `uri`
 
-## `advisories.db-path` (optional)
+## `advisories.db-path`
 
-`string`
+**Type:** `string`<br>
+**Required:** `no`
 
 Path to the root directory into which one or more advisory databases are cloned into.
 
@@ -71,9 +75,10 @@ Note that the path must be valid utf-8, after expansion.
 db-path = "$CARGO_HOME/advisory-dbs"
 ```
 
-## `advisories.version` (optional)
+## `advisories.version`
 
-`integer`
+**Type:** `integer`<br>
+**Required:** `no`
 
 The advisories section has an upcoming breaking change, with deprecation warnings for several
 fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
@@ -91,9 +96,12 @@ As before, if you want to ignore a specific advisory, add it to the `ignore` fie
 
 ### Possible values
 
-2
+- `2`
 
-## `advisories.vulnerability` (optional)
+## `advisories.vulnerability`
+
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Required:** `no`
 
 **DEPRECATED** (see `version` field)
 
@@ -107,7 +115,10 @@ Determines what happens when a crate with a security vulnerability is encountere
 vulnerability = "deny"
 ```
 
-## `advisories.unmaintained` (optional)
+## `advisories.unmaintained`
+
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Required:** `no`
 
 **DEPRECATED** (see `version` field)
 
@@ -121,7 +132,10 @@ Determines what happens when a crate with an `unmaintained` advisory is encounte
 unmaintained = "warn"
 ```
 
-## `advisories.unsound` (optional)
+## `advisories.unsound`
+
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Required:** `no`
 
 **DEPRECATED** (see `version` field)
 
@@ -135,7 +149,10 @@ Determines what happens when a crate with an `unsound` advisory is encountered.
 unsound = "warn"
 ```
 
-## `advisories.notice` (optional)
+## `advisories.notice`
+
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Required:** `no`
 
 **DEPRECATED** (see `version` field)
 
@@ -152,7 +169,10 @@ Determines what happens when a crate with a `notice` advisory is encountered.
 notice = "warn"
 ```
 
-## `advisories.yanked` (optional)
+## `advisories.yanked`
+
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Required:** `no`
 
 Determines what happens when a crate with a version that has been yanked from its source
 registry is encountered.
@@ -165,9 +185,10 @@ registry is encountered.
 yanked = "warn"
 ```
 
-## `advisories.ignore` (optional)
+## `advisories.ignore`
 
-`array`
+**Type:** `array`<br>
+**Required:** `no`
 
 Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
 Putting an identifier in this array will cause the advisory to be treated as a note, rather
@@ -193,19 +214,20 @@ ignore = [
 
 
 
-#### `advisories.ignore[N] (as String)` (as String)
+#### Variant: `String`
 
-`string`
+**Type:** `string`
 
 Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
-#### `advisories.ignore[N] (as Advisory)` (as Advisory)
+#### Variant: `Advisory`
 
-`object`
+**Type:** `object`
 
-##### `advisories.ignore[N] (as Advisory).id` (required)
+##### `advisories.ignore[N] (as Advisory).id`
 
-`string`
+**Type:** `string`<br>
+**Required:** `yes`
 
 The unique identifier of the advisory to ignore
 
@@ -216,17 +238,19 @@ The unique identifier of the advisory to ignore
 ignore = ["RUSTSEC-2019-0001"]
 ```
 
-##### `advisories.ignore[N] (as Advisory).reason` (optional)
+##### `advisories.ignore[N] (as Advisory).reason`
 
+**Type:** [`IgnoreReason`](/checks2/type-index.html#ignorereason) `(string)`<br>
+**Required:** `no`
 
+#### Variant: `Yanked`
 
-#### `advisories.ignore[N] (as Yanked)` (as Yanked)
+**Type:** `object`
 
-`object`
+##### `advisories.ignore[N] (as Yanked).crate`
 
-##### `advisories.ignore[N] (as Yanked).crate` (required)
-
-`string`
+**Type:** `string`<br>
+**Required:** `yes`
 
 Many configuration options require a package specifier at a minimum, which we'll describe here.
 The options that use package specifiers will be called out in their individual documentation.
@@ -299,5 +323,7 @@ The old format uses a required `name` key and an optional `version` key. This fo
 and should not be used.
 
 
-##### `advisories.ignore[N] (as Yanked).reason` (optional)
+##### `advisories.ignore[N] (as Yanked).reason`
 
+**Type:** [`IgnoreReason`](/checks2/type-index.html#ignorereason) `(string)`<br>
+**Required:** `no`

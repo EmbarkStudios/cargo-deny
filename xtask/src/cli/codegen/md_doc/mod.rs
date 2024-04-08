@@ -20,10 +20,23 @@ struct SectionData {
     description: Option<String>,
     default: Option<Value>,
     examples: Vec<Value>,
-    format: Option<String>,
-    ty: Option<String>,
     enum_schema: Option<Vec<EnumVariantSchema>>,
-    type_index_ref: Option<String>,
+    ty: Option<String>,
+    format: Option<String>,
+    type_index_ref: Option<TypeIndexRef>,
+}
+
+#[derive(Debug)]
+struct TypeIndexRef {
+    definition: String,
+    ty: Option<String>,
+    format: Option<String>,
+}
+
+#[derive(Debug)]
+struct TypeInfo {
+    inner: Option<String>,
+    format: Option<String>,
 }
 
 #[derive(Debug)]
@@ -45,12 +58,12 @@ struct KeyedSchema {
 
 #[derive(Clone, Debug)]
 struct SchemaKey {
-    root: SchemaRoot,
+    root: SchemaKeyOrigin,
     segments: Vec<SchemaKeySegment>,
 }
 
 #[derive(Clone, Debug)]
-enum SchemaRoot {
+enum SchemaKeyOrigin {
     Root,
     Definition(String),
 }
@@ -116,7 +129,7 @@ impl Doc {
 impl RootContext<'_> {
     fn root_section(&self) -> Result<Section> {
         let key = SchemaKey {
-            root: SchemaRoot::Root,
+            root: SchemaKeyOrigin::Root,
             segments: vec![],
         };
         let root_schema = KeyedSchema::new(key, self.root.schema.clone());
@@ -131,7 +144,7 @@ impl RootContext<'_> {
             .iter()
             .map(|(def_name, &schema)| {
                 let key = SchemaKey {
-                    root: SchemaRoot::Definition(def_name.clone()),
+                    root: SchemaKeyOrigin::Definition(def_name.clone()),
                     segments: vec![],
                 };
                 let schema = KeyedSchema::new(key, schema.clone());
@@ -177,6 +190,12 @@ impl RootContext<'_> {
 
     fn array_children(schema: KeyedSchema) -> Result<Vec<KeyedSchema>> {
         let array = schema.inner.try_into_array()?;
+
+        // Avoid adding useless documentation for item
+        if array.items.is_undocumented_primitive() {
+            return Ok(vec![]);
+        }
+
         let key = schema.key.next_level(SchemaKeySegment::Index);
         let items = KeyedSchema::new(key, *array.items);
         Ok(vec![items])
@@ -232,11 +251,35 @@ impl RootContext<'_> {
     }
 
     fn section_data(&self, schema: KeyedSchema) -> Result<SectionData> {
-        let type_index_ref = schema
+        let type_index_ref = schema.inner.referenced_definition()?.and_then(|def_name| {
+            let schema = self.type_index.get(def_name)?;
+            Some(TypeIndexRef {
+                definition: def_name.to_owned(),
+                ty: schema.ty.clone(),
+                format: schema.format.clone(),
+            })
+        });
+
+        let ty = schema
             .inner
-            .referenced_definition()?
-            .filter(|&def_name| self.type_index.contains_key(def_name))
-            .map(ToOwned::to_owned);
+            .array_schema
+            .as_ref()
+            .map(|array_schema| {
+                let suffix = array_schema
+                    .items
+                    .is_undocumented_primitive()
+                    .then(|| {
+                        array_schema
+                            .items
+                            .ty
+                            .as_ref()
+                            .map(|item_ty| format!("<{item_ty}>"))
+                    })
+                    .flatten();
+
+                itertools::chain(["array"], suffix.as_deref()).collect()
+            })
+            .or(schema.inner.ty);
 
         let base = SectionData {
             key: schema.key,
@@ -244,8 +287,8 @@ impl RootContext<'_> {
             description: schema.inner.description,
             default: schema.inner.default,
             examples: schema.inner.examples,
+            ty,
             format: schema.inner.format,
-            ty: schema.inner.ty,
             enum_schema: schema.inner.enum_schema,
             type_index_ref,
         };
@@ -281,10 +324,6 @@ impl SchemaKey {
             root: self.root.clone(),
             segments,
         }
-    }
-
-    fn last_segment(&self) -> &SchemaKeySegment {
-        self.segments.last().unwrap()
     }
 }
 
@@ -327,7 +366,7 @@ The top level config for cargo-deny, by default called `deny.toml`.
 ## Example - cargo-deny's own configuration
 
 ```ini
-{{{{#include ../../../deny.toml}}}}
+{{#include ../../../deny.toml}}
 ```";
 
     let cfg = RenderingConfig {
@@ -336,9 +375,7 @@ The top level config for cargo-deny, by default called `deny.toml`.
 
     let files = Doc::from_root_schema(root)?.render(&cfg);
 
-    for file in files {
-        file.write(out_dir)?;
-    }
+    files.iter().try_for_each(|file| file.write(out_dir))?;
 
     Ok(())
 }

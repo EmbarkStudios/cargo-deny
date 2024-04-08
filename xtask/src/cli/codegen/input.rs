@@ -66,19 +66,20 @@ pub(crate) struct Schema {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub(crate) enum EnumVariantSchema {
-    Undocumented(Value),
     Documented(DocumentedEnumSchema),
+    Undocumented(Value),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct DocumentedEnumSchema {
-    #[serde(flatten)]
-    pub(crate) value: CustomEnumValue,
-
     pub(crate) description: String,
+
+    #[serde(flatten)]
+    value: CustomEnumValue,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 enum CustomEnumValue {
     Named { value: Value, name: String },
     Inferred { value: String },
@@ -252,6 +253,28 @@ impl Schema {
         })?;
 
         Ok(Some(reference))
+    }
+
+    pub(crate) fn is_undocumented_primitive(&self) -> bool {
+        matches!(
+            self,
+            Self {
+                ty: _,
+                format: None,
+                deprecated: false,
+                examples,
+                object_schema: None,
+                array_schema: None,
+                enum_schema: None,
+                one_of: None,
+                title: None,
+                description: None,
+                reference: None,
+                default: None,
+                x_taplo: None,
+            }
+            if examples.is_empty()
+        )
     }
 }
 
