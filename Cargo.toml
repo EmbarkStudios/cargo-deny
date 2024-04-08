@@ -1,3 +1,6 @@
+[workspace]
+members = ["xtask"]
+
 [package]
 name = "cargo-deny"
 description = "Cargo plugin to help you manage large dependency graphs"
@@ -20,9 +23,11 @@ rust-version = "1.70.0"
 [badges]
 maintenance = { status = "actively-developed" }
 
+
 [[bin]]
 name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
+
 
 [features]
 default = ["reqwest/rustls-tls-webpki-roots", "tame-index/default"]

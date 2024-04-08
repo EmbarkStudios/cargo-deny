@@ -1,0 +1,432 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema#
+
+# Welcome to the JSON Schema for the `deny.toml` configuration file 🥰.
+# This file is used to provide IDE completions and documentation for it.
+# It is maintained by hand, and seves as the source of truth for the JSON schema.
+#
+# The schema is written in YAML since it permits comments, multi-line strings
+# and generally is easier to write by humans directly. We convert it to JSON
+# after edits and check the generated JSON file into the source control.
+# CI validates for the freshness of the JSON version of this file.
+#
+# The schema uses 'draft-07' dialect of the JSON schema since this is the version
+# that is supported by the YAML LSP in VSCode at least. There are newer versions
+# of the JSON schema spec, and we use some of the features of the newer specs,
+# but our goal is to be ultimately compatible with the 'draft-04' version of the
+# spec, which is supported by "Even Better TOML" VSCode extension (taplo):
+# https://taplo.tamasfe.dev/configuration/developing-schemas.html. This is likely
+# the extension people use when authoring `deny.toml` config files in VSCode.
+#
+# For example, the `deprecated` property is available only since '2020-12' version
+# of the spec. It isn't available in the 'draft-04' and 'draft-07' versions, but we
+# still use it since extra properties don't break compatibility and there may
+# be other TOML LSPs that support newer versions of the JSON schema spec or
+# existing ones may be updated to support newer versions
+#
+# We also use some custom extensions by different TOML LSPs, such as `x-taplo`
+# to provide better documentation.
+
+$schema: https://json-schema.org/draft-07/schema#
+
+$id: https://github.com/EmbarkStudios/cargo-deny/deny.schema.json
+
+title: Configuration file for cargo-deny, by default called `deny.toml`.
+description: Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html
+
+type: object
+properties:
+  advisories: { $ref: "#/definitions/Advisories" }
+  bans: { $ref: "#/definitions/Bans" }
+  graph: { $ref: "#/definitions/Graph" }
+  output: { $ref: "#/definitions/Output" }
+
+definitions:
+  Advisories:
+    examples:
+      - db-path: ~/.cargo/advisory-dbs
+        db-urls: [https://github.com/RustSec/advisory-db]
+        vulnerability: deny
+        unmaintained: warn
+        unsound: warn
+        yanked: warn
+        notice: warn
+        ignore:
+          - RUSTSEC-0000-0000
+          - crate@0.1
+          - { crate: yanked, reason: a new version has not been released }
+        severity-threshold: medium
+
+    title: |
+      Checks advisory databases for crates with security vulnerabilities,
+      or that have been marked as Unmaintained, or which have been yanked from
+      their source registry.
+
+      This section is considered when running `cargo deny check advisories`.
+
+    type: object
+    properties:
+      db-urls:
+        type: array
+        items: { type: string, format: uri }
+        default: [https://github.com/RustSec/advisory-db]
+        description: URLs to one or more advisory databases.
+
+      db-path:
+        type: string
+        default: $CARGO_HOME/advisory-dbs
+        description: |
+          Path to the root directory into which one or more advisory databases are cloned into.
+
+          This value supports basic shell expansion:
+
+          - `~` - Expands to [`home::home_dir`](https://docs.rs/home/latest/home/fn.home_dir.html)
+          - `$VARNAME` - Expands to [`std::env::var("VARNAME")`](https://doc.rust-lang.org/std/env/fn.var.html)
+          - `${VARNAME}` - Expands to [`std::env::var("VARNAME")`](https://doc.rust-lang.org/std/env/fn.var.html)
+          - `${VARNAME:-fallback}` - Expands to [`std::env::var("VARNAME")`](https://doc.rust-lang.org/std/env/fn.var.html)
+            or the fallback value if it doesn't exist (everything between the `:-` and `}`)
+          - `$CARGO_HOME` - Expands to [`std::env::var("CARGO_HOME")`](https://doc.rust-lang.org/std/env/fn.var.html)
+            if it exists, otherwise expands to `$(home::home_dir())/.cargo`
+
+          Note that the path must be valid utf-8, after expansion.
+
+      version:
+        type: integer
+        enum: [2]
+
+        description: |
+          The advisories section has an upcoming breaking change, with deprecation warnings for several
+          fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
+
+          The breaking change is as follows:
+
+          - `vulnerability` - Removed, all vulnerability advisories now emit errors.
+          - `unmaintained` - Removed, all unmaintained advisories now emit errors.
+          - `unsound` - Removed, all unsound advisories now emit errors.
+          - `notice` - Removed, all notice advisories now emit errors.
+          - `severity-threshold` - Removed, all vulnerability advisories now emit errors.
+
+          As before, if you want to ignore a specific advisory, add it to the `ignore` field.
+
+      vulnerability:
+        deprecated: true
+        $ref: "#/definitions/LintLevel"
+        default: deny
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with a security vulnerability is encountered.
+
+      unmaintained:
+        deprecated: true
+        $ref: "#/definitions/LintLevel"
+        default: warn
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with an `unmaintained` advisory is encountered.
+
+      unsound:
+        deprecated: true
+        $ref: "#/definitions/LintLevel"
+        default: warn
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with an `unsound` advisory is encountered.
+
+      notice:
+        deprecated: true
+        $ref: "#/definitions/LintLevel"
+        default: warn
+        description: |
+          **DEPRECATED** (see `version` field)
+
+          Determines what happens when a crate with a `notice` advisory is encountered.
+
+          **NOTE**: As of 2019-12-17 there are no `notice` advisories in the
+          [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
+
+      yanked:
+        $ref: "#/definitions/LintLevel"
+        default: warn
+        description: |
+          Determines what happens when a crate with a version that has been yanked from its source
+          registry is encountered.
+
+      ignore:
+        type: array
+        items: { $ref: "#/definitions/AdvisoriesIgnoreItem" }
+        examples:
+          - - RUSTSEC-0000-0000
+            - id: "RUSTSEC-0000-0000"
+              reason: this vulnerability does not affect us as we don't use the particular code path
+            - yanked@0.1.1
+            - crate: yanked-crate@0.1.1
+              reason: a semver compatible version hasn't been published yet
+
+        description: |
+          Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.
+          Putting an identifier in this array will cause the advisory to be treated as a note, rather
+          than a warning or error.
+
+          In addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
+          with an optional `reason`.
+
+  AdvisoriesIgnoreItem:
+    oneOf:
+      - name: String
+        type: string
+        description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
+
+      - name: Advisory
+        $ref: "#/definitions/AdvisoriesIgnoreAdvisory"
+
+      - name: Yanked
+        $ref: "#/definitions/AdvisoriesIgnoreYanked"
+
+  AdvisoriesIgnoreAdvisory:
+    type: object
+    required: [id]
+    properties:
+      id:
+        type: string
+        examples: [RUSTSEC-2019-0001]
+        description: The unique identifier of the advisory to ignore
+      reason: { $ref: "#/definitions/IgnoreReason" }
+
+  AdvisoriesIgnoreYanked:
+    type: object
+    required: [crate]
+    properties:
+      crate: { $ref: "#/definitions/PackageSpec" }
+      reason: { $ref: "#/definitions/IgnoreReason" }
+
+  IgnoreReason:
+    type: string
+    description: Free-form string that can be used to describe the reason why the advisory is ignored.
+
+  LintLevel:
+    type: string
+    enum:
+      - value: deny
+        description: Emit an error with details about the problem, and fail the check.
+      - value: warn
+        description: Print a warning for each propblem, but don't fail the check.
+      - value: allow
+        description: Print a note about the problem, but don't fail the check.
+
+  PackageSpec:
+    type: string
+    description: |
+      Many configuration options require a package specifier at a minimum, which we'll describe here.
+      The options that use package specifiers will be called out in their individual documentation.
+      We'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.
+
+      ### String format
+
+      If the particular only requires a package spec at a minimum, then the string format can be used,
+      which comes in three forms.
+
+      #### Simple
+
+      ```toml
+      # Will match any version of the simple crate
+      deny = ["simple"]
+      ```
+
+      The simplest string is one which is just the crate name. In this case, the version requirement
+      used when checking will be `*` meaning it will match against all versions of that crate in the graph.
+
+      #### With Version Requirements
+
+      ```toml
+      # Will match only these versions of the simple crate that match the predicate(s)
+      deny = ["simple:<=0.1,>0.2"]
+      ```
+
+      If you want to apply version requirements (predicates) to the crate, simply append them following
+      a `:` separator.
+
+      #### Exact
+
+      ```toml
+      # Will match only this exact version of the simple crate
+      deny = [
+          "simple@0.1.0",
+          # This is semantically equivalent to the above
+          "simple:=0.1.0",
+      ]
+      ```
+
+      The exact form is a specialization of the version requirements, where the semver after the `@`
+      is transformed to be [= (Exact)](https://docs.rs/semver/latest/semver/enum.Op.html#opexact).
+
+      ### Table format
+
+      #### Crate format
+
+      ```toml
+      deny = [
+          { crate = "simple@0.1.0" }, # equivalent to "simple@0.1.0"
+          { crate = "simple", wrappers = ["example"] },
+      ]
+      ```
+
+      The crate format is a replacement for the old `name` and/or `version` table format. It uses
+      the string format described above in a single `crate` key.
+
+      #### Old format
+
+      ```toml
+      deny = [
+          { name = "simple" },
+          { name = "simple", version = "*" }
+          { name = "simple", wrappers = ["example"] }
+      ]
+      ```
+
+      The old format uses a required `name` key and an optional `version` key. This format is deprecated
+      and should not be used.
+
+  Bans:
+    title: |
+      Checks for specific crates in your graph, as well as duplicates.
+
+      This section is considered when running `cargo deny check bans`.
+
+    type: object
+    properties:
+      allow: { $ref: "#/definitions/BansAllow" }
+
+  BansAllow:
+    type: array
+    items: { $ref: "#/definitions/PackageSpec" }
+    description: |
+      Determines specific crates that are allowed. If the `allow` list has one or more entries, then
+      any crate not in that list will be denied, so use with care. Each entry uses the same
+      [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)
+      as other parts of cargo-deny's configuration.
+
+  Graph:
+    title: |
+      The graph table configures how the dependency graph is constructed and thus which crates the
+      checks are performed against
+
+    type: object
+    properties:
+      targets:
+        type: array
+        items: { $ref: "#/definitions/Target" }
+        description: |
+          By default, cargo-deny will consider every single crate that is resolved by cargo, including
+          target specific dependencies e.g.
+
+          ```toml
+          [target.x86_64-pc-windows-msvc.dependencies]
+          winapi = "0.3.8"
+
+          [target.'cfg(target_os = "fuchsia")'.dependencies]
+          fuchsia-cprng = "0.1.1"
+          ```
+
+          But unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is
+          never actually going to be compiled or linked into your project, so checking it is pointless for you.
+
+          The `targets` field allows you to specify one or more targets which you **actually** build for.
+          Every dependency link to a crate is checked against this list, and if none of the listed targets
+          satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links
+          to it, it is not included into the crate graph that the checks are
+          executed against.
+
+      exclude:
+        type: array
+        items: { type: string }
+        description: |
+          Just as with the [`--exclude`](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)
+          command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html)
+          that will cause the crate(s) in question to be excluded from the crate graph that is used
+          for the operation you are performing.
+
+          Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced
+          via the excluded crate, they will also be excluded from the crate graph.
+        examples: [some-crate@0.1.0]
+
+      all-features:
+        type: boolean
+        description: If set to `true`, `--all-features` will be used when collecting metadata.
+
+      no-default-features:
+        type: boolean
+        description: If set to `true`, `--no-default-features` will be used when collecting metadata.
+
+      features:
+        type: array
+        items: { type: string }
+        description: |
+          If set, and `--features` is not specified on the cmd line, these features will be used when
+          collecting metadata.
+        examples: [some-feature]
+
+      exclude-dev:
+        type: boolean
+        description: |
+          If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included
+          in the crate graph used for any of the checks. This option can also be enabled on cmd line
+          with `--exclude-dev` either [before](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)
+          or [after](https://embarkstudios.github.io/cargo-deny/cli/check.html#--exclude-dev)
+          the `check` subcommand.
+
+  Target:
+    oneOf:
+      - name: String
+        $ref: "#/definitions/TargetString"
+
+      - name: Advanced
+        $ref: "#/definitions/TargetAdvanced"
+
+  TargetAdvanced:
+    description: Advanced configurations to apply for the target triple
+    type: object
+    required: [triple]
+    properties:
+      triple: { $ref: "#/definitions/TargetString" }
+      features:
+        type: string
+        description: |
+          Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
+          predicate, but at the moment, the only way to actually pass them when compiling is to use
+          the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more
+          `target_feature`s you plan to build with, for a particular target triple. At the time of
+          this writing, cargo-deny does not attempt to validate that the features you specify are
+          actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
+
+    examples:
+      - { triple: aarch64-apple-darwin }
+      - { triple: x86_64-pc-windows-msvc, features: [some-feature] }
+
+  TargetString:
+    type: string
+    examples:
+      - x86_64-unknown-linux-gnu
+      - x86_64-pc-windows-msvc
+      - aarch64-apple-darwin
+
+    description: |
+      The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target
+      you wish to filter target specific dependencies with. If the target triple specified is **not**
+      one of the targets builtin to `rustc`, the configuration check for that target will be limited
+      to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()`
+      expressions require us to know the details about the target.
+
+  Output:
+    title: The output table provides options for how/if diagnostics are outputted
+    type: object
+    properties:
+      feature-depth:
+        type: integer
+        minimum: 0
+        default: 1
+        description: |
+          The maximum depth that features will be displayed when inclusion graphs are shown in
+          diagnostics, unless specified via `--feature-depth` on the command line. Only applies to
+          diagnostics that actually print features.
