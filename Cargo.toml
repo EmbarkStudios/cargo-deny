@@ -131,22 +131,6 @@ features = [
   "worktree-mutation",
 ]
 
-# Pin gix-transport to this version, people who don't use --locked will get 0.41.3
-# which is either itself broken, or else one the following versions it depends
-# on has introduced a bug
-# Removing h2 v0.4.3
-# Removing http v1.1.0
-# Removing http-body v1.0.0
-# Removing http-body-util v0.1.1
-# Removing hyper v1.2.0
-# Removing hyper-util v0.1.3
-# Removing pin-project v1.1.5
-# Removing pin-project-internal v1.1.5
-# Removing reqwest v0.12.1
-# Removing tower v0.4.13
-# Removing tower-layer v0.3.2
-gix-transport = "<=0.41.2"
-
 [dev-dependencies]
 # Folder copying
 fs_extra = "1.3"
