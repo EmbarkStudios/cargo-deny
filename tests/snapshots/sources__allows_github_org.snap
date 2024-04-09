@@ -139,7 +139,7 @@ expression: diags
           "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "EmbarkStudios"
+          "span": "embarkstudios"
         }
       ],
       "message": "source allowed by organization allowance",
@@ -211,7 +211,7 @@ expression: diags
           "column": 16,
           "line": 3,
           "message": "organization allowance",
-          "span": "EmbarkStudios"
+          "span": "embarkstudios"
         }
       ],
       "message": "source allowed by organization allowance",

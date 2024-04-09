@@ -48,7 +48,7 @@ fn allows_github_org() {
     // We shouldn't have any errors for the embark urls now
     let cfg = "unknown-git = 'deny'
     [allow-org]
-    github = ['EmbarkStudios']
+    github = ['embarkstudios']
     ";
 
     let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
