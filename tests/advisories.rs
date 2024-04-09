@@ -39,7 +39,7 @@ fn load() -> TestCtx {
         advisories::DbSet::load(
             "tests/advisory-db".into(),
             vec![],
-            advisories::Fetch::Disallow(time::Duration::days(100)),
+            advisories::Fetch::Disallow(time::Duration::days(10000)),
         )
         .unwrap()
     };

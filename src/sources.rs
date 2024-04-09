@@ -104,14 +104,20 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
             };
             get_org(url)
         }) {
-            // .to_lowercase() (ln. 113) enables case insensitivity, as GitHub and
-            // GitLab are case insensitive in regards to namespaces.
-            if let Some(ind) = ctx
-                .cfg
-                .allowed_orgs
-                .iter()
-                .position(|(sorgt, sorgn)| orgt == *sorgt && sorgn.value.as_str().to_lowercase() == orgname.to_lowercase())
-            {
+            let lowered = (!orgname.is_ascii()).then(|| orgname.to_lowercase());
+
+            if let Some(ind) = ctx.cfg.allowed_orgs.iter().position(|(sorgt, sorgn)| {
+                let s = sorgn.value.as_str();
+                if orgt != *sorgt || s.len() != orgname.len() {
+                    return false;
+                }
+
+                if let Some(orgname_lower) = &lowered {
+                    orgname_lower == &s.to_lowercase()
+                } else {
+                    s.eq_ignore_ascii_case(orgname)
+                }
+            }) {
                 org_hits.as_mut_bitslice().set(ind, true);
                 diags::SourceAllowedByOrg {
                     src_label: sl.get_or_insert_with(label),
