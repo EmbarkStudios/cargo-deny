@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#643](https://github.com/EmbarkStudios/cargo-deny/pull/643) resolved [#629](https://github.com/EmbarkStudios/cargo-deny/issues/629) by making the hosted git (github, gitlab, bitbucket) org/user name comparison case-insensitive. Thanks [@pmnlla](https://github.com/pmnlla)!
+- [PR#649](https://github.com/EmbarkStudios/cargo-deny/pull/649) fixed an issue where depending on the same crate multiple times by using different `cfg()/triple` targets could cause features to be resolved incorrectly and thus crates to be not pulled into the graph used for checking.
+
 ## [0.14.20] - 2024-03-23
 ### Fixed
 - [PR#642](https://github.com/EmbarkStudios/cargo-deny/pull/642) resolved [#641](https://github.com/EmbarkStudios/cargo-deny/issues/641) by pinning `gix-transport` (and its unique dependencies) to 0.41.2 as a workaround for `cargo install` not using the lockfile. See [this issue](https://github.com/Byron/gitoxide/issues/1328) for more information.
