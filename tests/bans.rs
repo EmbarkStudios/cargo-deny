@@ -217,3 +217,57 @@ deny = [
 
     insta::assert_json_snapshot!(diags);
 }
+
+// Ensures that dependencies brought in by target specific features are banned
+#[test]
+fn deny_target_specific_dependencies() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "features",
+            no_default_features: true,
+            ..Default::default()
+        },
+        r#"
+deny = [
+    'serde'
+]
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "features",
+            no_default_features: true,
+            targets: &["x86_64-windows-pc-msvc"],
+            ..Default::default()
+        },
+        r#"
+deny = [
+    'serde'
+]
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "features",
+            no_default_features: true,
+            targets: &["x86_64-windows-pc-msvc", "aarch64-linux-android"],
+            ..Default::default()
+        },
+        r#"
+deny = [
+    'serde'
+]
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}

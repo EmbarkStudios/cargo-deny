@@ -600,6 +600,28 @@ expression: diags
           "parents": [
             {
               "Krate": {
+                "name": "ring",
+                "version": "0.16.20"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rustls-webpki",
+                    "version": "0.100.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "license-clarification",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
                 "name": "wasm-bindgen-backend",
                 "version": "0.2.87"
               },
@@ -639,22 +661,7 @@ expression: diags
                                         "name": "ring",
                                         "version": "0.16.20"
                                       },
-                                      "parents": [
-                                        {
-                                          "Krate": {
-                                            "name": "rustls-webpki",
-                                            "version": "0.100.1"
-                                          },
-                                          "parents": [
-                                            {
-                                              "Krate": {
-                                                "name": "license-clarification",
-                                                "version": "0.1.0"
-                                              }
-                                            }
-                                          ]
-                                        }
-                                      ]
+                                      "repeat": true
                                     }
                                   ]
                                 }

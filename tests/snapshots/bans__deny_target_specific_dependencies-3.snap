@@ -1,0 +1,46 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "banned",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "serde",
+            "version": "1.0.197"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "smallvec",
+                "version": "1.13.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "features",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 6,
+          "line": 3,
+          "message": "banned here",
+          "span": "serde"
+        }
+      ],
+      "message": "crate 'serde = 1.0.197' is explicitly banned",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
