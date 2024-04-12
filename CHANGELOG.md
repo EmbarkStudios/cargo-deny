@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.21] - 2024-04-12
 ### Fixed
 - [PR#643](https://github.com/EmbarkStudios/cargo-deny/pull/643) resolved [#629](https://github.com/EmbarkStudios/cargo-deny/issues/629) by making the hosted git (github, gitlab, bitbucket) org/user name comparison case-insensitive. Thanks [@pmnlla](https://github.com/pmnlla)!
 - [PR#649](https://github.com/EmbarkStudios/cargo-deny/pull/649) fixed an issue where depending on the same crate multiple times by using different `cfg()/triple` targets could cause features to be resolved incorrectly and thus crates to be not pulled into the graph used for checking.
@@ -590,7 +591,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.20...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.21...HEAD
+[0.14.21]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.20...0.14.21
 [0.14.20]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.19...0.14.20
 [0.14.19]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.18...0.14.19
 [0.14.18]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.17...0.14.18
