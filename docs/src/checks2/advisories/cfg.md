@@ -4,7 +4,7 @@
 **Required:** `no`
 
 Checks advisory databases for crates with security vulnerabilities,
-or that have been marked as Unmaintained, or which have been yanked from
+or that have been marked as unmaintained, or which have been yanked from
 their source registry.
 
 This section is considered when running `cargo deny check advisories`.
@@ -31,7 +31,7 @@ severity-threshold = "medium"
 
 ## `advisories.db-urls`
 
-**Type:** `array`<br>
+**Type:** `array<string (uri)>`<br>
 **Required:** `no`
 
 URLs to one or more advisory databases.
@@ -42,11 +42,6 @@ URLs to one or more advisory databases.
 [advisories]
 db-urls = ["https://github.com/RustSec/advisory-db"]
 ```
-
-### Items
-
-**Type:** `string`<br>
-**Format:** `uri`
 
 ## `advisories.db-path`
 
@@ -77,7 +72,7 @@ db-path = "$CARGO_HOME/advisory-dbs"
 
 ## `advisories.version`
 
-**Type:** `integer`<br>
+**Type:** `integer (enum)`<br>
 **Required:** `no`
 
 The advisories section has an upcoming breaking change, with deprecation warnings for several
@@ -100,7 +95,7 @@ As before, if you want to ignore a specific advisory, add it to the `ignore` fie
 
 ## `advisories.vulnerability`
 
-**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string (enum))`<br>
 **Required:** `no`
 
 **DEPRECATED** (see `version` field)
@@ -117,7 +112,7 @@ vulnerability = "deny"
 
 ## `advisories.unmaintained`
 
-**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string (enum))`<br>
 **Required:** `no`
 
 **DEPRECATED** (see `version` field)
@@ -134,7 +129,7 @@ unmaintained = "warn"
 
 ## `advisories.unsound`
 
-**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string (enum))`<br>
 **Required:** `no`
 
 **DEPRECATED** (see `version` field)
@@ -151,7 +146,7 @@ unsound = "warn"
 
 ## `advisories.notice`
 
-**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string (enum))`<br>
 **Required:** `no`
 
 **DEPRECATED** (see `version` field)
@@ -171,7 +166,7 @@ notice = "warn"
 
 ## `advisories.yanked`
 
-**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string)`<br>
+**Type:** [`LintLevel`](/checks2/type-index.html#lintlevel) `(string (enum))`<br>
 **Required:** `no`
 
 Determines what happens when a crate with a version that has been yanked from its source
@@ -210,21 +205,21 @@ ignore = [
 ]
 ```
 
-### Items
+### Array item
 
 
 
-#### Variant: `String`
+#### Variant: `string`
 
 **Type:** `string`
 
 Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
-#### Variant: `Advisory`
+#### Variant: `AdvisoriesIgnoreAdvisory`
 
 **Type:** `object`
 
-##### `advisories.ignore[N] (as Advisory).id`
+##### `advisories.ignore array item as AdvisoriesIgnoreAdvisory.id`
 
 **Type:** `string`<br>
 **Required:** `yes`
@@ -238,21 +233,21 @@ The unique identifier of the advisory to ignore
 ignore = ["RUSTSEC-2019-0001"]
 ```
 
-##### `advisories.ignore[N] (as Advisory).reason`
+##### `advisories.ignore array item as AdvisoriesIgnoreAdvisory.reason`
 
 **Type:** [`IgnoreReason`](/checks2/type-index.html#ignorereason) `(string)`<br>
 **Required:** `no`
 
-#### Variant: `Yanked`
+#### Variant: `AdvisoriesIgnoreYanked`
 
 **Type:** `object`
 
-##### `advisories.ignore[N] (as Yanked).crate`
+##### `advisories.ignore array item as AdvisoriesIgnoreYanked.crate`
 
 **Type:** [`PackageSpec`](/checks2/type-index.html#packagespec) `(string)`<br>
 **Required:** `yes`
 
-##### `advisories.ignore[N] (as Yanked).reason`
+##### `advisories.ignore array item as AdvisoriesIgnoreYanked.reason`
 
 **Type:** [`IgnoreReason`](/checks2/type-index.html#ignorereason) `(string)`<br>
 **Required:** `no`

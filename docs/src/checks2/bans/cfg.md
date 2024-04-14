@@ -19,6 +19,6 @@ any crate not in that list will be denied, so use with care. Each entry uses the
 as other parts of cargo-deny's configuration.
 
 
-### Items
+### Array item
 
 **Type:** [`PackageSpec`](/checks2/type-index.html#packagespec) `(string)`

@@ -193,7 +193,7 @@
           "description": "Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.\nPutting an identifier in this array will cause the advisory to be treated as a note, rather\nthan a warning or error.\n\nIn addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nwith an optional `reason`.\n"
         }
       },
-      "title": "Checks advisory databases for crates with security vulnerabilities,\nor that have been marked as Unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n"
+      "title": "Checks advisory databases for crates with security vulnerabilities,\nor that have been marked as unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n"
     },
     "AdvisoriesIgnoreAdvisory": {
       "type": "object",
@@ -216,16 +216,16 @@
     "AdvisoriesIgnoreItem": {
       "oneOf": [
         {
-          "name": "String",
+          "name": null,
           "type": "string",
           "description": "Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`)."
         },
         {
-          "name": "Advisory",
+          "name": null,
           "$ref": "#/definitions/AdvisoriesIgnoreAdvisory"
         },
         {
-          "name": "Yanked",
+          "name": null,
           "$ref": "#/definitions/AdvisoriesIgnoreYanked"
         }
       ]
@@ -344,11 +344,11 @@
     "Target": {
       "oneOf": [
         {
-          "name": "String",
+          "name": null,
           "$ref": "#/definitions/TargetString"
         },
         {
-          "name": "Advanced",
+          "name": null,
           "$ref": "#/definitions/TargetAdvanced"
         }
       ]

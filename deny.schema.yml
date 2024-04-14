@@ -58,7 +58,7 @@ definitions:
 
     title: |
       Checks advisory databases for crates with security vulnerabilities,
-      or that have been marked as Unmaintained, or which have been yanked from
+      or that have been marked as unmaintained, or which have been yanked from
       their source registry.
 
       This section is considered when running `cargo deny check advisories`.
@@ -174,15 +174,12 @@ definitions:
 
   AdvisoriesIgnoreItem:
     oneOf:
-      - name: String
-        type: string
+      - type: string
         description: Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).
 
-      - name: Advisory
-        $ref: "#/definitions/AdvisoriesIgnoreAdvisory"
+      - $ref: "#/definitions/AdvisoriesIgnoreAdvisory"
 
-      - name: Yanked
-        $ref: "#/definitions/AdvisoriesIgnoreYanked"
+      - $ref: "#/definitions/AdvisoriesIgnoreYanked"
 
   AdvisoriesIgnoreAdvisory:
     type: object
@@ -280,7 +277,7 @@ definitions:
       ```toml
       deny = [
           { name = "simple" },
-          { name = "simple", version = "*" }
+          { name = "simple", version = "*" },
           { name = "simple", wrappers = ["example"] }
       ]
       ```
@@ -378,11 +375,8 @@ definitions:
 
   Target:
     oneOf:
-      - name: String
-        $ref: "#/definitions/TargetString"
-
-      - name: Advanced
-        $ref: "#/definitions/TargetAdvanced"
+      - $ref: "#/definitions/TargetString"
+      - $ref: "#/definitions/TargetAdvanced"
 
   TargetAdvanced:
     description: Advanced configurations to apply for the target triple

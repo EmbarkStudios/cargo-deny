@@ -1,52 +1,90 @@
 mod rendering;
 
-use self::rendering::{RenderedSection, RenderingConfig};
+use self::rendering::{RenderedSection, Renderer};
 use crate::cli::codegen::input::{EnumVariantSchema, RootSchema, Schema};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fmt;
 
+struct DocOptions<'a> {
+    root: &'a RootSchema,
+    max_level: usize,
+}
+
 pub(crate) struct Doc {
-    root: Section,
-    type_index: BTreeMap<String, Section>,
+    root: TypeDocNode,
+    type_index: BTreeMap<String, TypeDocNode>,
 }
 
 #[derive(Debug)]
-struct SectionData {
+struct TypeDoc {
     key: SchemaKey,
     title: Option<String>,
     description: Option<String>,
     default: Option<Value>,
     examples: Vec<Value>,
-    enum_schema: Option<Vec<EnumVariantSchema>>,
-    ty: Option<String>,
-    format: Option<String>,
+    ty: Type,
     type_index_ref: Option<TypeIndexRef>,
 }
 
 #[derive(Debug)]
 struct TypeIndexRef {
     definition: String,
+    ty: Type,
+}
+
+#[derive(Debug, Clone)]
+struct LeafType {
     ty: Option<String>,
     format: Option<String>,
+    enum_schema: Option<Vec<EnumVariantSchema>>,
+}
+
+impl LeafType {
+    fn from_schema(schema: &Schema) -> Self {
+        Self {
+            ty: schema.ty.clone(),
+            format: schema.format.clone(),
+            enum_schema: schema.enum_schema.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Type {
+    inner: LeafType,
+
+    /// [`LeafType`] exists to make sure we don't have recursion in this field.
+    /// We describe at max two levels of nesting in type tags.
+    array_items_ty: Option<LeafType>,
+}
+
+impl Type {
+    fn from_schema(schema: &Schema) -> Self {
+        let inner = LeafType::from_schema(schema);
+
+        let array_items_ty = schema
+            .array_schema
+            .as_ref()
+            .map(|array| LeafType::from_schema(&array.items));
+
+        Self {
+            inner,
+            array_items_ty,
+        }
+    }
 }
 
 #[derive(Debug)]
-struct TypeInfo {
-    inner: Option<String>,
-    format: Option<String>,
+struct TypeDocNode {
+    inner: TypeDoc,
+    children: Vec<TypeDocNode>,
 }
 
-#[derive(Debug)]
-struct Section {
-    data: SectionData,
-    children: Vec<Section>,
-}
-
-struct RootContext<'a> {
-    root: &'a RootSchema,
+struct CreateDoc<'a> {
+    options: &'a DocOptions<'a>,
     type_index: &'a BTreeMap<String, &'a Schema>,
 }
 
@@ -62,6 +100,37 @@ struct SchemaKey {
     segments: Vec<SchemaKeySegment>,
 }
 
+impl SchemaKey {
+    fn push_inline_segment(&self, new_segment: SchemaKeySegmentKind) -> Self {
+        let mut segments = self.segments.clone();
+        segments.push(SchemaKeySegment::inline(new_segment));
+        Self {
+            root: self.root.clone(),
+            segments,
+        }
+    }
+
+    fn definition(&self) -> Option<&str> {
+        self.segments.last()?.definition.as_deref()
+    }
+}
+
+impl fmt::Display for SchemaKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut segments = self.segments.iter();
+
+        if let Some(segment) = segments.next() {
+            write!(f, "{segment}")?;
+        }
+
+        segments.try_for_each(|segment| match &segment.kind {
+            SchemaKeySegmentKind::Field(_) => write!(f, ".{segment}"),
+            SchemaKeySegmentKind::Index => write!(f, " array item"),
+            SchemaKeySegmentKind::Variant(_) => write!(f, " as {segment}"),
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 enum SchemaKeyOrigin {
     Root,
@@ -69,7 +138,25 @@ enum SchemaKeyOrigin {
 }
 
 #[derive(Clone, Debug)]
-enum SchemaKeySegment {
+struct SchemaKeySegment {
+    kind: SchemaKeySegmentKind,
+
+    /// If this part of the key is a reference to a definition, then this field
+    /// stores the name of that definition.
+    definition: Option<String>,
+}
+
+impl SchemaKeySegment {
+    fn inline(kind: SchemaKeySegmentKind) -> Self {
+        Self {
+            definition: None,
+            kind,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum SchemaKeySegmentKind {
     Field(SchemaKeySegmentField),
     Index,
     Variant(String),
@@ -82,12 +169,17 @@ struct SchemaKeySegmentField {
 }
 
 impl Doc {
-    fn from_root_schema(root: &RootSchema) -> Result<Self> {
-        let schemas_in_root = root.schema.inner_schemas();
-        let schemas_in_defs = root.definitions.values().flat_map(Schema::inner_schemas);
+    fn new(options: DocOptions<'_>) -> Result<Self> {
+        let DocOptions { root, max_level } = options;
 
-        let definition_ref_counts = itertools::chain(schemas_in_root, schemas_in_defs)
-            .map(Schema::referenced_definition)
+        let all_schemas = || {
+            let schemas_in_root = root.schema.entries();
+            let schemas_in_defs = root.definitions.values().flat_map(Schema::entries);
+            itertools::chain(schemas_in_root, schemas_in_defs)
+        };
+
+        let definition_ref_counts = all_schemas()
+            .map(|entry| entry.schema.referenced_definition())
             .flatten_ok()
             .process_results(|iter| iter.counts())?;
 
@@ -102,7 +194,7 @@ impl Doc {
             "Found unused definitions: {unused_defs:#?}",
         );
 
-        let type_index: BTreeMap<_, _> = definition_ref_counts
+        let repeated_references: BTreeMap<_, _> = definition_ref_counts
             .into_iter()
             // For schemas that are repeatedly referenced, we want to include them in the
             // "Type Index". This is separate page where common types are defined such
@@ -114,32 +206,118 @@ impl Doc {
             })
             .try_collect()?;
 
-        let ctx = RootContext {
+        let flattened = all_schemas()
+            .filter(|entry| entry.level % max_level == 0)
+            .map(|entry| {
+                let schema = entry.schema;
+
+            })
+            .collect();
+
+        let ctx = CreateDoc {
             root,
-            type_index: &type_index,
+            type_index: &repeated_references,
         };
 
-        Ok(Self {
-            root: ctx.root_section()?,
-            type_index: ctx.type_index_sections()?,
-        })
+        let mut doc = Self {
+            root: ctx.root_type_doc()?,
+            type_index: ctx.type_index_docs()?,
+        };
+
+        doc.flatten(max_level)?;
+
+        Ok(doc)
+    }
+
+    fn flatten(&mut self, max_level: usize) -> Result<()> {
+        FlattenDoc {
+            ty_index: &mut self.type_index,
+            max_level,
+        }
+        .flatten(&mut self.root, 0)
     }
 }
 
-impl RootContext<'_> {
-    fn root_section(&self) -> Result<Section> {
+struct FlattenDoc<'a> {
+    ty_index: &'a mut BTreeMap<String, TypeDocNode>,
+    max_level: usize,
+}
+
+impl FlattenDoc<'_> {
+    fn flatten(&mut self, node: &mut TypeDocNode, level: usize) -> Result<()> {
+        for child in &mut node.children {
+            if level <= self.max_level {
+                Self {
+                    ty_index: self.ty_index,
+                    max_level: self.max_level,
+                }
+            }
+
+            self.flatten(child, level + 1)?;
+        }
+
+        if level <= self.max_level {
+            return Ok(());
+        }
+
+        node.children.clear();
+
+        let type_doc = &node.inner;
+
+        let definition = type_doc
+            .key
+            .definition()
+            .with_context(|| {
+                format!(
+                    "Can't flatten node at level {level}, because the name to \
+                    assign to it in the type index can not be inferred.\n\
+                    Schema key: {}\n\
+                    Try moving the schema to a definition, and the definition key \
+                    will be used as a name for this type in the type index",
+                    type_doc.key
+                )
+            })?
+            .to_owned();
+
+        let type_index_entry = self.ty_index.get(&definition).unwrap_or_else(|| {
+            panic!("We inlined this type before, so it must be in type index: {definition}")
+        });
+
+        let type_index_ref = TypeIndexRef {
+            definition: definition.clone(),
+            ty: type_index_entry.inner.ty.clone(),
+        };
+
+        let new_type_doc = TypeDoc {
+            key: type_doc.key.clone(),
+            title: None,
+            description: None,
+            default: None,
+            examples: vec![],
+            ty: type_doc.ty.clone(),
+            type_index_ref: Some(type_index_ref),
+        };
+
+        let node = std::mem::replace(node, TypeDocNode::leaf(new_type_doc));
+
+        self.ty_index.insert(definition, node);
+
+        Ok(())
+    }
+}
+
+impl CreateDoc<'_> {
+    fn root_type_doc(&self) -> Result<TypeDocNode> {
         let key = SchemaKey {
             root: SchemaKeyOrigin::Root,
             segments: vec![],
         };
         let root_schema = KeyedSchema::new(key, self.root.schema.clone());
 
-        let section = self.section(root_schema)?;
-
-        Ok(section)
+        self.type_doc_node(root_schema)
     }
 
-    fn type_index_sections(&self) -> Result<BTreeMap<String, Section>> {
+    fn type_index_docs(&self) -> Result<BTreeMap<String, TypeDocNode>> {
         self.type_index
             .iter()
             .map(|(def_name, &schema)| {
@@ -149,23 +327,23 @@ impl RootContext<'_> {
                 };
                 let schema = KeyedSchema::new(key, schema.clone());
 
-                anyhow::Ok((def_name.clone(), self.section(schema)?))
+                anyhow::Ok((def_name.clone(), self.type_doc_node(schema)?))
             })
             .collect()
     }
 
-    fn section(&self, schema: KeyedSchema) -> Result<Section> {
+    fn type_doc_node(&self, schema: KeyedSchema) -> Result<TypeDocNode> {
         let referenced_def = schema.inner.referenced_definition()?;
 
         // If this schema references a type from the type index, then avoid
-        // inlining the schema and finish the section early.
+        // inlining the schema and finish the type doc early.
         if referenced_def.is_some_and(|def| self.type_index.contains_key(def)) {
-            return Ok(Section::leaf(self.section_data(schema.clone())?));
+            return Ok(TypeDocNode::leaf(self.type_doc(schema.clone())?));
         }
 
         let schema = schema.inline_referenced_definition(self.root)?;
 
-        let section_data = self.section_data(schema.clone())?;
+        let type_doc = self.type_doc(schema.clone())?;
 
         let children = if schema.inner.array_schema.is_some() {
             Self::array_children(schema)?
@@ -179,11 +357,11 @@ impl RootContext<'_> {
 
         let children = children
             .into_iter()
-            .map(|child| self.section(child))
+            .map(|child| self.type_doc_node(child))
             .try_collect()?;
 
-        Ok(Section {
-            data: section_data,
+        Ok(TypeDocNode {
+            inner: type_doc,
             children,
         })
     }
@@ -196,7 +374,7 @@ impl RootContext<'_> {
             return Ok(vec![]);
         }
 
-        let key = schema.key.next_level(SchemaKeySegment::Index);
+        let key = schema.key.push_inline_segment(SchemaKeySegmentKind::Index);
         let items = KeyedSchema::new(key, *array.items);
         Ok(vec![items])
     }
@@ -212,7 +390,9 @@ impl RootContext<'_> {
                     required: object.required.contains(&key),
                 };
 
-                let key = schema.key.next_level(SchemaKeySegment::Field(key));
+                let key = schema
+                    .key
+                    .push_inline_segment(SchemaKeySegmentKind::Field(key));
                 KeyedSchema::new(key, value)
             })
             .collect();
@@ -222,12 +402,12 @@ impl RootContext<'_> {
 
     fn one_of_children(schema: KeyedSchema) -> Result<Vec<KeyedSchema>> {
         let variants = schema.inner.try_into_one_of()?;
-
-        let duplicates: Vec<_> = variants
+        let names: Vec<_> = variants
             .iter()
-            .map(|variant| &variant.name)
-            .duplicates()
-            .collect();
+            .map(|variant| variant.name().map(ToOwned::to_owned))
+            .try_collect()?;
+
+        let duplicates: Vec<_> = names.iter().duplicates().collect();
 
         anyhow::ensure!(
             duplicates.is_empty(),
@@ -238,10 +418,11 @@ impl RootContext<'_> {
 
         let variants = variants
             .into_iter()
-            .map(|variant| {
+            .zip(names)
+            .map(|(variant, name)| {
                 let key = schema
                     .key
-                    .next_level(SchemaKeySegment::Variant(variant.name.clone()));
+                    .push_inline_segment(SchemaKeySegmentKind::Variant(name));
 
                 KeyedSchema::new(key, variant.schema)
             })
@@ -250,46 +431,34 @@ impl RootContext<'_> {
         Ok(variants)
     }
 
-    fn section_data(&self, schema: KeyedSchema) -> Result<SectionData> {
-        let type_index_ref = schema.inner.referenced_definition()?.and_then(|def_name| {
-            let schema = self.type_index.get(def_name)?;
+    fn type_index_ref(&self, schema: &Schema) -> Result<Option<TypeIndexRef>> {
+        let ty_index_ref = schema.referenced_definition()?.and_then(|def_name| {
+            let ty = self
+                .type_index
+                .get(def_name)
+                .copied()
+                .map(Type::from_schema)?;
+
             Some(TypeIndexRef {
                 definition: def_name.to_owned(),
-                ty: schema.ty.clone(),
-                format: schema.format.clone(),
+                ty,
             })
         });
 
-        let ty = schema
-            .inner
-            .array_schema
-            .as_ref()
-            .map(|array_schema| {
-                let suffix = array_schema
-                    .items
-                    .is_undocumented_primitive()
-                    .then(|| {
-                        array_schema
-                            .items
-                            .ty
-                            .as_ref()
-                            .map(|item_ty| format!("<{item_ty}>"))
-                    })
-                    .flatten();
+        Ok(ty_index_ref)
+    }
 
-                itertools::chain(["array"], suffix.as_deref()).collect()
-            })
-            .or(schema.inner.ty);
+    fn type_doc(&self, schema: KeyedSchema) -> Result<TypeDoc> {
+        let type_index_ref = self.type_index_ref(&schema.inner)?;
+        let ty = Type::from_schema(&schema.inner);
 
-        let base = SectionData {
+        let base = TypeDoc {
             key: schema.key,
             title: schema.inner.title,
             description: schema.inner.description,
             default: schema.inner.default,
             examples: schema.inner.examples,
             ty,
-            format: schema.inner.format,
-            enum_schema: schema.inner.enum_schema,
             type_index_ref,
         };
 
@@ -297,10 +466,10 @@ impl RootContext<'_> {
     }
 }
 
-impl Section {
-    fn leaf(data: SectionData) -> Self {
+impl TypeDocNode {
+    fn leaf(data: TypeDoc) -> Self {
         Self {
-            data,
+            inner: data,
             children: vec![],
         }
     }
@@ -308,38 +477,11 @@ impl Section {
 
 impl fmt::Display for SchemaKeySegment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SchemaKeySegment::Field(field) => f.write_str(&field.name),
-            SchemaKeySegment::Index => f.write_str("N"),
-            SchemaKeySegment::Variant(name) => f.write_str(name),
+        match &self.kind {
+            SchemaKeySegmentKind::Field(field) => f.write_str(&field.name),
+            SchemaKeySegmentKind::Index => f.write_str("n"),
+            SchemaKeySegmentKind::Variant(name) => f.write_str(name),
         }
-    }
-}
-
-impl SchemaKey {
-    fn next_level(&self, new_segment: SchemaKeySegment) -> Self {
-        let mut segments = self.segments.clone();
-        segments.push(new_segment);
-        Self {
-            root: self.root.clone(),
-            segments,
-        }
-    }
-}
-
-impl fmt::Display for SchemaKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut segments = self.segments.iter();
-
-        if let Some(segment) = segments.next() {
-            write!(f, "{segment}")?;
-        }
-
-        segments.try_for_each(|segment| match segment {
-            SchemaKeySegment::Field(_) => write!(f, ".{segment}"),
-            SchemaKeySegment::Index => write!(f, "[{segment}]"),
-            SchemaKeySegment::Variant(_) => write!(f, " (as {segment})"),
-        })
     }
 }
 
@@ -348,7 +490,13 @@ impl KeyedSchema {
         Self { key, inner }
     }
 
-    fn inline_referenced_definition(self, root: &RootSchema) -> Result<Self> {
+    fn inline_referenced_definition(mut self, root: &RootSchema) -> Result<Self> {
+        if let Some(last_segment) = self.key.segments.last_mut() {
+            if let Some(definition) = self.inner.referenced_definition()? {
+                last_segment.definition = Some(definition.to_owned());
+            }
+        }
+
         Ok(Self::new(
             self.key,
             root.inline_referenced_definition(&self.inner)?,
@@ -369,11 +517,11 @@ The top level config for cargo-deny, by default called `deny.toml`.
 {{#include ../../../deny.toml}}
 ```";
 
-    let cfg = RenderingConfig {
+    let renderer = Renderer {
         root_file_base: RenderedSection::leaf(header, body),
     };
 
-    let files = Doc::from_root_schema(root)?.render(&cfg);
+    let files = renderer.doc(&Doc::new(root, 2)?);
 
     files.iter().try_for_each(|file| file.write(out_dir))?;
 

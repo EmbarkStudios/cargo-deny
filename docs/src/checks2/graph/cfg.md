@@ -33,15 +33,15 @@ to it, it is not included into the crate graph that the checks are
 executed against.
 
 
-### Items
+### Array item
 
 
 
-#### Variant: `String`
+#### Variant: `TargetString`
 
 **Type:** [`TargetString`](/checks2/type-index.html#targetstring) `(string)`
 
-#### Variant: `Advanced`
+#### Variant: `TargetAdvanced`
 
 **Type:** `object`
 
@@ -59,12 +59,12 @@ Advanced configurations to apply for the target triple
   features = ["some-feature"]
   ```
 
-##### `graph.targets[N] (as Advanced).triple`
+##### `graph.targets array item as TargetAdvanced.triple`
 
 **Type:** [`TargetString`](/checks2/type-index.html#targetstring) `(string)`<br>
 **Required:** `yes`
 
-##### `graph.targets[N] (as Advanced).features`
+##### `graph.targets array item as TargetAdvanced.features`
 
 **Type:** `string`<br>
 **Required:** `no`

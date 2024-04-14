@@ -87,10 +87,12 @@ enum CustomEnumValue {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct OneOfVariantSchema {
-    /// Name of the variant. It's main use case is when generating a Rust enum,
-    /// which requires a name for each variant. However, it's also useful for
-    /// documentation purposes as a succinct display name for the variant.
-    pub(crate) name: String,
+    /// Override the name of the variant. It's main use case is when generating
+    /// a Rust enum, which requires a name for each variant. However, it's also
+    ///  useful for documentation purposes as a succinct display name for the
+    /// variant. By default the variant name is inferred from the `$ref` or
+    /// from the `type` clause of the schema.
+    pub(crate) name: Option<String>,
 
     #[serde(flatten)]
     pub(crate) schema: Schema,
@@ -130,6 +132,11 @@ pub(crate) struct ArraySchema {
     pub(crate) items: Box<Schema>,
 }
 
+pub(crate) struct SchemaEntry<'a> {
+    pub(crate) schema: &'a Schema,
+    pub(crate) level: usize,
+}
+
 impl Schema {
     pub(crate) fn is_primitive(&self) -> bool {
         self.object_schema.is_none()
@@ -140,10 +147,15 @@ impl Schema {
 
     /// Returns all schemas stored inside of this one. It doesn't resolve
     /// references.
-    pub(crate) fn inner_schemas(&self) -> impl Iterator<Item = &Schema> {
-        let mut stack = vec![self];
+    pub(crate) fn entries<'a>(&'a self) -> impl Iterator<Item = SchemaEntry<'a>> {
+        let mut stack = vec![SchemaEntry {
+            schema: self,
+            level: 0,
+        }];
+
         std::iter::from_fn(move || {
-            let schema = stack.pop()?;
+            let entry = stack.pop()?;
+            let schema = entry.schema;
 
             let object_properties = schema
                 .object_schema
@@ -158,13 +170,18 @@ impl Schema {
 
             let array_items = schema.array_schema.iter().map(|array| array.items.as_ref());
 
-            stack.extend(itertools::chain!(
-                object_properties,
-                one_of_variants,
-                array_items
-            ));
+            let new_entries = std::iter::empty()
+                .chain(object_properties)
+                .chain(one_of_variants)
+                .chain(array_items)
+                .map(|schema| SchemaEntry {
+                    schema,
+                    level: entry.level + 1,
+                });
 
-            Some(schema)
+            stack.extend(new_entries);
+
+            Some(entry)
         })
     }
 
@@ -260,7 +277,7 @@ impl Schema {
             self,
             Self {
                 ty: _,
-                format: None,
+                format: _,
                 deprecated: false,
                 examples,
                 object_schema: None,
@@ -305,14 +322,24 @@ impl RootSchema {
         let mut schema = schema.clone();
         schema.reference = None;
 
-        let mut schema_value = serde_json::to_value(schema).unwrap();
-        let definition_value = serde_json::to_value(definition).unwrap();
-
-        merge_json_values_mut(&mut schema_value, definition_value);
-
-        let schema = serde_json::from_value(schema_value).unwrap();
+        merge_json_mut(&mut schema, definition);
 
         Ok(schema)
+    }
+}
+
+impl OneOfVariantSchema {
+    pub(crate) fn name(&self) -> Result<&str> {
+        self.name
+            .as_deref()
+            .or_else(|| {
+                self.schema
+                    .reference
+                    .as_deref()?
+                    .strip_prefix("#/definitions/")
+            })
+            .or(self.schema.ty.as_deref())
+            .with_context(|| format!("Expected name for one-of variant, but got: {self:#?}"))
     }
 }
 
@@ -333,14 +360,18 @@ impl EnumVariantSchema {
                 let description = schema.description.as_str();
                 (value, Some(description))
             }
-            EnumVariantSchema::Undocumented(value) => (value.clone().into(), None),
+            EnumVariantSchema::Undocumented(value) => (value.clone(), None),
         }
     }
 }
 
-pub(crate) fn merge_json_values(mut a: Value, b: Value) -> Value {
-    merge_json_values_mut(&mut a, b);
-    a
+fn merge_json_mut<T: serde::Serialize + serde::de::DeserializeOwned>(dest: &mut T, src: &T) {
+    let mut dest_value = serde_json::to_value(&*dest).unwrap();
+    let src_value = serde_json::to_value(src).unwrap();
+
+    merge_json_values_mut(&mut dest_value, src_value);
+
+    *dest = serde_json::from_value(dest_value).unwrap();
 }
 
 pub(crate) fn merge_json_values_mut(a: &mut Value, b: Value) {
@@ -365,33 +396,3 @@ pub(crate) fn merge_json_values_mut(a: &mut Value, b: Value) {
         (a, b) => *a = b,
     }
 }
-
-// fn merge_serializable<T: Serialize + DeserializeOwned>(a: &mut T, b: T) {
-//     let mut a_value = serde_json::to_value(&a).unwrap();
-//     let b_value = serde_json::to_value(b).unwrap();
-//     merge_json_values(&mut a_value, b_value);
-
-//     *a = serde_json::from_value(a_value).unwrap();
-// }
-
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// struct XTaplo {
-//     docs: XTaploDocs,
-
-//     #[serde(flatten)]
-//     untyped: Object,
-// }
-
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// struct XTaploDocs {
-//     enum_values: Vec<String>,
-
-//     #[serde(flatten)]
-//     untyped: Object,
-// }
-
-// impl Schema {
-//     fn merge(&mut self, other: &Schema) {
-//         merge_serializable(self, other.clone());
-//     }
-// }
