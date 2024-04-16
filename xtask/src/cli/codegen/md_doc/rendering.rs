@@ -1,116 +1,195 @@
-use super::{Doc, LeafType, SchemaKey, SchemaKeySegmentKind, Type, TypeDoc, TypeDocNode};
-use crate::cli::codegen::md_doc::{SchemaKeyOrigin, SchemaKeySegment};
+use super::{
+    Doc, LeafType, Path, PathOrigin, PathSegment, Schema, SchemaDoc, SchemaDocData, SchemaNode,
+    Type,
+};
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 
 pub(crate) struct Renderer {
-    pub(crate) root_file_base: RenderedSection,
+    pub(crate) root_file_base: Section,
 }
 
 impl Renderer {
     pub(crate) fn doc(&self, doc: &Doc) -> Vec<File> {
-        let root_sections = doc.root.children.iter().map(|type_doc| {
-            let key = &type_doc.inner.key;
-            let header = format!("The `[{key}]` type_doc");
-            let body = format!("See [{key} config]({key}/cfg.html) for more info.");
-            let body = itertools::chain(&type_doc.inner.title, [&body]).join("\n\n");
+        // let root_sections = doc.root.children.iter().map(|schema| {
+        //     let key = &schema.doc.path;
+        //     let header = format!("`[{key}]`");
+        //     let body = format!("See [{key} config]({key}/cfg.html) for more info.");
+        //     let body = itertools::chain(&schema.doc.title, [&body]).join("\n\n");
 
-            RenderedSection::leaf(header, body)
-        });
+        //     RenderedSection::leaf(header, body)
+        // });
 
-        let mut rendered = self.root_file_base.clone();
-        rendered.children.extend(root_sections);
+        // let mut rendered = self.root_file_base.clone();
+        // rendered.children.extend(root_sections);
 
-        let root = File::new("cfg.md", rendered);
+        // let root = File::new("cfg.md", rendered);
 
-        let child_files = doc.root.children.iter().map(|type_doc| {
-            let rendered = self.type_doc_node(type_doc);
+        // let child_files = doc.root.children.iter().map(|schema| {
+        //     let rendered = self.schema_node(schema);
 
-            let key = &type_doc.inner.key;
+        //     let key = &schema.doc.path;
 
-            File::new(format!("{key}/cfg.md"), rendered)
-        });
+        //     File::new(format!("{key}/cfg.md"), rendered)
+        // });
 
-        let type_index_sections = doc
-            .type_index
-            .values()
-            .map(|type_doc| self.type_doc_node(type_doc))
-            .collect();
-
-        let type_index = RenderedSection {
-            header: "Type Index".to_owned(),
-            body: "This is an index of common types used across the schema.".to_owned(),
-            children: type_index_sections,
+        let root = NamedDocument {
+            name: "root".to_owned(),
+            document: Document {
+                section: self.root_file_base.clone(),
+                children: vec![NamedDocument {
+                    name: "schema".to_owned(),
+                    document: self.schema_node(&doc.root),
+                }],
+            },
         };
 
-        let type_index = File::new("type-index.md", type_index);
+        let type_index = self.type_index(&doc.type_index);
 
-        itertools::chain([root, type_index], child_files).collect()
+        itertools::chain([root], type_index)
+            .flat_map(NamedDocument::into_files)
+            .collect()
     }
 
-    fn type_doc_node(&self, type_doc: &TypeDocNode) -> RenderedSection {
-        let children = [
-            self.enum_doc(&type_doc.inner.ty.inner),
-            self.default(&type_doc.inner),
-            self.examples(&type_doc.inner),
-        ];
+    fn type_index(&self, type_index: &BTreeMap<String, SchemaNode>) -> Option<NamedDocument> {
+        if type_index.is_empty() {
+            return None;
+        }
 
-        let child_schemas = type_doc
-            .children
+        let children = type_index
             .iter()
-            .map(|type_doc| self.type_doc_node(type_doc));
-
-        let children = children
-            .into_iter()
-            .flatten()
-            .chain(child_schemas)
+            .map(|(name, schema)| NamedDocument {
+                name: name.clone(),
+                document: self.schema_node(schema),
+            })
             .collect();
 
-        let header = self.type_doc_header(&type_doc.inner);
+        let section = Section::leaf(
+            "Type Index",
+            "This is an index of common types used across the schema.",
+        );
 
-        RenderedSection {
-            header,
-            body: self.type_doc_body(&type_doc.inner),
-            children,
+        let document = Document { section, children };
+
+        Some(NamedDocument {
+            name: "type-index".to_owned(),
+            document,
+        })
+    }
+
+    fn schema_node(&self, node: &SchemaNode) -> Document {
+        match &node.schema.doc {
+            SchemaDoc::Embedded(doc) => self.schema_embedded(&node, doc),
+            SchemaDoc::Nested(doc) => self.schema_embedded(&node, doc),
+            SchemaDoc::Ref(reference) => self.schema_ref(&node, reference),
         }
     }
 
-    fn type_doc_header(&self, type_doc: &TypeDoc) -> String {
-        if let SchemaKeyOrigin::Definition(def) = &type_doc.key.root {
+    fn schema_ref(&self, node: &SchemaNode, reference: &str) -> Document {
+        let (ref_name, url) = reference
+            .strip_prefix("#/definitions/")
+            .map(|definition| {
+                let anchor = definition.to_lowercase();
+                (definition, format!("/checks2/type-index.html#{anchor})"))
+            })
+            .unwrap_or_else(|| ("{ExternalSchema}", reference.to_owned()));
+
+        let section = self.type_reference(&node.schema, ref_name, &url);
+
+        Document::leaf(section)
+    }
+
+    fn type_reference(&self, schema: &Schema, ref_name: &str, url: &str) -> Section {
+        let reference = format!("[`{ref_name}`]({url})");
+
+        let ty = self
+            .ty(&schema.ty)
+            .map(|ty| format!(" `{ty}`"))
+            .unwrap_or_default();
+
+        let body = format!("**Type:**: {reference}{ty}");
+
+        Section::leaf(self.section_header(schema), body)
+    }
+
+    fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
+        let document = self.schema_embedded(node, doc);
+
+        let name = node.schema.path.segments.last().unwrap().to_string();
+
+        let nested = NamedDocument {
+            name: name.clone(),
+            document,
+        };
+
+        let url = format!("./{name}.md");
+        let section = self.type_reference(&node.schema, "Nested", &url);
+
+        Document {
+            section,
+            children: vec![nested],
+        }
+    }
+
+    fn schema_embedded(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
+        let children = [
+            self.enum_doc(&node.schema.ty.inner),
+            self.default(&node.schema.path, &doc),
+            self.examples(&node.schema.path, &doc),
+        ];
+        let child_schemas = node.children.iter().map(|schema| self.schema_node(schema));
+
+        let (child_sections, child_docs): (Vec<_>, Vec<_>) = children
+            .into_iter()
+            .flatten()
+            .map(Document::leaf)
+            .chain(child_schemas)
+            .map(|doc| (doc.section, doc.children))
+            .unzip();
+
+        let header = self.section_header(&node.schema);
+
+        let section = Section {
+            header,
+            body: self.section_body(&node.schema, &doc),
+            children: child_sections,
+        };
+        Document {
+            section,
+            children: itertools::concat(child_docs),
+        }
+    }
+
+    fn section_header(&self, schema: &Schema) -> String {
+        if let PathOrigin::Definition(def) = &schema.path.origin {
             return format!("`{def}`");
         }
-        let last_segment = type_doc.key.segments.last().unwrap_or_else(|| {
-            panic!(
-                "Last segment must always be present in a key with the origin \
-                 in root schema, but got empty key segments list: {:#?}",
-                type_doc.key
-            )
-        });
+        let Some(last_segment) = schema.path.segments.last() else {
+            return "Schema".to_owned();
+        };
 
-        match &last_segment.kind {
-            SchemaKeySegmentKind::Field(_) => format!("`{}`", type_doc.key),
-            SchemaKeySegmentKind::Index => "Array item".to_owned(),
-            SchemaKeySegmentKind::Variant(variant_name) => format!("Variant: `{variant_name}`"),
+        match &last_segment {
+            PathSegment::Field(_) => format!("`{}`", schema.path),
+            PathSegment::Index => "Array item".to_owned(),
+            PathSegment::Variant(variant_name) => format!("Variant: `{variant_name}`"),
         }
     }
 
-    fn type_doc_body(&self, type_doc: &TypeDoc) -> String {
-        let top = [
-            &self.tag_for_type(type_doc),
-            &self.tag_for_required(type_doc),
-        ];
+    fn section_body(&self, schema: &Schema, doc: &SchemaDocData) -> String {
+        let top = [self.tag_for_type(&schema.ty), self.tag_for_required(schema)];
 
-        let top = top.iter().copied().flatten().join("<br>\n");
+        let top = top.iter().flatten().join("<br>\n");
 
-        let parts = [&Some(top), &type_doc.title, &type_doc.description];
+        let parts = [&Some(top), &doc.title, &doc.description];
 
         parts.iter().copied().flatten().join("\n\n")
     }
 
-    fn tag_for_required(&self, type_doc: &TypeDoc) -> Option<String> {
-        let SchemaKeySegmentKind::Field(field) = &type_doc.key.segments.last()?.kind else {
+    fn tag_for_required(&self, schema: &Schema) -> Option<String> {
+        let PathSegment::Field(field) = &schema.path.segments.last()? else {
             return None;
         };
 
@@ -121,30 +200,9 @@ impl Renderer {
         Some(format!("**Required:** `{requirement}`"))
     }
 
-    fn tag_for_type(&self, type_doc: &TypeDoc) -> Option<String> {
-        let ty_ref = type_doc.type_index_ref.as_ref().map(|ty_ref| {
-            let definition = &ty_ref.definition;
-            let anchor = definition.to_lowercase();
-            format!("[`{definition}`](/checks2/type-index.html#{anchor})")
-        });
-
-        let ty = self
-            .ty(&type_doc.ty)
-            .or_else(|| self.ty(&type_doc.type_index_ref.as_ref()?.ty));
-
-        let ty = if ty_ref.is_some() {
-            ty.map(|ty| format!("`({ty})`"))
-        } else {
-            ty.map(|ty| format!("`{ty}`"))
-        };
-
-        let parts = [ty_ref, ty].iter().flatten().join(" ");
-
-        if parts.is_empty() {
-            return None;
-        }
-
-        Some(format!("**Type:** {parts}"))
+    fn tag_for_type(&self, ty: &Type) -> Option<String> {
+        let ty = self.ty(&ty)?;
+        Some(format!("**Type:** `{ty}`"))
     }
 
     fn leaf_type(&self, ty: &LeafType) -> Option<String> {
@@ -178,30 +236,30 @@ impl Renderer {
         Some([Some(ty), array_suffix].into_iter().flatten().collect())
     }
 
-    fn default(&self, type_doc: &TypeDoc) -> Option<RenderedSection> {
-        let value = type_doc.default.as_ref()?;
-        Some(self.value_showcase(type_doc, "Default", value))
+    fn default(&self, path: &Path, doc: &SchemaDocData) -> Option<Section> {
+        let value = doc.default.as_ref()?;
+        Some(self.value_showcase(path, "Default", value))
     }
 
-    fn value_showcase(&self, type_doc: &TypeDoc, header: &str, value: &Value) -> RenderedSection {
-        let toml = self.value(&type_doc.key, value);
-        RenderedSection::leaf(header, toml)
+    fn value_showcase(&self, path: &Path, header: &str, value: &Value) -> Section {
+        let toml = self.value(path, value);
+        Section::leaf(header, toml)
     }
 
-    fn examples(&self, type_doc: &TypeDoc) -> Option<RenderedSection> {
-        match type_doc.examples.as_slice() {
+    fn examples(&self, path: &Path, doc: &SchemaDocData) -> Option<Section> {
+        match doc.examples.as_slice() {
             [] => return None,
-            [example] => return Some(self.value_showcase(type_doc, "Example", example)),
+            [example] => return Some(self.value_showcase(path, "Example", example)),
             _ => {}
         };
 
-        let examples = type_doc
+        let examples = doc
             .examples
             .iter()
             .map(|value| {
                 // Properly indent the example to fit into the markdown
                 // list syntax
-                let example = self.value(&type_doc.key, value);
+                let example = self.value(path, value);
                 let example = example
                     .lines()
                     .enumerate()
@@ -217,10 +275,10 @@ impl Renderer {
             })
             .join("\n");
 
-        Some(RenderedSection::leaf("Examples", examples))
+        Some(Section::leaf("Examples", examples))
     }
 
-    fn enum_doc(&self, ty: &LeafType) -> Option<RenderedSection> {
+    fn enum_doc(&self, ty: &LeafType) -> Option<Section> {
         let doc = ty
             .enum_schema
             .as_ref()?
@@ -234,25 +292,25 @@ impl Renderer {
             })
             .join("\n\n");
 
-        Some(RenderedSection::leaf("Possible values", doc))
+        Some(Section::leaf("Possible values", doc))
     }
 
-    fn value(&self, key: &SchemaKey, value: &Value) -> String {
-        fn wrap(key: &[SchemaKeySegment], value: Value) -> Value {
+    fn value(&self, key: &Path, value: &Value) -> String {
+        fn wrap(key: &[PathSegment], value: Value) -> Value {
             let Some((first, rest)) = key.split_first() else {
                 return value;
             };
 
-            match &first.kind {
-                SchemaKeySegmentKind::Field(_) => {
+            match &first {
+                PathSegment::Field(_) => {
                     json!({ first.to_string(): wrap(rest, value) })
                 }
-                SchemaKeySegmentKind::Index => {
+                PathSegment::Index => {
                     json!([wrap(rest, value)])
                 }
                 // We use untagged one-of representations, so there is nothing
                 // to wrap here
-                SchemaKeySegmentKind::Variant(_) => value,
+                PathSegment::Variant(_) => value,
             }
         }
 
@@ -282,13 +340,13 @@ impl Renderer {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct RenderedSection {
+pub(crate) struct Section {
     header: String,
     body: String,
-    children: Vec<RenderedSection>,
+    children: Vec<Section>,
 }
 
-impl RenderedSection {
+impl Section {
     pub(crate) fn leaf(header: impl Into<String>, body: impl Into<String>) -> Self {
         Self {
             header: header.into(),
@@ -297,7 +355,7 @@ impl RenderedSection {
         }
     }
 
-    /// Render the type_doc as markdown with the headers starting at the given level
+    /// Render the schema as markdown with the headers starting at the given level
     fn to_markdown(&self, level: usize) -> String {
         let header = self.header.clone();
         let sharps = "#".repeat(level);
@@ -313,13 +371,51 @@ impl RenderedSection {
     }
 }
 
+struct NamedDocument {
+    name: String,
+    document: Document,
+}
+
+impl NamedDocument {
+    fn into_files(self) -> Vec<File> {
+        let mut files = vec![];
+        let path = Utf8PathBuf::new();
+        self.into_files_imp(path, &mut files);
+        files
+    }
+
+    fn into_files_imp(self, path: Utf8PathBuf, files: &mut Vec<File>) {
+        let file_name = format!("{}.md", self.name);
+        let file = File::new(path.join(file_name), self.document.section);
+        files.push(file);
+
+        for child in self.document.children {
+            child.into_files_imp(path.join(&self.name), files);
+        }
+    }
+}
+
+struct Document {
+    section: Section,
+    children: Vec<NamedDocument>,
+}
+
+impl Document {
+    fn leaf(section: Section) -> Self {
+        Self {
+            section,
+            children: vec![],
+        }
+    }
+}
+
 pub(crate) struct File {
     path: Utf8PathBuf,
-    rendered: RenderedSection,
+    rendered: Section,
 }
 
 impl File {
-    fn new(path: impl Into<Utf8PathBuf>, rendered: RenderedSection) -> Self {
+    fn new(path: impl Into<Utf8PathBuf>, rendered: Section) -> Self {
         Self {
             path: path.into(),
             rendered,

@@ -19,6 +19,8 @@ itertools = "0.12"
 # Map that preserves the order of fields
 indexmap = { version = "2.0", features = ["serde"] }
 
+markdown = "1.0.0-alpha.16"
+
 # The coolest serialization framework in the world
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }

@@ -1,4 +1,4 @@
-use super::input::{EnumVariantSchema, RootSchema, Schema};
+use super::source::{EnumVariantSchema, RootSchema, Schema};
 use anyhow::Result;
 
 /// Generate the JSON schema based on the input YML schema.

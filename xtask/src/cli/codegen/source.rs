@@ -260,16 +260,8 @@ impl Schema {
             .with_context(|| format!("Expected description for schema, but found none: {self:#?}"))
     }
 
-    pub(crate) fn referenced_definition(&self) -> Result<Option<&str>> {
-        let Some(reference) = &self.reference else {
-            return Ok(None);
-        };
-
-        let reference = reference.strip_prefix("#/definitions/").with_context(|| {
-            format!("Reference to anything but `#/definitions` is disallowed: {reference}")
-        })?;
-
-        Ok(Some(reference))
+    pub(crate) fn referenced_definition(&self) -> Option<&str> {
+        self.reference.as_ref()?.strip_prefix("#/definitions/")
     }
 
     pub(crate) fn is_undocumented_primitive(&self) -> bool {
@@ -296,26 +288,26 @@ impl Schema {
 }
 
 impl RootSchema {
-    pub(crate) fn find_definition(&self, def_name: &str) -> Result<&Schema> {
+    pub(crate) fn definition(&self, definition: &str) -> Result<&Schema> {
         self.definitions
-            .get(def_name)
-            .with_context(|| format!("Reference to unknown definition: `{def_name}`"))
+            .get(definition)
+            .with_context(|| format!("Reference to unknown definition: `{definition}`"))
     }
 
-    fn find_reference(&self, schema: &Schema) -> Result<Option<&Schema>> {
-        let Some(def_name) = schema.referenced_definition()? else {
+    fn referenced_definition(&self, schema: &Schema) -> Result<Option<&Schema>> {
+        let Some(definition) = schema.referenced_definition() else {
             return Ok(None);
         };
 
         let definition = self
-            .find_definition(def_name)
+            .definition(definition)
             .with_context(|| format!("inside of schema: {schema:#?}"))?;
 
         Ok(Some(definition))
     }
 
     pub(crate) fn inline_referenced_definition(&self, schema: &Schema) -> Result<Schema> {
-        let Some(definition) = self.find_reference(schema)? else {
+        let Some(definition) = self.referenced_definition(schema)? else {
             return Ok(schema.clone());
         };
 

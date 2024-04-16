@@ -1,4 +1,4 @@
-mod input;
+mod source;
 mod json_schema;
 mod md_doc;
 
@@ -14,7 +14,7 @@ impl CodegenCommand {
         let Self {} = self;
 
         let input = fs::read_to_string("deny.schema.yml")?;
-        let input: input::RootSchema = serde_yaml::from_str(&input)?;
+        let input: source::RootSchema = serde_yaml::from_str(&input)?;
 
         md_doc::gen(&input)?;
         json_schema::gen(&input)?;
