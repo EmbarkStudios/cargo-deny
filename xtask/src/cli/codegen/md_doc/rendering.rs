@@ -1,3 +1,6 @@
+mod mdast;
+
+use self::mdast::MdNode;
 use super::{
     Doc, LeafType, Path, PathOrigin, PathSegment, Schema, SchemaDoc, SchemaDocData, SchemaNode,
     Type,
@@ -36,22 +39,24 @@ impl Renderer {
         //     File::new(format!("{key}/cfg.md"), rendered)
         // });
 
+        let type_index = self.type_index(&doc.type_index);
         let root = NamedDocument {
             name: "root".to_owned(),
+            document: self.schema_node(&doc.root),
+        };
+        let children = itertools::chain([root], type_index).collect();
+
+        let schema = NamedDocument {
+            name: "schema".to_owned(),
             document: Document {
                 section: self.root_file_base.clone(),
-                children: vec![NamedDocument {
-                    name: "schema".to_owned(),
-                    document: self.schema_node(&doc.root),
-                }],
+                children,
             },
         };
 
-        let type_index = self.type_index(&doc.type_index);
+        println!("{}", schema.summary().to_markdown());
 
-        itertools::chain([root], type_index)
-            .flat_map(NamedDocument::into_files)
-            .collect()
+        schema.files()
     }
 
     fn type_index(&self, type_index: &BTreeMap<String, SchemaNode>) -> Option<NamedDocument> {
@@ -84,59 +89,39 @@ impl Renderer {
         match &node.schema.doc {
             SchemaDoc::Embedded(doc) => self.schema_embedded(&node, doc),
             SchemaDoc::Nested(doc) => self.schema_embedded(&node, doc),
-            SchemaDoc::Ref(reference) => self.schema_ref(&node, reference),
+            SchemaDoc::Ref(reference) => self.schema_embedded(&node, &reference.data),
         }
     }
 
-    fn schema_ref(&self, node: &SchemaNode, reference: &str) -> Document {
-        let (ref_name, url) = reference
-            .strip_prefix("#/definitions/")
-            .map(|definition| {
-                let anchor = definition.to_lowercase();
-                (definition, format!("/checks2/type-index.html#{anchor})"))
-            })
-            .unwrap_or_else(|| ("{ExternalSchema}", reference.to_owned()));
+    // fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
+    //     let document = self.schema_embedded(node, doc);
 
-        let section = self.type_reference(&node.schema, ref_name, &url);
+    //     let name = node.schema.path.segments.last().unwrap().to_string();
 
-        Document::leaf(section)
-    }
+    //     let nested = NamedDocument {
+    //         name: name.clone(),
+    //         document,
+    //     };
 
-    fn type_reference(&self, schema: &Schema, ref_name: &str, url: &str) -> Section {
-        let reference = format!("[`{ref_name}`]({url})");
+    //     let url = format!("./{name}.md");
+    //     let section = self.type_reference(&node.schema, "Nested", &url);
 
-        let ty = self
-            .ty(&schema.ty)
-            .map(|ty| format!(" `{ty}`"))
-            .unwrap_or_default();
-
-        let body = format!("**Type:**: {reference}{ty}");
-
-        Section::leaf(self.section_header(schema), body)
-    }
-
-    fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
-        let document = self.schema_embedded(node, doc);
-
-        let name = node.schema.path.segments.last().unwrap().to_string();
-
-        let nested = NamedDocument {
-            name: name.clone(),
-            document,
-        };
-
-        let url = format!("./{name}.md");
-        let section = self.type_reference(&node.schema, "Nested", &url);
-
-        Document {
-            section,
-            children: vec![nested],
-        }
-    }
+    //     Document {
+    //         section,
+    //         children: vec![nested],
+    //     }
+    // }
 
     fn schema_embedded(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
+        let enum_doc = node
+            .schema
+            .doc
+            .reference()
+            .is_none()
+            .then(|| self.enum_doc(&node.schema.ty.inner));
+
         let children = [
-            self.enum_doc(&node.schema.ty.inner),
+            enum_doc.flatten(),
             self.default(&node.schema.path, &doc),
             self.examples(&node.schema.path, &doc),
         ];
@@ -154,7 +139,7 @@ impl Renderer {
 
         let section = Section {
             header,
-            body: self.section_body(&node.schema, &doc),
+            body: self.section_body(&node.schema, doc),
             children: child_sections,
         };
         Document {
@@ -164,22 +149,22 @@ impl Renderer {
     }
 
     fn section_header(&self, schema: &Schema) -> String {
-        if let PathOrigin::Definition(def) = &schema.path.origin {
-            return format!("`{def}`");
-        }
         let Some(last_segment) = schema.path.segments.last() else {
-            return "Schema".to_owned();
+            return match &schema.path.origin {
+                PathOrigin::Definition(def) => format!("`{def}`"),
+                PathOrigin::Root => "Root".to_owned(),
+            };
         };
 
         match &last_segment {
             PathSegment::Field(_) => format!("`{}`", schema.path),
-            PathSegment::Index => "Array item".to_owned(),
-            PathSegment::Variant(variant_name) => format!("Variant: `{variant_name}`"),
+            PathSegment::Index => format!("`{}`", schema.path),
+            PathSegment::Variant(_) => format!("`{}`", schema.path),
         }
     }
 
     fn section_body(&self, schema: &Schema, doc: &SchemaDocData) -> String {
-        let top = [self.tag_for_type(&schema.ty), self.tag_for_required(schema)];
+        let top = [self.tag_for_type(schema), self.tag_for_required(schema)];
 
         let top = top.iter().flatten().join("<br>\n");
 
@@ -194,15 +179,38 @@ impl Renderer {
         };
 
         let requirement = match field.required {
-            true => "yes",
-            false => "no",
+            true => "required",
+            false => "optional",
         };
-        Some(format!("**Required:** `{requirement}`"))
+        Some(format!("**Key:** `{requirement}`"))
     }
 
-    fn tag_for_type(&self, ty: &Type) -> Option<String> {
-        let ty = self.ty(&ty)?;
-        Some(format!("**Type:** `{ty}`"))
+    fn tag_for_type(&self, schema: &Schema) -> Option<String> {
+        let reference = schema.doc.reference().map(|reference| {
+            let (label, url) = reference
+                .strip_prefix("#/definitions/")
+                // TODO: unhardcode
+                .map(|definition| {
+                    (
+                        definition,
+                        format!("/checks2/schema/type-index/{definition}.md"),
+                    )
+                })
+                .unwrap_or_else(|| ("{ExternalSchema}", reference.to_owned()));
+
+            format!("[`{label}`]({url})")
+        });
+
+        let ty = self.ty(&schema.ty);
+
+        let value = match (ty, reference) {
+            (None, None) => return None,
+            (None, Some(reference)) => reference,
+            (Some(ty), None) => format!("`{ty}`"),
+            (Some(ty), Some(reference)) => format!("{reference} `{ty}`"),
+        };
+
+        Some(format!("**Type:** {value}"))
     }
 
     fn leaf_type(&self, ty: &LeafType) -> Option<String> {
@@ -290,7 +298,7 @@ impl Renderer {
 
                 format!("- {doc}")
             })
-            .join("\n\n");
+            .join("\n");
 
         Some(Section::leaf("Possible values", doc))
     }
@@ -377,20 +385,42 @@ struct NamedDocument {
 }
 
 impl NamedDocument {
-    fn into_files(self) -> Vec<File> {
+    fn summary(&self) -> MdNode<'_> {
+        // TODO: unhardcode root path
+        let path = Utf8PathBuf::from("checks2");
+        let node = self.summary_imp(path);
+        MdNode::unordered_list([node])
+    }
+
+    fn summary_imp(&self, path: Utf8PathBuf) -> MdNode<'_> {
+        let url = path.join(format!("{}.md", self.name));
+        let link = MdNode::link([MdNode::text(self.name.as_str())], url.into_string());
+
+        let children = self
+            .document
+            .children
+            .iter()
+            .map(|child| child.summary_imp(path.join(&self.name)));
+
+        MdNode::many([link, MdNode::unordered_list(children)])
+    }
+
+    fn files(&self) -> Vec<File> {
         let mut files = vec![];
+
         let path = Utf8PathBuf::new();
-        self.into_files_imp(path, &mut files);
+
+        self.files_imp(path, &mut files);
         files
     }
 
-    fn into_files_imp(self, path: Utf8PathBuf, files: &mut Vec<File>) {
+    fn files_imp(&self, path: Utf8PathBuf, files: &mut Vec<File>) {
         let file_name = format!("{}.md", self.name);
-        let file = File::new(path.join(file_name), self.document.section);
+        let file = File::new(path.join(file_name), self.document.section.clone());
         files.push(file);
 
-        for child in self.document.children {
-            child.into_files_imp(path.join(&self.name), files);
+        for child in &self.document.children {
+            child.files_imp(path.join(&self.name), files);
         }
     }
 }

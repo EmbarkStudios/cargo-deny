@@ -13,13 +13,14 @@ camino = "1.1"
 # Amazing CLI arg parser
 clap = { version = "4.3", features = ["derive"] }
 
+pulldown-cmark = "0.10"
+pulldown-cmark-to-cmark = "13.0"
+
 # The best iterators utilities
 itertools = "0.12"
 
 # Map that preserves the order of fields
 indexmap = { version = "2.0", features = ["serde"] }
-
-markdown = "1.0.0-alpha.16"
 
 # The coolest serialization framework in the world
 serde = { version = "1.0", features = ["derive"] }

@@ -311,12 +311,14 @@ impl RootSchema {
             return Ok(schema.clone());
         };
 
-        let mut schema = schema.clone();
-        schema.reference = None;
+        let mut output = definition.clone();
 
-        merge_json_mut(&mut schema, definition);
+        // Values from the schema should take priority
+        merge_json_mut(&mut output, schema);
 
-        Ok(schema)
+        output.reference = None;
+
+        Ok(output)
     }
 }
 

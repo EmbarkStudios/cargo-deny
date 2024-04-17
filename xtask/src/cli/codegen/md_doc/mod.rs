@@ -176,32 +176,38 @@ impl GenerateDoc {
     }
 
     fn schema_node(&self, schema: PathedSourceSchema) -> Result<SchemaNode> {
-        if let Some(reference) = schema.inner.reference.clone() {
-            self.schema_node_ref(schema, reference)
-        } else {
-            self.schema_node_non_ref(schema)
-        }
-    }
+        //     if let Some(reference) = schema.inner.reference.clone() {
+        //         self.schema_node_ref(schema, reference)
+        //     } else {
+        //         self.schema_node_non_ref(schema)
+        //     }
+        // }
 
-    fn schema_node_ref(&self, schema: PathedSourceSchema, reference: String) -> Result<SchemaNode> {
-        let doc = SchemaDoc::Ref(reference);
+        // fn schema_node_ref(&self, schema: PathedSourceSchema, reference: String) -> Result<SchemaNode> {
+        //     let doc = SchemaDoc::Ref(reference);
+        //     let path = schema.path;
+
+        //     let inline = self
+        //         .options
+        //         .root
+        //         .inline_referenced_definition(&schema.inner)?;
+
+        //     let ty = Type::from_source_schema(&inline);
+
+        //     let schema = Schema { path, ty, doc };
+
+        //     Ok(SchemaNode::leaf(schema))
+        // }
+
+        // fn schema_node_non_ref(&self, schema: PathedSourceSchema) -> Result<SchemaNode> {
         let path = schema.path;
 
-        let inline = self
-            .options
-            .root
-            .inline_referenced_definition(&schema.inner)?;
-
-        let ty = Type::from_source_schema(&inline);
-
-        let schema = Schema { path, ty, doc };
-
-        Ok(SchemaNode::leaf(schema))
-    }
-
-    fn schema_node_non_ref(&self, schema: PathedSourceSchema) -> Result<SchemaNode> {
-        let path = schema.path;
-        let ty = Type::from_source_schema(&schema.inner);
+        let ty = Type::from_source_schema(
+            &self
+                .options
+                .root
+                .inline_referenced_definition(&schema.inner)?,
+        );
 
         let schema = schema.inner;
 
@@ -227,7 +233,9 @@ impl GenerateDoc {
             examples: schema.examples,
         };
 
-        let doc = if path.segments.len() % (self.options.max_nesting_in_file + 1) == 0 {
+        let doc = if let Some(reference) = schema.reference.clone() {
+            SchemaDoc::Ref(SchemaDocRef { reference, data })
+        } else if path.segments.len() % (self.options.max_nesting_in_file + 1) == 0 {
             SchemaDoc::Nested(data)
         } else {
             SchemaDoc::Embedded(data)

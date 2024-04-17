@@ -35,7 +35,24 @@ pub(crate) enum SchemaDoc {
 
     /// This schema is a reference to some other schema. It may be either a reference
     /// to a definition within the same schema or a reference to some external schema.
-    Ref(String),
+    Ref(SchemaDocRef),
+}
+
+impl SchemaDoc {
+    pub(crate) fn reference(&self) -> Option<&str> {
+        match self {
+            SchemaDoc::Ref(reference) => Some(&reference.reference),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct SchemaDocRef {
+    pub(crate) reference: String,
+
+    /// Additional data that may override the details of the referenced schema.
+    pub(crate) data: SchemaDocData,
 }
 
 #[derive(Debug)]
@@ -76,13 +93,17 @@ impl fmt::Display for Path {
         let mut segments = self.segments.iter();
 
         if let Some(segment) = segments.next() {
-            write!(f, "{segment}")?;
+            if let PathSegment::Variant(_) = segment {
+                write!(f, "As {segment}")?;
+            } else {
+                write!(f, "{segment}")?;
+            }
         }
 
         segments.try_for_each(|segment| match &segment {
             PathSegment::Field(_) => write!(f, ".{segment}"),
-            PathSegment::Index => write!(f, " array item"),
-            PathSegment::Variant(_) => write!(f, " as {segment}"),
+            PathSegment::Index => write!(f, "{segment}"),
+            PathSegment::Variant(_) => write!(f, "as {segment}"),
         })
     }
 }
@@ -97,8 +118,10 @@ impl fmt::Display for PathSegment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
             PathSegment::Field(field) => f.write_str(&field.name),
-            PathSegment::Index => f.write_str("n"),
-            PathSegment::Variant(name) => f.write_str(name),
+            // .<nth>
+            // [..]
+            PathSegment::Index => f.write_str("[N]"),
+            PathSegment::Variant(name) => write!(f, "{name}"),
         }
     }
 }
