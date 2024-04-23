@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#653](https://github.com/EmbarkStudios/cargo-deny/pull/653) updated `jobserver` -> 0.1.30
+- [PR#656](https://github.com/EmbarkStudios/cargo-deny/pull/656) updated `gix` -> 0.62.0, `reqwest` -> 0.12.4, `tame-index` -> 0.11.0
+
 ## [0.14.21] - 2024-04-12
 ### Fixed
 - [PR#643](https://github.com/EmbarkStudios/cargo-deny/pull/643) resolved [#629](https://github.com/EmbarkStudios/cargo-deny/issues/629) by making the hosted git (github, gitlab, bitbucket) org/user name comparison case-insensitive. Thanks [@pmnlla](https://github.com/pmnlla)!
