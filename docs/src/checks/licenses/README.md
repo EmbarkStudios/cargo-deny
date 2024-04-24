@@ -42,5 +42,5 @@ Currently, the precedence for determining whether a particular license is accept
 
 ![licenses output](../../output/licenses.svg)
 
-[SPDX]: https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/
+[SPDX]: https://spdx.github.io/spdx-spec/v3.0/annexes/SPDX-license-expressions/
 [cargo-md]: https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata
