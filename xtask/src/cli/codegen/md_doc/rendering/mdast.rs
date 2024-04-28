@@ -59,12 +59,26 @@ impl<'a> MdNode<'a> {
                     return;
                 }
 
+                // let tag = Tag::List(*start);
+                // let end = tag.to_end();
+                // visit(Event::Start(tag));
+
                 let mut list = TagGuard::new(visit, Tag::List(*start));
 
                 for node in children {
+                    // let item = TagGuard::new(list.visit, Tag::Item);
+
                     let item = list.nest(Tag::Item);
+                    // let tag = Tag::Item;
+                    // let end = tag.to_end();
+                    // visit(Event::Start(tag));
+
                     node.for_each_pulldown_cmark_event(item.visit);
+
+                    // visit(Event::End(end));
                 }
+
+                // visit(Event::End(end));
             }
             MdNode::Paragraph { children } => {
                 let paragraph = TagGuard::new(visit, Tag::Paragraph);
