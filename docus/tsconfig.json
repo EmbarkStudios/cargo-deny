@@ -1,0 +1,11 @@
+{
+  // This file is not used in compilation. It is here just for a nice editor experience.
+  "extends": "@docusaurus/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "strict": true,
+    "module": "CommonJS",
+  },
+  // "exclude": ["../node_modules"],
+  "files": ["src/**/*.ts"]
+}
