@@ -1,0 +1,40 @@
+[package]
+name = "dashie"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Easy dynamic error handling
+anyhow = "1.0"
+
+# Much nicer paths
+camino = { version = "1.1", features = ["serde1"] }
+
+# Amazing CLI arg parser
+clap = { version = "4.3", features = ["derive"] }
+
+pulldown-cmark = "0.10"
+pulldown-cmark-to-cmark = "13.0"
+
+# The best iterators utilities
+itertools = "0.12"
+
+# Map that preserves the order of fields
+indexmap = { version = "2.0", features = ["serde"] }
+
+# The coolest serialization framework in the world
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+serde_yaml = "0.9"
+toml = "0.8"
+
+# Awesome logging tools
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+mdbook = "0.4"
+semver = "1.0"
+
+# Renaming `fs-err` to just `fs` for convenience
+fs = { package = "fs-err", version = "2.11" }
+buildstructor = "0.5"

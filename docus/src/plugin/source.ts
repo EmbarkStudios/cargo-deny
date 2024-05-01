@@ -42,6 +42,25 @@ const SchemaBase = z.object({
     examples: z.array(z.unknown()).optional(),
 
     required: z.array(z.string()).optional(),
+    enum: z.array(
+        z.union([
+            z.intersection(
+                z.object({
+                    description: z.string(),
+                }),
+                z.union([
+                    z.object({
+                        value: z.unknown(),
+                        name: z.string(),
+                    }),
+                    z.object({
+                        value: z.string(),
+                    }),
+                ])
+            ),
+            z.union([z.string(), z.number()])
+        ]),
+    ).optional()
 
     // #[serde(flatten)]
     // pub(crate) object_schema: Option<ObjectSchema>,
@@ -60,34 +79,12 @@ type Schema = z.infer<typeof SchemaBase> & {
     properties?: Record<string, Schema>;
     items?: Schema;
     oneOf?: { schema: Schema; name?: string }[];
-    enum?: ({ value: unknown; name: string } | { value: string } | string | number)[];
 };
 
 const Schema: z.ZodType<Schema> = SchemaBase.extend({
     properties: z.lazy(() => z.record(Schema)).optional(),
     items: z.lazy(() => Schema).optional(),
     oneOf: z.lazy(() => z.array(Schema.extend({ name: z.string().optional() })).optional()),
-    enum: z.lazy(() =>
-        z.array(
-            z.union([
-                z.intersection(
-                    z.object({
-                        description: z.string(),
-                    }),
-                    z.union([
-                        z.object({
-                            value: z.unknown(),
-                            name: z.string(),
-                        }),
-                        z.object({
-                            value: z.string(),
-                        }),
-                    ])
-                ),
-                z.union([z.string(), z.number()])
-            ]),
-        ).optional()
-    )
 });
 
 const RootSchema = Schema.extend({
