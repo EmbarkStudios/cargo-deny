@@ -125,7 +125,7 @@ jobs:
 
   release:
     name: Release
-    if: startsWith(github.ref, 'refs/tags/')
+    #if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         include:
@@ -167,6 +167,7 @@ jobs:
       - name: Release build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Package
+        if: false
         shell: bash
         run: |
           name=cargo-deny
@@ -193,6 +194,7 @@ jobs:
             echo -n "$(shasum -ba 256 "${release_tar}" | cut -d " " -f 1)" > "${release_tar}.sha256"
           fi
       - name: Publish
+        if: false
         uses: softprops/action-gh-release@v1
         with:
           draft: true
