@@ -1,6 +1,6 @@
 use crate::md_doc::mir;
 use crate::prelude::*;
-use crate::{dashie_schema, md_doc};
+use crate::{source, md_doc};
 use camino::Utf8PathBuf;
 use mdbook::book::{self, Book};
 use mdbook::preprocess::PreprocessorContext;
@@ -51,7 +51,7 @@ impl Context {
             .transpose()?
             .unwrap_or_else(|| "dashie.schema.yml".into());
 
-        let schema = dashie_schema::RootSchema::from_file(schema_path)?;
+        let schema = source::RootSchema::from_file(schema_path)?;
 
         let doc = md_doc::hir::Dom::builder().schema(schema).build()?.lower();
 

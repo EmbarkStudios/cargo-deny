@@ -1,12 +1,13 @@
-use crate::dashie_schema::{EnumVariantSchema, RootSchema, Schema};
+use crate::source::{EnumVariantSchema, RootSchema, Schema};
 use crate::prelude::*;
+use crate::serdex;
 
 /// Generate the JSON schema based on the input YML schema.
 pub(crate) fn gen(root: &RootSchema) -> Result {
     let ctx = GenContext::new(root);
     let root = ctx.gen()?;
 
-    let output = serde_json::to_string_pretty(&root)?;
+    let output = serdex::json::to_string_pretty(&root);
 
     std::fs::write("deny.schema.json", output)?;
 
@@ -37,14 +38,14 @@ impl<'a> GenContext<'a> {
         Ok(RootSchema {
             definitions,
             schema,
-            other: self.root.other.clone(),
+            misc: self.root.misc.clone(),
         })
     }
 
     fn gen_schema(&self, schema: &Schema) -> Result<Schema> {
         let mut schema = schema.clone();
 
-        schema.traverse_mut(|schema| self.normalize_enum(schema))?;
+        schema.traverse_mut(&mut |schema| self.normalize_enum(schema))?;
 
         Ok(schema)
     }

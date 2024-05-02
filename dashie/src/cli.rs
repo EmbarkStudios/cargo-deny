@@ -21,6 +21,9 @@ enum Command {
 
 pub(crate) fn run() -> Result {
     let cli = Cli::parse();
+
+    debug!(cli = format_args!("{cli:#?}"), "Invoked with CLI params");
+
     match cli.command {
         Command::Codegen(cmd) => cmd.run(),
         Command::Mdbook(cmd) => cmd.run(),

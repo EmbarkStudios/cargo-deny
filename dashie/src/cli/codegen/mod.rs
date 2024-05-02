@@ -1,6 +1,6 @@
 mod json_schema;
 
-use crate::dashie_schema;
+use crate::source;
 use crate::prelude::*;
 use camino::Utf8PathBuf;
 
@@ -13,7 +13,7 @@ pub(crate) struct CodegenCommand {
 
 impl CodegenCommand {
     pub(crate) fn run(self) -> Result {
-        let dashie_schema = dashie_schema::RootSchema::from_file(self.dashie_schema)?;
+        let dashie_schema = source::RootSchema::from_file(self.dashie_schema)?;
 
         json_schema::gen(&dashie_schema)?;
 

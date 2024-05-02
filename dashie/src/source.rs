@@ -1,4 +1,5 @@
-use anyhow::{Context, Result};
+use crate::prelude::*;
+use crate::serdex;
 use camino::Utf8Path;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -14,10 +15,22 @@ pub(crate) struct RootSchema {
 
     pub(crate) definitions: BTreeMap<String, Schema>,
 
-    // Keep the rest of the fields in the schema so they are not lost during
-    // the deserialize -> serialize roundtrip.
+    /// Keep the rest of the fields in the schema so they are not lost during
+    /// the deserialize -> serialize roundtrip.
+    /// Unfortunatelly, we can't use `#[serde(flatten)]` with BTreeMap<String, Value>
+    /// here because it contains a copy of fields from the flattened `schema` due
+    /// a bug in serde. Probably: <https://github.com/serde-rs/serde/issues/2719>
     #[serde(flatten)]
-    pub(crate) other: Object,
+    pub(crate) misc: MiscRootSchemaProperties,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct MiscRootSchemaProperties {
+    #[serde(rename = "$id")]
+    id: String,
+
+    #[serde(rename = "$schema")]
+    schema: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -186,22 +199,23 @@ impl Schema {
         })
     }
 
-    pub(crate) fn traverse_mut(&mut self, visit: impl Fn(&mut Schema) -> Result<()>) -> Result<()> {
+    pub(crate) fn traverse_mut(&mut self, visit: &mut impl FnMut(&mut Schema) -> Result) -> Result {
         visit(self)?;
 
         if let Some(object) = &mut self.object_schema {
-            object.properties.values_mut().try_for_each(&visit)?;
+            for schema in object.properties.values_mut() {
+                schema.traverse_mut(visit)?;
+            }
         }
 
         if let Some(array) = &mut self.array_schema {
-            visit(&mut array.items)?;
+            array.items.traverse_mut(visit)?;
         }
 
         if let Some(one_of) = &mut self.one_of {
-            one_of
-                .iter_mut()
-                .map(|variant| &mut variant.schema)
-                .try_for_each(&visit)?;
+            for variant in one_of {
+                variant.schema.traverse_mut(visit)?;
+            }
         }
 
         Ok(())
@@ -286,13 +300,26 @@ impl Schema {
             if examples.is_empty()
         )
     }
+
+    pub(crate) fn inline_reference(&mut self, referenced_value: &Schema) {
+        // Values from the schema should take priority
+        merge_json_mut(self, referenced_value);
+
+        self.reference = None;
+    }
 }
 
 impl RootSchema {
     pub(crate) fn from_file(path: impl AsRef<Utf8Path>) -> Result<Self> {
-        let input = fs::read_to_string("deny.schema.yml")?;
+        let input = fs::read_to_string(path.as_ref())?;
         let input: Self = serde_yaml::from_str(&input)?;
         Ok(input)
+    }
+
+    pub(crate) fn remove_definition(&mut self, definition: &str) -> Result<Schema> {
+        self.definitions
+            .remove(definition)
+            .with_context(|| format!("Reference to unknown definition: `{definition}`"))
     }
 
     pub(crate) fn definition(&self, definition: &str) -> Result<&Schema> {
@@ -306,9 +333,12 @@ impl RootSchema {
             return Ok(None);
         };
 
-        let definition = self
-            .definition(definition)
-            .with_context(|| format!("inside of schema: {schema:#?}"))?;
+        let definition = self.definition(definition).with_context(|| {
+            format!(
+                "error inside of schema: {}",
+                serdex::json::to_string_pretty(schema)
+            )
+        })?;
 
         Ok(Some(definition))
     }
@@ -319,13 +349,19 @@ impl RootSchema {
         };
 
         let mut output = definition.clone();
-
-        // Values from the schema should take priority
-        merge_json_mut(&mut output, schema);
-
-        output.reference = None;
+        output.inline_reference(schema);
 
         Ok(output)
+    }
+
+    pub(crate) fn traverse_mut(
+        &mut self,
+        visit: &mut impl FnMut(&mut Schema) -> Result,
+    ) -> Result<()> {
+        self.schema.traverse_mut(visit)?;
+        self.definitions
+            .values_mut()
+            .try_for_each(|schema| schema.traverse_mut(visit))
     }
 }
 
