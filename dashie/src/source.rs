@@ -66,8 +66,8 @@ pub(crate) struct Schema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none", rename = "$ref")]
-    pub(crate) reference: Option<String>,
+    #[serde(skip_serializing_if = "Reference::skip_serializing", rename = "$ref")]
+    pub(crate) reference: Option<Reference>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) default: Option<Value>,
@@ -75,6 +75,31 @@ pub(crate) struct Schema {
     /// Extensions for taplo TOML language server
     #[serde(skip_serializing_if = "Option::is_none", rename = "x-taplo")]
     pub(crate) x_taplo: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub(crate) enum Reference {
+    Uninlined(String),
+    /// Reference to the definition that was inlined into this schema.
+    Inlined(String),
+}
+
+impl Reference {
+    fn as_str(&self) -> &str {
+        let (Self::Uninlined(reference) | Self::Inlined(reference)) = self;
+        reference
+    }
+    fn skip_serializing(val: &Option<Self>) -> bool {
+        matches!(val, Some(Self::Inlined(_)) | None)
+    }
+
+    fn as_uninlined(&self) -> Option<&str> {
+        match self {
+            Self::Uninlined(reference) => Some(reference),
+            Self::Inlined(_) => None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -275,8 +300,11 @@ impl Schema {
             .with_context(|| format!("Expected description for schema, but found none: {self:#?}"))
     }
 
-    pub(crate) fn referenced_definition(&self) -> Option<&str> {
-        self.reference.as_ref()?.strip_prefix("#/definitions/")
+    pub(crate) fn referenced_uninlined_definition(&self) -> Option<&str> {
+        self.reference
+            .as_ref()?
+            .as_uninlined()?
+            .strip_prefix("#/definitions/")
     }
 
     pub(crate) fn is_undocumented_primitive(&self) -> bool {
@@ -304,8 +332,16 @@ impl Schema {
     pub(crate) fn inline_reference(&mut self, referenced_value: &Schema) {
         // Values from the schema should take priority
         merge_json_mut(self, referenced_value);
-
-        self.reference = None;
+        self.reference = match self.reference.take().unwrap() {
+            Reference::Uninlined(reference) => Some(Reference::Inlined(reference)),
+            Reference::Inlined(reference) => {
+                panic!(
+                    "Reference `{reference}` was already inlined:\n\
+                    Schema: {self:#?}\n\
+                    Referenced value: {referenced_value:#?}"
+                )
+            }
+        };
     }
 }
 
@@ -329,7 +365,7 @@ impl RootSchema {
     }
 
     fn referenced_definition(&self, schema: &Schema) -> Result<Option<&Schema>> {
-        let Some(definition) = schema.referenced_definition() else {
+        let Some(definition) = schema.referenced_uninlined_definition() else {
             return Ok(None);
         };
 
@@ -372,7 +408,8 @@ impl OneOfVariantSchema {
             .or_else(|| {
                 self.schema
                     .reference
-                    .as_deref()?
+                    .as_ref()?
+                    .as_str()
                     .strip_prefix("#/definitions/")
             })
             .or(self.schema.ty.as_deref())

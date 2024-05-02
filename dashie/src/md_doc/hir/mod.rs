@@ -5,7 +5,7 @@ pub(crate) use node::*;
 mod simplifying;
 
 use crate::prelude::*;
-use crate::source::{ArraySchema, ObjectSchema, OneOfVariantSchema, RootSchema};
+use crate::source::{self, ArraySchema, ObjectSchema, OneOfVariantSchema, RootSchema};
 use buildstructor::buildstructor;
 use std::collections::BTreeMap;
 
@@ -194,7 +194,7 @@ impl LoweringContext {
             examples: schema.examples,
         };
 
-        let doc = if let Some(reference) = schema.reference.clone() {
+        let doc = if let Some(source::Reference::Uninlined(reference)) = schema.reference.clone() {
             SchemaDoc::Ref(SchemaDocRef { reference, data })
         } else if path.segments.len() % (usize::from(self.max_nesting_in_file) + 1) == 0 {
             SchemaDoc::Nested(data)

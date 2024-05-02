@@ -17,7 +17,7 @@ impl LoweringContext {
         };
 
         let definition_ref_counts = all_schemas()
-            .filter_map(|entry| entry.schema.referenced_definition())
+            .filter_map(|entry| entry.schema.referenced_uninlined_definition())
             .counts();
 
         let unused_defs: Vec<_> = self
@@ -85,7 +85,7 @@ impl SimplificationContext {
     }
 
     fn inline_single_reference(&mut self, schema: &mut source::Schema) {
-        let Some(definition) = schema.referenced_definition() else {
+        let Some(definition) = schema.referenced_uninlined_definition() else {
             return;
         };
         let Some(definition) = self.single_references.remove(definition) else {

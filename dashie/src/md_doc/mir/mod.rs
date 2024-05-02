@@ -84,17 +84,31 @@ impl Context {
     }
 
     // fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
-    //     let document = self.schema_embedded(node, doc);
-
-    //     let name = node.schema.path.segments.last().unwrap().to_string();
+    //     let name = node
+    //         .schema
+    //         .path
+    //         .segments
+    //         .last()
+    //         .unwrap_or_else(|| &PathSegment::Index)
+    //         .to_string();
 
     //     let nested = NamedDocument {
     //         name: name.clone(),
-    //         document,
+    //         data: self.schema_embedded(node, doc),
     //     };
 
     //     let url = format!("./{name}.md");
-    //     let section = self.type_reference(&node.schema, "Nested", &url);
+    //     let body = [
+    //         self.tag_for_type(&node.schema),
+    //         self.tag_for_required(&node.schema),
+    //     ]
+    //     .into_iter()
+    //     .flatten()
+    //     .join("\n");
+
+    //     let section = Section::leaf(self.section_header(&node.schema), body);
+
+    //     // self.type_reference(&node.schema, "Nested", &url);
 
     //     Document {
     //         section,
