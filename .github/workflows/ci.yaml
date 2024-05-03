@@ -170,7 +170,7 @@ jobs:
         shell: bash
         run: |
           name=cargo-deny
-          tag=$(git describe --tags --abbrev=0 || "boop")
+          tag=$(git describe --tags --abbrev=0 --always)
           release_name="$name-$tag-${{ matrix.target }}"
           release_tar="${release_name}.tar.gz"
           mkdir "$release_name"
