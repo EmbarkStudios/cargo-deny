@@ -174,18 +174,17 @@ jobs:
           release_name="$name-$tag-${{ matrix.target }}"
           release_tar="${release_name}.tar.gz"
           mkdir "$release_name"
+          binary="target/${{ matrix.target }}/release/${{ matrix.bin }}"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
               if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
-                strip="llvm-strip"
+                llvm-strip "$binary"
               else
-                strip="strip"
+                strip "$binary"
               fi
-
-              $strip "target/${{ matrix.target }}/release/${{ matrix.bin }}"
           fi
 
-          cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$release_name/"
+          cp "$binary" "$release_name/"
           cp README.md LICENSE-APACHE LICENSE-MIT "$release_name/"
           tar czvf "$release_tar" "$release_name"
 
