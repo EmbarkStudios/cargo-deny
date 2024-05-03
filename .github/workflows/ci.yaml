@@ -157,7 +157,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       - name: Install musl tools
         if: ${{ endsWith( matrix.target, '-unknown-linux-musl' ) }}
-        run: sudo apt-get update -y && apt-get install -y musl-tools
+        run: sudo apt-get update -y && sudo apt-get install -y musl-tools
       - name: Install arm64 extras
         if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
         run: .github/musl-cross.sh
