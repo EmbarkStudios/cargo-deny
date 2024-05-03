@@ -19,11 +19,11 @@ Options:
           Defaults to <cwd>/deny.toml if not specified
 
   -g, --graph <GRAPH>
-          Path to graph_output root directory
+          Path to graph output root directory
           
           If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
           
-          Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
+          Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
 
       --hide-inclusion-graph
           Hides the inclusion graph when printing out info for a crate
@@ -61,4 +61,3 @@ Options:
 
   -V, --version
           Print version
-
