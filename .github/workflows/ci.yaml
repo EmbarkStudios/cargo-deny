@@ -130,23 +130,23 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            rust: stable
+            toolchain: stable
             target: x86_64-unknown-linux-musl
             bin: cargo-deny
           - os: ubuntu-22.04
-            rust: stable
+            toolchain: stable
             target: aarch64-unknown-linux-musl
             bin: cargo-deny
           - os: windows-2022
-            rust: stable
+            toolchain: stable
             target: x86_64-pc-windows-msvc
             bin: cargo-deny.exe
           - os: macos-14
-            rust: stable
+            toolchain: stable
             target: x86_64-apple-darwin
             bin: cargo-deny
           - os: macos-14
-            rust: stable
+            toolchain: stable
             target: aarch64-apple-darwin
             bin: cargo-deny
     runs-on: ${{ matrix.os }}
@@ -155,12 +155,28 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
+          toolchain: ${{ matrix.toolchain }}
       - name: Install musl tools
         if: ${{ endsWith( matrix.target, '-unknown-linux-musl' ) }}
+        run: >-
+          sudo apt-get update --yes
+          && apt-get install --yes musl-tools
+      - name: Install arm64 extras
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        shell: bash
         run: |
-          sudo apt-get install -y musl-tools
+          mkdir -p /musl-cross
+          curl -fsSL 'https://musl.cc/aarch64-linux-musl-cross.tgz' | tar --strip-components=1 -C /musl-cross -xzf -
+          echo '/musl-cross/bin' >> $GITHUB_PATH
+          echo 'AR_aarch64_unknown_linux_musl=/musl-cross/bin/aarch64-linux-musl-ar' >> $GITHUB_ENV
+          echo 'CC_aarch64_unknown_linux_musl=/musl-cross/bin/aarch64-linux-musl-gcc' >> $GITHUB_ENV
+          echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=/musl-cross/bin/aarch64-linux-musl-ld' >> $GITHUB_ENV
+          CFLAGS='CFLAGS_aarch64_unknown_linux_musl=-nostdinc -nostdlib -isystem/musl-cross/aarch64-linux-musl/include'
+          MUSL_INCLUDE="$(find /musl-cross/lib/gcc/aarch64-linux-musl/ -maxdepth 2 -type d -name 'include' | head -n 1)"
+          CFLAGS+=" -I ${MUSL_INCLUDE}"
+          echo "${CFLAGS}" >> $GITHUB_ENV
+          unset CFLAGS MUSL_INCLUDE
       - uses: Swatinem/rust-cache@v2
       - name: cargo fetch
         run: cargo fetch --target ${{ matrix.target }}
