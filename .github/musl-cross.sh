@@ -1,10 +1,11 @@
 #!/bin/env bash
+set -e
 
-root="/musl-cross"
+root="$RUNNER_TEMP/musl"
 bin="$root/bin"
 target="aarch64-linux-musl"
-mkdir $root
-curl -fsSL "https://musl.cc/$target.tgz" | tar --strip-components=1 -C $root -xzf -
+mkdir -p "$root"
+curl -fsSL "https://musl.cc/$target-cross.tgz" | tar --strip-components=1 -C "$root" -xzf -
 
 MUSL_INCLUDE="$(find /musl-cross/lib/gcc/$target/ -maxdepth 2 -type d -name 'include' | head -n 1)"
 
