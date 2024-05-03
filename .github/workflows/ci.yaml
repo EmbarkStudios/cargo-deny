@@ -167,7 +167,6 @@ jobs:
       - name: Release build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Package
-        if: false
         shell: bash
         run: |
           name=cargo-deny
@@ -177,7 +176,13 @@ jobs:
           mkdir "$release_name"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
-              strip "target/${{ matrix.target }}/release/${{ matrix.bin }}"
+              if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+                strip="llvm-strip"
+              else
+                strip="strip"
+              fi
+
+              $strip "target/${{ matrix.target }}/release/${{ matrix.bin }}"
           fi
 
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$release_name/"
