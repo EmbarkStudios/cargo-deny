@@ -1,6 +1,6 @@
 use super::LoweringContext;
 use crate::prelude::*;
-use crate::source;
+use crate::source::{self, Traverse};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::ControlFlow;
 
@@ -17,7 +17,7 @@ impl LoweringContext {
         };
 
         let definition_ref_counts = all_schemas()
-            .filter_map(|entry| entry.schema.referenced_uninlined_definition())
+            .filter_map(|entry| entry.schema.referenced_definition_name())
             .counts();
 
         let unused_defs: Vec<_> = self
@@ -57,7 +57,14 @@ impl LoweringContext {
 
         let mut ctx = SimplificationContext { single_references };
 
-        ctx.simplify(self)?;
+        ctx.simplify(&mut self.root);
+
+        assert_eq!(
+            ctx.single_references.len(),
+            0,
+            "All single references should have been inlined at this point, but got: {:#?}",
+            ctx.single_references
+        );
 
         Ok(ControlFlow::Continue(()))
     }
@@ -68,29 +75,20 @@ struct SimplificationContext {
 }
 
 impl SimplificationContext {
-    fn simplify(&mut self, lowering: &mut LoweringContext) -> Result {
-        // We simplify in a loop because inlining a definition may introduce new
-        // opportunities for further simplification. It is a fixed-point iteration
-        // where we keep simplifying until eventually no more simplifications can
-        // be made.
-        while !self.single_references.is_empty() {
-            lowering.root.traverse_mut(&mut |schema| {
-                self.inline_single_reference(schema);
-                Ok(())
-            })?;
-            dbg!(&self.single_references.keys().collect_vec());
-        }
-
-        Ok(())
+    fn simplify(&mut self, tree: &mut impl Traverse<source::Schema>) {
+        tree.traverse_mut(&mut |schema| self.inline_single_reference(schema));
     }
 
     fn inline_single_reference(&mut self, schema: &mut source::Schema) {
-        let Some(definition) = schema.referenced_uninlined_definition() else {
+        let Some(definition_name) = schema.referenced_definition_name() else {
             return;
         };
-        let Some(definition) = self.single_references.remove(definition) else {
+        let Some(mut definition) = self.single_references.remove(definition_name) else {
             return;
         };
+
+        // Recursively simplify the inlined definition itself.
+        self.simplify(&mut definition);
 
         schema.inline_reference(&definition);
     }

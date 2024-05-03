@@ -103,7 +103,7 @@ impl fmt::Display for Path {
         segments.try_for_each(|segment| match &segment {
             PathSegment::Field(_) => write!(f, ".{segment}"),
             PathSegment::Index => write!(f, "{segment}"),
-            PathSegment::Variant(_) => write!(f, "as {segment}"),
+            PathSegment::Variant(_) => write!(f, "::{segment}"),
         })
     }
 }

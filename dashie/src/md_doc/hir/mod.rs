@@ -9,6 +9,7 @@ use crate::source::{self, ArraySchema, ObjectSchema, OneOfVariantSchema, RootSch
 use buildstructor::buildstructor;
 use std::collections::BTreeMap;
 
+#[derive(Debug)]
 pub(crate) struct Dom {
     pub(crate) root: SchemaNode,
     pub(crate) type_index: BTreeMap<String, SchemaNode>,
@@ -24,7 +25,7 @@ impl Dom {
     ) -> Result<Self> {
         let ctx = LoweringContext {
             root: schema,
-            max_nesting_in_file: max_nesting_in_file.unwrap_or(2),
+            max_nesting_in_file: max_nesting_in_file.unwrap_or(3),
             allow_unused_definitions: allow_unused_definitions.unwrap_or(false),
         };
 
@@ -194,9 +195,9 @@ impl LoweringContext {
             examples: schema.examples,
         };
 
-        let doc = if let Some(source::Reference::Uninlined(reference)) = schema.reference.clone() {
+        let doc = if let Some(reference) = schema.reference.clone() {
             SchemaDoc::Ref(SchemaDocRef { reference, data })
-        } else if path.segments.len() % (usize::from(self.max_nesting_in_file) + 1) == 0 {
+        } else if (path.segments.len() + 1) % (usize::from(self.max_nesting_in_file) + 1) == 0 {
             SchemaDoc::Nested(data)
         } else {
             SchemaDoc::Embedded(data)
@@ -242,9 +243,10 @@ impl LoweringContext {
 
         let duplicates: Vec<_> = names.iter().duplicates().collect();
 
-        anyhow::ensure!(
+        ensure!(
             duplicates.is_empty(),
             "Duplicate variant names found in one_of schema.\n\
+            Path: {path}\n\
             Duplicates: {duplicates:?}\n\
             Variants: {variants:#?}",
         );

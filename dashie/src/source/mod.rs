@@ -1,3 +1,7 @@
+mod traversal;
+
+pub(crate) use traversal::*;
+
 use crate::prelude::*;
 use crate::serdex;
 use camino::Utf8Path;
@@ -66,8 +70,8 @@ pub(crate) struct Schema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
 
-    #[serde(skip_serializing_if = "Reference::skip_serializing", rename = "$ref")]
-    pub(crate) reference: Option<Reference>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "$ref")]
+    pub(crate) reference: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) default: Option<Value>,
@@ -75,31 +79,11 @@ pub(crate) struct Schema {
     /// Extensions for taplo TOML language server
     #[serde(skip_serializing_if = "Option::is_none", rename = "x-taplo")]
     pub(crate) x_taplo: Option<Value>,
-}
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
-pub(crate) enum Reference {
-    Uninlined(String),
-    /// Reference to the definition that was inlined into this schema.
-    Inlined(String),
-}
-
-impl Reference {
-    fn as_str(&self) -> &str {
-        let (Self::Uninlined(reference) | Self::Inlined(reference)) = self;
-        reference
-    }
-    fn skip_serializing(val: &Option<Self>) -> bool {
-        matches!(val, Some(Self::Inlined(_)) | None)
-    }
-
-    fn as_uninlined(&self) -> Option<&str> {
-        match self {
-            Self::Uninlined(reference) => Some(reference),
-            Self::Inlined(_) => None,
-        }
-    }
+    /// If [`Some`] specifies the original reference that was inlined into this
+    /// from a [`Self::reference`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) inlined_from: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -224,28 +208,6 @@ impl Schema {
         })
     }
 
-    pub(crate) fn traverse_mut(&mut self, visit: &mut impl FnMut(&mut Schema) -> Result) -> Result {
-        visit(self)?;
-
-        if let Some(object) = &mut self.object_schema {
-            for schema in object.properties.values_mut() {
-                schema.traverse_mut(visit)?;
-            }
-        }
-
-        if let Some(array) = &mut self.array_schema {
-            array.items.traverse_mut(visit)?;
-        }
-
-        if let Some(one_of) = &mut self.one_of {
-            for variant in one_of {
-                variant.schema.traverse_mut(visit)?;
-            }
-        }
-
-        Ok(())
-    }
-
     fn try_downcast_as<'a, T>(&'a self, schema: &'a Option<T>, label: &str) -> Result<&'a T> {
         schema
             .as_ref()
@@ -300,11 +262,8 @@ impl Schema {
             .with_context(|| format!("Expected description for schema, but found none: {self:#?}"))
     }
 
-    pub(crate) fn referenced_uninlined_definition(&self) -> Option<&str> {
-        self.reference
-            .as_ref()?
-            .as_uninlined()?
-            .strip_prefix("#/definitions/")
+    pub(crate) fn referenced_definition_name(&self) -> Option<&str> {
+        self.reference.as_ref()?.strip_prefix("#/definitions/")
     }
 
     pub(crate) fn is_undocumented_primitive(&self) -> bool {
@@ -324,6 +283,7 @@ impl Schema {
                 reference: None,
                 default: None,
                 x_taplo: None,
+                inlined_from: _,
             }
             if examples.is_empty()
         )
@@ -332,16 +292,7 @@ impl Schema {
     pub(crate) fn inline_reference(&mut self, referenced_value: &Schema) {
         // Values from the schema should take priority
         merge_json_mut(self, referenced_value);
-        self.reference = match self.reference.take().unwrap() {
-            Reference::Uninlined(reference) => Some(Reference::Inlined(reference)),
-            Reference::Inlined(reference) => {
-                panic!(
-                    "Reference `{reference}` was already inlined:\n\
-                    Schema: {self:#?}\n\
-                    Referenced value: {referenced_value:#?}"
-                )
-            }
-        };
+        self.inlined_from = self.reference.take();
     }
 }
 
@@ -365,7 +316,7 @@ impl RootSchema {
     }
 
     fn referenced_definition(&self, schema: &Schema) -> Result<Option<&Schema>> {
-        let Some(definition) = schema.referenced_uninlined_definition() else {
+        let Some(definition) = schema.referenced_definition_name() else {
             return Ok(None);
         };
 
@@ -389,16 +340,6 @@ impl RootSchema {
 
         Ok(output)
     }
-
-    pub(crate) fn traverse_mut(
-        &mut self,
-        visit: &mut impl FnMut(&mut Schema) -> Result,
-    ) -> Result<()> {
-        self.schema.traverse_mut(visit)?;
-        self.definitions
-            .values_mut()
-            .try_for_each(|schema| schema.traverse_mut(visit))
-    }
 }
 
 impl OneOfVariantSchema {
@@ -408,7 +349,8 @@ impl OneOfVariantSchema {
             .or_else(|| {
                 self.schema
                     .reference
-                    .as_ref()?
+                    .as_ref()
+                    .or(self.schema.inlined_from.as_ref())?
                     .as_str()
                     .strip_prefix("#/definitions/")
             })

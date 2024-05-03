@@ -1,6 +1,6 @@
-use crate::source::{EnumVariantSchema, RootSchema, Schema};
 use crate::prelude::*;
 use crate::serdex;
+use crate::source::{EnumVariantSchema, RootSchema, Schema, Traverse};
 
 /// Generate the JSON schema based on the input YML schema.
 pub(crate) fn gen(root: &RootSchema) -> Result {
@@ -45,7 +45,7 @@ impl<'a> GenContext<'a> {
     fn gen_schema(&self, schema: &Schema) -> Result<Schema> {
         let mut schema = schema.clone();
 
-        schema.traverse_mut(&mut |schema| self.normalize_enum(schema))?;
+        schema.try_traverse_mut(&mut |schema| self.normalize_enum(schema))?;
 
         Ok(schema)
     }

@@ -12,6 +12,8 @@ use std::collections::BTreeMap;
 
 impl hir::Dom {
     pub(crate) fn lower(&self) -> Dom {
+        dbg!(&self);
+
         let context = Context {};
         context.doc(self)
     }
@@ -78,43 +80,44 @@ impl Context {
     fn schema_node(&self, node: &SchemaNode) -> Document {
         match &node.schema.doc {
             SchemaDoc::Embedded(doc) => self.schema_embedded(&node, doc),
-            SchemaDoc::Nested(doc) => self.schema_embedded(&node, doc),
+            SchemaDoc::Nested(doc) => self.schema_nested(&node, doc),
             SchemaDoc::Ref(reference) => self.schema_embedded(&node, &reference.data),
         }
     }
 
-    // fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
-    //     let name = node
-    //         .schema
-    //         .path
-    //         .segments
-    //         .last()
-    //         .unwrap_or_else(|| &PathSegment::Index)
-    //         .to_string();
+    fn schema_nested(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
+        let name = node
+            .schema
+            .path
+            .segments
+            .last()
+            .unwrap_or(&PathSegment::Index)
+            .to_string();
 
-    //     let nested = NamedDocument {
-    //         name: name.clone(),
-    //         data: self.schema_embedded(node, doc),
-    //     };
+        let nested = NamedDocument {
+            // name: node.schema.path.to_string(),
+            name,
+            data: self.schema_embedded(node, doc),
+        };
 
-    //     let url = format!("./{name}.md");
-    //     let body = [
-    //         self.tag_for_type(&node.schema),
-    //         self.tag_for_required(&node.schema),
-    //     ]
-    //     .into_iter()
-    //     .flatten()
-    //     .join("\n");
+        // let url = format!("./{name}.md");
+        let body = [
+            self.tag_for_type(&node.schema),
+            self.tag_for_required(&node.schema),
+        ]
+        .into_iter()
+        .flatten()
+        .join("<br>\n");
 
-    //     let section = Section::leaf(self.section_header(&node.schema), body);
+        let section = Section::leaf(self.section_header(&node.schema), body);
 
-    //     // self.type_reference(&node.schema, "Nested", &url);
+        // self.type_reference(&node.schema, "Nested", &url);
 
-    //     Document {
-    //         section,
-    //         children: vec![nested],
-    //     }
-    // }
+        Document {
+            section,
+            children: vec![nested],
+        }
+    }
 
     fn schema_embedded(&self, node: &SchemaNode, doc: &SchemaDocData) -> Document {
         let enum_doc = node
@@ -160,11 +163,12 @@ impl Context {
             };
         };
 
-        match &last_segment {
-            PathSegment::Field(_) => format!("`{}`", schema.path),
-            PathSegment::Index => format!("`{}`", schema.path),
-            PathSegment::Variant(_) => format!("`{}`", schema.path),
-        }
+        format!("`{last_segment}`")
+        // match &last_segment {
+        //     PathSegment::Field(_) => format!("`{}`", schema.path),
+        //     PathSegment::Index => format!("`{}`", schema.path),
+        //     PathSegment::Variant(_) => format!("`{}`", schema.path),
+        // }
     }
 
     fn section_body(&self, schema: &Schema, doc: &SchemaDocData) -> String {
