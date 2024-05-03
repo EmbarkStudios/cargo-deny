@@ -177,8 +177,8 @@ jobs:
           binary="target/${{ matrix.target }}/release/${{ matrix.bin }}"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
-              if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
-                llvm-strip "$binary"
+              if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
+                $RUNNER_TEMP/musl/bin/aarch64-linux-musl-strip "$binary"
               else
                 strip "$binary"
               fi
