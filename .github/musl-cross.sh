@@ -7,7 +7,7 @@ target="aarch64-linux-musl"
 mkdir -p "$root"
 curl -fsSL "https://musl.cc/$target-cross.tgz" | tar --strip-components=1 -C "$root" -xzf -
 
-MUSL_INCLUDE="$(find /musl-cross/lib/gcc/$target/ -maxdepth 2 -type d -name 'include' | head -n 1)"
+MUSL_INCLUDE="$(find "$root/lib/gcc/$target/" -maxdepth 2 -type d -name 'include' | head -n 1)"
 
 echo "$bin" >> "$GITHUB_PATH"
 
