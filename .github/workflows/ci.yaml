@@ -128,19 +128,23 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            rust: stable
+            toolchain: stable
             target: x86_64-unknown-linux-musl
             bin: cargo-deny
+          - os: ubuntu-22.04
+            toolchain: stable
+            target: aarch64-unknown-linux-musl
+            bin: cargo-deny
           - os: windows-2022
-            rust: stable
+            toolchain: stable
             target: x86_64-pc-windows-msvc
             bin: cargo-deny.exe
           - os: macos-14
-            rust: stable
+            toolchain: stable
             target: x86_64-apple-darwin
             bin: cargo-deny
           - os: macos-14
-            rust: stable
+            toolchain: stable
             target: aarch64-apple-darwin
             bin: cargo-deny
     runs-on: ${{ matrix.os }}
@@ -149,12 +153,14 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
+          toolchain: ${{ matrix.toolchain }}
       - name: Install musl tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apt-get install -y musl-tools
+        if: ${{ endsWith( matrix.target, '-unknown-linux-musl' ) }}
+        run: sudo apt-get update -y && sudo apt-get install -y musl-tools
+      - name: Install arm64 extras
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        run: .github/musl-cross.sh
       - uses: Swatinem/rust-cache@v2
       - name: cargo fetch
         run: cargo fetch --target ${{ matrix.target }}
@@ -168,12 +174,17 @@ jobs:
           release_name="$name-$tag-${{ matrix.target }}"
           release_tar="${release_name}.tar.gz"
           mkdir "$release_name"
+          binary="target/${{ matrix.target }}/release/${{ matrix.bin }}"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
-              strip "target/${{ matrix.target }}/release/${{ matrix.bin }}"
+              if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
+                $RUNNER_TEMP/musl/bin/aarch64-linux-musl-strip "$binary"
+              else
+                strip "$binary"
+              fi
           fi
 
-          cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$release_name/"
+          cp "$binary" "$release_name/"
           cp README.md LICENSE-APACHE LICENSE-MIT "$release_name/"
           tar czvf "$release_tar" "$release_name"
 
@@ -223,6 +234,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-22.04
-    needs: [typos,lint,test,self,publish-check,doc-book]
+    needs: [typos, lint, test, self, publish-check, doc-book]
     steps:
-    - run: echo "All test jobs passed"
+      - run: echo "All test jobs passed"

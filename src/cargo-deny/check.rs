@@ -77,11 +77,11 @@ pub struct Args {
     /// Defaults to <cwd>/deny.toml if not specified
     #[arg(short, long)]
     pub config: Option<PathBuf>,
-    /// Path to graph_output root directory
+    /// Path to graph output root directory
     ///
     /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
     ///
-    /// Each file will be created at <dir>/graph_output/<crate_name>.dot. <dir>/graph_output/* is deleted and recreated each run.
+    /// Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
     #[arg(short, long)]
     pub graph: Option<PathBuf>,
     /// Hides the inclusion graph when printing out info for a crate
