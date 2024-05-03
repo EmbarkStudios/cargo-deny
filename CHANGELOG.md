@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.23] - 2024-05-03
 ### Fixed
 - [PR#657](https://github.com/EmbarkStudios/cargo-deny/pull/657) resolved [#652](https://github.com/EmbarkStudios/cargo-deny/issues/652) by fixing an issue where the exit code was incorrect if logging was disabled.
 
@@ -602,7 +603,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.22...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...HEAD
+[0.14.23]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.22...0.14.23
 [0.14.22]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.21...0.14.22
 [0.14.21]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.20...0.14.21
 [0.14.20]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.19...0.14.20
