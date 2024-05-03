@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#657](https://github.com/EmbarkStudios/cargo-deny/pull/657) resolved [#652](https://github.com/EmbarkStudios/cargo-deny/issues/652) by fixing an issue where the exit code was incorrect if logging was disabled.
+
+### Added
+- [PR#659](https://github.com/EmbarkStudios/cargo-deny/pull/659) adding publishing of `aarch64-unknown-linux-musl` binaries.
+
 ## [0.14.22] - 2024-04-23
 ### Changed
 - [PR#653](https://github.com/EmbarkStudios/cargo-deny/pull/653) updated `jobserver` -> 0.1.30
