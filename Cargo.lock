@@ -596,29 +596,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dashie"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "buildstructor",
- "camino",
- "clap",
- "fs-err",
- "indexmap",
- "itertools",
- "mdbook",
- "pulldown-cmark",
- "pulldown-cmark-to-cmark",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "toml 0.8.12",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "data-encoding"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -649,6 +626,16 @@ name = "dunce"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
+
+[[package]]
+name = "duplicate"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de78e66ac9061e030587b2a2e75cc88f22304913c907b11307bca737141230cb"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro-error",
+]
 
 [[package]]
 name = "either"
@@ -2603,6 +2590,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2951,6 +2962,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
 dependencies = [
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "schemd"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "buildstructor",
+ "camino",
+ "clap",
+ "duplicate",
+ "fs-err",
+ "heck 0.5.0",
+ "indexmap",
+ "itertools",
+ "mdbook",
+ "pulldown-cmark",
+ "pulldown-cmark-to-cmark",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "toml 0.8.12",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

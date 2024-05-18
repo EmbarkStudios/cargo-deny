@@ -20,5 +20,5 @@
   - [sources](checks/sources/README.md)
     - [config](checks/sources/cfg.md)
     - [diagnostics](checks/sources/diags.md)
-- [Config file {{ dashie-root }}]()
-- [Type Index {{ dashie-type-index }}]()
+- [Config file {{ schemd-root }}]()
+- [Type Index {{ schemd-type-index }}]()

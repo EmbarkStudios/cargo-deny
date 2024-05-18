@@ -1,0 +1,5 @@
+emit:
+  - "@typespec/json-schema"
+options:
+  "@typespec/json-schema":
+    file-type: yaml

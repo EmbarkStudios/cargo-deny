@@ -1,5 +1,5 @@
 [workspace]
-members = ["dashie"]
+members = ["schemd"]
 
 [package]
 name = "cargo-deny"

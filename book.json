@@ -1,0 +1,1146 @@
+{
+  "sections": [
+    {
+      "Chapter": {
+        "name": "cargo-deny",
+        "content": "# [cargo-deny](https://github.com/EmbarkStudios/cargo-deny)\n\ncargo-deny is a cargo plugin that lets you lint your project's dependency graph to ensure all your dependencies conform to your expectations and requirements.\n\n## Quickstart\n\nInstalls cargo-deny, initializes your project with a default configuration, then runs all of the checks against your project.\n\n```bash\ncargo install --locked cargo-deny && cargo deny init && cargo deny check\n```\n\n## Command Line Interface\n\ncargo-deny is intended to be used as a [Command Line Tool](cli/index.html), see the link for the available commands and options.\n\n## Checks\n\ncargo-deny supports several classes of checks, see [Checks](checks/index.html) for the available checks and their configuration options.\n\n## API\n\ncargo-deny is primarily meant to be used as a cargo plugin, but a majority of its functionality is within a library whose docs you may view on [docs.rs](https://docs.rs/cargo-deny)\n\n## GitHub Action\n\nFor GitHub projects, one can run cargo-deny automatically as part of continuous integration using a GitHub Action:\n\n```yaml\nname: CI\non: [push, pull_request]\njobs:\n  cargo-deny:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v3\n    - uses: EmbarkStudios/cargo-deny-action@v1\n```\n\nFor more information, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action) repository.\n",
+        "number": [
+          1
+        ],
+        "sub_items": [],
+        "path": "README.md",
+        "source_path": "README.md",
+        "parent_names": []
+      }
+    },
+    {
+      "Chapter": {
+        "name": "Command Line Tool",
+        "content": "# Command Line Tool\n\ncargo-deny can be used either as a command line tool or as a [Rust crate](https://crates.io/crates/cargo-deny). Let's focus on the command line tool capabilities first.\n\n## Install From Binaries\n\nPrecompiled binaries are provided for major platforms on a best-effort basis. Visit [the releases page](https://github.com/EmbarkStudios/cargo-deny/releases) to download the appropriate version for your platform.\n\n## Installation on Arch Linux\n\ncargo-deny is available in the Arch Linux [extra repository](https://archlinux.org/packages/extra/x86_64/cargo-deny/), you can install it via [pacman](https://wiki.archlinux.org/title/Pacman) as shown below:\n\n```bash\npacman -S cargo-deny\n```\n\n## Install From Source\n\ncargo-deny can also be installed from source.\n\n### Pre-requisites\n\ncargo-deny is written in **[Rust](https://www.rust-lang.org/)** and therefore needs to be compiled with **Cargo**. If you haven't already installed Rust, please go ahead and [install it](https://www.rust-lang.org/tools/install) now.\n\ncargo-deny depends on some crates that use C code, so you will also need to have a C toolchain available on your machine, such as gcc, clang, or msvc.\n\n### Install Crates.io version\n\nInstalling cargo-deny is relatively easy if you already have Rust and Cargo installed. You just have to type this snippet in your terminal:\n\n```bash\ncargo install --locked cargo-deny\n```\n\nThis will fetch the source code for the latest release from [Crates.io](https://crates.io/) and compile it. You will have to add Cargo's `bin` directory to your `PATH` if you have not done so already.\n\nRun `cargo deny help` in your terminal to verify if it works. Congratulations, you have installed cargo-deny!\n\n### Install Git version\n\nThe **[git version](https://github.com/EmbarkStudios/cargo-deny)** contains all the latest bug-fixes and features, that will be released in the next version on **Crates.io**, if you can't wait until the next release. You can build the git version yourself.\n\n```bash\ncargo install --locked --git https://github.com/EmbarkStudios/cargo-deny cargo-deny\n```\n\nRun `cargo deny help` in your terminal to verify if it works. Congratulations, you have installed cargo-deny!\n\n## CI Usage\n\nWe now have a Github Action for running cargo-deny on your Github repositories, check it out [here](https://github.com/EmbarkStudios/cargo-deny-action).\n\nIf you don't want to use the action, you can manually download (or install) cargo-deny as described above, but here's an example script that you can copy to get you started.\n\n```bash\n#!/bin/bash\nset -eu\n\nNAME=\"cargo-deny\"\nVS=\"0.8.5\"\nDIR=\"/tmp/$NAME\"\n\nmkdir $DIR\n\n# Download the tarball\ncurl -L -o $DIR/archive.tar.gz https://github.com/EmbarkStudios/$NAME/releases/download/$VS/$NAME-$VS-x86_64-unknown-linux-musl.tar.gz\n\n# Unpack the tarball into the temp directory\ntar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR\n\n# Run cargo deny check in our current directory\n$DIR/$NAME --context . -L debug check bans licenses advisories\n```\n",
+        "number": [
+          2
+        ],
+        "sub_items": [
+          {
+            "Chapter": {
+              "name": "common",
+              "content": "# Common options\n\nThe subcommands share some common options that can be used before the subcommand.\n\n## Options\n\n### `--manifest-path`\n\nThe path to a `Cargo.toml` file which is used as the context for operations.\n\n### `--all-features` (single crate or workspace)\n\nEnables all features when determining which crates to consider. Works for both single crates and workspaces.\n\n### `--no-default-features` (single crate only)\n\nDisables the `default` feature for a crate when determining which crates to consider.\n\n### `--features` (single crate only)\n\nSpace-separated list of features to enable when determining which crates to consider.\n\n### `--workspace`\n\nForces all workspace crates to be used as roots in the crate graph that we operate on, unless they are excluded by other means. By default, if you specify a [virtual manifest](https://doc.rust-lang.org/cargo/reference/manifest.html#virtual-manifest), all crates in the workspace will be used as roots. However, if you specify a normal package manifest somewhere inside a workspace, only that crate will be used as a graph root, and only other workspaces crates it depends on will be included in the graph. If you want to specify a sub-crate in a workspace, but still include all other crates in the workspace, you can use this flag.\n\n### `--exclude-dev`\n\nIf set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks.\n\n### `--exclude`\n\nExclude the specified package(s) from the crate graph. Unlike other cargo subcommands, it doesn't have to be used in conjunction with the `--workspace` flag. This flag may be specified multiple times.\n\nThis uses a similar (though slightly more strict) [Package ID specification](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html) to other cargo subcommands.\n\nPackages can also be excluded in your [configuration](../checks/cfg.md#the-exclude-field-optional) files, specifying this on the command line will append the package ID to the list that may exist in your configuration.\n\n### `-L, --log-level`\n\nThe log level for messages, only log messages at or above the level will be emitted.\n\nPossible values:\n\n* `off` - No output will be emitted\n* `error`\n* `warn` (default)\n* `info`\n* `debug`\n* `trace`\n\n### `--format`\n\nThe format of the output of both log and diagnostic messages.\n\nPossible values:\n\n* `human` (default) - Output for the pesky humans\n* `json` - Each log message/diagnostic is outputted as a single line JSON object\n\n### `--color`\n\nWhether coloring is applied to human-formatted output, using it on JSON output has no effect.\n\nPossible values:\n\n* `auto` (default) - Coloring is applied if the output stream is a TTY\n* `always` - Coloring is always applied\n* `never` - No coloring is applied for any output\n\n### `-t, --target`\n\nOne or more platforms to filter crates with. If a dependency is target specific, it will be ignored if it does not match at least 1 of the specified targets. This overrides the top-level [`targets = []`](../checks/cfg.md) configuration value.\n\n### `--offline`\n\nDisables network I/O.\n",
+              "number": [
+                2,
+                1
+              ],
+              "sub_items": [],
+              "path": "cli/common.md",
+              "source_path": "cli/common.md",
+              "parent_names": [
+                "Command Line Tool"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "init",
+              "content": "# The init command\n\ncargo-deny's configuration is a little bit complicated, so we provide the `init` command to create a configuration file from a template for you to give you a starting point for configuring how you want cargo-deny to lint your project.\n\nThe `init` command is used like this:\n\n```bash\ncargo deny init\n```\n\n## Specify a path\n\nThe `init` command can take a path as an argument to use as path of the config instead of the default which is `<cwd>/deny.toml`.\n\n```bash\ncargo deny init path/to/config.toml\n```\n\n## Template\n\nA `deny.toml` file will be created in the current working directory that is a direct copy of [this template](https://github.com/EmbarkStudios/cargo-deny/blob/main/deny.template.toml).\n\n```ini\n{{#include ../../../deny.template.toml}}\n```\n",
+              "number": [
+                2,
+                2
+              ],
+              "sub_items": [],
+              "path": "cli/init.md",
+              "source_path": "cli/init.md",
+              "parent_names": [
+                "Command Line Tool"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "check",
+              "content": "# The `check` command\n\nThe check command is the primary subcommand of cargo-deny as it is what actually runs through all of the crates in your project and checks them against your configuration.\n\n## Args\n\n### `<which>`\n\nThe check(s) to perform. By default, **all** checks will be performed, unless one or more checks are specified here.\n\nSee [checks](../checks/index.html) for the list of available checks.\n\n## Options\n\n### `-A, --allow <ALLOW>`\n\nSet lint allowed\n\n### `--audit-compatible-output`\n\nTo ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.\n\nNote that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.\n\n### `-c, --config <CONFIG>`\n\nPath to the config to use\n\nDefaults to `<cwd>/deny.toml` if not specified\n\n### `-d, --disable-fetch`\n\nDisable fetching of the advisory database\n\nWhen running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.\n\nThis option is also set if the `--offline` flag is used in the global options.\n\n### `--exclude-dev`\n\nIf set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks.\n\n### `-D, --deny <DENY>`\n\nSet lint denied\n\n### `--feature-depth <FEATURE_DEPTH>`\n\nSpecifies the depth at which feature edges are added in inclusion graphs\n\n### `-g, --graph <GRAPH>`\n\nPath to graph_output root directory\n\nIf set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.\n\nEach file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.\n\n### `--hide-inclusion-graph`\n\nHides the inclusion graph when printing out info for a crate\n\nBy default, if a diagnostic message pertains to a specific crate, cargo-deny will append an inverse dependency graph to the diagnostic to show you how that crate was pulled into your project.\n\n```text\nsome diagnostic message\n\nthe-crate\n├── a-crate\n└── b-crate\n    └── c-crate\n```\n\n### `-s, --show-stats`\n\nShow stats for all the checks, regardless of the log-level\n\n### `-W, --warn <WARN>`\n\nSet lint warnings\n\n## Exit Codes\n\nAs of [0.14.1](https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.14.1), the exit code for the check command is a bitset of the checks that were executed and had 1 or more errors.\n\nA script or program can use the following values to determine exactly which check(s) failed.\n\n* `advisories` - `0x1`\n* `bans` - `0x2`\n* `licenses` - `0x4`\n* `sources` - `0x8`\n",
+              "number": [
+                2,
+                3
+              ],
+              "sub_items": [],
+              "path": "cli/check.md",
+              "source_path": "cli/check.md",
+              "parent_names": [
+                "Command Line Tool"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "list",
+              "content": "# The `list` command\n\nSimilarly to [cargo-license](https://github.com/onur/cargo-license), `list` prints out the license information for each crate.\n\n## Options\n\n### `-f, --format`\n\nThe format of the output\n\n* `human` (default) - Simple format where each crate or license is its own line\n* `json`\n* `tsv`\n\n### `--color`\n\nOutput coloring, only applies to the `human` format.\n\n* `auto` (default) - Only colors if stdout is a TTY\n* `always` - Always emits colors\n* `never` - Never emits colors\n\nColors:\n\n* SPDX identifier - ![blue](https://placehold.it/15/5dade2/000000?text=+)\n* Crate with 1 license - ![white](https://placehold.it/15/717d7e/000000?text=+)\n* Crate with 2 or more licenses - ![yellow](https://placehold.it/15/f1c40f/000000?text=+)\n* Crate with 0 licenses - ![yellow](https://placehold.it/15/e74c3c/000000?text=+)\n\n### `-l, --layout`\n\nThe layout of the output. Does not apply to the `tsv` format.\n\n* `license` (default) - Each license acts as the key, and the values are all of the crates that use that license\n* `crate` - Each crate is a key, and the values are the list of licenses it uses.\n\n### `-t, --threshold`\n\nThe confidence threshold required for assigning a license identifier to a license text file. See the [license configuration](../checks/licenses/cfg.md#the-confidence-threshold-field-optional) for more information.\n\n* `layout = license, format = human` (default)\n\n![Imgur](https://i.imgur.com/Iejfc7h.png)\n\n* `layout = crate, format = human`\n\n![Imgur](https://i.imgur.com/zZdcFXI.png)\n\n* `layout = license, format = json`\n\n![Imgur](https://i.imgur.com/wC2R0ym.png)\n\n* `layout = license, format = tsv`\n\n![Imgur](https://i.imgur.com/14l8a5K.png)\n",
+              "number": [
+                2,
+                4
+              ],
+              "sub_items": [],
+              "path": "cli/list.md",
+              "source_path": "cli/list.md",
+              "parent_names": [
+                "Command Line Tool"
+              ]
+            }
+          }
+        ],
+        "path": "cli/README.md",
+        "source_path": "cli/README.md",
+        "parent_names": []
+      }
+    },
+    {
+      "Chapter": {
+        "name": "Checks",
+        "content": "# Checks\n\ncargo-deny supports several different classes of checks that can be performed on your project's crate graph. By default, `cargo deny check` will execute **all** of the supported checks, falling back to the default configuration for that check if one is not explicitly specified.\n\n## [licenses](licenses/index.html)\n\nChecks the license information for each crate.\n\n## [bans](bans/index.html)\n\nChecks for specific crates in your graph, as well as duplicates.\n\n## [advisories](advisories/index.html)\n\nChecks advisory databases for crates with security vulnerabilities, or that have been marked as `Unmaintained`, or which have been yanked from their source registry.\n\n## [sources](sources/index.html)\n\nChecks the source location for each crate.\n",
+        "number": [
+          3
+        ],
+        "sub_items": [
+          {
+            "Chapter": {
+              "name": "config",
+              "content": "# config\n\nThe top level config for cargo-deny, by default called `deny.toml`.\n\n## Example - cargo-deny's own configuration\n\n```ini\n{{#include ../../../deny.toml}}\n```\n\n## The `graph` field (optional)\n\nThe graph tables provides configuration options for how the dependency graph that the various checks are executed against is constructed.\n\n```ini\n[graph]\ntargets = [\n    \"x86_64-unknown-linux-gnu\",\n    { triple = \"aarch64-apple-darwin\" },\n    { triple = \"x86_64-pc-windows-msvc\", features = [\"sse2\"] },\n]\nexclude = [\"some-crate@0.1.0\"]\nall-features = true\nno-default-features = false\nfeatures = [\"some-feature\"]\nexclude-dev = true\n```\n\n### The `targets` field (optional)\n\nBy default, cargo-deny will consider every single crate that is resolved by cargo, including target specific dependencies eg\n\n```ini\n[target.x86_64-pc-windows-msvc.dependencies]\nwinapi = \"0.3.8\"\n\n[target.'cfg(target_os = \"fuchsia\")'.dependencies]\nfuchsia-cprng = \"0.1.1\"\n```\n\nBut unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is never actually going to be compiled or linked into your project, so checking it is pointless for you.\n\nThe `targets` field allows you to specify one or more targets which you **actually** build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.\n\n#### The `targets.triple` field (optional) or `\"<triple_string>\"`\n\nThe [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target you wish to filter target specific dependencies with. If the target triple specified is **not** one of the targets builtin to `rustc`, the configuration check for that target will be limited to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()` expressions require us to know the details about the target.\n\n#### The `targets.features` field (optional)\n\nRust `cfg()` expressions support the [`target_feature = \"feature-name\"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute) predicate, but at the moment, the only way to actually pass them when compiling is to use the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more `target_feature`s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).\n\n### The `exclude` field (optional)\n\nJust as with the [`--exclude`](../cli/common.md#--exclude) command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html) that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.\n\nNote that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.\n\n### The `all-features` field (optional)\n\nIf set to `true`, `--all-features` will be used when collecting metadata.\n\n### The `no-default-features` field (optional)\n\nIf set to `true`, `--no-default-features` will be used when collecting metadata.\n\n### The `features` field (optional)\n\nIf set, and `--features` is not specified on the cmd line, these features will be used when collecting metadata.\n\n### The `exclude-dev` field (optional)\n\nIf set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks. This option can also be enabled on cmd line with `--exclude-dev` either [before](../cli/common.md#--exclude-dev) or [after](../cli/check.md#--exclude-dev) the `check` subcommand.\n\n## The `output` field (optional)\n\n### The `feature-depth` field (optional)\n\nThe maximum depth that features will be displayed when inclusion graphs are included in diagnostics, unless specified via `--feature-depth` on the command line. Only applies to diagnostics that actually print features. If not specified defaults to `1`.\n\n## Package Specs\n\nMany configuration options require a package specifier at a minimum, which we'll describe here. The options that use package specifiers will be called out in their individual documentation. We'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.\n\n### String format\n\nIf the particular only requires a package spec at a minimum, then the string format can be used, which comes in three forms.\n\n#### Simple\n\n```ini\n# Will match any version of the simple crate\ndeny = [\"simple\"]\n```\n\nThe simplest string is one which is just the crate name. In this case, the version requirement used when checking will be `*` meaning it will match against all versions of that crate in the graph.\n\n#### With Version Requirements\n\n```ini\n# Will match only this versions of the simple crate that match the predicate(s)\ndeny = [\"simple:<=0.1,>0.2\"]\n```\n\nIf you want to apply version requirements (predicates) to the crate, simply append them following a `:` separator.\n\n#### Exact\n\n```ini\n# Will match only this exact version of the simple crate\ndeny = [\n    \"simple@0.1.0\",\n    # This is semantically equivalent to the above\n    \"simple:=0.1.0\",\n]\n```\n\nThe exact form is a specialization of the version requirements, where the semver after the `@` is transformed to be [= (Exact)](https://docs.rs/semver/latest/semver/enum.Op.html#opexact).\n\n### Table format\n\n#### Crate format\n\n```ini\ndeny = [\n    { crate = \"simple@0.1.0\" }, # equivalent to \"simple@0.1.0\"\n    { crate = \"simple\", wrappers = [\"example\"] },\n]\n```\n\nThe crate format is a replacement for the old `name` and/or `version` table format. It uses the string format described above in a single `crate` key.\n\n#### Old format\n\n```ini\ndeny = [\n    { name = \"simple\" },\n    { name = \"simple\", version = \"*\" }\n    { name = \"simple\", wrappers = [\"example\"] }\n]\n```\n\nThe old format uses a required `name` key and an optional `version` key. This format is deprecated and should not be used.\n\n## The `[licenses]` section\n\nSee the [licenses config](licenses/cfg.html) for more info.\n\n## The `[bans]` section\n\nSee the [bans config](bans/cfg.html) for more info.\n\n## The `[advisories]` section\n\nSee the [advisories config](advisories/cfg.html) for more info.\n\n## The `[sources]` section\n\nSee the [sources config](sources/cfg.html) for more info.\n",
+              "number": [
+                3,
+                1
+              ],
+              "sub_items": [],
+              "path": "checks/cfg.md",
+              "source_path": "checks/cfg.md",
+              "parent_names": [
+                "Checks"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "advisories",
+              "content": "# advisories\n\nThe advisories check is used to detect issues for crates by looking in an advisory database.\n\n```bash\ncargo deny check advisories\n```\n\n## Use Case - Detecting security vulnerabilities\n\nSecurity vulnerabilities are generally considered \"not great\" by most people, luckily, Rust has a great [advisory database](https://github.com/RustSec/advisory-db) which cargo-deny can use to check that you don't have any crates with (known) security vulnerabilities.\n\nYou can also use your own advisory databases instead of, or in addition to, the above default, as long as it follows the same format.\n\n## Use Case - Detecting unmaintained crates\n\nThe [advisory database](https://github.com/RustSec/advisory-db) also contains advisories for unmaintained crates, which in most cases users will want to avoid in favor of more actively maintained crates.\n\n## Example output\n\n![advisories output](../../output/advisories.svg)\n",
+              "number": [
+                3,
+                2
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "config",
+                    "content": "# The `[advisories]` section\n\nContains all of the configuration for `cargo deny check advisories`\n\n## Example Config\n\n```ini\n{{#include ../../../../tests/cfg/advisories.toml}}\n```\n\n### The `db-urls` field (optional)\n\nURLs to one or more advisory databases.\n\nDefault: [RustSec Advisory DB](https://github.com/RustSec/advisory-db)\n\n### The `db-path` field (optional)\n\nPath to the root directory into which one or more advisory databases are cloned into.\n\nThis value supports basic shell expansion:\n\n- `~` - Expands to [`home::home_dir`](https://docs.rs/home/latest/home/fn.home_dir.html)\n- `$VARNAME` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n- `${VARNAME}` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n- `${VARNAME:-fallback}` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html) or the fallback value if it doesn't exist (everything between the `:-` and `}`)\n- `$CARGO_HOME` - Expands to [`std::env::var(\"CARGO_HOME\")`](https://doc.rust-lang.org/std/env/fn.var.html) if it exists, otherwise expands to `$(home::home_dir())/.cargo`\n\nNote that the path must be valid utf-8, after expansion.\n\nDefault: `$CARGO_HOME/advisory-dbs`\n\n### The `version` field (optional)\n\n```ini\nversion = 2\n```\n\nThe advisories section has an upcoming breaking change, with deprecation warnings for several fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.\n\nThe breaking change is as follows:\n\n- `vulnerability` - Removed, all vulnerability advisories now emit errors.\n- `unmaintained` - Removed, all unmaintained advisories now emit errors.\n- `unsound` - Removed, all unsound advisories now emit errors.\n- `notice` - Removed, all notice advisories now emit errors.\n- `severity-threshold` - Removed, all vulnerability advisories now emit errors.\n\nAs before, if you want to ignore a specific advisory, add it to the `ignore` field.\n\n### The `vulnerability` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a crate with a security vulnerability is encountered.\n\n- `deny` (default) - Will emit an error with details about each vulnerability, and fail the check.\n- `warn` - Prints a warning for each vulnerability, but does not fail the check.\n- `allow` - Prints a note about the security vulnerability, but does not fail the check.\n\n### The `unmaintained` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a crate with an `unmaintained` advisory is encountered.\n\n- `deny` - Will emit an error with details about the unmaintained advisory, and fail the check.\n- `warn` (default) - Prints a warning for each unmaintained advisory, but does not fail the check.\n- `allow` - Prints a note about the unmaintained advisory, but does not fail the check.\n\n### The `unsound` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a crate with an `unsound` advisory is encountered.\n\n- `deny` - Will emit an error with details about the unsound advisory, and fail the check.\n- `warn` (default) - Prints a warning for each unsound advisory, but does not fail the check.\n- `allow` - Prints a note about the unsound advisory, but does not fail the check.\n\n### The `yanked` field (optional)\n\nDetermines what happens when a crate with a version that has been yanked from its source registry is encountered.\n\n- `deny` - Will emit an error with the crate name and version that was yanked, and fail the check.\n- `warn` (default) - Prints a warning with the crate name and version that was yanked, but does not fail the check.\n- `allow` - Prints a note about the yanked crate, but does not fail the check.\n\n### The `notice` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a crate with a `notice` advisory is encountered.\n\n**NOTE**: As of 2019-12-17 there are no `notice` advisories in the [RustSec Advisory DB](https://github.com/RustSec/advisory-db)\n\n- `deny` - Will emit an error with details about the notice advisory, and fail the check.\n- `warn` (default) - Prints a warning for each notice advisory, but does not fail the check.\n- `allow` - Prints a note about the notice advisory, but does not fail the check.\n\n### The `ignore` field (optional)\n\n```ini\nignore = [\n   \"RUSTSEC-0000-0000\",\n   { id = \"RUSTSEC-0000-0000\", reason = \"this vulnerability does not affect us as we don't use the particular code path\" },\n   \"yanked@0.1.1\",\n   { crate = \"yanked-crate@0.1.1\", reason = \"a semver compatible version hasn't been published yet\" },\n]\n```\n\nEvery advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.\n\nIn addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-spec) with an optional `reason`.\n\n### The `severity-threshold` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nThe threshold for security vulnerabilities to be turned into notes instead of warnings or errors, depending upon its [CVSS](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System) score. So having a high threshold means some vulnerabilities might not fail the check, but having a log level `>= info` will mean that a note will be printed instead of a warning or error, depending on `[advisories.vulnerability]`.\n\n- `None` (default) - CVSS Score 0.0\n- `Low` - CVSS Score 0.1 - 3.9\n- `Medium` - CVSS Score 4.0 - 6.9\n- `High` - CVSS Score 7.0 - 8.9\n- `Critical` - CVSS Score 9.0 - 10.0\n\n### The `git-fetch-with-cli` field (optional)\n\nSimilar to cargo's [net.git-fetch-with-cli](https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli), this field allows you to opt-in to fetching advisory databases with the git CLI rather than using `gix`.\n\n- `false` (default) - Fetches advisory databases via `gix`\n- `true` - Fetches advisory databases using `git`. Git must be installed and in `PATH`.\n\n### The `maximum-db-staleness` field (optional)\n\nA duration in RFC3339 format that specifies the maximum amount of time that can pass before the database is considered stale and an error is emitted. This is only checked when advisory database fetching has been disabled via the `--offline` or `check --disable-fetch` flags, as otherwise the database is always cloned or fetched to be up to date with the remote git repository.\n\nThe default if not specified is the same value that `cargo-audit` uses, and `cargo-deny` has been using, which is `P90D`, or 90 days.\n\nThe RFC3339 duration format is...not well documented. The official grammar is as follows:\n\n```txt\n   dur-second        = 1*DIGIT \"S\"\n   dur-minute        = 1*DIGIT \"M\" [dur-second]\n   dur-hour          = 1*DIGIT \"H\" [dur-minute]\n   dur-time          = \"T\" (dur-hour / dur-minute / dur-second)\n   dur-day           = 1*DIGIT \"D\"\n   dur-week          = 1*DIGIT \"W\"\n   dur-month         = 1*DIGIT \"M\" [dur-day]\n   dur-year          = 1*DIGIT \"Y\" [dur-month]\n   dur-date          = (dur-day / dur-month / dur-year) [dur-time]\n\n   duration          = \"P\" (dur-date / dur-time / dur-week)\n```\n\nHowever, as far as I can tell, there are no official spec compliance tests one can run for the duration formation, and several parsers I found written in other languages seemed to...not actually properly follow the grammar, so the implementation in cargo-deny _may_ be wrong according to the spec, but at least it will be consistently wrong.\n\nNote that while the spec supports `,` as a decimal separator, for simplicity cargo-deny only supports `.` as a decimal separator.\n\nOne final note, there are 2 units available in the format that are not exact, namely, year 'Y' and month 'M'. It's not recommended to use either of them for that reason, but if you do they are calculated as follows.\n\n- 1 year = 365 days\n- 1 month = 30.43 days\n",
+                    "number": [
+                      3,
+                      2,
+                      1
+                    ],
+                    "sub_items": [],
+                    "path": "checks/advisories/cfg.md",
+                    "source_path": "checks/advisories/cfg.md",
+                    "parent_names": [
+                      "Checks",
+                      "advisories"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "diagnostics",
+                    "content": "# Advisories Diagnostics\n\n### `vulnerability`\n\nA [`vulnerability`](cfg.md#the-vulnerability-field-optional) advisory was detected for a crate.\n\n### `notice`\n\nA [`notice`](cfg.md#the-notice-field-optional) advisory was detected for a crate.\n\n### `unmaintained`\n\nAn [`unmaintained`](cfg.md#the-unmaintained-field-optional) advisory was detected for a crate.\n\n### `unsound`\n\nAn [`unsound`](cfg.md#the-unsound-field-optional) advisory was detected for a crate.\n\n### `yanked`\n\nA crate using a version that has been [yanked](cfg.md#the-yanked-field-optional) from the registry index was detected.\n\n### `index-failure`\n\nAn error occurred trying to read or update the registry index (typically crates.io) so cargo-deny was unable to check the current yanked status for any crate.\n\n### `advisory-not-detected`\n\nAn advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) didn't apply to any crate. This could happen if the advisory was [withdrawn](https://docs.rs/rustsec/latest/rustsec/advisory/struct.Metadata.html#structfield.withdrawn), or the version of the crate no longer falls within the range of affected versions the advisory applies to.\n\n### `unknown-advisory`\n\nAn advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) wasn't found in any of the configured advisory databases, usually indicating a typo, as advisories, at the moment, are never deleted from the database, at least the canonical [advisory-db](https://github.com/rustsec/advisory-db).\n",
+                    "number": [
+                      3,
+                      2,
+                      2
+                    ],
+                    "sub_items": [],
+                    "path": "checks/advisories/diags.md",
+                    "source_path": "checks/advisories/diags.md",
+                    "parent_names": [
+                      "Checks",
+                      "advisories"
+                    ]
+                  }
+                }
+              ],
+              "path": "checks/advisories/README.md",
+              "source_path": "checks/advisories/README.md",
+              "parent_names": [
+                "Checks"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "bans",
+              "content": "# bans\n\nThe bans check is used to deny (or allow) specific crates, as well as detect and handle multiple versions of the same crate.\n\n```bash\ncargo deny check bans\n```\n\n## Use Case - Denying specific crates\n\nSometimes, certain crates just don't fit in your project, so you have to remove them. However, nothing really stops them from sneaking back in due to innocuous changes like doing a `cargo update` and getting it transitively, or even forgetting to set `default-features = false, features = [\"feature-without-the-thing\"]` when the crate is pulled in via the default features of a crate you already depend on, in your entire workspace.\n\nFor example, we previously depended on OpenSSL as it is the \"default\" for many crates that provide TLS. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined `native-tls` or `ring` crates instead, and now we can make sure that OpenSSL doesn't return from the grave by accident.\n\n## Use Case - Duplicate version detection\n\nThe larger your project and number of external dependencies, the likelihood that you will have multiple versions of the same crate rises. This is due to two fundamental aspects of the Rust ecosystem.\n\n1. Cargo's dependency resolution tries to solve all the version constraints to a crate to the same version, but is totally ok with using [multiple versions](https://stephencoakley.com/2019/04/24/how-rust-solved-dependency-hell) if it is unable to.\n1. Rust has a huge (ever growing) number of crates. Every maintainer has different amounts of time and energy they can spend on their crate, not to mention different philosophies on dependencies and how often (or not) they should be updated, so it is inevitable that crates will not always agree on which version of another crate they want to use.\n\nThis tradeoff of allowing multiple version of the same crate is one of the reasons that cargo is such a pleasant experience for many people new to Rust, but as with all tradeoffs, it does come with costs.\n\n1. More packages must be **fetched**, which especially impacts CI, as well as devs.\n1. **Compile times** increase, which impacts CI and devs.\n1. **Target directory size** increases, which can impact devs, or static CI environments.\n1. Final **binary size** will also tend to increase, which can impact users.\n\nNormally, you will not really notice that you have multiple versions of the same crate unless you constantly watch your build log, but as mentioned above, it **does** introduce paper cuts into your workflows.\n\nThe intention of duplicate detection in cargo-deny is not to \"correct\" cargo's behavior, but rather to draw your attention to duplicates so that you can make an informed decision about how to handle the situation.\n\n* Maybe you want to open up a PR on a crate to use a version of the duplicate that is aligned with the rest of the ecosystem.\n* Maybe the crate has actually already been updated, but the maintainer hasn't published a new version yet, and you can ask if they can publish a new one.\n* Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily patch 1 or more crates to use a different version requirement without actually change the crates' code itself.\n* Sometimes having the \"latest and greatest\" is not really that important for every version, and you can just specify a lower version in your own project that matches the transitive constraint(s).\n* And finally, you don't care about a particular case of multiple versions, so you just tell cargo-deny to ignore one or more of the specific versions, and the situation will eventually resolve itself.\n\n## Example output\n\n![bans output](../../output/bans.svg)\n",
+              "number": [
+                3,
+                3
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "config",
+                    "content": "# The `[bans]` section\n\nContains all of the configuration for `cargo deny check bans`\n\n## Example Config\n\n```ini\n{{#include ../../../../tests/cfg/bans.toml}}\n```\n\n### The `multiple-versions` field (optional)\n\nDetermines what happens when multiple versions of the same crate are encountered.\n\n* `deny` - Will emit an error for each crate with duplicates and fail the check.\n* `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.\n* `allow` - Ignores duplicate versions of the same crate.\n\n### The `multiple-versions-include-dev` field (optional)\n\nIf `true`, `dev-dependencies` are included when checking for multiple versions of crates. By default this is false, and any crates that are only reached via dev dependency edges are ignored when checking for multiple versions. Note that this also means that `skip` and `skip` tree are not used, which may lead to warnings about unused configuration.\n\n### The `wildcards` field (optional)\n\nDetermines what happens when a dependency is specified with the `*` (wildcard) version.\n\n* `deny` - Will emit an error for each crate specified with a wildcard version.\n* `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.\n* `allow` - Ignores all wildcard version specifications.\n\n### The `allow-wildcard-paths` field (optional)\n\nIf specified, alters how the `wildcard` field behaves:\n\n* [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) or [git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) `dependencies` in **private** crates will no longer emit a warning or error.\n* path or git `dev-dependencies` in both public and private crates will no longer emit a warning or error.\n* path or git `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.\n\nBeing limited to private crates is due to crates.io not allowing packages to be published with `path` or `git` dependencies except for `dev-dependencies`.\n\n### The `highlight` field (optional)\n\nWhen multiple versions of the same crate are encountered and `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.\n\n* `lowest-version` - Highlights the path to the lowest duplicate version. Highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+)\n* `simplest-path` - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).\n* `all` - Highlights both the `lowest-version` and `simplest-path`. If they are the same, they are only highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+).\n\n![Imgur](https://i.imgur.com/xtarzeU.png)\n\n### The `deny` field (optional)\n\n```ini\ndeny = [\"package-spec\"]\n```\n\nDetermines specific crates that are denied. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n#### The `wrappers` field (optional)\n\n```ini\ndeny = [{ crate = \"crate-you-don't-want:<=0.7.0\", wrappers = [\"this-can-use-it\"] }]\n```\n\nThis field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.\n\n#### The `deny-multiple-versions` field (optional)\n\n```ini\nmultiple-versions = 'allow'\ndeny = [{ crate = \"crate-you-want-only-one-version-of\", deny-multiple-versions = true }]\n```\n\nThis field allows specific crates to deny multiple versions of themselves, but allowing or warning on multiple versions for all other crates. This field cannot be set simultaneously with `wrappers`.\n\n#### The `deny.reason` field (optional)\n\n```ini\ndeny = [{ crate = \"package-spec\", reason = \"the reason this crate is banned\"}]\n```\n\nThis field provides the reason the crate is banned as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.\n\n#### The `deny.use-instead` field (optional)\n\n```ini\ndeny = [{ crate = \"openssl\", use-instead = \"rustls\"}]\n```\n\nThis is a shorthand for the most common case for banning a particular crate, which is that your project has chosen to use a different crate for that functionality.\n\n### The `allow` field (optional)\n\n```ini\ndeny = [\"package-spec\"]\n```\n\nDetermines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n#### The `allow.reason` field (optional)\n\n```ini\nallow = [{ crate = \"package-spec\", reason = \"the reason this crate is allowed\"}]\n```\n\nThis field provides the reason the crate is allowed as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.\n\n### The `external-default-features` field (optional)\n\nDetermines the lint level used for when the `default` feature is enabled on a crate not in the workspace. This lint level will can then be overridden on a per-crate basis if desired.\n\nFor example, if `an-external-crate` had the `default` feature enabled it could be explicitly allowed.\n\n```ini\n[bans]\nexternal-default-features = \"deny\"\n\n[[bans.features]]\ncrate = \"an-external-crate\"\nallow = [\"default\"]\n```\n\n### The `workspace-default-features` field (optional)\n\nThe workspace version of `external-default-features`.\n\n```ini\n[bans]\nexternal-default-features = \"allow\"\n\n[[bans.features]]\ncrate = \"a-workspace-crate\"\ndeny = [\"default\"]\n```\n\n### The `features` field (optional)\n\n```ini\n[[bans.features]]\ncrate = \"featured-krate:1.0\"\ndeny = [\"bad-feature\"]\nallow = [\"good-feature\"]\nexact = true\n```\n\nAllows specification of crate specific allow/deny lists of features. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n#### The `features.deny` field (optional)\n\nDenies specific features for the crate.\n\n#### The `features.allow` field (optional)\n\nAllows specific features for the crate, enabled features not in this list are denied.\n\n#### The `features.exact` field (optional)\n\nIf specified, requires that the features in `allow` exactly match the features enabled on the crate, and will fail if features are allowed that are not enabled.\n\n### The `skip` field (optional)\n\n```ini\nskip = [\n    \"package-spec\",\n    { crate = \"package-spec\", reason = \"an old version is used by crate-x, see <PR link> for updating it\" },\n]\n```\n\nWhen denying duplicate versions, it's often the case that there is a window of time where you must wait for, for example, PRs to be accepted and new version published, before 1 or more duplicates are gone. The `skip` field allows you to temporarily ignore a crate during duplicate detection so that no errors are emitted, until it is no longer need.\n\nIt is recommended to use specific version constraints for crates in the `skip` list, as cargo-deny will emit warnings when any entry in the `skip` list no longer matches a crate in your graph so that you can cleanup your configuration.\n\nEach entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n### The `skip-tree` field (optional)\n\n```ini\nskip-tree = [\n    \"windows-sys<=0.52\", # will skip this crate and _all_ direct and transitive dependencies\n    { crate = \"windows-sys<=0.52\", reason = \"several crates use the outdated 0.42 and 0.45 versions\" },\n    { crate = \"windows-sys<=0.52\", depth = 3, reason = \"several crates use the outdated 0.42 and 0.45 versions\" },\n]\n```\n\nWhen dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the spectrum, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly `skip` each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where `skip-tree` comes in.\n\n`skip-tree` entries are similar to `skip` in that they are used to specify a crate name and version range that will be skipped, but they also have an additional `depth` field used to specify how many levels from the crate will also be skipped. A depth of `0` would be the same as specifying the crate in the `skip` field.\n\nNote that by default, the `depth` is infinite.\n\nEach entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n**NOTE:** `skip-tree` is a very big hammer, and should be used with care.\n\n### The `build` field (optional)\n\nThe `build` field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html), or they are a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html). The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of [interpreted shebang scripts](https://en.wikipedia.org/wiki/Shebang_(Unix)).\n\nWhile the intention of this configuration is to raise awareness of crates that have or use precompiled binaries or scripts, or otherwise contain file types that you want to be aware of, the compile time crate linting supplied by cargo-deny does **NOT** protect you from actively malicious code.\n\nA quick run down of things that cargo-deny **WILL NOT DETECT**.\n\n* The crate just straight up does bad things like uploading your SSH keys to a remote server using vanilla rust code\n* The crate contains compressed, or otherwise obfuscated executable binaries\n* The build script uses `include!()` for code that is benign in one version, then replaces it with something malicious without triggering a checksum mismatch on the build script contents itself.\n* A build time dependency of a non-malicious crate does any of the above.\n* Tons of other stuff I haven't thought of because I am not a security person\n\nSo all this is to say, `cargo-deny` (currently) is only really useful for analyzing when crates have native executables, and/or the crate maintainers have either forgotten or purposefully left helper scripts for their CI/release management/etc in the crate source that are not actually ever executed automatically.\n\n#### The `allow-build-scripts` field (optional)\n\nSpecifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.\n\n#### The `executables` field (optional)\n\nThis controls how native executables are handled. Note this check is done by actually reading the file headers from disk so that this check works on Windows as well, ie the executable bit is irrelevant.\n\n* `deny` (default) - Emits an error when native executables are detected.\n* `warn` - Prints a warning when native executables are detected, but does not fail the check.\n* `allow` - Prints a note when native executables are detected, but does not fail the check.\n\nThis check currently only handles the major executable formats.\n\n* [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)\n* [PE](https://en.wikipedia.org/wiki/Portable_Executable)\n* [Mach-O](https://en.wikipedia.org/wiki/Mach-O)\n\n#### The `interpreted` field (optional)\n\nThis controls how interpreted scripts are handled. Note this check is done by actually reading the file header from disk so that this check works on Windows as well, ie the executable bit is irrelevant.\n\n* `deny` - Emits an error when interpreted scripts are detected.\n* `warn` - Prints a warning when interpreted scripts are detected, but does not fail the check.\n* `allow` (default) - Prints a note when interpreted scripts are detected, but does not fail the check.\n\n#### The `script-extensions` field (optional)\n\nIf supplied scans crates that execute at compile time for any files with the specified extension(s), emitting an error for every one that matches.\n\n#### The `enable-builtin-globs` field (optional)\n\nIf `true`, enables the builtin glob patterns for common languages that tend to by installed on most developer machines, such as python.\n\n```ini\n{{#include ../../../../src/bans/builtin_globs.toml}}\n```\n\n#### The `include-dependencies` field (optional)\n\nBy default, only the crate that executes at compile time is scanned, but if set to `true`, this field will check this crate as well as all of its dependencies. This option is disabled by default, as this will tend to only find CI scripts that people leave in their published crates.\n\n#### The `include-workspace` field (optional)\n\nIf `true`, workspace crates will also be scanned. This defaults to false as you presumably have some degree of trust for your own code.\n\n#### The `include-archives` field (optional)\n\nIf `true`, archive files (eg. Windows .lib, Unix .a, C++ .o object files etc) are also counted as native code. This defaults to false, as these tend to need to be linked before they can be executed.\n\n#### The `bypass` field (optional)\n\nWhile all the previous configuration is about configuration the global checks that run on compile time crates, the `allow` field is how one can suppress those lints on a crate-by-crate basis.\n\nEach entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.\n\n```ini\n[build.bypass]\ncrate = \"crate-name\"\n```\n\n##### The `build-script` and `required-features` field (optional)\n\nIf set to a valid, 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2), the `build-script` field will cause the rest of the scanning to be bypassed _if_ the crate's build script's checksum matches the user specified checksum **AND** none of the features specified in the `required-features` field are enabled. If the checksum does not match, the calculated checksum will be emitted as a warning, and the crate will be scanned as if a checksum was not supplied.\n\n**NOTE:** These options only applies to crate with build scripts, not proc macros, as proc macros do not have a single entry point that can be easily checksummed.\n\n```ini\n[[build.bypass]]\nname = \"crate-name\"\nbuild-script = \"5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7\"\n```\n\n##### The `allow-globs` field (optional)\n\nBypasses scanning of files that match one or more of the glob patterns specified. Note that unlike the [`script-extensions`](#the-script-extensions-field-optional) field that applies to all crates, these globs can match anything, not just extensions.\n\n```ini\n[build]\nscript-extensions = [\"cs\"]\n\n[[build.bypass]]\ncrate = \"crate-name\"\nallow-globs = [\n    \"scripts/*.cs\",\n]\n```\n\n##### The `bypass.allow` field (optional)\n\nBypasses scanning a single file.\n\n```ini\n[build]\nexecutables = \"deny\"\n\n[[build.bypass]]\ncrate = \"crate-name\"\nallow = [\n    { path = \"bin/x86_64-linux\", checksum = \"5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7\" }\n]\n```\n\n###### The `path` field\n\nThe path, relative to the crate root, of the file to bypass scanning.\n\n###### The `checksum` field (optional)\n\nThe 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2) checksum of the file. If the checksum does not match, an error is emitted.\n",
+                    "number": [
+                      3,
+                      3,
+                      1
+                    ],
+                    "sub_items": [],
+                    "path": "checks/bans/cfg.md",
+                    "source_path": "checks/bans/cfg.md",
+                    "parent_names": [
+                      "Checks",
+                      "bans"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "diagnostics",
+                    "content": "# Bans diagnostics\n\n### `banned`\n\nA crate which is [explicitly banned](cfg.md#the-allow-and-deny-fields-optional) was detected.\n\n### `allowed`\n\nA crate which is [explicitly allowed](cfg.md#the-allow-and-deny-fields-optional) was detected.\n\n### `not-allowed`\n\nWhen using [`bans.allow`](cfg.md#the-allow-and-deny-fields-optional), a crate was detected that wasn't in that list.\n\n### `duplicate`\n\nOne or more [duplicate versions](cfg.md#the-multiple-versions-field-optional) of the same crate were detected.\n\n### `skipped`\n\nA crate version that matched an entry in [`bans.skip`](cfg.md#the-skip-field-optional) was encountered.\n\n### `wildcard`\n\nA crate was included via a [wildcard dependency](cfg.md#the-wildcards-field-optional) by one or more crates.\n\n### `unmatched-skip`\n\nA crate version in [`bans.skip`](cfg.md#the-skip-field-optional) was not encountered.\n\n### `allowed-by-wrapper`\n\nA crate in `bans.deny` was allowed since it was directly depended on by a [`wrappers`](cfg.md#the-wrappers-field-optional) crate.\n\n### `unmatched-wrapper`\n\nA crate in `bans.deny` had one or more [`wrappers`](cfg.md#the-wrappers-field-optional) crates, but a crate not in that list had a direct dependency on the banned crate.\n\n### `skipped-by-root`\n\nA crate was skipped from being checked as a duplicate due to being transitively referenced by a crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional).\n\n### `unmatched-root`\n\nA crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional) was not encountered.\n\n### `build-script-not-allowed`\n\nA crate which has been denied because it has a build script but is not part of the [`bans.allow-build-script`](cfg.md#the-allow-build-scripts-field-optional) list.\n\n### `exact-features-mismatch`\n\nA crate's features do not exactly match the configured feature set, and [`bans.features.exact`](cfg.md#the-features-exact-field-optional) is `true`.\n\n### `feature-banned`\n\nAn enabled crate feature is present in the [`bans.features.deny`](cfg.md#the-features-deny-field-optional) list.\n\n### `unknown-feature`\n\nA feature in either [`bans.features.deny`](cfg.md#the-features-deny-field-optional) or [`bans.features.allow`](cfg.md#the-features-allow-field-optional) does not exist for the crate.\n\n### `default-feature-enabled`\n\nThe `default` feature was enabled on a crate, and the [`bans.external-default-features`](cfg.md#the-external-default-features-field-optional) or [`bans.workspace-default-features`](cfg.md#the-workspace-default-features-field-optional) was configured.\n\n### `path-bypassed`\n\nA path specified by [`bans.build.bypass.allow.path`](cfg.md#the-path-field) was bypassed, optionally ensuring its contents matched a SHA-256 checksum.\n\n### `path-bypassed-by-glob`\n\nA path was bypassed due to matching one or more [glob patterns](cfg.md#the-allow-globs-field-optional).\n\n### `checksum-match`\n\nThe SHA-256 checksum calculated for the contents of a file matched the checksum in the configuration.\n\n### `checksum-mismatch`\n\nThe SHA-256 checksum calculated for the contents of a file did not match the checksum in the configuration.\n\n### `denied-by-extension`\n\nThe file extension matched either a [user specified](cfg.md#the-script-extensions-field-optional) or [builtin](cfg.md#the-enable-builtin-globs-field-optional) extension.\n\n### `detected-executable`\n\nA [native executable](cfg.md#the-executables-field-optional) was detected.\n\n### `detected-executable-script`\n\nAn [interpreted script](cfg.md#the-interpreted-field-optional) was detected.\n\n### `unable-to-check-path`\n\nAn I/O error occurred when opening or reading a file from disk.\n\n### `features-enabled`\n\nOne or more [`required-features`](cfg.md#the-build-script-and-required-features-field-optional) were enabled, causing the [`build-script`](cfg.md#the-build-script-and-required-features-field-optional) bypass to be ignored.\n\n### `unmatched-bypass`\n\nA [crate bypass](cfg.md#the-bypass-field-optional) did not match any crate in the graph.\n\n### `unmatched-path-bypass`\n\nA [path bypass](cfg.md#the-bypassallow-field-optional) did not match a file in the crate.\n\n### `unmatched-glob`\n\nA [glob bypass](cfg.md#the-allow-globs-field-optional) did not match any files in the crate.\n",
+                    "number": [
+                      3,
+                      3,
+                      2
+                    ],
+                    "sub_items": [],
+                    "path": "checks/bans/diags.md",
+                    "source_path": "checks/bans/diags.md",
+                    "parent_names": [
+                      "Checks",
+                      "bans"
+                    ]
+                  }
+                }
+              ],
+              "path": "checks/bans/README.md",
+              "source_path": "checks/bans/README.md",
+              "parent_names": [
+                "Checks"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "licenses",
+              "content": "# licenses\n\nThe licenses check is used to verify that every crate you use has license terms you find acceptable. cargo-deny does this by evaluating the license requirements specified by each crate against the [configuration](cfg.md) you've specified, to determine if your project meets that crate's license requirements.\n\n```bash\ncargo deny check licenses\n```\n\n## SPDX\n\ncargo-deny uses [SPDX license expressions][SPDX] to interpret the license requirements of a crate. In the event that it cannot obtain an SPDX license expression directly from metadata, it tries to\nderive such within the confidence threshold you specify. Note that cargo-deny currently does **not** exhaustively search the entirety of the source code of every crate to find every possible license that could be attributed to the crate. There are many edge cases to that approach, and human ingenuity, or even human error, can always outwit a statically-compiled program.\n\ncargo-deny makes a good-faith assumption each crate correctly defines its license requirements. In the (in our experience, rare) circumstance such data cannot be gathered automatically, it provides a mechanism for manually specifying the license requirements for crates.\n\n### Expression Source Precedence\n\nThe source of the SPDX expression used to evaluate the crate's licensing requirement is obtained in the following order:\n\n1. If the crate in question has a [Clarification](cfg.md#the-clarify-field-optional) applied to it, and the source file(s) in the crate's source still match, the expression from the clarification will be used.\n1. The [`license`][cargo-md] field from the crate's Cargo.toml manifest will be used if it exists.\n1. The [`license-file`][cargo-md] field, as well as **all** other `LICENSE(-*)?` files will be parsed to determine the SPDX license identifier, and then all of those identifiers will be joined with the `AND` operator, meaning that you must accept **all** of the licenses detected.\n\n*Importantly*, this precedence, combined with the trust that licensing data is handled correctly, means the following edge cases are **not** handled. This is not an exhaustive list, but are rather a sample of the kinds of things a program is not able to completely prevent, even if more checks are added:\n\n1. **Absences**: If the package contains inadequate licensing data, in e.g. the event of a crate not reflecting the license of code it is linked with.\n1. **Mismatches:** If the Cargo.toml documents a given SPDX expression that does not match the actual license files in the package, this is not checked.\n1. **Inventiveness**: It is possible to place licensing data somewhere that is not in these locations, or have names that start with things other than `LICENSE`. There is no guarantee such placements inside a package would lose their legal force, even if there is other licensing data that cargo-deny may detect first and assume is comprehensive.\n\n### Evaluation Precedence\n\nCurrently, the precedence for determining whether a particular license is accepted or rejected is as follows:\n\n1. A license specified in the `deny` list is **always rejected**.\n1. A license specified in the `allow` list is **always accepted**.\n1. If the license is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft), the\n[`[licenses.copyleft]`](cfg.md#the-copyleft-field-optional) configuration determines its status\n1. If the license is [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html), the [`[licenses.allow-osi-fsf-free]`](cfg.md#the-allow-osi-fsf-free-field-optional) configuration determines its status, if it is `neither` the check continues\n1. If the license does not match any of the above criteria, the [`[licenses.default]`](cfg.md#the-default-field-optional) configuration determines its status\n\n## Example output\n\n![licenses output](../../output/licenses.svg)\n\n[SPDX]: https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/\n[cargo-md]: https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata\n",
+              "number": [
+                3,
+                4
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "config",
+                    "content": "# The `[licenses]` section\n\nContains all of the configuration for `cargo deny check license`.\n\n## Example\n\n```ini\n{{#include ../../../../tests/cfg/licenses.toml}}\n```\n\n## SPDX Identifiers\n\nAll identifiers used in the license configuration section are expected to be valid SPDX v2.1 short identifiers, either from version 3.11 of the [SPDX License List](https://spdx.org/licenses/), or use a [custom identifier](https://spdx.github.io/spdx-spec/appendix-V-using-SPDX-short-identifiers-in-source-files/#format-for-spdx-license-identifier) by prefixing it with `LicenseRef-`.\n\n```ini\nallow = [\n    # The Apache license identifier\n    \"Apache-2.0\",\n    # A custom license identifier\n    \"LicenseRef-Embark-Custom\",\n]\n\n# Custom license refs can be specified for crates which don't use a license\n# in the SPDX list\n[[licenses.clarify]]\ncrate = \"a-crate\"\nexpression = \"LicenseRef-Embark-Custom\"\nlicense-files = [\n    { path = \"LICENSE\", hash = 0x001c7e6c },\n]\n```\n\nLicense identifiers can also be coupled with an optional [exception](https://spdx.org/licenses/exceptions-index.html) by appending `WITH <exception-id>` to the license identifier. Licenses coupled with exceptions are considered distinct from the same license without the exception.\n\n```ini\nallow = [\n    # The Apache license identifier\n    \"Apache-2.0\",\n    # The Apache license + LLVM-exception\n    \"Apache-2.0 WITH LLVM-exception\",\n]\n```\n\n### The `include-dev` field (optional)\n\nIf `true`, licenses are checked even for `dev-dependencies`. By default this is false as `dev-dependencies` are not used by downstream crates, nor part of binary artifacts.\n\n### The `version` field (optional)\n\n```ini\nversion = 2\n```\n\nThe licenses section has an upcoming breaking change, with deprecation warnings for several fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.\n\nThe breaking change is as follows:\n\n- `unlicensed` - Removed, if a crate is unlicensed you should open an issue/PR to fix it, and in the meantime, you may add a [clarification](#the-clarify-field-optional).\n- `deny` - Removed, all licenses are denied unless explicitly allowed\n- `copyleft` - Removed, all licenses are denied unless explicitly allowed\n- `allow-osi-fsf-free` - Removed, all licenses are denied unless explicitly allowed\n- `default` - Removed, all licenses are denied unless explicitly allowed\n\n### The `unlicensed` field (optional)\n\nDetermines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via `LICENSE*` files in the crate's source.\n\n- `deny` (default) - All unlicensed crates will emit an error and fail the license check\n- `allow` - All unlicensed crates will show a note, but will not fail the license check\n- `warn` - All unlicensed crates will show a warning, but will not fail the license check\n\n### The `allow` and `deny` fields (optional)\n\nThe licenses that should be allowed or denied, note that the same license cannot\nappear in both the `allow` and `deny` lists.\n\n[`deny` is **DEPRECATED**](#the-version-field-optional)\n\n#### Note on GNU licenses\n\n- GPL\n- AGPL\n- LGPL\n- GFDL\n\nThe GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either `allow` or `deny`, you **must not** use the suffixes `-only` or `-or-later`, as they can only be used by the license holder themselves to decide under which terms to license their code.\n\nSo, for example, if you wanted to disallow `GPL-2.0` licenses, but allow `GPL-3.0` licenses, you could use the following configuration.\n\n```ini\n[licenses]\nallow = [ \"GPL-3.0\" ]\ndeny = [ \"GPL-2.0\" ]\n```\n\nThis gets worse with the GFDL licenses, which also have an `invariants` modifier. Before licenses are checked they are normalized to make them consistent for all licenses.\n\nLet's use [`GFDL-1.2`](https://spdx.org/licenses/GFDL-1.2-only.html) to show how license requirements are normalized.\n\n- `GFDL-1.2-invariants-only` => `GFDL-1.2-invariants`\n- `GFDL-1.2-invariants-or-later` => `GFDL-1.2-invariants+`\n- `GFDL-1.2-no-invariants-only` => `GFDL-1.2`\n- `GFDL-1.2-no-invariants-or-later` => `GFDL-1.2+`\n- `GFDL-1.2-only` => `GFDL-1.2`\n- `GFDL-1.2-or-later` => `GFDL-1.2+`\n\nSo, for example, if you wanted to allow all version (1.1, 1.2, and 1.3), but only invariants for 1.3 you could use the following configuration.\n\n```ini\n[licenses]\nallow = [ \"GFDL-1.1\", \"GFDL-1.2\", \"GFDL-1.3\", \"GFDL-1.3-variants\"]\n```\n\n### The `exceptions` field (optional)\n\nThe license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow additional licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.\n\nThis field uses [PackageSpecs](../cfg.md#package-specs) to select the crate the exception applies to.\n\n### Additional exceptions configuration file\n\nIn some cases it's useful to have global cargo-deny config and project-local exceptions. This can be accomplished with a project exceptions file in any of these locations relative to your top level `Cargo.toml` manifest file.\n\n`cargo-deny` will look for the following files: `<cwd>/deny.exceptions.toml`, `<cwd>/.deny.exceptions.toml` and `<cwd>/.cargo/deny.exceptions.toml`\n\nOnly the exceptions field should be set:\n\n```ini\nexceptions = [\n    # Each entry is the crate and version constraint, and its specific allow list.\n    { allow = [\"CDDL-1.0\"], crate = \"inferno\" },\n]\n```\n\n#### The `allow` field\n\nThis is the exact same as the general `allow` field.\n\n```ini\n[licenses]\nallow = [\n    \"Apache-2.0\",\n    \"MIT\",\n]\nexceptions = [\n    # This is the only crate that cannot be licensed with either Apache-2.0\n    # or MIT, so we just add an exception for it, meaning we'll get a warning\n    # if we add another crate that also requires this license\n    { crate = \"cloudabi\", allow = [\"BSD-2-Clause\"] },\n]\n```\n\n### The `copyleft` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a license that is considered [copyleft](https://www.gnu.org/licenses/license-list.html) is encountered.\n\n- `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check\n- `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true\n- `allow` - The license is accepted if it is copyleft\n\n### The `allow-osi-fsf-free` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when licenses aren't explicitly allowed or denied, but **are** marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.23 of the [SPDX License List](https://spdx.org/licenses/).\n\n- `both` - The license is accepted if it is both OSI approved and FSF Free\n- `either` - The license is accepted if it is either OSI approved or FSF Free\n- `osi` - The license is accepted if it is OSI approved\n- `fsf` - The license is accepted if it is FSF Free\n- `osi-only` - The license is accepted if it is OSI approved and not FSF Free\n- `fsf-only` - The license is accepted if it is FSF Free and not OSI approved\n- `neither` (default) - No special consideration is given the license\n\n### The `default` field (optional)\n\n[**DEPRECATED**](#the-version-field-optional)\n\nDetermines what happens when a license is encountered that:\n\n1. Isn't in the `allow` or `deny` lists\n1. Isn't `copyleft`\n1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = \"neither\"`\n\n- `warn` - Will emit a warning that the license was detected, but will not fail the license check\n- `deny` (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true\n- `allow` - The license is accepted\n\n### The `confidence-threshold` field (optional)\n\n`cargo-deny` uses [askalono](https://github.com/amzn/askalono) to determine the license of a LICENSE file. Due to variability in license texts because of things like authors, copyright year, and so forth, askalano assigns a confidence score to its determination, from `0.0` (no confidence) to `1.0` (perfect match). The confidence threshold value is used to reject the license determination if the score does not match or exceed the threshold.\n\n`0.0` - `1.0` (default `0.8`)\n\n### The `clarify` field (optional)\n\nIn some exceptional cases, a crate will not have easily machine readable license information, and would by default be considered \"unlicensed\" by cargo-deny. As a (hopefully) temporary patch for using the crate, you can specify a clarification for the crate by manually assigning its SPDX expression, based on one or more files in the crate's source. cargo-deny will use that expression for as long as the source files in the crate exactly match the clarification's hashes.\n\nThis field uses [PackageSpecs](../cfg.md#package-specs) to select the crate the clarification applies to.\n\n```ini\n[[licenses.clarify]]\ncrate = \"webpki\"\nexpression = \"ISC\"\nlicense-files = [\n    { path = \"LICENSE\", hash = 0x001c7e6c },\n]\n```\n\n#### The `expression` field\n\nThe [SPDX license expression][SPDX-expr] you are specifying as the license requirements for the crate.\n\n#### The `license-files` field\n\nContains one or more files that will be checked to ensure the license expression still applies to a version of the crate.\n\n##### The `path` field\n\nThe crate relative path to a file to be used as a source of truth.\n\n##### The `hash` field\n\nAn opaque hash calculated from the file contents. This hash can be obtained from the output of the license check when cargo-deny can't determine the license of the file in question.\n\n### The `private` field (optional)\n\nIt's often not useful or wanted to check for licenses in your own private workspace crates. So the private field allows you to do so.\n\n#### The `ignore` field\n\nIf `true`, workspace members will not have their license expression checked if they are not published.\n\n```ini\n# Cargo.toml\n[package]\nname = \"sekret\"\nlicense = \"¯\\_(ツ)_/¯\"\npublish = false # \"private\"!\n```\n\n```ini\n# deny.toml\n[licenses]\n# The sekret package would be ignored now\nprivate = { ignore = true }\n```\n\n### The `registries` field\n\nA list of private registries you may publish your workspace crates to. If a workspace member **only** publishes to private registries, it will also be ignored if `private.ignore = true`\n\n```ini\n# Cargo.toml\n[package]\nname = \"sekret\"\nlicense = \"¯\\_(ツ)_/¯\"\npublish = [\"sauce\"]\n```\n\n```ini\n# deny.toml\n[licenses]\n# Still ignored!\nprivate = { ignore = true, registries = [\"sauce\"] }\n```\n\n### The `ignore-sources` field\n\nA list of registries that crates can be sourced from that will not have their licenses checked.\n\n```ini\n# deny.toml\n[licenses.private]\nignore = true\nignore-sources = [\"https://sekretz.com/super/secret-index\"]\n```\n\n[SPDX-expr]: https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/\n\n### The `unused-allowed-license` field (optional)\n\nDetermines what happens when one of the licenses that appears in the `allow` list is not encountered in the dependency graph.\n\n- `warn` (default) - A warning is emitted for each license that appears in `license.allow` but which is not used in any crate.\n- `allow` - Unused licenses in the `licenses.allow` list are ignored.\n- `deny` - An unused license in the `licenses.allow` list triggers an error, and cause the license check to fail.\n",
+                    "number": [
+                      3,
+                      4,
+                      1
+                    ],
+                    "sub_items": [],
+                    "path": "checks/licenses/cfg.md",
+                    "source_path": "checks/licenses/cfg.md",
+                    "parent_names": [
+                      "Checks",
+                      "licenses"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "diagnostics",
+                    "content": "# Licenses Diagnostics\n\n### `rejected`\n\nOne or more licenses for a crate were rejected because they were not configured to be [allowed](cfg.md#the-allow-and-deny-fields-optional).\n\n### `accepted`\n\nThe license expression for a crate was [allowed](cfg.md#the-allow-and-deny-fields-optional), though there may be warnings.\n\n### `unlicensed`\n\nNo license expression could be found for a crate and it is considered [unlicensed](cfg.md#the-unlicensed-field-optional).\n\n### `skipped-private-workspace-crate`\n\nA workspace member is `publish = false` and was [skipped](cfg.md#the-private-field-optional).\n\n### `license-not-encountered`\n\nA license in [`licenses.allow`](cfg.md#the-allow-and-deny-fields-optional) was not found in any crate.\n\nThis diagnostic can be silenced by configuring the [`licenses.unused-allowed-license`](cfg.md#the-unused-allowed-license-field-optional) field to \"allow\".\n\n### `license-exception-not-encountered`\n\nA [`licenses.exception`](cfg.md#the-exceptions-field-optional) was not used as the crate it applied to was not encountered.\n",
+                    "number": [
+                      3,
+                      4,
+                      2
+                    ],
+                    "sub_items": [],
+                    "path": "checks/licenses/diags.md",
+                    "source_path": "checks/licenses/diags.md",
+                    "parent_names": [
+                      "Checks",
+                      "licenses"
+                    ]
+                  }
+                }
+              ],
+              "path": "checks/licenses/README.md",
+              "source_path": "checks/licenses/README.md",
+              "parent_names": [
+                "Checks"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "sources",
+              "content": "# sources\n\nThe sources check ensures crates only come from sources you trust.\n\n```bash\ncargo deny check sources\n```\n\n## Use Case - Only allowing known/trusted sources\n\nCargo can retrieve crates from a variety of sources, namely registries, git repositories, or local file paths. This is great in general and very flexible for development. But, especially when re-routing dependencies to git repositories, increasing the amount of sources that a project has to trust may be something a repository wants to explicitly opt-in to.\n\nSee [Why npm lockfiles can be a security blindspot for injecting malicious modules](https://snyk.io/blog/why-npm-lockfiles-can-be-a-security-blindspot-for-injecting-malicious-modules/) for the motivating reason for why this check was added.\n\n## Use Case - Only using vendored file dependencies\n\nA project may want to only support local file dependencies, such as having all dependencies vendored into the repository for full control and offline building. This can be achieved by disallowing all git and registry sources to ensure that every dependency is added into your source control rather than via an external source.\n\n## Example output\n\n![sources output](../../output/sources.svg)\n",
+              "number": [
+                3,
+                5
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "config",
+                    "content": "# The `[sources]` section\n\nContains all of the configuration for `cargo deny check sources`\n\n## Example Config\n\n```ini\n{{#include ../../../../tests/cfg/sources.toml}}\n```\n\n### The `unknown-registry` field (optional)\n\nDetermines what happens when a crate from a crate registry that is not in the `allow-registry` list is encountered.\n\n* `deny` - Will emit an error with the URL of the source, and fail the check.\n* `warn` (default) - Prints a warning for each crate, but does not fail the check.\n* `allow` - Prints a note for each crate, but does not fail the check.\n\n### The `unknown-git` field (optional)\n\nDetermines what happens when a crate from a git repository not in the `allow-git` list is encountered.\n\n* `deny` - Will emit an error with the URL of the repository, and fail the check.\n* `warn` (default) - Prints a warning for each crate, but does not fail the check.\n* `allow` - Prints a note for each crate, but does not fail the check.\n\n### The `required-git-spec` (optional)\n\nDetermines which [specifiers](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) are required for git sources. Git sources are a convenient way to use patched code temporarily, but they have downsides for long term maintenance, as the specifier you use for the source determines what happens when you do a `cargo update`, and in the default case, this means you essentially have a wildcard dependency on the repository.\n\nThis configuration value allows you to control what specifiers you want to allow for your git sources to reduce surprises. The following values are listed in order from least to most specific, and using a less specific specifier will also allow all of the more specific ones.\n\n* `any` (default) - Allows all git specs, including the default of not having\nany specifier, which tracks the latest commit on the `master` branch of the repo\n* `branch` - Allows the `branch = \"<branch_name>\"` specifier.\n* `tag` - Allows the `tag = \"<tag_name>\"` specifier.\n* `rev` - Allows the `rev = \"<commit_sha>\"` specifier.\n\n### The `allow-git` field (optional)\n\nConfigure which git urls are allowed for crate sources. If a crate's source is not in one of the listed urls, then the `unknown-git` setting will determine how it is handled. Note that the url must match exactly, though `.git` is stripped if it exists to match the logic of cargo.\n\n```ini\n[sources]\nallow-git = [\n    \"https://github.com/EmbarkStudios/cargo-deny\",\n]\n```\n\n### The `private` field (optional)\n\nSimilarly to `allow-git`, allows you to configure urls, however, unlike `allow-git` which is meant for a single, exact, url, `private` urls actually allow _any_ git repo url which matches the host and begins with the same path. This field is primarily meant to support the use of internal/private git hosts (usually on a VPN) without needing to specify each individual repo. Of course, this can be used to also just allow every repo on Github, but this is not recommended. 😉\n\n```ini\n[sources]\nprivate = [\n    \"https://super-duper-sekret\",\n]\n```\n\n### The `allow-registry` field (optional)\n\nThe list of registries that are allowed. If a crate is not found in one of the listed registries, then the `unknown-registry` setting will determine how it is handled.\n\nIf not specified, this list will by default contain the [crates.io](http://crates.io) registry, equivalent to this:\n\n```ini\n[sources]\nallow-registry = [\n    \"https://github.com/rust-lang/crates.io-index\",\n]\n```\n\nTo not allow any crates registries, set it to empty:\n\n```ini\n[sources]\nunknown-registry = \"deny\"\nallow-registry = []\n```\n\n### The `allow-org` field (optional)\n\nGenerally, I think most projects in the Rust space probably follow a similar procedure as we do when they want to fix a bug or add a feature to one of their dependencies, which is basically.\n\n1. Fork the crate to make your changes\n1. Hack away locally, probably just patching your project(s) to use a `path` dependency to the cloned fork\n1. Push changes to your fork, and once you're happy, change the `path` dependency to a `git` dependency and point it to your fork for others/CI to be able to use the same changes easily\n1. Eventually (hopefully!) make a PR to the original repo with your changes\n1. Hopefully get your changes merged to the original repo\n1. Wait until a release is made that incorporates your changes, possibly changing the `git` source to point to the original repo\n1. Remove the `git` source and instead point at the new version of the crate with your changes\n1. Profit!\n\nWhen working in a company or organization, it is often the case that all crates will be forked to a shared organization account rather than a personal Github account. However, if you lint your git sources, every new and deleted fork needs to keep that list updated, which is tedious, even if all the forks fall under the same organization (in Github terminology), even though presumably only people you trust have permission to create forks there, and you would like to just blanket trust any repo under that org.\n\nThe `allow-org` object allows you to specify 1 or more organizations or users in several VCS providers to more easily configure git sources for your projects.\n\n#### The `github` field (optional)\n\nAllows you to specify one or more `github.com` organizations to allow as git sources.\n\n```ini\n[sources.allow-org]\ngithub = [\"YourCoolOrgGoesHere\"]\n```\n\n#### The `gitlab` field (optional)\n\nAllows you to specify one or more `gitlab.com` organizations to allow as git sources.\n\n```ini\n[sources.allow-org]\ngitlab = [\"YourCoolOrgGoesHere\"]\n```\n\n#### The `bitbucket` field (optional)\n\nAllows you to specify one or more `bitbucket.org` organizations to allow as git sources.\n\n```ini\n[sources.allow-org]\nbitbucket = [\"YourCoolOrgGoesHere\"]\n```\n",
+                    "number": [
+                      3,
+                      5,
+                      1
+                    ],
+                    "sub_items": [],
+                    "path": "checks/sources/cfg.md",
+                    "source_path": "checks/sources/cfg.md",
+                    "parent_names": [
+                      "Checks",
+                      "sources"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "diagnostics",
+                    "content": "# Sources diagnostics\n\n### `git-source-underspecified`\n\nA `git` source uses a specification that doesn't meet the minimum specifier required by [`sources.required-git-spec`](cfg.md#the-required-git-spec-optional).\n\n### `allowed-source`\n\nA crate source is explicitly allowed by [`sources.allow-git`](cfg.md#the-allow-git-field-optional) or [`sources.allow-registry`](cfg.md#the-allow-registry-field-optional).\n\n### `allowed-by-organization`\n\nA crate source was explicitly allowed by an entry in [`sources.allow-org`](cfg.md#the-allow-org-field-optional).\n\n### `source-not-allowed`\n\nA crate's source was not explicitly allowed.\n\n### `unmatched-source`\n\nAn allowed source in [`sources.allow-git`](cfg.md#the-allow-git-field-optional) or [`sources.allow-registry`](cfg.md#the-allow-registry-field-optional) was not encountered.\n\n### `unmatched-organization`\n\nAn allowed source in [`sources.allow-org`](cfg.md#the-allow-org-field-optional) was not encountered.\n",
+                    "number": [
+                      3,
+                      5,
+                      2
+                    ],
+                    "sub_items": [],
+                    "path": "checks/sources/diags.md",
+                    "source_path": "checks/sources/diags.md",
+                    "parent_names": [
+                      "Checks",
+                      "sources"
+                    ]
+                  }
+                }
+              ],
+              "path": "checks/sources/README.md",
+              "source_path": "checks/sources/README.md",
+              "parent_names": [
+                "Checks"
+              ]
+            }
+          }
+        ],
+        "path": "checks/README.md",
+        "source_path": "checks/README.md",
+        "parent_names": []
+      }
+    },
+    {
+      "Chapter": {
+        "name": "Config file",
+        "content": "# Root\n\n**Type:** `object`",
+        "number": [
+          4
+        ],
+        "sub_items": [
+          {
+            "Chapter": {
+              "name": "",
+              "content": "# Root\n\n**Type:** `object`\n\nConfiguration file for cargo-deny, by default called `deny.toml`.\n\nFull documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html\n\n## `advisories`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\n## `bans`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\n## `graph`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\n## `output`\n\n**Type:** `object`<br>\n**Key:** `optional`",
+              "number": [
+                4,
+                0
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "advisories",
+                    "content": "# `advisories`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\nChecks advisory databases for crates with security vulnerabilities,\nor that have been marked as unmaintained, or which have been yanked from\ntheir source registry.\n\nThis section is considered when running `cargo deny check advisories`.\n\n\n## Example\n\n```toml\n[advisories]\ndb-path = \"~/.cargo/advisory-dbs\"\ndb-urls = [\"https://github.com/RustSec/advisory-db\"]\nvulnerability = \"deny\"\nunmaintained = \"warn\"\nunsound = \"warn\"\nyanked = \"warn\"\nnotice = \"warn\"\nignore = [\n    \"RUSTSEC-0000-0000\",\n    \"crate@0.1\",\n    { crate = \"yanked\", reason = \"a new version has not been released\" },\n]\nseverity-threshold = \"medium\"\n```\n\n## `db-urls`\n\n**Type:** `array<string (uri)>`<br>\n**Key:** `optional`\n\n## `db-path`\n\n**Type:** `string`<br>\n**Key:** `optional`\n\n## `version`\n\n**Type:** `integer (enum)`<br>\n**Key:** `optional`\n\n## `vulnerability`\n\n**Type:** [`LintLevel`](/checks2/schema/type-index/LintLevel.md) `string (enum)`<br>\n**Key:** `optional`\n\n**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a security vulnerability is encountered.\n\n\n### Default\n\n```toml\n[advisories]\nvulnerability = \"deny\"\n```\n\n## `unmaintained`\n\n**Type:** [`LintLevel`](/checks2/schema/type-index/LintLevel.md) `string (enum)`<br>\n**Key:** `optional`\n\n**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unmaintained` advisory is encountered.\n\n\n### Default\n\n```toml\n[advisories]\nunmaintained = \"warn\"\n```\n\n## `unsound`\n\n**Type:** [`LintLevel`](/checks2/schema/type-index/LintLevel.md) `string (enum)`<br>\n**Key:** `optional`\n\n**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with an `unsound` advisory is encountered.\n\n\n### Default\n\n```toml\n[advisories]\nunsound = \"warn\"\n```\n\n## `notice`\n\n**Type:** [`LintLevel`](/checks2/schema/type-index/LintLevel.md) `string (enum)`<br>\n**Key:** `optional`\n\n**DEPRECATED** (see `version` field)\n\nDetermines what happens when a crate with a `notice` advisory is encountered.\n\n**NOTE**: As of 2019-12-17 there are no `notice` advisories in the\n[RustSec Advisory DB](https://github.com/RustSec/advisory-db)\n\n\n### Default\n\n```toml\n[advisories]\nnotice = \"warn\"\n```\n\n## `yanked`\n\n**Type:** [`LintLevel`](/checks2/schema/type-index/LintLevel.md) `string (enum)`<br>\n**Key:** `optional`\n\nDetermines what happens when a crate with a version that has been yanked from its source\nregistry is encountered.\n\n\n### Default\n\n```toml\n[advisories]\nyanked = \"warn\"\n```\n\n## `ignore`\n\n**Type:** `array`<br>\n**Key:** `optional`",
+                    "number": [
+                      4,
+                      0,
+                      0
+                    ],
+                    "sub_items": [
+                      {
+                        "Chapter": {
+                          "name": "advisories.db-urls",
+                          "content": "# `db-urls`\n\n**Type:** `array<string (uri)>`<br>\n**Key:** `optional`\n\nURLs to one or more advisory databases.\n\n## Default\n\n```toml\n[advisories]\ndb-urls = [\"https://github.com/RustSec/advisory-db\"]\n```\n\n## `[N]`\n\n**Type:** `string (uri)`",
+                          "number": [
+                            4,
+                            0,
+                            0,
+                            0
+                          ],
+                          "sub_items": [
+                            {
+                              "Chapter": {
+                                "name": "advisories.db-urls[N]",
+                                "content": "# `[N]`\n\n**Type:** `string (uri)`",
+                                "number": [
+                                  4,
+                                  0,
+                                  0,
+                                  0,
+                                  0
+                                ],
+                                "sub_items": [],
+                                "path": "advisories-db-urls-N-",
+                                "source_path": null,
+                                "parent_names": [
+                                  "Config file",
+                                  "",
+                                  "advisories",
+                                  "advisories.db-urls",
+                                  "advisories.db-urls[N]"
+                                ]
+                              }
+                            }
+                          ],
+                          "path": "advisories-db-urls",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "advisories",
+                            "advisories.db-urls"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "advisories.db-path",
+                          "content": "# `db-path`\n\n**Type:** `string`<br>\n**Key:** `optional`\n\nPath to the root directory into which one or more advisory databases are cloned into.\n\nThis value supports basic shell expansion:\n\n- `~` - Expands to [`home::home_dir`](https://docs.rs/home/latest/home/fn.home_dir.html)\n- `$VARNAME` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n- `${VARNAME}` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n- `${VARNAME:-fallback}` - Expands to [`std::env::var(\"VARNAME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n  or the fallback value if it doesn't exist (everything between the `:-` and `}`)\n- `$CARGO_HOME` - Expands to [`std::env::var(\"CARGO_HOME\")`](https://doc.rust-lang.org/std/env/fn.var.html)\n  if it exists, otherwise expands to `$(home::home_dir())/.cargo`\n\nNote that the path must be valid utf-8, after expansion.\n\n\n## Default\n\n```toml\n[advisories]\ndb-path = \"$CARGO_HOME/advisory-dbs\"\n```",
+                          "number": [
+                            4,
+                            0,
+                            0,
+                            1
+                          ],
+                          "sub_items": [],
+                          "path": "advisories-db-path",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "advisories",
+                            "advisories.db-path"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "advisories.version",
+                          "content": "# `version`\n\n**Type:** `integer (enum)`<br>\n**Key:** `optional`\n\nThe advisories section has an upcoming breaking change, with deprecation warnings for several\nfields that will be removed. Setting `version = 2` will opt-in to the future default behavior.\n\nThe breaking change is as follows:\n\n- `vulnerability` - Removed, all vulnerability advisories now emit errors.\n- `unmaintained` - Removed, all unmaintained advisories now emit errors.\n- `unsound` - Removed, all unsound advisories now emit errors.\n- `notice` - Removed, all notice advisories now emit errors.\n- `severity-threshold` - Removed, all vulnerability advisories now emit errors.\n\nAs before, if you want to ignore a specific advisory, add it to the `ignore` field.\n\n\n## Possible values\n\n- `2`",
+                          "number": [
+                            4,
+                            0,
+                            0,
+                            2
+                          ],
+                          "sub_items": [],
+                          "path": "advisories-version",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "advisories",
+                            "advisories.version"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "advisories.ignore",
+                          "content": "# `ignore`\n\n**Type:** `array`<br>\n**Key:** `optional`\n\nEvery advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`.\nPutting an identifier in this array will cause the advisory to be treated as a note, rather\nthan a warning or error.\n\nIn addition, yanked crate versions can be ignored by specifying a [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nwith an optional `reason`.\n\n\n## Example\n\n```toml\n[advisories]\nignore = [\n    \"RUSTSEC-0000-0000\",\n    { id = \"RUSTSEC-0000-0000\", reason = \"this vulnerability does not affect us as we don't use the particular code path\" },\n    \"yanked@0.1.1\",\n    { crate = \"yanked-crate@0.1.1\", reason = \"a semver compatible version hasn't been published yet\" },\n]\n```\n\n## `[N]`\n\n",
+                          "number": [
+                            4,
+                            0,
+                            0,
+                            3
+                          ],
+                          "sub_items": [
+                            {
+                              "Chapter": {
+                                "name": "advisories.ignore[N]",
+                                "content": "# `[N]`\n\n\n\n## `string`\n\n**Type:** `string`\n\n## `AdvisoriesIgnoreAdvisory`\n\n**Type:** `object`\n\n## `AdvisoriesIgnoreYanked`\n\n**Type:** `object`",
+                                "number": [
+                                  4,
+                                  0,
+                                  0,
+                                  3,
+                                  0
+                                ],
+                                "sub_items": [
+                                  {
+                                    "Chapter": {
+                                      "name": "advisories.ignore[N]::string",
+                                      "content": "# `string`\n\n**Type:** `string`\n\nEither an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`).",
+                                      "number": [
+                                        4,
+                                        0,
+                                        0,
+                                        3,
+                                        0,
+                                        0
+                                      ],
+                                      "sub_items": [],
+                                      "path": "advisories-ignore-N---string",
+                                      "source_path": null,
+                                      "parent_names": [
+                                        "Config file",
+                                        "",
+                                        "advisories",
+                                        "advisories.ignore",
+                                        "advisories.ignore[N]",
+                                        "advisories.ignore[N]::string"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "Chapter": {
+                                      "name": "advisories.ignore[N]::AdvisoriesIgnoreAdvisory",
+                                      "content": "# `AdvisoriesIgnoreAdvisory`\n\n**Type:** `object`\n\n## `id`\n\n**Type:** `string`<br>\n**Key:** `required`\n\n## `reason`\n\n**Type:** [`IgnoreReason`](/checks2/schema/type-index/IgnoreReason.md) `string`<br>\n**Key:** `optional`",
+                                      "number": [
+                                        4,
+                                        0,
+                                        0,
+                                        3,
+                                        0,
+                                        1
+                                      ],
+                                      "sub_items": [
+                                        {
+                                          "Chapter": {
+                                            "name": "advisories.ignore[N]::AdvisoriesIgnoreAdvisory.id",
+                                            "content": "# `id`\n\n**Type:** `string`<br>\n**Key:** `required`\n\nThe unique identifier of the advisory to ignore\n\n## Example\n\n```toml\n[advisories]\nignore = [\"RUSTSEC-2019-0001\"]\n```",
+                                            "number": [
+                                              4,
+                                              0,
+                                              0,
+                                              3,
+                                              0,
+                                              1,
+                                              0
+                                            ],
+                                            "sub_items": [],
+                                            "path": "advisories-ignore-N---AdvisoriesIgnoreAdvisory-id",
+                                            "source_path": null,
+                                            "parent_names": [
+                                              "Config file",
+                                              "",
+                                              "advisories",
+                                              "advisories.ignore",
+                                              "advisories.ignore[N]",
+                                              "advisories.ignore[N]::AdvisoriesIgnoreAdvisory",
+                                              "advisories.ignore[N]::AdvisoriesIgnoreAdvisory.id"
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      "path": "advisories-ignore-N---AdvisoriesIgnoreAdvisory",
+                                      "source_path": null,
+                                      "parent_names": [
+                                        "Config file",
+                                        "",
+                                        "advisories",
+                                        "advisories.ignore",
+                                        "advisories.ignore[N]",
+                                        "advisories.ignore[N]::AdvisoriesIgnoreAdvisory"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "Chapter": {
+                                      "name": "advisories.ignore[N]::AdvisoriesIgnoreYanked",
+                                      "content": "# `AdvisoriesIgnoreYanked`\n\n**Type:** `object`\n\n## `crate`\n\n**Type:** [`PackageSpec`](/checks2/schema/type-index/PackageSpec.md) `string`<br>\n**Key:** `required`\n\n## `reason`\n\n**Type:** [`IgnoreReason`](/checks2/schema/type-index/IgnoreReason.md) `string`<br>\n**Key:** `optional`",
+                                      "number": [
+                                        4,
+                                        0,
+                                        0,
+                                        3,
+                                        0,
+                                        2
+                                      ],
+                                      "sub_items": [],
+                                      "path": "advisories-ignore-N---AdvisoriesIgnoreYanked",
+                                      "source_path": null,
+                                      "parent_names": [
+                                        "Config file",
+                                        "",
+                                        "advisories",
+                                        "advisories.ignore",
+                                        "advisories.ignore[N]",
+                                        "advisories.ignore[N]::AdvisoriesIgnoreYanked"
+                                      ]
+                                    }
+                                  }
+                                ],
+                                "path": "advisories-ignore-N-",
+                                "source_path": null,
+                                "parent_names": [
+                                  "Config file",
+                                  "",
+                                  "advisories",
+                                  "advisories.ignore",
+                                  "advisories.ignore[N]"
+                                ]
+                              }
+                            }
+                          ],
+                          "path": "advisories-ignore",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "advisories",
+                            "advisories.ignore"
+                          ]
+                        }
+                      }
+                    ],
+                    "path": "advisories",
+                    "source_path": null,
+                    "parent_names": [
+                      "Config file",
+                      "",
+                      "advisories"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "bans",
+                    "content": "# `bans`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\nChecks for specific crates in your graph, as well as duplicates.\n\nThis section is considered when running `cargo deny check bans`.\n\n\n## `allow`\n\n**Type:** `array`<br>\n**Key:** `optional`",
+                    "number": [
+                      4,
+                      0,
+                      1
+                    ],
+                    "sub_items": [
+                      {
+                        "Chapter": {
+                          "name": "bans.allow",
+                          "content": "# `allow`\n\n**Type:** `array`<br>\n**Key:** `optional`\n\nDetermines specific crates that are allowed. If the `allow` list has one or more entries, then\nany crate not in that list will be denied, so use with care. Each entry uses the same\n[PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-spec)\nas other parts of cargo-deny's configuration.\n\n\n## `[N]`\n\n**Type:** [`PackageSpec`](/checks2/schema/type-index/PackageSpec.md) `string`",
+                          "number": [
+                            4,
+                            0,
+                            1,
+                            0
+                          ],
+                          "sub_items": [],
+                          "path": "bans-allow",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "bans",
+                            "bans.allow"
+                          ]
+                        }
+                      }
+                    ],
+                    "path": "bans",
+                    "source_path": null,
+                    "parent_names": [
+                      "Config file",
+                      "",
+                      "bans"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "graph",
+                    "content": "# `graph`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\nThe graph table configures how the dependency graph is constructed and thus which crates the\nchecks are performed against\n\n\n## `targets`\n\n**Type:** `array`<br>\n**Key:** `optional`\n\n## `exclude`\n\n**Type:** `array<string>`<br>\n**Key:** `optional`\n\n## `all-features`\n\n**Type:** `boolean`<br>\n**Key:** `optional`\n\n## `no-default-features`\n\n**Type:** `boolean`<br>\n**Key:** `optional`\n\n## `features`\n\n**Type:** `array<string>`<br>\n**Key:** `optional`\n\n## `exclude-dev`\n\n**Type:** `boolean`<br>\n**Key:** `optional`",
+                    "number": [
+                      4,
+                      0,
+                      2
+                    ],
+                    "sub_items": [
+                      {
+                        "Chapter": {
+                          "name": "graph.targets",
+                          "content": "# `targets`\n\n**Type:** `array`<br>\n**Key:** `optional`\n\nBy default, cargo-deny will consider every single crate that is resolved by cargo, including\ntarget specific dependencies e.g.\n\n```toml\n[target.x86_64-pc-windows-msvc.dependencies]\nwinapi = \"0.3.8\"\n\n[target.'cfg(target_os = \"fuchsia\")'.dependencies]\nfuchsia-cprng = \"0.1.1\"\n```\n\nBut unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the `fuchsia-cprng` is\nnever actually going to be compiled or linked into your project, so checking it is pointless for you.\n\nThe `targets` field allows you to specify one or more targets which you **actually** build for.\nEvery dependency link to a crate is checked against this list, and if none of the listed targets\nsatisfy the target constraint, the dependency link is ignored. If a crate has no dependency links\nto it, it is not included into the crate graph that the checks are\nexecuted against.\n\n\n## `[N]`\n\n",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            0
+                          ],
+                          "sub_items": [
+                            {
+                              "Chapter": {
+                                "name": "graph.targets[N]",
+                                "content": "# `[N]`\n\n\n\n## `TargetString`\n\n**Type:** [`TargetString`](/checks2/schema/type-index/TargetString.md) `string`\n\n## `TargetAdvanced`\n\n**Type:** `object`",
+                                "number": [
+                                  4,
+                                  0,
+                                  2,
+                                  0,
+                                  0
+                                ],
+                                "sub_items": [
+                                  {
+                                    "Chapter": {
+                                      "name": "graph.targets[N]::TargetAdvanced",
+                                      "content": "# `TargetAdvanced`\n\n**Type:** `object`\n\nAdvanced configurations to apply for the target triple\n\n## Examples\n\n- ```toml\n  [[graph.targets]]\n  triple = \"aarch64-apple-darwin\"\n  ```\n- ```toml\n  [[graph.targets]]\n  triple = \"x86_64-pc-windows-msvc\"\n  features = [\"some-feature\"]\n  ```\n\n## `triple`\n\n**Type:** [`TargetString`](/checks2/schema/type-index/TargetString.md) `string`<br>\n**Key:** `required`\n\n## `features`\n\n**Type:** `string`<br>\n**Key:** `optional`",
+                                      "number": [
+                                        4,
+                                        0,
+                                        2,
+                                        0,
+                                        0,
+                                        0
+                                      ],
+                                      "sub_items": [
+                                        {
+                                          "Chapter": {
+                                            "name": "graph.targets[N]::TargetAdvanced.features",
+                                            "content": "# `features`\n\n**Type:** `string`<br>\n**Key:** `optional`\n\nRust `cfg()` expressions support the [`target_feature = \"feature-name\"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)\npredicate, but at the moment, the only way to actually pass them when compiling is to use\nthe `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more\n`target_feature`s you plan to build with, for a particular target triple. At the time of\nthis writing, cargo-deny does not attempt to validate that the features you specify are\nactually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).\n",
+                                            "number": [
+                                              4,
+                                              0,
+                                              2,
+                                              0,
+                                              0,
+                                              0,
+                                              0
+                                            ],
+                                            "sub_items": [],
+                                            "path": "graph-targets-N---TargetAdvanced-features",
+                                            "source_path": null,
+                                            "parent_names": [
+                                              "Config file",
+                                              "",
+                                              "graph",
+                                              "graph.targets",
+                                              "graph.targets[N]",
+                                              "graph.targets[N]::TargetAdvanced",
+                                              "graph.targets[N]::TargetAdvanced.features"
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      "path": "graph-targets-N---TargetAdvanced",
+                                      "source_path": null,
+                                      "parent_names": [
+                                        "Config file",
+                                        "",
+                                        "graph",
+                                        "graph.targets",
+                                        "graph.targets[N]",
+                                        "graph.targets[N]::TargetAdvanced"
+                                      ]
+                                    }
+                                  }
+                                ],
+                                "path": "graph-targets-N-",
+                                "source_path": null,
+                                "parent_names": [
+                                  "Config file",
+                                  "",
+                                  "graph",
+                                  "graph.targets",
+                                  "graph.targets[N]"
+                                ]
+                              }
+                            }
+                          ],
+                          "path": "graph-targets",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.targets"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "graph.exclude",
+                          "content": "# `exclude`\n\n**Type:** `array<string>`<br>\n**Key:** `optional`\n\nJust as with the [`--exclude`](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)\ncommand line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html)\nthat will cause the crate(s) in question to be excluded from the crate graph that is used\nfor the operation you are performing.\n\nNote that excluding a crate is recursive, if any of its transitive dependencies are only referenced\nvia the excluded crate, they will also be excluded from the crate graph.\n\n\n## Example\n\n```toml\n[graph]\nexclude = \"some-crate@0.1.0\"\n```\n\n## `[N]`\n\n**Type:** `string`",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            1
+                          ],
+                          "sub_items": [
+                            {
+                              "Chapter": {
+                                "name": "graph.exclude[N]",
+                                "content": "# `[N]`\n\n**Type:** `string`",
+                                "number": [
+                                  4,
+                                  0,
+                                  2,
+                                  1,
+                                  0
+                                ],
+                                "sub_items": [],
+                                "path": "graph-exclude-N-",
+                                "source_path": null,
+                                "parent_names": [
+                                  "Config file",
+                                  "",
+                                  "graph",
+                                  "graph.exclude",
+                                  "graph.exclude[N]"
+                                ]
+                              }
+                            }
+                          ],
+                          "path": "graph-exclude",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.exclude"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "graph.all-features",
+                          "content": "# `all-features`\n\n**Type:** `boolean`<br>\n**Key:** `optional`\n\nIf set to `true`, `--all-features` will be used when collecting metadata.",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            2
+                          ],
+                          "sub_items": [],
+                          "path": "graph-all-features",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.all-features"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "graph.no-default-features",
+                          "content": "# `no-default-features`\n\n**Type:** `boolean`<br>\n**Key:** `optional`\n\nIf set to `true`, `--no-default-features` will be used when collecting metadata.",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            3
+                          ],
+                          "sub_items": [],
+                          "path": "graph-no-default-features",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.no-default-features"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "graph.features",
+                          "content": "# `features`\n\n**Type:** `array<string>`<br>\n**Key:** `optional`\n\nIf set, and `--features` is not specified on the cmd line, these features will be used when\ncollecting metadata.\n\n\n## Example\n\n```toml\n[graph]\nfeatures = \"some-feature\"\n```\n\n## `[N]`\n\n**Type:** `string`",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            4
+                          ],
+                          "sub_items": [
+                            {
+                              "Chapter": {
+                                "name": "graph.features[N]",
+                                "content": "# `[N]`\n\n**Type:** `string`",
+                                "number": [
+                                  4,
+                                  0,
+                                  2,
+                                  4,
+                                  0
+                                ],
+                                "sub_items": [],
+                                "path": "graph-features-N-",
+                                "source_path": null,
+                                "parent_names": [
+                                  "Config file",
+                                  "",
+                                  "graph",
+                                  "graph.features",
+                                  "graph.features[N]"
+                                ]
+                              }
+                            }
+                          ],
+                          "path": "graph-features",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.features"
+                          ]
+                        }
+                      },
+                      {
+                        "Chapter": {
+                          "name": "graph.exclude-dev",
+                          "content": "# `exclude-dev`\n\n**Type:** `boolean`<br>\n**Key:** `optional`\n\nIf set to `true`, all `dev-dependencies`, even one for workspace crates, are not included\nin the crate graph used for any of the checks. This option can also be enabled on cmd line\nwith `--exclude-dev` either [before](https://embarkstudios.github.io/cargo-deny/cli/common.html#--exclude-dev)\nor [after](https://embarkstudios.github.io/cargo-deny/cli/check.html#--exclude-dev)\nthe `check` subcommand.\n",
+                          "number": [
+                            4,
+                            0,
+                            2,
+                            5
+                          ],
+                          "sub_items": [],
+                          "path": "graph-exclude-dev",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "graph",
+                            "graph.exclude-dev"
+                          ]
+                        }
+                      }
+                    ],
+                    "path": "graph",
+                    "source_path": null,
+                    "parent_names": [
+                      "Config file",
+                      "",
+                      "graph"
+                    ]
+                  }
+                },
+                {
+                  "Chapter": {
+                    "name": "output",
+                    "content": "# `output`\n\n**Type:** `object`<br>\n**Key:** `optional`\n\nThe output table provides options for how/if diagnostics are outputted\n\n## `feature-depth`\n\n**Type:** `integer`<br>\n**Key:** `optional`",
+                    "number": [
+                      4,
+                      0,
+                      3
+                    ],
+                    "sub_items": [
+                      {
+                        "Chapter": {
+                          "name": "output.feature-depth",
+                          "content": "# `feature-depth`\n\n**Type:** `integer`<br>\n**Key:** `optional`\n\nThe maximum depth that features will be displayed when inclusion graphs are shown in\ndiagnostics, unless specified via `--feature-depth` on the command line. Only applies to\ndiagnostics that actually print features.\n\n\n## Default\n\n```toml\n[output]\nfeature-depth = 1\n```",
+                          "number": [
+                            4,
+                            0,
+                            3,
+                            0
+                          ],
+                          "sub_items": [],
+                          "path": "output-feature-depth",
+                          "source_path": null,
+                          "parent_names": [
+                            "Config file",
+                            "",
+                            "output",
+                            "output.feature-depth"
+                          ]
+                        }
+                      }
+                    ],
+                    "path": "output",
+                    "source_path": null,
+                    "parent_names": [
+                      "Config file",
+                      "",
+                      "output"
+                    ]
+                  }
+                }
+              ],
+              "path": "",
+              "source_path": null,
+              "parent_names": [
+                "Config file",
+                ""
+              ]
+            }
+          }
+        ],
+        "path": "Config-file",
+        "source_path": null,
+        "parent_names": [
+          "Config file"
+        ]
+      }
+    },
+    {
+      "Chapter": {
+        "name": "Type Index",
+        "content": "# Type Index\n\nThis is an index of common types used across the schema.",
+        "number": [
+          5
+        ],
+        "sub_items": [
+          {
+            "Chapter": {
+              "name": "IgnoreReason",
+              "content": "# `IgnoreReason`\n\n**Type:** `string`",
+              "number": [
+                5,
+                0
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "",
+                    "content": "# `IgnoreReason`\n\n**Type:** `string`\n\nFree-form string that can be used to describe the reason why the advisory is ignored.",
+                    "number": [
+                      5,
+                      0,
+                      0
+                    ],
+                    "sub_items": [],
+                    "path": "",
+                    "source_path": null,
+                    "parent_names": [
+                      "Type Index",
+                      "IgnoreReason",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "path": "IgnoreReason",
+              "source_path": null,
+              "parent_names": [
+                "Type Index",
+                "IgnoreReason"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "LintLevel",
+              "content": "# `LintLevel`\n\n**Type:** `string (enum)`",
+              "number": [
+                5,
+                1
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "",
+                    "content": "# `LintLevel`\n\n**Type:** `string (enum)`\n\n## Possible values\n\n- `\"deny\"` - Emit an error with details about the problem, and fail the check.\n- `\"warn\"` - Print a warning for each propblem, but don't fail the check.\n- `\"allow\"` - Print a note about the problem, but don't fail the check.",
+                    "number": [
+                      5,
+                      1,
+                      0
+                    ],
+                    "sub_items": [],
+                    "path": "",
+                    "source_path": null,
+                    "parent_names": [
+                      "Type Index",
+                      "LintLevel",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "path": "LintLevel",
+              "source_path": null,
+              "parent_names": [
+                "Type Index",
+                "LintLevel"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "PackageSpec",
+              "content": "# `PackageSpec`\n\n**Type:** `string`",
+              "number": [
+                5,
+                2
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "",
+                    "content": "# `PackageSpec`\n\n**Type:** `string`\n\nMany configuration options require a package specifier at a minimum, which we'll describe here.\nThe options that use package specifiers will be called out in their individual documentation.\nWe'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.\n\n### String format\n\nIf the particular only requires a package spec at a minimum, then the string format can be used,\nwhich comes in three forms.\n\n#### Simple\n\n```toml\n# Will match any version of the simple crate\ndeny = [\"simple\"]\n```\n\nThe simplest string is one which is just the crate name. In this case, the version requirement\nused when checking will be `*` meaning it will match against all versions of that crate in the graph.\n\n#### With Version Requirements\n\n```toml\n# Will match only these versions of the simple crate that match the predicate(s)\ndeny = [\"simple:<=0.1,>0.2\"]\n```\n\nIf you want to apply version requirements (predicates) to the crate, simply append them following\na `:` separator.\n\n#### Exact\n\n```toml\n# Will match only this exact version of the simple crate\ndeny = [\n    \"simple@0.1.0\",\n    # This is semantically equivalent to the above\n    \"simple:=0.1.0\",\n]\n```\n\nThe exact form is a specialization of the version requirements, where the semver after the `@`\nis transformed to be [= (Exact)](https://docs.rs/semver/latest/semver/enum.Op.html#opexact).\n\n### Table format\n\n#### Crate format\n\n```toml\ndeny = [\n    { crate = \"simple@0.1.0\" }, # equivalent to \"simple@0.1.0\"\n    { crate = \"simple\", wrappers = [\"example\"] },\n]\n```\n\nThe crate format is a replacement for the old `name` and/or `version` table format. It uses\nthe string format described above in a single `crate` key.\n\n#### Old format\n\n```toml\ndeny = [\n    { name = \"simple\" },\n    { name = \"simple\", version = \"*\" },\n    { name = \"simple\", wrappers = [\"example\"] }\n]\n```\n\nThe old format uses a required `name` key and an optional `version` key. This format is deprecated\nand should not be used.\n",
+                    "number": [
+                      5,
+                      2,
+                      0
+                    ],
+                    "sub_items": [],
+                    "path": "",
+                    "source_path": null,
+                    "parent_names": [
+                      "Type Index",
+                      "PackageSpec",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "path": "PackageSpec",
+              "source_path": null,
+              "parent_names": [
+                "Type Index",
+                "PackageSpec"
+              ]
+            }
+          },
+          {
+            "Chapter": {
+              "name": "TargetString",
+              "content": "# `TargetString`\n\n**Type:** `string`",
+              "number": [
+                5,
+                3
+              ],
+              "sub_items": [
+                {
+                  "Chapter": {
+                    "name": "",
+                    "content": "# `TargetString`\n\n**Type:** `string`\n\nThe [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target\nyou wish to filter target specific dependencies with. If the target triple specified is **not**\none of the targets builtin to `rustc`, the configuration check for that target will be limited\nto only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()`\nexpressions require us to know the details about the target.\n\n\n## Examples\n\n- ```toml\n  value = \"x86_64-unknown-linux-gnu\"\n  ```\n- ```toml\n  value = \"x86_64-pc-windows-msvc\"\n  ```\n- ```toml\n  value = \"aarch64-apple-darwin\"\n  ```",
+                    "number": [
+                      5,
+                      3,
+                      0
+                    ],
+                    "sub_items": [],
+                    "path": "",
+                    "source_path": null,
+                    "parent_names": [
+                      "Type Index",
+                      "TargetString",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "path": "TargetString",
+              "source_path": null,
+              "parent_names": [
+                "Type Index",
+                "TargetString"
+              ]
+            }
+          }
+        ],
+        "path": "Type-Index",
+        "source_path": null,
+        "parent_names": [
+          "Type Index"
+        ]
+      }
+    }
+  ],
+  "__non_exhaustive": null
+}

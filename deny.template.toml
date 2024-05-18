@@ -1,4 +1,4 @@
-#:schema deny.schema.json
+#:schema ./config-spec/tsp-output/@typespec/json-schema/CargoDenyConfig.json
 
 # This template contains all of the possible sections and their default values
 
@@ -12,6 +12,7 @@
 # when any section or field is not specified in your own configuration
 
 # Root options
+
 
 # The graph table configures how the dependency graph is constructed and thus
 # which crates the checks are performed against

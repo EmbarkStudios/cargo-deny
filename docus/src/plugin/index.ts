@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const PluginOptions = z
     .object({
-        dashieSchemaPath: z.string(),
+        schemdSchemaPath: z.string(),
     })
     .strict();
 
@@ -13,14 +13,14 @@ export function validateOptions({ options }: { options: unknown }) {
     return PluginOptions.parse(options)
 }
 
-export default function dashiePlugin(context: LoadContext, options: PluginOptions): Plugin {
+export default function schemdPlugin(context: LoadContext, options: PluginOptions): Plugin {
     return {
-        name: "docus-plugin-dashie",
+        name: "docus-plugin-schemd",
         async contentLoaded({ content, actions }) {
             const { addRoute } = actions;
             addRoute({
-                path: "/dashie",
-                component: "@theme/Dashie",
+                path: "/schemd",
+                component: "@theme/Schemd",
                 exact: true,
             });
         },

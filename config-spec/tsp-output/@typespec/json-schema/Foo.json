@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://my-domain.ua",
+    "type": "object",
+    "properties": {
+        "bar": {
+            "$ref": "Bar.json"
+        }
+    },
+    "required": [
+        "bar"
+    ],
+    "$defs": {
+        "Bar": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Bar.json",
+            "type": "object",
+            "properties": {}
+        }
+    }
+}

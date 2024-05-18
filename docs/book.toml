@@ -5,9 +5,9 @@ multilingual = false
 src = "src"
 title = "cargo-deny"
 
-[preprocessor.dashie]
-command = "./target/debug/dashie mdbook preprocessor"
-dashie_schema = "../deny.schema.yml"
+[preprocessor.schemd]
+command = "./target/debug/schemd mdbook preprocessor"
+schemd_schema = "../config-spec/tsp-output/CargoDenyConfig.yaml"
 
 [output.html]
 
