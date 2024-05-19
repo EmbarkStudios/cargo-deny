@@ -1,12 +1,10 @@
 import "@typespec/json-schema";
-import "./schemd.tsp";
+import "@schemd/tsp";
 
 import "./advisories.tsp";
 import "./bans.tsp";
 import "./graph.tsp";
 import "./output.tsp";
-
-namespace CargoDeny;
 
 using TypeSpec.JsonSchema;
 using Schemd;
@@ -15,8 +13,8 @@ using Schemd;
  * Full documentation is at https://embarkstudios.github.io/cargo-deny/checks/cfg.html
  */
 @summary("Configuration file for cargo-deny, by default called `deny.toml`")
-@schemdSchema
 @jsonSchema("https://github.com/EmbarkStudios/cargo-deny/config-spec")
+@schemdSchema
 model CargoDenyConfig {
     /**
      * Checks advisory databases for crates with security vulnerabilities,

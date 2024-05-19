@@ -1,8 +1,6 @@
-import "@typespec/json-schema";
-import "./schemd.tsp";
+import "@schemd/tsp";
 import "./package-spec.tsp";
 
-using JsonSchema;
 using Schemd;
 
 @examples(
@@ -133,15 +131,12 @@ union AdvisoriesIgnoreItem {
     /**
      * Either an advisory ID (e.g. `RUSTSEC-2019-0001`) or a package spec (e.g. `yanked@0.1.1`)
      */
-    @doc("goo")
-    @summary("bruh")
     String: string,
 
     @docHeader("Ignore an advisory")
     Advisory: AdvisoriesIgnoreAdvisory,
 
     @docHeader("Ignore a yanked crate version")
-    @extension("foo", Json<"bruh">)
     Yanked: AdvisoriesIgnoreYanked,
 }
 

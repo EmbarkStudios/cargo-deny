@@ -1,0 +1,22 @@
+{
+  "name": "@schemd/tsp",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "tspMain": "lib/main.tsp",
+  "scripts": {
+    "fmt": "prettier --write .",
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^0.56",
+    "@typespec/json-schema": "^0.56"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12",
+    "typescript": "^5.4",
+    "prettier": "^3.2"
+  }
+}

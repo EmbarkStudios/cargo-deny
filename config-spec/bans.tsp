@@ -1,4 +1,4 @@
-import "./schemd.tsp";
+import "@schemd/tsp";
 import "./package-spec.tsp";
 
 model Bans {

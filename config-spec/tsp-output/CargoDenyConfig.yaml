@@ -350,6 +350,8 @@ $defs:
           - RUSTSEC-2019-0001
       reason:
         $ref: "#/$defs/IgnoreReason"
+        x-schemd:
+          docInline: true
     required:
       - id
     x-schemd:

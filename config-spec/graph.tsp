@@ -1,4 +1,4 @@
-import "./schemd.tsp";
+import "@schemd/tsp";
 using Schemd;
 
 model Graph {

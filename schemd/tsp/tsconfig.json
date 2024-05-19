@@ -1,9 +1,21 @@
 {
   "compilerOptions": {
+    // This and next setting tells TypeScript to use the new ESM import system to resolve types.
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "ES2022",
+    "lib": ["es2022"],
+    "types": ["node"],
+
+    "rootDir": ".",
+    "outDir": "dist",
+
+
+    "tsBuildInfoFile": "temp/tsconfig.tsbuildinfo",
+    "composite": true,
+
     "alwaysStrict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ES2022",
-    "moduleResolution": "Node16",
     "esModuleInterop": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -14,10 +26,7 @@
     "declaration": true,
     "stripInternal": true,
     "noEmitHelpers": false,
-    "target": "ES2022",
-    "types": ["node"],
-    "lib": ["es2022", "DOM"],
     "experimentalDecorators": true,
-    "newLine": "LF"
+    "newLine": "LF",
   }
 }

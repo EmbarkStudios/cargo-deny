@@ -4,10 +4,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@typespec/compiler": "0.56",
-    "@typespec/json-schema": "0.56"
-  },
-  "devDependencies": {
-    "typescript": "5.4.5"
+    "@typespec/compiler": "^0.56",
+    "@typespec/json-schema": "^0.56",
+    "@schemd/tsp": "../schemd/tsp"
   }
 }

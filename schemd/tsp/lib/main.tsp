@@ -1,9 +1,11 @@
-import "./schemd";
+import "../dist/src/index.js";
 
 namespace Schemd;
 
 /**
  * Add examples to the target type.
+ *
+ * @param value The examples array expressed via TypeSpec's literals syntax.
  */
 extern dec examples(target: unknown, value: unknown[]);
 
@@ -24,4 +26,12 @@ extern dec docHeader(
         | Reflection.ModelProperty
         | Reflection.UnionVariant,
     header: valueof string
+);
+
+/**
+ * Embed the documentation from the underlying referenced type by inlining
+ * it in the current type's documentation.
+ */
+extern dec docInline(
+    target: Reflection.ModelProperty | Reflection.UnionVariant
 );
