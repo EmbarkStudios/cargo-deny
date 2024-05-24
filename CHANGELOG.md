@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#663](https://github.com/EmbarkStudios/cargo-deny/pull/663) updated some crates, notably `gix` -> 0.63 (and tame-index).
+
 ## [0.14.23] - 2024-05-03
 ### Fixed
 - [PR#657](https://github.com/EmbarkStudios/cargo-deny/pull/657) resolved [#652](https://github.com/EmbarkStudios/cargo-deny/issues/652) by fixing an issue where the exit code was incorrect if logging was disabled.
