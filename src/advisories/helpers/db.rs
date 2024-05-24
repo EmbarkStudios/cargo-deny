@@ -328,7 +328,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("unable to peel HEAD to tree")?
         .id;
 
-    let index = gix::index::State::from_tree(&root_tree, &repo.objects)
+    let index = gix::index::State::from_tree(&root_tree, &repo.objects, Default::default())
         .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
     let mut index = gix::index::File::from_state(index, repo.index_path());
 
