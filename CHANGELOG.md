@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.14.24] - 2024-05-24
 ### Changed
 - [PR#663](https://github.com/EmbarkStudios/cargo-deny/pull/663) updated some crates, notably `gix` -> 0.63 (and tame-index).
 
@@ -606,7 +607,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...HEAD
+[0.14.24]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...0.14.24
 [0.14.23]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.22...0.14.23
 [0.14.22]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.21...0.14.22
 [0.14.21]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.20...0.14.21
