@@ -115,8 +115,8 @@ impl TreeSkipper {
         krate_id: krates::NodeId,
         krates: &Krates,
     ) -> SkipRoot {
-        let (max_depth, reason) = ts.inner.map_or((std::usize::MAX, None), |inn| {
-            (inn.depth.unwrap_or(std::usize::MAX), inn.reason)
+        let (max_depth, reason) = ts.inner.map_or((usize::MAX, None), |inn| {
+            (inn.depth.unwrap_or(usize::MAX), inn.reason)
         });
 
         let mut skip_crates = Vec::with_capacity(10);
@@ -396,7 +396,7 @@ pub fn check(
             LintLevel::Allow => return,
         };
 
-        let mut all_start = std::usize::MAX;
+        let mut all_start = usize::MAX;
         let mut all_end = 0;
 
         struct Dupe {
