@@ -76,8 +76,8 @@ impl<'k> Indices<'k> {
         let cache = set
             .into_par_iter()
             .map(|(name, src)| {
-                let read_entry = || -> Result<YankMap, String> {
-                    match indices
+                let read_entry = || -> Result<Entry, String> {
+                    let res = match indices
                         .iter()
                         .find_map(|(url, index)| (src == *url).then_some(index))
                         .ok_or_else(|| "unable to locate index".to_owned())?
@@ -90,25 +90,21 @@ impl<'k> Indices<'k> {
                             ) {
                                 Ok(Some(ik)) => {
                                     let yank_map = Self::load_index_krate(ik);
-                                    Ok(yank_map)
+                                    Entry::Map(yank_map)
                                 }
-                                Ok(None) => {
-                                    Err("unable to locate index entry for crate".to_owned())
-                                }
-                                Err(err) => Err(format!("{err:#}")),
+                                Ok(None) => Entry::Error(
+                                    "unable to locate index entry for crate".to_owned(),
+                                ),
+                                Err(err) => Entry::Error(format!("{err:#}")),
                             }
                         }
-                        Err(err) => Err(format!("{err:#}")),
-                    }
+                        Err(err) => Entry::Error(format!("{err:#}")),
+                    };
+
+                    Ok(res)
                 };
 
-                (
-                    (name, src),
-                    match read_entry() {
-                        Ok(ym) => Entry::Map(ym),
-                        Err(err) => Entry::Error(err),
-                    },
-                )
+                ((name, src), read_entry().unwrap_or_else(Entry::Error))
             })
             .collect();
 

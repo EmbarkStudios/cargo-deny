@@ -103,6 +103,7 @@ strum = { version = "0.26", features = ["derive"] }
 # Index retrieval and querying
 tame-index = { version = "0.12", default-features = false, features = [
   "git",
+  "local",
   "sparse",
 ] }
 # Timestamp emission
