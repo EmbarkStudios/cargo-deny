@@ -24,9 +24,9 @@ dirs = "4.0"
 # Failure has an unsound advisory (and is unmaintained)
 failure = "=0.1.8"
 
-# libusb is unmaintained
-# https://github.com/RustSec/advisory-db/blob/5b35b71cf74eed58696aeeb5a764a9f0a66fe7ba/crates/libusb/RUSTSEC-2016-0004.toml
-libusb = "0.3.0"
+# const-cstr is unmaintained
+# https://github.com/rustsec/advisory-db/blob/463e8405f85bb74eef17149f7e704b07723ce46e/crates/const-cstr/RUSTSEC-2023-0020.md
+const-cstr = "0.3"
 
 # The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
 # https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md
