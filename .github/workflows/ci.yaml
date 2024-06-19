@@ -209,7 +209,7 @@ jobs:
     name: Publish Docs
     needs: [doc-book]
     runs-on: ubuntu-22.04
-    #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - name: Download book
