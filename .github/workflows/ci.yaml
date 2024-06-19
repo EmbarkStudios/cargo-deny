@@ -216,9 +216,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: doc-book
-      - name: Assemble gh-pages
-        run: |
-          mv doc-book gh-pages
+          path: gh-pages
       # If this is a push to the main branch push to the `gh-pages` using a
       # deploy key. Note that a deploy key is necessary for now because otherwise
       # using the default token for github actions doesn't actually trigger a page
