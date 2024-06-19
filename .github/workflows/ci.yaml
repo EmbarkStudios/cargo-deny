@@ -105,7 +105,7 @@ jobs:
           curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v${version}/mdbook-v${version}-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
           echo `pwd` >> $GITHUB_PATH
       - run: (cd docs && mdbook build)
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: doc-book
           path: docs/book
@@ -230,7 +230,6 @@ jobs:
           GITHUB_DEPLOY_KEY: ${{ secrets.GITHUB_DEPLOY_KEY }}
           BUILD_REPOSITORY_ID: ${{ github.repository }}
           BUILD_SOURCEVERSION: ${{ github.sha }}
-
 
   test_success:
     runs-on: ubuntu-22.04
