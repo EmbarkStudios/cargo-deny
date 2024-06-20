@@ -12,7 +12,7 @@ use anyhow::Error;
 pub use diags::Code;
 use krates::cm::DependencyKind;
 use semver::VersionReq;
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 struct ReqMatch<'vr> {
     specr: &'vr SpecAndReason,
@@ -192,7 +192,7 @@ use crate::diag::{Check, Diag, Pack, Severity};
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
     output_graph: Option<Box<OutputGraph>>,
-    cargo_spans: diag::CargoSpans,
+    //cargo_spans: diag::CargoSpans,
     sink: impl Into<diag::ErrorSink>,
 ) {
     let ValidConfig {
@@ -206,6 +206,7 @@ pub fn check(
         skipped,
         multiple_versions,
         multiple_versions_include_dev,
+        workspace_duplicates,
         highlight,
         tree_skipped,
         wildcards,
@@ -409,17 +410,11 @@ pub fn check(
         let mut kids = smallvec::SmallVec::<[Dupe; 2]>::new();
 
         for dup in multi_detector.dupes.iter().cloned() {
-            let span = &ctx.krate_spans[dup].total;
-
-            if span.start < all_start {
-                all_start = span.start;
-            }
-
-            if span.end > all_end {
-                all_end = span.end;
-            }
-
             let krate = &ctx.krates[dup];
+
+            let span = &ctx.krate_spans.get_span(&krate.id).total;
+            all_start = all_start.min(span.start);
+            all_end = all_end.max(span.end);
 
             if let Err(i) = kids.binary_search_by(|other| match other.version.cmp(&krate.version) {
                 std::cmp::Ordering::Equal => other.id.cmp(&krate.id),
@@ -440,7 +435,7 @@ pub fn check(
                 krate_name: multi_detector.name,
                 num_dupes: kids.len(),
                 krates_coord: KrateCoord {
-                    file: krate_spans.file_id,
+                    file: krate_spans.lock_id,
                     span: (all_start..all_end).into(),
                 },
                 severity,
@@ -502,7 +497,7 @@ pub fn check(
         }
     }
 
-    let (mut tx, rx) = if let Some(bc) = build {
+    let (mut tx, build_config) = if let Some(bc) = build {
         let (tx, rx) = crossbeam::channel::unbounded();
 
         (Sink::Build(tx), Some((bc, rx)))
@@ -510,8 +505,49 @@ pub fn check(
         (Sink::NoBuild(sink.clone()), None)
     };
 
-    let (_, build_packs) = rayon::join(
-        || {
+    struct BuildCheckCtx {
+        bypasses: parking_lot::Mutex<BitVec>,
+        diag_packs: parking_lot::Mutex<std::collections::BTreeMap<usize, Pack>>,
+        cargo_home: Option<crate::PathBuf>,
+        build_config: ValidBuildConfig,
+    }
+
+    let build_check_ctx = build_config.map(|(build_config, rx)| {
+        // Make all paths reported in build diagnostics be relative to cargo_home
+        let cargo_home = home::cargo_home()
+            .map_err(|err| {
+                log::error!("unable to locate $CARGO_HOME: {err}");
+                err
+            })
+            .ok()
+            .and_then(|pb| {
+                crate::PathBuf::from_path_buf(pb)
+                    .map_err(|pb| {
+                        log::error!("$CARGO_HOME path '{}' is not utf-8", pb.display());
+                    })
+                    .ok()
+            });
+
+        // Keep track of the individual crate configs so we can emit warnings
+        // if they're configured but not actually used
+        let bypasses =
+            parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, build_config.bypass.len()));
+
+        (
+            BuildCheckCtx {
+                cargo_home,
+                bypasses,
+                diag_packs: parking_lot::Mutex::new(std::collections::BTreeMap::new()),
+                build_config,
+            },
+            rx,
+        )
+    });
+
+    let mut ws_duplicate_packs = Vec::new();
+
+    rayon::scope(|scope| {
+        scope.spawn(|_| {
             let last = ctx.krates.len() - 1;
 
             for (i, krate) in ctx.krates.krates().enumerate() {
@@ -836,42 +872,87 @@ pub fn check(
 
                         multi_detector.dupes.push(i);
 
-                        if wildcards != LintLevel::Allow && !krate.is_git_source() {
-                            let severity = match wildcards {
-                                LintLevel::Warn => Severity::Warning,
-                                LintLevel::Deny => Severity::Error,
-                                LintLevel::Allow => unreachable!(),
-                            };
+                        'wildcards: {
+                            if wildcards != LintLevel::Allow && !krate.is_git_source() {
+                                let severity = match wildcards {
+                                    LintLevel::Warn => Severity::Warning,
+                                    LintLevel::Deny => Severity::Error,
+                                    LintLevel::Allow => unreachable!(),
+                                };
 
-                            let mut wildcards: Vec<_> = krate
-                                .deps
-                                .iter()
-                                .filter(|dep| dep.req == VersionReq::STAR)
-                                .collect();
-
-                            if allow_wildcard_paths {
+                                let Some(manifest) = ctx.krate_spans.get_manifest(&krate.id) else {
+                                    break 'wildcards;
+                                };
                                 let is_private = krate.is_private(&[]);
+                                let mut labels = Vec::new();
+                                let mut pack = Pack::with_kid(Check::Bans, krate.id.clone());
 
-                                wildcards.retain(|dep| {
-                                    let is_path_or_git = is_path_or_git_dependency(dep);
-                                    if is_private {
-                                        !is_path_or_git
-                                    } else {
-                                        let is_path_non_dev_dependency = is_path_or_git
-                                            && dep.kind != DependencyKind::Development;
-                                        is_path_non_dev_dependency || !is_path_or_git
+                                for mdep in &manifest.deps {
+                                    if mdep.dep.req != VersionReq::STAR {
+                                        continue;
                                     }
-                                });
-                            }
 
-                            if !wildcards.is_empty() {
-                                sink.push(diags::Wildcards {
-                                    krate,
-                                    severity,
-                                    wildcards,
-                                    allow_wildcard_paths,
-                                    cargo_spans: &cargo_spans,
-                                });
+                                    // Wildcards are allowed for path or git dependencies, if the krate
+                                    // is private, or it's only a dev-dependency
+                                    if allow_wildcard_paths
+                                        && !mdep.krate.is_registry()
+                                        && (is_private
+                                            || mdep.dep.kind == DependencyKind::Development)
+                                    {
+                                        continue;
+                                    }
+
+                                    labels.push(
+                                        crate::diag::Label::primary(
+                                            manifest.id,
+                                            mdep.version_req
+                                                .as_ref()
+                                                .map_or(mdep.value_span, |vr| vr.span),
+                                        )
+                                        .with_message("wildcard dependency"),
+                                    );
+
+                                    // If the dependency is a workspace dependency we also want to show
+                                    // the bad version requirement for the workspace declaration
+                                    if let Some(workspace) = &mdep.workspace {
+                                        if !workspace.value {
+                                            continue;
+                                        }
+
+                                        if let Some(ws_dep) =
+                                            ctx.krate_spans.get_workspace(&krate.id)
+                                        {
+                                            labels.push(
+                                                crate::diag::Label::secondary(
+                                                    ctx.krate_spans.workspace_id.unwrap(),
+                                                    ws_dep
+                                                        .version
+                                                        .as_ref()
+                                                        .map_or(ws_dep.value, |vr| vr.span),
+                                                )
+                                                .with_message("workspace dependency"),
+                                            );
+                                        } else {
+                                            // This indicates a bug because we were unable to resolve the workspace dependency
+                                            // to an appropriate crate, even though cargo did
+                                            pack.push(diags::UnresolveWorkspaceDependency {
+                                                manifest,
+                                                dep: mdep,
+                                            });
+                                        }
+                                    }
+                                }
+
+                                sink.push(pack);
+
+                                if !labels.is_empty() {
+                                    sink.push(diags::Wildcards {
+                                        krate,
+                                        severity,
+                                        labels,
+                                        allow_wildcard_paths,
+                                    });
+                                }
                             }
                         }
                     }
@@ -885,83 +966,70 @@ pub fn check(
             }
 
             drop(tx);
-        },
-        || {
-            let (build_config, rx) = rx?;
+        });
 
-            // Keep track of the individual crate configs so we can emit warnings
-            // if they're configured but not actually used
-            let bcv =
-                parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, build_config.bypass.len()));
-
-            // Make all paths reported in build diagnostics be relative to cargo_home
-
-            let cargo_home = home::cargo_home()
-                .map_err(|err| {
-                    log::error!("unable to locate $CARGO_HOME: {err}");
-                    err
-                })
-                .ok()
-                .and_then(|pb| {
-                    crate::PathBuf::from_path_buf(pb)
-                        .map_err(|pb| {
-                            log::error!("$CARGO_HOME path '{}' is not utf-8", pb.display());
-                        })
-                        .ok()
-                });
-
-            let pq = parking_lot::Mutex::new(std::collections::BTreeMap::new());
-            rayon::scope(|s| {
-                let bc = &build_config;
-                let pq = &pq;
-                let bcv = &bcv;
-                let home = cargo_home.as_deref();
-
-                while let Ok((index, krate, mut pack)) = rx.recv() {
-                    s.spawn(move |_s| {
-                        if let Some(bcc) =
-                            check_build(ctx.cfg.file_id, bc, home, krate, ctx.krates, &mut pack)
-                        {
-                            bcv.lock().set(bcc, true);
-                        }
-
-                        if !pack.is_empty() {
-                            pq.lock().insert(index, pack);
-                        }
-                    });
-                }
-            });
-
-            let unmatched_exe_configs = {
-                let mut pack = Pack::new(Check::Bans);
-
-                for ve in bcv
-                    .into_inner()
-                    .into_iter()
-                    .zip(build_config.bypass.into_iter())
-                    .filter_map(|(hit, ve)| if !hit { Some(ve) } else { None })
-                {
-                    pack.push(diags::UnmatchedBypass {
-                        unmatched: &ve,
-                        file_id,
-                    });
-                }
-
-                pack
+        scope.spawn(|scope| {
+            let Some((build_ctx, rx)) = &build_check_ctx else {
+                return;
             };
+            while let Ok((index, krate, mut pack)) = rx.recv() {
+                scope.spawn(move |_s| {
+                    if let Some(bcc) = check_build(
+                        ctx.cfg.file_id,
+                        &build_ctx.build_config,
+                        build_ctx.cargo_home.as_deref(),
+                        krate,
+                        ctx.krates,
+                        &mut pack,
+                    ) {
+                        build_ctx.bypasses.lock().set(bcc, true);
+                    }
 
-            Some(
-                pq.into_inner()
-                    .into_values()
-                    .chain(Some(unmatched_exe_configs)),
-            )
-        },
-    );
+                    if !pack.is_empty() {
+                        build_ctx.diag_packs.lock().insert(index, pack);
+                    }
+                });
+            }
+        });
 
-    if let Some(bps) = build_packs {
-        for bp in bps {
+        // Check the workspace to detect dependencies that are used more than once
+        // but don't use a shared [workspace.[dev-/build-]dependencies] declaration
+        if workspace_duplicates != LintLevel::Allow {
+            scope.spawn(|_| {
+                check_workspace_duplicates(
+                    ctx.krates,
+                    ctx.files,
+                    workspace_duplicates,
+                    &mut ws_duplicate_packs,
+                );
+            });
+        }
+    });
+
+    if let Some((bcc, _)) = build_check_ctx {
+        for bp in bcc.diag_packs.into_inner().into_values() {
             sink.push(bp);
         }
+
+        let mut pack = Pack::new(Check::Bans);
+        for ve in bcc
+            .bypasses
+            .into_inner()
+            .into_iter()
+            .zip(bcc.build_config.bypass.into_iter())
+            .filter_map(|(hit, ve)| if !hit { Some(ve) } else { None })
+        {
+            pack.push(diags::UnmatchedBypass {
+                unmatched: &ve,
+                file_id,
+            });
+        }
+
+        sink.push(pack);
+    }
+
+    for pack in ws_duplicate_packs {
+        sink.push(pack);
     }
 
     let mut pack = Pack::new(Check::Bans);
@@ -1475,14 +1543,157 @@ fn validate_file_checksum(path: &crate::Path, expected: &cfg::Checksum) -> anyho
     Ok(())
 }
 
-/// Returns true if the dependency has a `path` or `git` source.
-///
-/// TODO: Possibly what we actually care about, where this is used in the wildcard check, is
-/// “is not using any registry source”.
-fn is_path_or_git_dependency(dep: &krates::cm::Dependency) -> bool {
-    dep.path.is_some()
-        || dep
-            .source
-            .as_ref()
-            .is_some_and(|url| url.starts_with("git+"))
+fn check_workspace_duplicates(
+    krates: &Krates,
+    krate_spans: &crate::diag::KrateSpans<'_>,
+    severity: LintLevel,
+    diags: &mut Vec<Pack>,
+) {
+    // Note this will ignore cases where a dependency is used as more than 1 kind etc,
+    // but this check is not really meant for such simple cases
+    if krates.workspace_members().count() <= 1 {
+        return;
+    }
+
+    // Gather any direct dependencies that are declared more than once
+    let mut deps =
+        std::collections::BTreeMap::<_, Vec<(&Kid, (FileId, Vec<toml_span::Span>))>>::new();
+
+    for wsm in krates.workspace_members() {
+        let krates::Node::Krate { id, .. } = wsm else {
+            continue; /* unreachable */
+        };
+
+        krate_spans.get_manifest(id)
+
+        for dd in krates.direct_dependencies(krates.nid_for_kid(id).expect("impossible")) {
+            deps.entry(dd.node_id)
+                .or_default()
+                .push((id, (0, Vec::new())));
+        }
+    }
+
+            // Strip out any direct dependencies that aren't referenced multiple times in the workspace
+            // Note this will retain in cases where the dependency is only used
+            // by 1 crate, but as different dependency kinds, which is still useful
+            // to catch
+            deps.retain(|_, parents| parents.len() > 1);
+
+            let mut ws_krates = Vec::<WsKrate<'_>>::new();
+            for (dupe, parents) in &deps {
+                for p in parents.iter().map(|(kid, _)| kid) {
+                    let i = match ws_krates.binary_search_by(|wk| wk.krate.id.cmp(p)) {
+                        Ok(i) => i,
+                        Err(i) => {
+                            ws_krates.insert(
+                                i,
+                                WsKrate {
+                                    krate: krates
+                                        .nid_for_kid(p)
+                                        .map(|krate| &krates[krate])
+                                        .unwrap(),
+                                    manifest: None,
+                                    shared: Vec::new(),
+                                },
+                            );
+                            i
+                        }
+                    };
+
+                    ws_krates[i].shared.push(*dupe);
+                }
+            }
+
+            use rayon::iter::{IntoParallelRefMutIterator as _, ParallelIterator as _};
+            ws_krates
+                .par_iter_mut()
+                .for_each(|wk| match read_manifest(&wk, krates, files) {
+                    Ok(manifest) => wk.manifest = Some(manifest),
+                    Err(err) => {
+                        log::warn!(
+                            "failed to process manifest '{}': {err}",
+                            wk.krate.manifest_path
+                        );
+                    }
+                });
+
+            (deps, ws_krates)
+        },
+    );
+
+    for ws_dupe in ws_dupes {
+        if let Some(manifest) = ws_dupe.manifest {
+            for dupe in manifest.dupes {
+                // Assume that if workspace is explicitly set to false that it is
+                // intentional
+                if dupe.workspace.is_some() {
+                    continue;
+                }
+
+                let Some(parents) = shared.get_mut(&dupe.nid) else {
+                    log::warn!("crate {} should be present", dupe.krate);
+                    continue;
+                };
+
+                let Some(parent_span) = parents
+                    .iter_mut()
+                    .find_map(|(kid, spans)| (ws_dupe.krate.id == **kid).then_some(spans))
+                else {
+                    log::warn!("crate {} should be present", dupe.krate);
+                    continue;
+                };
+
+                parent_span.0 = manifest.id;
+                parent_span.1.push(dupe.span);
+            }
+        } else {
+            // TODO: we could at least inform what crates _might_ not be using workspace
+            // dependencies, but really we should always have successfully parsed
+            // the manifest
+            log::warn!("{} contained {} crates that were declared elsewhere in the workspace, but we were unable to parse the manifest", ws_dupe.krate, ws_dupe.shared.len());
+        }
+    }
+
+    for (id, parents) in shared {
+        let mut labels = Vec::new();
+
+        if let Some((ws_id, ws_dep)) = ws_deps
+            .as_mut()
+            .and_then(|wsd| wsd.dependencies.remove(&id).map(|ws_dep| (wsd.id, ws_dep)))
+        {
+            labels.push(
+                crate::diag::Label::primary(ws_id, ws_dep.value_span)
+                    .with_message("workspace dependency"),
+            );
+            if ws_dep.rename.is_some() {
+                labels.push(
+                    crate::diag::Label::secondary(ws_id, ws_dep.key_span)
+                        .with_message("note that the crate has been renamed"),
+                );
+            }
+        }
+
+        let llen = labels.len();
+        let has_workspace_declaration = llen != 0;
+
+        labels.extend(parents.into_iter().flat_map(|(_kid, (file_id, spans))| {
+            spans
+                .into_iter()
+                .map(move |span| crate::diag::Label::secondary(file_id, span))
+        }));
+
+        if llen >= labels.len() {
+            continue;
+        }
+
+        let duplicate = &krates[id];
+        let mut pack = Pack::with_kid(Check::Bans, duplicate.id.clone());
+        pack.push(diags::WorkspaceDuplicate {
+            duplicate,
+            labels,
+            severity,
+            has_workspace_declaration,
+        });
+        diags.push(pack);
+    }
 }

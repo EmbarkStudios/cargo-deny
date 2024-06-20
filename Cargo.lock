@@ -261,6 +261,7 @@ dependencies = [
  "insta",
  "krates",
  "log",
+ "memchr",
  "nu-ansi-term",
  "parking_lot",
  "rayon",
@@ -2832,9 +2833,9 @@ dependencies = [
 
 [[package]]
 name = "toml-span"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "369db38ce6d1fc320a54ea3f032d07c07a232ca19c40e287246aff06d57c2abe"
+checksum = "b6e089b1253c3fbee40bd2091535cb5e0f0b85f85a50024c3e7785f227449738"
 dependencies = [
  "codespan-reporting",
  "serde",
@@ -3367,3 +3368,7 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "krates"
+version = "0.17.0"

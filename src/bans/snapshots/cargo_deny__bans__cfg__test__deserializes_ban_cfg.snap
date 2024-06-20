@@ -6,6 +6,7 @@ expression: validated
   "file_id": 1,
   "multiple_versions": "deny",
   "multiple_versions_include_dev": false,
+  "workspace_duplicates": "warn",
   "highlight": "SimplestPath",
   "denied": [
     {

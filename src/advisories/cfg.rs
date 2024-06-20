@@ -1002,7 +1002,7 @@ expansions = [
         use toml_span::Deserialize as _;
 
         let mut files = crate::diag::Files::new();
-        let cfg_id = files.add("expansions.toml", toml.into());
+        let cfg_id = files.add("expansions.toml", toml);
 
         let mut output = String::new();
 

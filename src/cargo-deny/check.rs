@@ -5,9 +5,10 @@ use crate::{
 use cargo_deny::{
     advisories, bans,
     diag::{CargoSpans, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
-    licenses, sources, CheckCtx, PathBuf,
+    licenses, sources, CheckCtx, LintLevel, PathBuf,
 };
 use log::error;
+use rayon::iter::ParallelBridge;
 use std::time::Instant;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
@@ -308,6 +309,50 @@ pub(crate) fn cmd(
         None
     };
 
+    if check_bans && bans.workspace_duplicates != LintLevel::Allow {
+        use rayon::iter::ParallelIterator;
+
+        let ws_members: Vec<_> = krates
+            .workspace_members()
+            .par_bridge()
+            .map(|ws_krate| {
+                let krates::Node::Krate { krate, .. } = ws_krate else {
+                    unreachable!("krates::workspace_members gave us a feature?")
+                };
+                let mp = krate.manifest_path.clone();
+                let res = std::fs::read_to_string(&mp);
+                (mp, res)
+            })
+            .collect();
+
+        for (path, res) in ws_members {
+            match res {
+                Ok(contents) => {
+                    if path == "/home/jake/code/ark/wim-app/components/report/Cargo.toml" {
+                        println!("{path} =>\n{contents}");
+                    }
+                    files.add(path, contents);
+                }
+                Err(err) => {
+                    log::error!("failed to read '{path}': {err}");
+                }
+            }
+        }
+
+        // Ensure the workspace root manifest is also present
+        let ws_root = krates.workspace_root().join("Cargo.toml");
+        if files.id_for_path(&ws_root).is_none() {
+            match std::fs::read_to_string(&ws_root) {
+                Ok(contents) => {
+                    files.add(ws_root, contents);
+                }
+                Err(err) => {
+                    log::error!("failed to read root workspace manifest '{ws_root}': {err}");
+                }
+            }
+        }
+    }
+
     let graph_out_dir = args.graph;
 
     let (tx, rx) = crossbeam::channel::unbounded();
@@ -345,6 +390,8 @@ pub(crate) fn cmd(
 
     let log_level = log_ctx.log_level;
 
+    let files = &files;
+
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
@@ -375,6 +422,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(move |_| {
@@ -425,6 +473,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(|_| {
@@ -449,6 +498,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(|_| {
@@ -473,6 +523,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(move |_| {
@@ -534,7 +585,7 @@ fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     log_ctx: crate::common::LogContext,
     krates: Option<&cargo_deny::Krates>,
-    files: Files,
+    files: &Files,
     stats: &mut AllStats,
     feature_depth: Option<u32>,
 ) {
@@ -561,7 +612,7 @@ fn print_diagnostics(
         }
 
         if let Some(mut lock) = dp.as_ref().map(|dp| dp.lock()) {
-            lock.print_krate_pack(pack, &files);
+            lock.print_krate_pack(pack, files);
         }
     }
 }

@@ -232,9 +232,12 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
         krate_index: krates::NodeId,
         error: D,
     ) -> Pack {
-        let mut labels = vec![self.krate_spans.label_for_index(
-            krate_index.index(),
+        self.krate_spans.lock_span(&krate.id)
+        krate_index.index(),
             "crate whose registry we failed to query",
+
+        let mut labels = vec![
+            
         )];
 
         // Don't show the config location if it's the default, since it just points

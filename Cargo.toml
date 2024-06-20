@@ -78,6 +78,8 @@ home = "0.5"
 krates = { version = "0.16", features = ["targets"] }
 # Log macros
 log = "0.4"
+# Faster char searching
+memchr = "2.7"
 # Nicer sync primitives
 parking_lot = "0.12"
 # Moar brrrr
@@ -152,3 +154,6 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
+
+[patch.crates-io]
+krates = { path = "../krates" }

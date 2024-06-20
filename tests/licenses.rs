@@ -19,6 +19,24 @@ fn store() -> Arc<licenses::LicenseStore> {
     }
 }
 
+fn setup<'k>(
+    krates: &'k crate::Krates,
+    name: &str,
+    cfg: tu::Config<Config>,
+) -> (
+    tu::GatherCtx<'k, licenses::cfg::ValidConfig>,
+    licenses::Summary<'k>,
+) {
+    let mut ctx = tu::setup(krates, name, cfg);
+
+    let gatherer = licenses::Gatherer::default()
+        .with_store(store())
+        .with_confidence_threshold(0.8);
+
+    let summary = gatherer.gather(ctx.krates, &mut ctx.files, Some(&ctx.valid_cfg));
+    (ctx, summary)
+}
+
 #[inline]
 pub fn gather_licenses_with_overrides(
     name: &str,
@@ -34,29 +52,18 @@ pub fn gather_licenses_with_overrides(
         .build_with_metadata(md, krates::NoneFilter)
         .unwrap();
 
-    let gatherer = licenses::Gatherer::default()
-        .with_store(store())
-        .with_confidence_threshold(0.8);
+    let (ctx, summary) = setup(&krates, name, cfg.into());
 
-    let cfg = cfg.into();
-
-    tu::gather_diagnostics_with_files::<Config, _, _>(
-        &krates,
-        name,
-        cfg,
-        codespan::Files::new(),
-        |ctx, _cs, tx, files| {
-            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
-            crate::licenses::check(
-                ctx,
-                summary,
-                diag::ErrorSink {
-                    overrides: overrides.map(Arc::new),
-                    channel: tx,
-                },
-            );
-        },
-    )
+    tu::run_gather(ctx, |ctx, _cs, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: overrides.map(Arc::new),
+                channel: tx,
+            },
+        );
+    })
 }
 
 #[test]
@@ -158,32 +165,23 @@ fn lax_fallback() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let gatherer = licenses::Gatherer::default()
-        .with_store(store())
-        .with_confidence_threshold(0.8);
-
     let cfg = tu::Config::<Config>::new(
         "allow = ['GPL-2.0', 'LGPL-3.0']
     unlicensed = 'deny'",
     );
 
-    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
-        &krates,
-        "lax_fallback",
-        cfg,
-        codespan::Files::new(),
-        |ctx, _cs, tx, files| {
-            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
-            crate::licenses::check(
-                ctx,
-                summary,
-                diag::ErrorSink {
-                    overrides: None,
-                    channel: tx,
-                },
-            );
-        },
-    );
+    let (ctx, summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    });
 
     insta::assert_json_snapshot!(diags);
 }
@@ -197,10 +195,6 @@ fn clarifications() {
     let krates: Krates = krates::Builder::new()
         .build(cmd, krates::NoneFilter)
         .unwrap();
-
-    let gatherer = licenses::Gatherer::default()
-        .with_store(store())
-        .with_confidence_threshold(0.8);
 
     let cfg = tu::Config::<Config>::new(
         r#"
@@ -233,23 +227,18 @@ license-files = [
 "#,
     );
 
-    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
-        &krates,
-        "clarifications",
-        cfg,
-        codespan::Files::new(),
-        |ctx, _cs, tx, files| {
-            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
-            crate::licenses::check(
-                ctx,
-                summary,
-                diag::ErrorSink {
-                    overrides: None,
-                    channel: tx,
-                },
-            );
-        },
-    );
+    let (ctx, summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    });
 
     insta::assert_json_snapshot!(diags);
 }
@@ -285,33 +274,24 @@ fn forces_apache_over_pixar() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let gatherer = licenses::Gatherer::default()
-        .with_store(store())
-        .with_confidence_threshold(0.8);
-
     let cfg = tu::Config::new(
         r#"
     allow = ['Apache-2.0']
     "#,
     );
 
-    let diags = tu::gather_diagnostics_with_files::<Config, _, _>(
-        &krates,
-        func_name!(),
-        cfg,
-        codespan::Files::new(),
-        |ctx, _cs, tx, files| {
-            let summary = gatherer.gather(ctx.krates, files, Some(&ctx.cfg));
-            crate::licenses::check(
-                ctx,
-                summary,
-                diag::ErrorSink {
-                    overrides: None,
-                    channel: tx,
-                },
-            );
-        },
-    );
+    let (ctx, summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    });
 
     insta::assert_json_snapshot!(diags);
 }

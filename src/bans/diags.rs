@@ -51,6 +51,8 @@ pub enum Code {
     UnmatchedPathBypass,
     UnmatchedGlob,
     UnusedWrapper,
+    WorkspaceDuplicate,
+    UnresolvedWorkspaceDependency,
 }
 
 impl From<Code> for String {
@@ -171,24 +173,13 @@ impl<'a> From<Skipped<'a>> for Diag {
 pub(crate) struct Wildcards<'a> {
     pub(crate) krate: &'a Krate,
     pub(crate) severity: Severity,
-    pub(crate) wildcards: Vec<&'a krates::cm::Dependency>,
+    pub(crate) labels: Vec<Label>,
     pub(crate) allow_wildcard_paths: bool,
-    pub(crate) cargo_spans: &'a crate::diag::CargoSpans,
 }
 
 impl<'a> From<Wildcards<'a>> for Pack {
     fn from(wc: Wildcards<'a>) -> Self {
-        let (file_id, map) = &wc.cargo_spans[&wc.krate.id];
-
-        let labels: Vec<_> = wc
-            .wildcards
-            .into_iter()
-            .map(|dep| {
-                Label::primary(*file_id, map[&dep.name].clone())
-                    .with_message("wildcard crate entry")
-            })
-            .collect();
-
+        let labels = wc.labels;
         let diag = Diag::new(
             Diagnostic::new(wc.severity)
                 .with_message(format!(
@@ -846,6 +837,52 @@ impl<'a> From<UnmatchedGlob<'a>> for Diag {
             .with_message("glob was not encountered")
             .with_code(Code::UnmatchedGlob)
             .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span)])
+            .into()
+    }
+}
+
+pub(crate) struct WorkspaceDuplicate<'k> {
+    pub(crate) duplicate: &'k Krate,
+    pub(crate) labels: Vec<Label>,
+    pub(crate) severity: crate::LintLevel,
+    pub(crate) has_workspace_declaration: bool,
+}
+
+impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
+    fn from(wd: WorkspaceDuplicate<'k>) -> Self {
+        Diagnostic::new(wd.severity.into())
+            .with_message(format!(
+                "crate {} was declared multiple times in the workspace, but {}",
+                wd.duplicate,
+                if wd.has_workspace_declaration {
+                    "not all declarations used the shared workspace dependency"
+                } else {
+                    "there was no shared workspace dependency for it"
+                }
+            ))
+            .with_code(Code::WorkspaceDuplicate)
+            .with_labels(wd.labels)
+            .into()
+    }
+}
+
+pub(crate) struct UnresolveWorkspaceDependency<'m, 'k> {
+    pub(crate) manifest: &'m crate::diag::Manifest<'k>,
+    pub(crate) dep: &'m crate::diag::ManifestDep<'k>,
+}
+
+impl<'m, 'k> From<UnresolveWorkspaceDependency<'m, 'k>> for Diag {
+    fn from(uwd: UnresolveWorkspaceDependency<'m, 'k>) -> Self {
+        Diagnostic::bug()
+            .with_message("failed to resolve a workspace dependency")
+            .with_labels(vec![
+                Label::primary(
+                    uwd.manifest.id,
+                    uwd.dep.workspace.as_ref().map(|ws| ws.span).unwrap(),
+                )
+                .with_message("usage of workspace dependency"),
+                Label::secondary(uwd.manifest.id, uwd.dep.value_span),
+            ])
             .into()
     }
 }

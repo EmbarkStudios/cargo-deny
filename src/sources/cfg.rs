@@ -48,11 +48,10 @@ impl<'de> Deserialize<'de> for Orgs {
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum GitSpec {
-    /// Specifies the HEAD of the `master` branch, though eventually this might
-    /// change to the default branch
+    /// Specifies the `HEAD` of the remote
     #[default]
     Any,
-    /// Specifies the HEAD of a particular branch
+    /// Specifies the `HEAD` of a particular branch
     Branch,
     /// Specifies the commit pointed to by a particular tag
     Tag,

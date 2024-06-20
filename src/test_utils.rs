@@ -117,7 +117,7 @@ impl<T> ConfigData<T>
 where
     T: toml_span::DeserializeOwned,
 {
-    pub fn load_str(name: impl Into<std::ffi::OsString>, contents: impl Into<String>) -> Self {
+    pub fn load_str(name: impl Into<crate::PathBuf>, contents: impl Into<String>) -> Self {
         let contents: String = contents.into();
 
         let res = {
@@ -219,39 +219,42 @@ pub fn gather_diagnostics<C, VC, R>(
 where
     C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel, &mut Files) + Send,
+    R: FnOnce(CheckCtx<'_, VC>, PackChannel) + Send,
 {
-    gather_diagnostics_with_files(krates, test_name, cfg, Files::new(), runner)
+    let ctx = setup(krates, test_name, cfg);
+    run_gather(ctx, runner)
 }
 
-pub fn gather_diagnostics_with_files<C, VC, R>(
-    krates: &crate::Krates,
+pub struct GatherCtx<'k, VC> {
+    pub krates: &'k crate::Krates,
+    pub files: crate::diag::Files,
+    pub valid_cfg: VC,
+    spans: crate::diag::KrateSpans<'k>,
+}
+
+pub fn setup<'k, C, VC>(
+    krates: &'k crate::Krates,
     test_name: &str,
     cfg: Config<C>,
-    mut files: Files,
-    runner: R,
-) -> Vec<serde_json::Value>
+) -> GatherCtx<'k, VC>
 where
     C: crate::UnvalidatedConfig<ValidCfg = VC>,
     VC: Send,
-    R: FnOnce(CheckCtx<'_, VC>, CargoSpans, PackChannel, &mut Files) + Send,
 {
-    let (spans, content, hashmap) = KrateSpans::synthesize(krates);
-
-    let spans_id = files.add(format!("{test_name}/Cargo.lock"), content);
-    let spans = KrateSpans::with_spans(spans, spans_id);
+    let mut files = crate::diag::Files::new();
+    let spans = KrateSpans::synthesize(krates, test_name, &mut files);
 
     let config = cfg.deserialized;
     let cfg_id = files.add(format!("{test_name}.toml"), cfg.config);
 
-    let mut newmap = CargoSpans::new();
-    for (key, val) in hashmap {
-        let cargo_id = files.add(val.0, val.1);
-        newmap.insert(key, (cargo_id, val.2));
-    }
+    // let mut newmap = CargoSpans::new();
+    // for (key, val) in hashmap {
+    //     let cargo_id = files.add(val.0, val.1);
+    //     newmap.insert(key, (cargo_id, val.2));
+    // }
 
     let mut cfg_diags = Vec::new();
-    let cfg = config.validate(crate::cfg::ValidationContext {
+    let valid_cfg = config.validate(crate::cfg::ValidationContext {
         cfg_id,
         files: &mut files,
         diagnostics: &mut cfg_diags,
@@ -264,21 +267,36 @@ where
         panic!("encountered errors validating config: {cfg_diags:#?}");
     }
 
+    GatherCtx {
+        krates,
+        files,
+        valid_cfg,
+        //cargo_spans: newmap,
+        spans,
+    }
+}
+
+pub fn run_gather<VC, R>(ctx: GatherCtx<'_, VC>, runner: R) -> Vec<serde_json::Value>
+where
+    VC: Send,
+    R: FnOnce(CheckCtx<'_, VC>, PackChannel) + Send,
+{
     let (tx, rx) = crossbeam::channel::unbounded();
 
-    let grapher = diag::InclusionGrapher::new(krates);
+    let grapher = diag::InclusionGrapher::new(ctx.krates);
 
     let (_, gathered) = rayon::join(
         || {
-            let ctx = crate::CheckCtx {
-                krates,
-                krate_spans: &spans,
-                cfg,
+            let cctx = crate::CheckCtx {
+                krates: ctx.krates,
+                krate_spans: &ctx.spans,
+                cfg: ctx.valid_cfg,
                 serialize_extra: true,
                 colorize: false,
                 log_level: log::LevelFilter::Info,
+                files: &ctx.files,
             };
-            runner(ctx, newmap, tx, &mut files);
+            runner(cctx, tx);
         },
         || {
             let mut diagnostics = Vec::new();
@@ -309,7 +327,7 @@ where
     gathered
         .unwrap()
         .into_iter()
-        .map(|d| diag::diag_to_json(d, &files, Some(&grapher)))
+        .map(|d| diag::diag_to_json(d, &ctx.files, Some(&grapher)))
         .collect()
 }
 
@@ -364,8 +382,8 @@ pub fn gather_bans(
     let krates = kg.gather();
     let cfg = cfg.into();
 
-    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx, _| {
-        crate::bans::check(ctx, None, cs, tx);
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, tx| {
+        crate::bans::check(ctx, None, tx);
     })
 }
 
@@ -379,11 +397,10 @@ pub fn gather_bans_with_overrides(
     let krates = kg.gather();
     let cfg = cfg.into();
 
-    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, cs, tx, _| {
+    gather_diagnostics::<crate::bans::cfg::Config, _, _>(&krates, name, cfg, |ctx, tx| {
         crate::bans::check(
             ctx,
             None,
-            cs,
             ErrorSink {
                 overrides: Some(std::sync::Arc::new(overrides)),
                 channel: tx,

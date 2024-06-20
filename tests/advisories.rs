@@ -68,7 +68,7 @@ fn detects_vulnerabilities() {
     let cfg = tu::Config::new("vulnerability = 'deny'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -91,7 +91,7 @@ fn detects_unmaintained() {
     let cfg = tu::Config::new("unmaintained = 'warn'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -113,7 +113,7 @@ fn detects_unsound() {
     let cfg = tu::Config::new("unsound = 'warn'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -144,7 +144,7 @@ ignore = [
     );
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -218,7 +218,7 @@ fn detects_yanked() {
             &krates,
             func_name!(),
             cfg,
-            |ctx, _, tx, _| {
+            |ctx, _, tx| {
                 advisories::check(
                     ctx,
                     &dbs,
@@ -260,7 +260,7 @@ vulnerability = "allow"
             &krates,
             func_name!(),
             cfg,
-            |ctx, _, tx, _| {
+            |ctx, _, tx| {
                 advisories::check(
                     ctx,
                     &dbs,
@@ -316,7 +316,7 @@ fn warns_on_index_failures() {
     };
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -347,7 +347,7 @@ fn warns_on_ignored_and_withdrawn() {
     );
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -692,7 +692,7 @@ fn crates_io_source_replacement() {
     let dbs = advisories::DbSet { dbs: Vec::new() };
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -802,7 +802,7 @@ fn crates_io_source_replacement() {
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx, _| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
             advisories::check(
                 ctx,
                 &dbs,

@@ -183,7 +183,7 @@ multiple-versions-include-dev = true
     let dup_graphs = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
 
     let duped_graphs = dup_graphs.clone();
-    gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx, _f| {
+    gather_diagnostics::<bans::cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, cs, tx| {
         bans::check(
             ctx,
             Some(Box::new(move |dg| {
