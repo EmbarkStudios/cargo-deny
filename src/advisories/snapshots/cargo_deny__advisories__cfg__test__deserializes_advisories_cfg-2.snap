@@ -3,7 +3,7 @@ source: src/advisories/cfg.rs
 expression: validated
 ---
 {
-  "file_id": 1,
+  "file_id": 0,
   "db_path": "/home/you/.cargo/advisory-dbs",
   "db_urls": [
     "https://github.com/RustSec/advisory-db"

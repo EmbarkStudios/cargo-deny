@@ -54,7 +54,7 @@ pub fn gather_licenses_with_overrides(
 
     let (ctx, summary) = setup(&krates, name, cfg.into());
 
-    tu::run_gather(ctx, |ctx, _cs, tx| {
+    tu::run_gather(ctx, |ctx, tx| {
         crate::licenses::check(
             ctx,
             summary,
@@ -172,7 +172,7 @@ fn lax_fallback() {
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
-    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+    let diags = tu::run_gather(ctx, |ctx, tx| {
         crate::licenses::check(
             ctx,
             summary,
@@ -229,7 +229,7 @@ license-files = [
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
-    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+    let diags = tu::run_gather(ctx, |ctx, tx| {
         crate::licenses::check(
             ctx,
             summary,
@@ -282,7 +282,7 @@ fn forces_apache_over_pixar() {
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
-    let diags = tu::run_gather(ctx, |ctx, _cs, tx| {
+    let diags = tu::run_gather(ctx, |ctx, tx| {
         crate::licenses::check(
             ctx,
             summary,

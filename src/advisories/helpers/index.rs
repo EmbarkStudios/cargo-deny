@@ -7,7 +7,6 @@ type YankMap = Vec<(semver::Version, bool)>;
 
 #[derive(Clone)]
 pub enum Entry {
-    Local,
     Map(YankMap),
     Error(String),
 }
@@ -40,10 +39,10 @@ impl<'k> Indices<'k> {
             };
 
             let index = index_url.and_then(|iu| {
-                // If the registry has been replaced with a local registry just ignore it
-                if matches!(&iu, IndexUrl::Local(_)) {
-                    return Ok(None);
-                };
+                // // If the registry has been replaced with a local registry just ignore it
+                // if matches!(&iu, IndexUrl::Local(_)) {
+                //     return Ok(None);
+                // };
                 ComboIndexCache::new(IndexLocation::new(iu).with_root(Some(cargo_home.clone())))
                     .map(Some)
             });
@@ -104,7 +103,9 @@ impl<'k> Indices<'k> {
                                 Err(err) => Entry::Error(format!("{err:#}")),
                             }
                         }
-                        Ok(None) => Entry::Local,
+                        Ok(None) => {
+                            Entry::Error("unable to locate index entry for crate".to_owned())
+                        }
                         Err(err) => Entry::Error(format!("{err:#}")),
                     };
 
@@ -150,7 +151,6 @@ impl<'k> Indices<'k> {
                 is_yanked.ok_or_else(|| format!("unable to locate version '{}'", krate.version))
             }
             Entry::Error(err) => Err(err.clone()),
-            Entry::Local => Ok(false),
         }
     }
 }

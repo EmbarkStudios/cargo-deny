@@ -248,6 +248,7 @@ dependencies = [
  "askalono",
  "bitvec",
  "camino",
+ "cfg-expr",
  "clap",
  "codespan",
  "codespan-reporting",
@@ -277,7 +278,7 @@ dependencies = [
  "tame-index",
  "tempfile",
  "time",
- "toml-span",
+ "toml-span 0.2.1",
  "twox-hash",
  "url",
  "walkdir",
@@ -2653,9 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418b7a56dbbf693afbf024c12f90863ac25894fd209d374d4af39cf9e43da36c"
+version = "0.12.1"
 dependencies = [
  "bytes",
  "camino",
@@ -2674,7 +2673,7 @@ dependencies = [
  "smol_str",
  "thiserror",
  "tokio",
- "toml-span",
+ "toml-span 0.3.0",
  "twox-hash",
 ]
 
@@ -2839,6 +2838,13 @@ checksum = "b6e089b1253c3fbee40bd2091535cb5e0f0b85f85a50024c3e7785f227449738"
 dependencies = [
  "codespan-reporting",
  "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "toml-span"
+version = "0.3.0"
+dependencies = [
  "smallvec",
 ]
 

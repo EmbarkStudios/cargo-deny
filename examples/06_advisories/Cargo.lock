@@ -28,6 +28,7 @@ dependencies = [
  "dirs",
  "failure",
  "lettre",
+ "static_type_map",
  "trust-dns-resolver",
 ]
 
@@ -1346,6 +1347,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "static_type_map"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f41d6352756e5e8bfb4dc0ad306fa62f41876dc2229d83669415fb4f56e34732"
 
 [[package]]
 name = "string_cache"

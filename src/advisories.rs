@@ -74,10 +74,9 @@ pub fn check<R, S>(
     let mut ignore_yanked_hits: BitVec = BitVec::repeat(false, ctx.cfg.ignore_yanked.len());
 
     // Emit diagnostics for any advisories found that matched crates in the graph
-    for (krate, krate_index, advisory) in &report.advisories {
+    for (krate, advisory) in &report.advisories {
         let diag = ctx.diag_for_advisory(
             krate,
-            *krate_index,
             &advisory.metadata,
             Some(&advisory.versions),
             |index| {
@@ -89,14 +88,9 @@ pub fn check<R, S>(
     }
 
     for (krate, status) in yanked {
-        let Some(ind) = ctx.krates.nid_for_kid(&krate.id) else {
-            log::warn!("failed to locate node id for '{krate}'");
-            continue;
-        };
-
         if let Some(e) = status {
             if ctx.cfg.yanked.value != LintLevel::Allow {
-                sink.push(ctx.diag_for_index_failure(krate, ind, e));
+                sink.push(ctx.diag_for_index_failure(krate, e));
             }
         } else {
             // Check to see if the user has added an ignore for the yanked
@@ -113,7 +107,7 @@ pub fn check<R, S>(
                 sink.push(ctx.diag_for_yanked_ignore(krate, i));
                 ignore_yanked_hits.as_mut_bitslice().set(i, true);
             } else {
-                sink.push(ctx.diag_for_yanked(krate, ind));
+                sink.push(ctx.diag_for_yanked(krate));
             }
         }
     }

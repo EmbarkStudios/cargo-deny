@@ -5,10 +5,7 @@ mod sink;
 pub use grapher::{cs_diag_to_json, diag_to_json, write_graph_as_text, InclusionGrapher};
 pub use sink::{DiagnosticOverrides, ErrorSink};
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    ops::Range,
-};
+use std::{collections::BTreeMap, ops::Range};
 
 use crate::{Kid, Krate, Krates, PathBuf, Span};
 pub use codespan_reporting::diagnostic::Severity;
@@ -19,10 +16,6 @@ pub type FilesErr = codespan_reporting::files::Error;
 pub type Diagnostic = codespan_reporting::diagnostic::Diagnostic<FileId>;
 pub type Label = codespan_reporting::diagnostic::Label<FileId>;
 
-// Map of crate id => (path to cargo.toml, synthetic cargo.toml content, map(cratename => crate span))
-pub type RawCargoSpans = HashMap<Kid, (PathBuf, String, HashMap<String, Range<usize>>)>;
-// Same as RawCargoSpans but path to cargo.toml and cargo.toml content replaced with FileId
-pub type CargoSpans = HashMap<Kid, (FileId, HashMap<String, Range<usize>>)>;
 /// Channel type used to send diagnostics from checks
 pub type PackChannel = crossbeam::channel::Sender<Pack>;
 
@@ -301,6 +294,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct ManifestDep<'k> {
     /// The dependency declaration
     pub dep: &'k krates::cm::Dependency,
@@ -319,6 +313,7 @@ pub struct ManifestDep<'k> {
 }
 
 /// A parsed crate manifest
+#[derive(Debug)]
 pub struct Manifest<'k> {
     /// Id for the cargo manifest file for the krate
     pub id: FileId,
@@ -332,7 +327,6 @@ impl<'k> Manifest<'k> {
     pub fn parse(krate: &'k Krate, krates: &'k Krates, contents: &str) -> anyhow::Result<Self> {
         use anyhow::Context as _;
         use krates::cm::DependencyKind;
-        use std::fmt::Write as _;
 
         let root = toml_span::parse(contents)?;
         let mut pointer = String::new();
@@ -342,6 +336,127 @@ impl<'k> Manifest<'k> {
             .nid_for_kid(&krate.id)
             .with_context(|| format!("unable to find krate {}", krate.id))?;
 
+        // Unfortunately cargo will "helpfully" prettify cfg expressions in the
+        // metadata output, but this makes it impossible to just directly map back
+        // to the location in the toml manifest since non-normalized cfg expressions
+        // will just fail the pointer path, so we build a mapping of expressions
+        // to pointers. Note that we need to account for cases where the manifest is
+        // inconsistent, eg. `cfg(target_os="windows")`, `cfg(windows)`, and
+        // `cfg(target_os = "windows")` are all equivalent
+        struct Target<'m> {
+            /// The cfg string as it appears in the manifest
+            original: &'m str,
+            expr: Option<cfg_expr::Expression>,
+        }
+
+        let targets = root.pointer("/target").map_or(Vec::new(), |targets| {
+            let Some(table) = targets.as_table() else {
+                return Vec::new();
+            };
+
+            table
+                .keys()
+                .map(|cfg| {
+                    let original = cfg.name.as_ref();
+                    let expr = if !cfg.name.starts_with("cfg(") {
+                        None
+                    } else {
+                        cfg_expr::Expression::parse(&cfg.name).ok()
+                    };
+
+                    Target { original, expr }
+                })
+                .collect()
+        });
+
+        let get_dep_value =
+            |dep: &krates::cm::Dependency,
+             pointer: &mut String|
+             -> Option<(&toml_span::value::Key<'_>, &toml_span::Value<'_>)> {
+                pointer.clear();
+                pointer.push('/');
+
+                let name = dep.rename.as_ref().unwrap_or(&dep.name);
+
+                let push_kind = |pointer: &mut String| {
+                    let dep_kind = match dep.kind {
+                        DependencyKind::Development => "dev-",
+                        DependencyKind::Build => "build-",
+                        DependencyKind::Normal => "",
+                    };
+
+                    pointer.push_str(dep_kind);
+                    pointer.push_str("dependencies");
+                };
+
+                // If the dependency has a cfg/platform it is in `targets.<>.<kind>` so
+                // we need a pointer to that first
+                if let Some(cfg) = &dep.target {
+                    pointer.push_str("target/");
+
+                    let expr = cfg
+                        .starts_with("cfg(")
+                        .then(|| cfg_expr::Expression::parse(cfg).ok())
+                        .flatten();
+
+                    for target in &targets {
+                        pointer.truncate(8 /* /target/ */);
+
+                        match (&target.expr, &expr) {
+                            (None, None) => {
+                                pointer.push_str(target.original);
+                            }
+                            (Some(a), Some(b)) => {
+                                if !a.predicates().zip(b.predicates()).all(|(a, b)| a == b) {
+                                    continue;
+                                }
+
+                                pointer.push_str(target.original);
+                            }
+                            _ => continue,
+                        }
+
+                        pointer.push('/');
+
+                        push_kind(pointer);
+
+                        let Some(dep_table) = root.pointer(&pointer) else {
+                            continue;
+                        };
+
+                        let Some(table) = dep_table.as_table() else {
+                            log::warn!(
+                                "{pointer} for manifest '{}' is not a valid toml table",
+                                krate.manifest_path
+                            );
+                            continue;
+                        };
+
+                        if let Some(kv) = table.get_key_value(name.as_str()) {
+                            return Some(kv);
+                        }
+                    }
+
+                    None
+                } else {
+                    push_kind(pointer);
+
+                    let Some(dep_table) = root.pointer(&pointer) else {
+                        return None;
+                    };
+
+                    let Some(table) = dep_table.as_table() else {
+                        log::warn!(
+                            "{pointer} for manifest '{}' is not a valid toml table",
+                            krate.manifest_path
+                        );
+                        return None;
+                    };
+
+                    table.get_key_value(name.as_str())
+                }
+            };
+
         for (i, dep) in krate.deps.iter().enumerate() {
             // Get the krate that was resolved for the dependency declaration, this
             // can be None if it was pruned via cfg etc
@@ -349,28 +464,7 @@ impl<'k> Manifest<'k> {
                 continue;
             };
 
-            pointer.clear();
-            pointer.push('/');
-
-            // If the dependency has a cfg/platform it is in `targets.<>.<kind>` so
-            // we need a pointer to that first
-            if let Some(cfg) = &dep.target {
-                pointer.push_str("target/");
-                // Sadly cargo_metadata loses the actual string information
-                write!(&mut pointer, "{cfg}/").unwrap();
-            }
-
-            let dep_kind = match dep.kind {
-                DependencyKind::Development => "dev-",
-                DependencyKind::Build => "build-",
-                DependencyKind::Normal => "",
-                DependencyKind::Unknown => unreachable!(),
-            };
-
-            pointer.push_str(dep_kind);
-            pointer.push_str("dependencies");
-
-            let Some(dep_table) = root.pointer(&pointer) else {
+            let Some((key, dep_value)) = get_dep_value(dep, &mut pointer) else {
                 log::warn!(
                     "unable to locate {krate} - ({}) -> {}@{} in manifest '{}' (path: {pointer})",
                     dep.kind,
@@ -381,32 +475,12 @@ impl<'k> Manifest<'k> {
                 continue;
             };
 
-            let Some(table) = dep_table.as_table() else {
-                log::warn!(
-                    "{pointer} for manifest '{}' is not a valid toml table",
-                    krate.manifest_path
-                );
-                continue;
-            };
-
-            let name = dep.rename.as_ref().unwrap_or(&dep.name);
-            let Some((key, dep_value)) = table.get_key_value(&name.as_str().into()) else {
-                log::warn!(
-                    "unable to locate {krate} - ({}) -> {}@{} in manifest '{}'",
-                    dep.kind,
-                    dep.name,
-                    dep.req,
-                    krate.manifest_path
-                );
-                continue;
-            };
-
             let (workspace, version_req, rename) = if let Some(table) = dep_value.as_table() {
-                let workspace = table.get(&"workspace".into()).and_then(|v| {
+                let workspace = table.get("workspace").and_then(|v| {
                     v.as_bool()
                         .map(|b| toml_span::Spanned::with_span(b, v.span))
                 });
-                let version = table.get(&"version".into()).and_then(|v| {
+                let version = table.get("version").and_then(|v| {
                     v.as_str().and_then(|vr| {
                         match vr.parse() {
                             Ok(vreq) => Some(toml_span::Spanned::with_span(vreq, v.span)),
@@ -417,7 +491,7 @@ impl<'k> Manifest<'k> {
                         }
                     })
                 });
-                let rename = table.get(&"package".into()).and_then(|v| {
+                let rename = table.get("package").and_then(|v| {
                     v.as_str()
                         .map(|rn| toml_span::Spanned::with_span(rn.to_owned(), v.span))
                 });
@@ -499,7 +573,7 @@ impl<'k> KrateSpans<'k> {
             .collect();
         // [Krates::krates] only guarantees that krates are in the same order that cargo metadata
         // serializes them in, but we want to be stable across the full id
-        okrates.sort_unstable_by_key(|(k, _s)| &k.id);
+        okrates.sort_unstable_by_key(|(k, _s)| (&k.name, &k.version));
         for (krate, span) in &mut okrates {
             let span_start = sl.len();
             let source = if krate.source.is_some() {
@@ -514,11 +588,6 @@ impl<'k> KrateSpans<'k> {
             let total = span_start..sl.len() - 1;
             span.source = (total.end - source.len()..total.end).into();
             span.total = total.into();
-            //let source = total.end - source.len();
-            // lock_spans.push(LockSpan {
-            //     total: total.into(),
-            //     source,
-            // });
         }
 
         let lock_id = files.add(format!("{lock_name}/Cargo.lock"), sl);
@@ -594,32 +663,19 @@ impl<'k> KrateSpans<'k> {
     }
 
     #[inline]
-    pub fn get_span(&self, kid: &Kid) -> &LockSpan {
+    pub fn lock_span(&self, kid: &Kid) -> &LockSpan {
         &self.spans[kid].lock
     }
 
     #[inline]
-    pub fn get_manifest(&self, kid: &Kid) -> Option<&Manifest<'k>> {
+    pub fn manifest(&self, kid: &Kid) -> Option<&Manifest<'k>> {
         self.spans[kid].manifest.as_ref()
     }
 
     #[inline]
-    pub fn get_workspace(&self, kid: &Kid) -> Option<&WorkspaceSpan> {
+    pub fn workspace_span(&self, kid: &Kid) -> Option<&WorkspaceSpan<'k>> {
         self.spans[kid].workspace.as_ref()
     }
-
-    // #[inline]
-    // pub fn label_for_index(&self, krate_index: usize) -> Label {
-    //     Label::secondary(self.lock_id, self.lock_spans[krate_index].total)
-    // }
-
-    // #[inline]
-    // pub fn get_coord(&self, krate_index: usize) -> KrateCoord {
-    //     KrateCoord {
-    //         file: self.lock_id,
-    //         span: self.lock_spans[krate_index].total,
-    //     }
-    // }
 }
 
 pub struct WsDep<'k> {
@@ -627,11 +683,6 @@ pub struct WsDep<'k> {
     pub value_span: toml_span::Span,
     pub rename: Option<toml_span::Spanned<String>>,
     pub krate: &'k Krate,
-}
-
-struct WsDeps<'k> {
-    pub id: crate::diag::FileId,
-    pub dependencies: BTreeMap<krates::NodeId, WsDep<'k>>,
 }
 
 /// Gather the crates declared in the `[workspace.dependencies]` section
@@ -645,7 +696,7 @@ fn read_workspace_deps<'k>(
 
     let mut root = toml_span::parse(root_toml)?;
 
-    let Some(mut dep_table) = root.pointer_mut("/workspace/dependencies").and_then(|v| {
+    let Some(dep_table) = root.pointer_mut("/workspace/dependencies").and_then(|v| {
         let ValueInner::Table(table) = v.take() else {
             return None;
         };
@@ -738,11 +789,11 @@ fn read_workspace_deps<'k>(
 
         let (krate_src, version, rename) = match dep.take() {
             ValueInner::Table(mut dt) => {
-                let rename = dt.remove(&"package".into()).and_then(|v| v.as_str().map(|s| toml_span::Spanned::with_span(s.to_owned(), v.span)));
+                let rename = dt.remove("package").and_then(|v| v.as_str().map(|s| toml_span::Spanned::with_span(s.to_owned(), v.span)));
 
                 let name = rename.as_ref().map_or(key.name.as_ref(), |v| v.value.as_str());
 
-                let version = if let Some(version) = dt.remove_entry(&"version".into()) {
+                let version = if let Some(version) = dt.remove_entry("version") {
                     let span = version.1.span;
                     let req_s = take_string(name, version)?;
                     req_s.parse::<semver::VersionReq>().map_err(|err| {
@@ -755,21 +806,21 @@ fn read_workspace_deps<'k>(
 
                 // cargo _currently_ allows dependencies to be declared without a version/path/git field, but will
                 // make it an error in the future, we'll just discard them because this lint is new
-                let source = if let Some(registry) = dt.remove_entry(&"registry".into()) {
+                let source = if let Some(registry) = dt.remove_entry("registry") {
                     let registry = take_string(name, registry)?;
 
                     Source::Registry {
                         registry: Some(registry)
                     }
-                } else if let Some(path) = dt.remove_entry(&"path".into()) {
+                } else if let Some(path) = dt.remove_entry("path") {
                     Source::Path(take_string(name, path)?)
-                } else if let Some(repo) = dt.remove_entry(&"git".into()) {
+                } else if let Some(repo) = dt.remove_entry("git") {
                     let repo = url::Url::parse(&take_string(name, repo)?).ok()?;
-                    let spec = if let Some(rev) = dt.remove_entry(&"rev".into()) {
+                    let spec = if let Some(rev) = dt.remove_entry("rev") {
                         GitSpec::Rev(take_string(name, rev)?)
-                    } else if let Some(branch) = dt.remove_entry(&"branch".into()) {
+                    } else if let Some(branch) = dt.remove_entry("branch") {
                         GitSpec::Branch(take_string(name, branch)?)
-                    } else if let Some(tag) = dt.remove_entry(&"tag".into()) {
+                    } else if let Some(tag) = dt.remove_entry("tag") {
                         GitSpec::Tag(take_string(name, tag)?)
                     } else {
                         GitSpec::None

@@ -47,7 +47,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
         let mut sl = None;
         let label = || {
-            let span = ctx.krate_spans.get_span(&krate.id);
+            let span = ctx.krate_spans.lock_span(&krate.id);
             Label::primary(ctx.krate_spans.lock_id, span.source).with_message("source")
         };
 

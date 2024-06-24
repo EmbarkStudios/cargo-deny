@@ -16,10 +16,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 1,
-          "line": 1,
-          "message": "wildcard crate entry",
-          "span": "ansi_term = '*'"
+          "column": 14,
+          "line": 9,
+          "message": "wildcard dependency",
+          "span": "*"
         }
       ],
       "message": "found 1 wildcard dependency for crate 'wildcards-test-crate'",
@@ -48,10 +48,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 1,
-          "line": 1,
-          "message": "wildcard crate entry",
-          "span": "itoa = '*'"
+          "column": 9,
+          "line": 9,
+          "message": "wildcard dependency",
+          "span": "*"
         }
       ],
       "message": "found 1 wildcard dependency for crate 'wildcards-test-dep'",

@@ -67,7 +67,7 @@ impl<'de> Deserialize<'de> for PackageSpec {
             ValueInner::Table(tab) => {
                 let mut th = TableHelper::from((tab, value.span));
 
-                if let Some(mut val) = th.table.remove(&"crate".into()) {
+                if let Some(mut val) = th.table.remove("crate") {
                     let s = val.take_string(Some("a crate spec"))?;
                     th.finalize(Some(value))?;
 

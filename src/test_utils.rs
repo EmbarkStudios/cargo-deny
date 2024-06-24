@@ -1,6 +1,6 @@
 use crate::{
     cfg::ValidationContext,
-    diag::{self, CargoSpans, ErrorSink, FileId, Files, KrateSpans, PackChannel},
+    diag::{self, ErrorSink, FileId, Files, KrateSpans, PackChannel},
     CheckCtx, PathBuf,
 };
 
@@ -247,12 +247,6 @@ where
     let config = cfg.deserialized;
     let cfg_id = files.add(format!("{test_name}.toml"), cfg.config);
 
-    // let mut newmap = CargoSpans::new();
-    // for (key, val) in hashmap {
-    //     let cargo_id = files.add(val.0, val.1);
-    //     newmap.insert(key, (cargo_id, val.2));
-    // }
-
     let mut cfg_diags = Vec::new();
     let valid_cfg = config.validate(crate::cfg::ValidationContext {
         cfg_id,
@@ -271,7 +265,6 @@ where
         krates,
         files,
         valid_cfg,
-        //cargo_spans: newmap,
         spans,
     }
 }

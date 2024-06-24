@@ -68,7 +68,7 @@ fn detects_vulnerabilities() {
     let cfg = tu::Config::new("vulnerability = 'deny'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -91,7 +91,7 @@ fn detects_unmaintained() {
     let cfg = tu::Config::new("unmaintained = 'warn'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -113,7 +113,7 @@ fn detects_unsound() {
     let cfg = tu::Config::new("unsound = 'warn'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -144,7 +144,7 @@ ignore = [
     );
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -214,11 +214,8 @@ fn detects_yanked() {
             cache: indices.cache.clone(),
         };
 
-        let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-            &krates,
-            func_name!(),
-            cfg,
-            |ctx, _, tx| {
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
                 advisories::check(
                     ctx,
                     &dbs,
@@ -226,8 +223,7 @@ fn detects_yanked() {
                     Some(indices),
                     tx,
                 );
-            },
-        );
+            });
 
         let diags: Vec<_> = diags
             .into_iter()
@@ -256,11 +252,8 @@ vulnerability = "allow"
 "#,
         );
 
-        let diags = tu::gather_diagnostics::<cfg::Config, _, _>(
-            &krates,
-            func_name!(),
-            cfg,
-            |ctx, _, tx| {
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
                 advisories::check(
                     ctx,
                     &dbs,
@@ -268,8 +261,7 @@ vulnerability = "allow"
                     Some(indices),
                     tx,
                 );
-            },
-        );
+            });
 
         let diags: Vec<_> = diags
             .into_iter()
@@ -316,7 +308,7 @@ fn warns_on_index_failures() {
     };
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -347,7 +339,7 @@ fn warns_on_ignored_and_withdrawn() {
     );
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -692,7 +684,7 @@ fn crates_io_source_replacement() {
     let dbs = advisories::DbSet { dbs: Vec::new() };
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,
@@ -802,7 +794,7 @@ fn crates_io_source_replacement() {
     let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
 
     let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, _, tx| {
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
             advisories::check(
                 ctx,
                 &dbs,

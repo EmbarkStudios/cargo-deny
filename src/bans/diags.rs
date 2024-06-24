@@ -846,13 +846,15 @@ pub(crate) struct WorkspaceDuplicate<'k> {
     pub(crate) labels: Vec<Label>,
     pub(crate) severity: crate::LintLevel,
     pub(crate) has_workspace_declaration: bool,
+    pub(crate) total_uses: usize,
 }
 
 impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
     fn from(wd: WorkspaceDuplicate<'k>) -> Self {
         Diagnostic::new(wd.severity.into())
             .with_message(format!(
-                "crate {} was declared multiple times in the workspace, but {}",
+                "crate {} was used {} times in the workspace, but {}",
+                wd.total_uses,
                 wd.duplicate,
                 if wd.has_workspace_declaration {
                     "not all declarations used the shared workspace dependency"

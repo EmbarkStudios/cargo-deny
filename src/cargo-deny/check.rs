@@ -4,7 +4,7 @@ use crate::{
 };
 use cargo_deny::{
     advisories, bans,
-    diag::{CargoSpans, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
+    diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources, CheckCtx, LintLevel, PathBuf,
 };
 use log::error;
@@ -171,7 +171,6 @@ pub(crate) fn cmd(
     let mut krates = None;
     let mut license_store = None;
     let mut advisory_dbs = None;
-    let mut krate_spans = None;
 
     // Create an override structure that remaps specific codes
     let overrides = {
@@ -238,13 +237,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            let gathered = krate_ctx.gather_krates(graph.targets, graph.exclude);
-
-            if let Ok(krates) = &gathered {
-                krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
-            }
-
-            krates = Some(gathered);
+            krates = Some(krate_ctx.gather_krates(graph.targets, graph.exclude));
         });
 
         if check_advisories {
@@ -281,22 +274,11 @@ pub(crate) fn cmd(
         None
     };
 
-    let (krate_spans, cargo_spans) = krate_spans
-        .map(|(spans, contents, raw_cargo_spans)| {
-            let id = files.add(krates.workspace_root().join("Cargo.lock"), contents);
-
-            let mut cargo_spans = CargoSpans::new();
-            for (key, val) in raw_cargo_spans {
-                let cargo_id = files.add(val.0, val.1);
-                cargo_spans.insert(key, (cargo_id, val.2));
-            }
-
-            (
-                cargo_deny::diag::KrateSpans::with_spans(spans, id),
-                cargo_spans,
-            )
-        })
-        .unwrap();
+    let krate_spans = cargo_deny::diag::KrateSpans::synthesize(
+        &krates,
+        krates.workspace_root().as_str(),
+        &mut files,
+    );
 
     let license_summary = if check_licenses {
         let store = license_store.unwrap()?;
@@ -479,7 +461,7 @@ pub(crate) fn cmd(
             s.spawn(|_| {
                 log::info!("checking bans...");
                 let start = Instant::now();
-                bans::check(ctx, output_graph, cargo_spans, bans_sink);
+                bans::check(ctx, output_graph, bans_sink);
 
                 log::info!("bans checked in {}ms", start.elapsed().as_millis());
             });

@@ -3,9 +3,7 @@ source: src/sources/cfg.rs
 expression: validated
 ---
 ValidConfig {
-    file_id: FileId(
-        1,
-    ),
+    file_id: 0,
     unknown_registry: Allow,
     unknown_git: Deny,
     allowed_sources: [

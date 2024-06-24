@@ -3,7 +3,7 @@ source: src/bans/cfg.rs
 expression: validated
 ---
 {
-  "file_id": 1,
+  "file_id": 0,
   "multiple_versions": "deny",
   "multiple_versions_include_dev": false,
   "workspace_duplicates": "warn",

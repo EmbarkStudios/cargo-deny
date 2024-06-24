@@ -12,7 +12,7 @@ use anyhow::Error;
 pub use diags::Code;
 use krates::cm::DependencyKind;
 use semver::VersionReq;
-use std::{collections::BTreeMap, fmt};
+use std::fmt;
 
 struct ReqMatch<'vr> {
     specr: &'vr SpecAndReason,
@@ -192,7 +192,6 @@ use crate::diag::{Check, Diag, Pack, Severity};
 pub fn check(
     ctx: crate::CheckCtx<'_, ValidConfig>,
     output_graph: Option<Box<OutputGraph>>,
-    //cargo_spans: diag::CargoSpans,
     sink: impl Into<diag::ErrorSink>,
 ) {
     let ValidConfig {
@@ -412,7 +411,7 @@ pub fn check(
         for dup in multi_detector.dupes.iter().cloned() {
             let krate = &ctx.krates[dup];
 
-            let span = &ctx.krate_spans.get_span(&krate.id).total;
+            let span = &ctx.krate_spans.lock_span(&krate.id).total;
             all_start = all_start.min(span.start);
             all_end = all_end.max(span.end);
 
@@ -880,7 +879,7 @@ pub fn check(
                                     LintLevel::Allow => unreachable!(),
                                 };
 
-                                let Some(manifest) = ctx.krate_spans.get_manifest(&krate.id) else {
+                                let Some(manifest) = ctx.krate_spans.manifest(&krate.id) else {
                                     break 'wildcards;
                                 };
                                 let is_private = krate.is_private(&[]);
@@ -920,7 +919,7 @@ pub fn check(
                                         }
 
                                         if let Some(ws_dep) =
-                                            ctx.krate_spans.get_workspace(&krate.id)
+                                            ctx.krate_spans.workspace_span(&krate.id)
                                         {
                                             labels.push(
                                                 crate::diag::Label::secondary(
@@ -998,7 +997,7 @@ pub fn check(
             scope.spawn(|_| {
                 check_workspace_duplicates(
                     ctx.krates,
-                    ctx.files,
+                    ctx.krate_spans,
                     workspace_duplicates,
                     &mut ws_duplicate_packs,
                 );
@@ -1067,11 +1066,13 @@ pub fn check_build(
     krates: &Krates,
     pack: &mut Pack,
 ) -> Option<usize> {
+    use krates::cm::TargetKind;
+
     let build_script_allowed = if let Some(allow_build_scripts) = &config.allow_build_scripts {
         let has_build_script = krate
             .targets
             .iter()
-            .any(|t| t.kind.iter().any(|k| *k == "custom-build"));
+            .any(|t| t.kind.iter().any(|k| *k == TargetKind::CustomBuild));
 
         !has_build_script
             || allow_build_scripts
@@ -1090,7 +1091,7 @@ pub fn check_build(
         krate.targets.iter().any(|t| {
             t.kind
                 .iter()
-                .any(|k| *k == "custom-build" || *k == "proc-macro")
+                .any(|k| matches!(*k, TargetKind::CustomBuild | TargetKind::ProcMacro))
         })
     }
 
@@ -1549,6 +1550,8 @@ fn check_workspace_duplicates(
     severity: LintLevel,
     diags: &mut Vec<Pack>,
 ) {
+    use crate::diag::Label;
+
     // Note this will ignore cases where a dependency is used as more than 1 kind etc,
     // but this check is not really meant for such simple cases
     if krates.workspace_members().count() <= 1 {
@@ -1556,119 +1559,51 @@ fn check_workspace_duplicates(
     }
 
     // Gather any direct dependencies that are declared more than once
-    let mut deps =
-        std::collections::BTreeMap::<_, Vec<(&Kid, (FileId, Vec<toml_span::Span>))>>::new();
+    let mut deps = std::collections::BTreeMap::<
+        _,
+        Vec<(
+            &crate::diag::ManifestDep<'_>,
+            &crate::Krate,
+            crate::diag::FileId,
+        )>,
+    >::new();
 
     for wsm in krates.workspace_members() {
-        let krates::Node::Krate { id, .. } = wsm else {
+        let krates::Node::Krate { id, krate, .. } = wsm else {
             continue; /* unreachable */
         };
 
-        krate_spans.get_manifest(id)
+        let Some(man) = krate_spans.manifest(id) else {
+            continue;
+        };
 
-        for dd in krates.direct_dependencies(krates.nid_for_kid(id).expect("impossible")) {
-            deps.entry(dd.node_id)
+        for mdep in &man.deps {
+            deps.entry(&mdep.krate.id)
                 .or_default()
-                .push((id, (0, Vec::new())));
+                .push((mdep, krate, man.id));
         }
     }
 
-            // Strip out any direct dependencies that aren't referenced multiple times in the workspace
-            // Note this will retain in cases where the dependency is only used
-            // by 1 crate, but as different dependency kinds, which is still useful
-            // to catch
-            deps.retain(|_, parents| parents.len() > 1);
+    // Strip out any direct dependencies that aren't referenced multiple times in the workspace
+    // Note this will retain in cases where the dependency is only used
+    // by 1 crate, but as different dependency kinds, which is still useful
+    // to catch
+    deps.retain(|_, parents| parents.len() > 1);
 
-            let mut ws_krates = Vec::<WsKrate<'_>>::new();
-            for (dupe, parents) in &deps {
-                for p in parents.iter().map(|(kid, _)| kid) {
-                    let i = match ws_krates.binary_search_by(|wk| wk.krate.id.cmp(p)) {
-                        Ok(i) => i,
-                        Err(i) => {
-                            ws_krates.insert(
-                                i,
-                                WsKrate {
-                                    krate: krates
-                                        .nid_for_kid(p)
-                                        .map(|krate| &krates[krate])
-                                        .unwrap(),
-                                    manifest: None,
-                                    shared: Vec::new(),
-                                },
-                            );
-                            i
-                        }
-                    };
-
-                    ws_krates[i].shared.push(*dupe);
-                }
-            }
-
-            use rayon::iter::{IntoParallelRefMutIterator as _, ParallelIterator as _};
-            ws_krates
-                .par_iter_mut()
-                .for_each(|wk| match read_manifest(&wk, krates, files) {
-                    Ok(manifest) => wk.manifest = Some(manifest),
-                    Err(err) => {
-                        log::warn!(
-                            "failed to process manifest '{}': {err}",
-                            wk.krate.manifest_path
-                        );
-                    }
-                });
-
-            (deps, ws_krates)
-        },
-    );
-
-    for ws_dupe in ws_dupes {
-        if let Some(manifest) = ws_dupe.manifest {
-            for dupe in manifest.dupes {
-                // Assume that if workspace is explicitly set to false that it is
-                // intentional
-                if dupe.workspace.is_some() {
-                    continue;
-                }
-
-                let Some(parents) = shared.get_mut(&dupe.nid) else {
-                    log::warn!("crate {} should be present", dupe.krate);
-                    continue;
-                };
-
-                let Some(parent_span) = parents
-                    .iter_mut()
-                    .find_map(|(kid, spans)| (ws_dupe.krate.id == **kid).then_some(spans))
-                else {
-                    log::warn!("crate {} should be present", dupe.krate);
-                    continue;
-                };
-
-                parent_span.0 = manifest.id;
-                parent_span.1.push(dupe.span);
-            }
-        } else {
-            // TODO: we could at least inform what crates _might_ not be using workspace
-            // dependencies, but really we should always have successfully parsed
-            // the manifest
-            log::warn!("{} contained {} crates that were declared elsewhere in the workspace, but we were unable to parse the manifest", ws_dupe.krate, ws_dupe.shared.len());
-        }
-    }
-
-    for (id, parents) in shared {
+    for (kid, parents) in deps {
+        let total = parents.len();
         let mut labels = Vec::new();
 
-        if let Some((ws_id, ws_dep)) = ws_deps
-            .as_mut()
-            .and_then(|wsd| wsd.dependencies.remove(&id).map(|ws_dep| (wsd.id, ws_dep)))
+        if let Some((ws_span, ws_id)) = krate_spans
+            .workspace_span(kid)
+            .zip(krate_spans.workspace_id)
         {
-            labels.push(
-                crate::diag::Label::primary(ws_id, ws_dep.value_span)
-                    .with_message("workspace dependency"),
-            );
-            if ws_dep.rename.is_some() {
+            labels.push(Label::primary(ws_id, ws_span.value).with_message("workspace dependency"));
+
+            if ws_span.rename.is_some() {
                 labels.push(
-                    crate::diag::Label::secondary(ws_id, ws_dep.key_span)
-                        .with_message("note that the crate has been renamed"),
+                    Label::secondary(ws_id, ws_span.key)
+                        .with_message("note that the workspace dependency has been renamed"),
                 );
             }
         }
@@ -1676,24 +1611,145 @@ fn check_workspace_duplicates(
         let llen = labels.len();
         let has_workspace_declaration = llen != 0;
 
-        labels.extend(parents.into_iter().flat_map(|(_kid, (file_id, spans))| {
-            spans
-                .into_iter()
-                .map(move |span| crate::diag::Label::secondary(file_id, span))
-        }));
+        for (mdep, _parent, id) in parents {
+            // We don't care if workspace = false, just that it is explicitly set,
+            // this allows users to easily opt out of the lint without additional
+            // configuration
+            if mdep.workspace.is_some() {
+                continue;
+            }
+
+            labels.push(Label::secondary(id, mdep.value_span));
+
+            if mdep.rename.is_some() {
+                labels.push(
+                    Label::secondary(id, mdep.key_span).with_message("not dependency was renamed"),
+                );
+            }
+        }
 
         if llen >= labels.len() {
             continue;
         }
 
-        let duplicate = &krates[id];
+        let Some(duplicate) = krates.node_for_kid(kid) else {
+            log::error!("failed to find node for {kid}");
+            continue;
+        };
+
+        let krates::Node::Krate {
+            krate: duplicate, ..
+        } = duplicate
+        else {
+            log::error!("{kid} pointed a crate feature, this should be impossible");
+            continue;
+        };
+
         let mut pack = Pack::with_kid(Check::Bans, duplicate.id.clone());
         pack.push(diags::WorkspaceDuplicate {
             duplicate,
             labels,
             severity,
             has_workspace_declaration,
+            total_uses: total,
         });
         diags.push(pack);
     }
+
+    //         let mut ws_krates = Vec::<WsKrate<'_>>::new();
+    //         for (dupe, parents) in &deps {
+    //             for p in parents.iter().map(|(kid, _)| kid) {
+    //                 let i = match ws_krates.binary_search_by(|wk| wk.krate.id.cmp(p)) {
+    //                     Ok(i) => i,
+    //                     Err(i) => {
+    //                         ws_krates.insert(
+    //                             i,
+    //                             WsKrate {
+    //                                 krate: krates
+    //                                     .nid_for_kid(p)
+    //                                     .map(|krate| &krates[krate])
+    //                                     .unwrap(),
+    //                                 manifest: None,
+    //                                 shared: Vec::new(),
+    //                             },
+    //                         );
+    //                         i
+    //                     }
+    //                 };
+
+    //                 ws_krates[i].shared.push(*dupe);
+    //             }
+    //         }
+
+    //         use rayon::iter::{IntoParallelRefMutIterator as _, ParallelIterator as _};
+    //         ws_krates
+    //             .par_iter_mut()
+    //             .for_each(|wk| match read_manifest(&wk, krates, files) {
+    //                 Ok(manifest) => wk.manifest = Some(manifest),
+    //                 Err(err) => {
+    //                     log::warn!(
+    //                         "failed to process manifest '{}': {err}",
+    //                         wk.krate.manifest_path
+    //                     );
+    //                 }
+    //             });
+
+    //         (deps, ws_krates)
+    //     },
+    // );
+
+    // for ws_dupe in ws_dupes {
+    //     if let Some(manifest) = ws_dupe.manifest {
+    //         for dupe in manifest.dupes {
+    //             // Assume that if workspace is explicitly set to false that it is
+    //             // intentional
+    //             if dupe.workspace.is_some() {
+    //                 continue;
+    //             }
+
+    //             let Some(parents) = shared.get_mut(&dupe.nid) else {
+    //                 log::warn!("crate {} should be present", dupe.krate);
+    //                 continue;
+    //             };
+
+    //             let Some(parent_span) = parents
+    //                 .iter_mut()
+    //                 .find_map(|(kid, spans)| (ws_dupe.krate.id == **kid).then_some(spans))
+    //             else {
+    //                 log::warn!("crate {} should be present", dupe.krate);
+    //                 continue;
+    //             };
+
+    //             parent_span.0 = manifest.id;
+    //             parent_span.1.push(dupe.span);
+    //         }
+    //     } else {
+    //         // TODO: we could at least inform what crates _might_ not be using workspace
+    //         // dependencies, but really we should always have successfully parsed
+    //         // the manifest
+    //         log::warn!("{} contained {} crates that were declared elsewhere in the workspace, but we were unable to parse the manifest", ws_dupe.krate, ws_dupe.shared.len());
+    //     }
+    // }
+
+    // for (id, parents) in shared {
+    //     labels.extend(parents.into_iter().flat_map(|(_kid, (file_id, spans))| {
+    //         spans
+    //             .into_iter()
+    //             .map(move |span| crate::diag::Label::secondary(file_id, span))
+    //     }));
+
+    //     if llen >= labels.len() {
+    //         continue;
+    //     }
+
+    //     let duplicate = &krates[id];
+    //     let mut pack = Pack::with_kid(Check::Bans, duplicate.id.clone());
+    //     pack.push(diags::WorkspaceDuplicate {
+    //         duplicate,
+    //         labels,
+    //         severity,
+    //         has_workspace_declaration,
+    //     });
+    //     diags.push(pack);
+    // }
 }

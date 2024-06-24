@@ -13,7 +13,7 @@ pub fn src_check(
     let krates = kg.gather();
     let cfg = cfg.into();
 
-    tu::gather_diagnostics::<Config, _, _>(&krates, name, cfg, |ctx, _cs, tx| {
+    tu::gather_diagnostics::<Config, _, _>(&krates, name, cfg, |ctx, tx| {
         sources::check(ctx, tx);
     })
 }
