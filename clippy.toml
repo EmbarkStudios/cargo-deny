@@ -17,3 +17,10 @@ disallowed-types = [
 
     { path = "ring::digest::SHA1_FOR_LEGACY_USE_ONLY", reason = "SHA-1 is cryptographically broken, and we are building new code so should not use it" },
 ]
+disallowed-macros = [
+    "std::print",
+    "std::println",
+    "std::eprint",
+    "std::eprintln",
+    "std::dbg",
+]

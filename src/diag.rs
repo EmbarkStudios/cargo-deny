@@ -37,6 +37,7 @@ pub struct Files {
 
 impl Files {
     #[inline]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             files: Vec::new(),
@@ -425,7 +426,7 @@ impl<'k> Manifest<'k> {
 
                         push_kind(pointer);
 
-                        let Some(dep_table) = root.pointer(&pointer) else {
+                        let Some(dep_table) = root.pointer(pointer) else {
                             continue;
                         };
 
@@ -446,9 +447,7 @@ impl<'k> Manifest<'k> {
                 } else {
                     push_kind(pointer);
 
-                    let Some(dep_table) = root.pointer(&pointer) else {
-                        return None;
-                    };
+                    let dep_table = root.pointer(pointer)?;
 
                     let Some(table) = dep_table.as_table() else {
                         log::warn!(
@@ -687,7 +686,7 @@ impl<'k> KrateSpans<'k> {
 
         let mut spans = okrates
             .into_iter()
-            .zip(manifests.into_iter())
+            .zip(manifests)
             .map(|((krate, lock), res)| {
                 let manifest = match res {
                     Ok(Some((mut manifest, contents))) => {
@@ -1080,13 +1079,11 @@ fn read_workspace_deps<'k>(
                                 }
                             }
                         }
-                    } else {
-                        if dir
-                            .strip_prefix(krates.workspace_root())
-                            .map_or(false, |dir| dir != path)
-                        {
-                            return None;
-                        }
+                    } else if dir
+                        .strip_prefix(krates.workspace_root())
+                        .map_or(false, |dir| dir != path)
+                    {
+                        return None;
                     }
                 }
                 (Some(reg_src), Source::Registry { registry }) => {
@@ -1111,7 +1108,7 @@ fn read_workspace_deps<'k>(
                                 return None;
                             }
                         }
-                        _ => return None,
+                        crate::Source::Git { .. } => return None,
                     }
 
                     if let Some(req) = &ws_src.version {

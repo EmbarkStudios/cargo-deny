@@ -46,6 +46,7 @@ pub(crate) fn print_stats(
                 write_min_stats(&mut summary, &stats, color);
             }
 
+            #[allow(clippy::disallowed_macros)]
             if !summary.is_empty() {
                 print!("{summary}");
             }

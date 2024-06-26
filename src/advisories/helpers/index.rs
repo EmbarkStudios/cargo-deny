@@ -112,10 +112,7 @@ impl<'k> Indices<'k> {
                     Ok(res)
                 };
 
-                (
-                    (name, src),
-                    read_entry().unwrap_or_else(|err| Entry::Error(err)),
-                )
+                ((name, src), read_entry().unwrap_or_else(Entry::Error))
             })
             .collect();
 

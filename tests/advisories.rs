@@ -512,6 +512,7 @@ fn validate_fetch(fetch: Fetch) {
 /// Validates we can fetch advisory db updates with gix
 #[test]
 fn fetches_with_gix() {
+    #[allow(clippy::disallowed_macros)]
     if std::env::var_os("CI").is_some() && cfg!(target_os = "macos") {
         println!("consistently times out, so tired");
         return;
@@ -523,6 +524,7 @@ fn fetches_with_gix() {
 /// Validates we can fetch advisory db updates with git
 #[test]
 fn fetches_with_git() {
+    #[allow(clippy::disallowed_macros)]
     if std::env::var_os("CI").is_some() && cfg!(target_os = "macos") {
         println!("consistently times out, so tired");
         return;

@@ -499,6 +499,7 @@ pub(crate) fn cmd(
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
+                #[allow(clippy::disallowed_macros)]
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
                         println!("{val}");

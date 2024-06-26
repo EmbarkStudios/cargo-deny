@@ -874,6 +874,7 @@ pub(crate) struct UnresolveWorkspaceDependency<'m, 'k> {
     pub(crate) dep: &'m crate::diag::ManifestDep<'k>,
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl<'m, 'k> From<UnresolveWorkspaceDependency<'m, 'k>> for Diag {
     fn from(uwd: UnresolveWorkspaceDependency<'m, 'k>) -> Self {
         Diagnostic::bug()
