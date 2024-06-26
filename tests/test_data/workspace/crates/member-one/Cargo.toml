@@ -1,0 +1,20 @@
+[package]
+name = "member-one"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+spdx = { version = "0.10" }
+wildcards-test-allow-git = { path = "../../../wildcards/allow-git" }
+
+[target.'cfg(unix)'.dependencies]
+crate-one.workspace = true
+
+[dev-dependencies]
+spdx = "0.10"
+spdx-git = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.7.0", package = "spdx" }
+spdx-git2 = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.6.1", package = "spdx" }
+
+[build-dependencies]
+spdx-very-old = { version = "0.6", git = "https://github.com/EmbarkStudios/spdx", tag = "0.6.0", package = "spdx" }
+spdx = { version = "1.13", package = "smallvec" }

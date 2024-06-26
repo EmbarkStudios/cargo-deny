@@ -12,13 +12,13 @@ pub enum Entry {
 }
 
 pub struct Indices<'k> {
-    pub indices: Vec<(&'k Source, Result<ComboIndexCache, Error>)>,
+    pub indices: Vec<(&'k Source, Result<Option<ComboIndexCache>, Error>)>,
     pub cache: BTreeMap<(&'k str, &'k Source), Entry>,
 }
 
 impl<'k> Indices<'k> {
     pub fn load(krates: &'k Krates, cargo_home: crate::PathBuf) -> Self {
-        let mut indices = Vec::<(&Source, Result<ComboIndexCache, Error>)>::new();
+        let mut indices = Vec::<(&Source, Result<Option<ComboIndexCache>, Error>)>::new();
 
         for source in krates
             .krates()
@@ -39,7 +39,12 @@ impl<'k> Indices<'k> {
             };
 
             let index = index_url.and_then(|iu| {
+                // // If the registry has been replaced with a local registry just ignore it
+                // if matches!(&iu, IndexUrl::Local(_)) {
+                //     return Ok(None);
+                // };
                 ComboIndexCache::new(IndexLocation::new(iu).with_root(Some(cargo_home.clone())))
+                    .map(Some)
             });
 
             indices.push((source, index));
@@ -82,7 +87,7 @@ impl<'k> Indices<'k> {
                         .find_map(|(url, index)| (src == *url).then_some(index))
                         .ok_or_else(|| "unable to locate index".to_owned())?
                     {
-                        Ok(index) => {
+                        Ok(Some(index)) => {
                             match index.cached_krate(
                                 name.try_into()
                                     .map_err(|e: tame_index::Error| e.to_string())?,
@@ -97,6 +102,9 @@ impl<'k> Indices<'k> {
                                 ),
                                 Err(err) => Entry::Error(format!("{err:#}")),
                             }
+                        }
+                        Ok(None) => {
+                            Entry::Error("unable to locate index entry for crate".to_owned())
                         }
                         Err(err) => Entry::Error(format!("{err:#}")),
                     };

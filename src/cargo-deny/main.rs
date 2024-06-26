@@ -295,7 +295,6 @@ fn real_main() -> Result<(), Error> {
         frozen: args.ctx.frozen,
         locked: args.ctx.locked,
         offline: args.ctx.offline,
-        allow_git_index: args.ctx.allow_git_index,
         exclude_dev: args.ctx.exclude_dev,
     };
 

@@ -1,5 +1,6 @@
 [bans]
 multiple-versions = "deny"
+workspace-duplicates = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
 highlight = "simplest-path"

@@ -1,0 +1,36 @@
+[package]
+name = "root"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+spdx = "0.9"
+member-one.workspace = true
+member-two.workspace = true
+
+[workspace]
+members = ["crates/*", "."]
+
+[workspace.dependencies]
+spdx = "0.10"
+# Validates that we recognize the workspace dependency exists even though it is renamed
+spdx-old = { version = "0.9", package = "spdx" }
+spdx-very-old = { version = "0.8", package = "spdx" }
+spdx-git = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.7.0", package = "spdx" }
+member-one = { path = "crates/member-one" }
+member-two = { path = "crates/member-two" }
+# Validates we can find workspace dependency sources from non-crates.io registries
+crate-two = { version = "0.1.0", registry = "embark-deny-git" }
+crate-one = { version = "0.1.0", registry = "embark-deny-sparse" }
+# Validates we can find workspace dependency sources even if the crate is outside
+# the workspace root
+wildcards-test-allow-git = { path = "../wildcards/allow-git" }
+# This crate is not in the graph at all
+non-existent = { version = "1.6", package = "tinyvec" }
+# This crate is in the graph, but not this particular version
+unused-version = { version = "0.1", package = "smallvec" }
+
+[patch.crates-io]
+# Validates we take patches into account when matching workspace dependency sources
+spdx-very-old = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.6.0", package = "spdx" }
+non-existent = { git = "https://github.com/Lokathor/tinyvec", tag = "v1.6.1", package = "tinyvec" }

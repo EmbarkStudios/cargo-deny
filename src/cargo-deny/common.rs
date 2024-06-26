@@ -23,10 +23,6 @@ pub struct KrateContext {
     pub frozen: bool,
     pub locked: bool,
     pub offline: bool,
-    /// If true, allows using the crates.io git index, otherwise the sparse index
-    /// is assumed to be the only index
-    #[allow(dead_code)]
-    pub allow_git_index: bool,
     pub exclude_dev: bool,
 }
 

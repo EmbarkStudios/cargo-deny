@@ -37,7 +37,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         )
     });
 
-    for (i, krate) in ctx.krates.krates().enumerate() {
+    for krate in ctx.krates.krates() {
         let source = match &krate.source {
             Some(source) => source,
             None => continue,
@@ -47,9 +47,8 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
         let mut sl = None;
         let label = || {
-            let span = &ctx.krate_spans[i];
-            Label::primary(ctx.krate_spans.file_id, span.source..span.total.end)
-                .with_message("source")
+            let span = ctx.krate_spans.lock_span(&krate.id);
+            Label::primary(ctx.krate_spans.lock_id, span.source).with_message("source")
         };
 
         // get allowed list of sources to check

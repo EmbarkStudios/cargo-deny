@@ -16,10 +16,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 1,
-          "line": 1,
-          "message": "wildcard crate entry",
-          "span": "wildcards-test-allow-paths-dependency = '*'"
+          "column": 41,
+          "line": 9,
+          "message": "wildcard dependency",
+          "span": "{ path = \"../allow-paths-dependency\" }"
         }
       ],
       "message": "found 1 wildcard dependency for crate 'wildcards-test-allow-paths-public'. allow-wildcard-paths is enabled, but does not apply to public crates as crates.io disallows path dependencies.",

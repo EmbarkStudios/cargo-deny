@@ -80,8 +80,12 @@ pub enum Source {
     /// crates.io, the boolean indicates whether it is a sparse index
     CratesIo(bool),
     /// A remote git patch
-    Git { spec: GitSpec, url: Url },
-    /// A remote git index
+    Git {
+        spec: GitSpec,
+        url: Url,
+        spec_value: Option<String>,
+    },
+    /// A remote non-sparse registry index
     Registry(Url),
     /// A remote sparse index
     Sparse(Url),
@@ -143,9 +147,13 @@ impl Source {
             }
             "git" => {
                 let mut url = Url::parse(url_str).context("failed to parse url")?;
-                let spec = normalize_git_url(&mut url);
+                let (spec, spec_value) = normalize_git_url(&mut url);
 
-                Ok(Self::Git { url, spec })
+                Ok(Self::Git {
+                    url,
+                    spec,
+                    spec_value,
+                })
             }
             unknown => anyhow::bail!("unknown source spec '{unknown}' for url {urls}"),
         }
@@ -335,11 +343,12 @@ impl From<cm::Package> for Krate {
             license_file: pkg.license_file,
             description: pkg.description,
             manifest_path: pkg.manifest_path,
-            deps: {
-                let mut deps = pkg.dependencies;
-                deps.sort_by(|a, b| a.name.cmp(&b.name));
-                deps
-            },
+            deps: pkg.dependencies,
+            // {
+            //     let mut deps = pkg.dependencies;
+            //     deps.sort_by(|a, b| a.name.cmp(&b.name));
+            //     deps
+            // },
             features: pkg.features,
             publish: pkg.publish,
         }
@@ -392,6 +401,11 @@ impl Krate {
     pub(crate) fn is_git_source(&self) -> bool {
         self.source.as_ref().map_or(false, |src| src.is_git())
     }
+
+    #[inline]
+    pub(crate) fn is_registry(&self) -> bool {
+        self.source.as_ref().map_or(false, |src| src.is_registry())
+    }
 }
 
 impl fmt::Display for Krate {
@@ -439,7 +453,7 @@ pub struct CheckCtx<'ctx, T> {
     /// The krates graph to check
     pub krates: &'ctx Krates,
     /// The spans for each unique crate in a synthesized "lock file"
-    pub krate_spans: &'ctx diag::KrateSpans,
+    pub krate_spans: &'ctx diag::KrateSpans<'ctx>,
     /// Requests for additional information the check can provide to be
     /// serialized to the diagnostic
     pub serialize_extra: bool,
@@ -448,6 +462,8 @@ pub struct CheckCtx<'ctx, T> {
     /// Log level specified by the user, may be used by checks to determine what
     /// information to emit in diagnostics
     pub log_level: log::LevelFilter,
+    /// Files that can show span information in diagnostics
+    pub files: &'ctx diag::Files,
 }
 
 /// Checks if a version satisfies the specifies the specified version requirement.
@@ -464,12 +480,14 @@ pub fn match_krate(krate: &Krate, pid: &cfg::PackageSpec) -> bool {
 
 use sources::cfg::GitSpec;
 
+/// Normalizes the URL so that different representations can be compared to each other.
+///
+/// At the moment we just remove a tailing `.git` but there are more possible optimisations.
+///
+/// See <https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57>
+/// for what cargo does
 #[inline]
-pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
-    // Normalizes the URL so that different representations can be compared to each other.
-    // At the moment we just remove a tailing `.git` but there are more possible optimisations.
-    // See https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57
-    // for what cargo does
+pub(crate) fn normalize_git_url(url: &mut Url) -> (GitSpec, Option<String>) {
     const GIT_EXT: &str = ".git";
 
     let needs_chopping = url.path().ends_with(&GIT_EXT);
@@ -486,14 +504,17 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
     }
 
     let mut spec = GitSpec::Any;
+    let mut spec_value = None;
 
-    for (k, _v) in url.query_pairs() {
+    for (k, v) in url.query_pairs() {
         spec = match k.as_ref() {
             "branch" | "ref" => GitSpec::Branch,
             "tag" => GitSpec::Tag,
             "rev" => GitSpec::Rev,
             _ => continue,
         };
+
+        spec_value = Some(v.into_owned());
     }
 
     if url
@@ -513,12 +534,13 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> GitSpec {
                 write!(&mut nq, "{k}={v}&").unwrap();
             }
 
+            // pop trailing &
             nq.pop();
             url.set_query(Some(&nq));
         }
     }
 
-    spec
+    (spec, spec_value)
 }
 
 /// Helper function to convert a std `PathBuf` to a camino one

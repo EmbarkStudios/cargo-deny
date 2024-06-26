@@ -807,6 +807,7 @@ impl Gatherer {
 #[cfg(test)]
 mod test {
     #[test]
+    #[allow(clippy::disallowed_macros)]
     fn normalizes_line_endings() {
         let pf = super::get_file_source(
             crate::Path::new("./tests/"),

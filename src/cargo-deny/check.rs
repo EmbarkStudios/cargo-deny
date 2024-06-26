@@ -4,7 +4,7 @@ use crate::{
 };
 use cargo_deny::{
     advisories, bans,
-    diag::{CargoSpans, DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
+    diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources, CheckCtx, PathBuf,
 };
 use log::error;
@@ -170,7 +170,6 @@ pub(crate) fn cmd(
     let mut krates = None;
     let mut license_store = None;
     let mut advisory_dbs = None;
-    let mut krate_spans = None;
 
     // Create an override structure that remaps specific codes
     let overrides = {
@@ -237,13 +236,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            let gathered = krate_ctx.gather_krates(graph.targets, graph.exclude);
-
-            if let Ok(krates) = &gathered {
-                krate_spans = Some(cargo_deny::diag::KrateSpans::synthesize(krates));
-            }
-
-            krates = Some(gathered);
+            krates = Some(krate_ctx.gather_krates(graph.targets, graph.exclude));
         });
 
         if check_advisories {
@@ -280,22 +273,11 @@ pub(crate) fn cmd(
         None
     };
 
-    let (krate_spans, cargo_spans) = krate_spans
-        .map(|(spans, contents, raw_cargo_spans)| {
-            let id = files.add(krates.workspace_root().join("Cargo.lock"), contents);
-
-            let mut cargo_spans = CargoSpans::new();
-            for (key, val) in raw_cargo_spans {
-                let cargo_id = files.add(val.0, val.1);
-                cargo_spans.insert(key, (cargo_id, val.2));
-            }
-
-            (
-                cargo_deny::diag::KrateSpans::with_spans(spans, id),
-                cargo_spans,
-            )
-        })
-        .unwrap();
+    let krate_spans = cargo_deny::diag::KrateSpans::synthesize(
+        &krates,
+        krates.workspace_root().as_str(),
+        &mut files,
+    );
 
     let license_summary = if check_licenses {
         let store = license_store.unwrap()?;
@@ -345,6 +327,8 @@ pub(crate) fn cmd(
 
     let log_level = log_ctx.log_level;
 
+    let files = &files;
+
     rayon::scope(|s| {
         // Asynchronously displays messages sent from the checks
         s.spawn(|_| {
@@ -375,6 +359,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(move |_| {
@@ -425,12 +410,13 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(|_| {
                 log::info!("checking bans...");
                 let start = Instant::now();
-                bans::check(ctx, output_graph, cargo_spans, bans_sink);
+                bans::check(ctx, output_graph, bans_sink);
 
                 log::info!("bans checked in {}ms", start.elapsed().as_millis());
             });
@@ -449,6 +435,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(|_| {
@@ -473,6 +460,7 @@ pub(crate) fn cmd(
                 serialize_extra,
                 colorize,
                 log_level,
+                files,
             };
 
             s.spawn(move |_| {
@@ -511,6 +499,7 @@ pub(crate) fn cmd(
                 log::info!("checking advisories...");
                 let start = Instant::now();
 
+                #[allow(clippy::disallowed_macros)]
                 let audit_reporter = if audit_compatible_output {
                     Some(|val: serde_json::Value| {
                         println!("{val}");
@@ -534,7 +523,7 @@ fn print_diagnostics(
     rx: crossbeam::channel::Receiver<cargo_deny::diag::Pack>,
     log_ctx: crate::common::LogContext,
     krates: Option<&cargo_deny::Krates>,
-    files: Files,
+    files: &Files,
     stats: &mut AllStats,
     feature_depth: Option<u32>,
 ) {
@@ -561,7 +550,7 @@ fn print_diagnostics(
         }
 
         if let Some(mut lock) = dp.as_ref().map(|dp| dp.lock()) {
-            lock.print_krate_pack(pack, &files);
+            lock.print_krate_pack(pack, files);
         }
     }
 }

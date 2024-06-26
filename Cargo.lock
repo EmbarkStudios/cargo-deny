@@ -248,6 +248,7 @@ dependencies = [
  "askalono",
  "bitvec",
  "camino",
+ "cfg-expr",
  "clap",
  "codespan",
  "codespan-reporting",
@@ -261,6 +262,7 @@ dependencies = [
  "insta",
  "krates",
  "log",
+ "memchr",
  "nu-ansi-term",
  "parking_lot",
  "rayon",
@@ -292,29 +294,6 @@ dependencies = [
  "serde",
  "toml",
  "url",
-]
-
-[[package]]
-name = "cargo-platform"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24b1f0365a6c6bb4020cd05806fd0d33c44d38046b8bd7f0e40814b9763cabfc"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "cargo_metadata"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
-dependencies = [
- "camino",
- "cargo-platform",
- "semver",
- "serde",
- "serde_json",
- "thiserror",
 ]
 
 [[package]]
@@ -1783,15 +1762,16 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.16.10"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcb3baf2360eb25ad31f0ada3add63927ada6db457791979b82ac199f835cb9"
+checksum = "9d0956eb8f64d0353d56c69544657bbf3bc143c3c0f0883cc4fa9ec1b252a404"
 dependencies = [
- "cargo-platform",
- "cargo_metadata",
+ "camino",
  "cfg-expr",
  "petgraph",
  "semver",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2652,9 +2632,9 @@ dependencies = [
 
 [[package]]
 name = "tame-index"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418b7a56dbbf693afbf024c12f90863ac25894fd209d374d4af39cf9e43da36c"
+checksum = "e9632d46ad4e0c6a07d4354fc43c6eae4654a09beef8e9e7c7c899f983185c45"
 dependencies = [
  "bytes",
  "camino",
@@ -2832,9 +2812,9 @@ dependencies = [
 
 [[package]]
 name = "toml-span"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "369db38ce6d1fc320a54ea3f032d07c07a232ca19c40e287246aff06d57c2abe"
+checksum = "ce0e1be49e3b9bf33d1a8077c081a3b7afcfc94e4bc1002c80376784381bc106"
 dependencies = [
  "codespan-reporting",
  "serde",

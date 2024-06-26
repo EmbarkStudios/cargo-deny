@@ -3,7 +3,7 @@ source: src/licenses/cfg.rs
 expression: validated
 ---
 {
-  "file_id": 1,
+  "file_id": 0,
   "private": {
     "ignore": true,
     "ignore_sources": [],
@@ -45,7 +45,7 @@ expression: validated
       "allowed": [
         "Zlib"
       ],
-      "file_id": 1
+      "file_id": 0
     }
   ],
   "ignore_sources": [],

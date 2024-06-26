@@ -24,10 +24,10 @@ dependencies = [
  "ammonia 0.7.0",
  "artifact_serde",
  "axum-core",
- "const-cstr",
  "dirs",
  "failure",
  "lettre",
+ "static_type_map",
  "trust-dns-resolver",
 ]
 
@@ -190,12 +190,6 @@ checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 dependencies = [
  "bitflags",
 ]
-
-[[package]]
-name = "const-cstr"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed3d0b5ff30645a68f35ece8cea4556ca14ef8a1651455f789a099a0513532a6"
 
 [[package]]
 name = "core-foundation"
@@ -1346,6 +1340,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "static_type_map"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f41d6352756e5e8bfb4dc0ad306fa62f41876dc2229d83669415fb4f56e34732"
 
 [[package]]
 name = "string_cache"

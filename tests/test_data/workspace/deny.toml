@@ -1,0 +1,5 @@
+# Makes local iteration easier
+[bans]
+multiple-versions = 'allow'
+workspace-duplicates = 'deny'
+unused-workspace-dependencies = 'deny'

@@ -24,9 +24,9 @@ dirs = "4.0"
 # Failure has an unsound advisory (and is unmaintained)
 failure = "=0.1.8"
 
-# const-cstr is unmaintained
-# https://github.com/rustsec/advisory-db/blob/463e8405f85bb74eef17149f7e704b07723ce46e/crates/const-cstr/RUSTSEC-2023-0020.md
-const-cstr = "0.3"
+# atty is unmaintained
+# https://github.com/rustsec/advisory-db/blob/8eb99abe8c369b48bbd4ca04133e1f05be22a778/crates/static_type_map/RUSTSEC-2022-0023.md
+static_type_map = "0.3"
 
 # The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
 # https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md

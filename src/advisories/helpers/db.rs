@@ -530,7 +530,7 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
 }
 
 pub struct Report<'db, 'k> {
-    pub advisories: Vec<(&'k Krate, krates::NodeId, &'db rustsec::Advisory)>,
+    pub advisories: Vec<(&'k Krate, &'db rustsec::Advisory)>,
     /// For backwards compatibility with cargo-audit, we optionally serialize the
     /// reports to JSON and output them in addition to the normal cargo-deny
     /// diagnostics
@@ -599,7 +599,7 @@ impl<'db, 'k> Report<'db, 'k> {
                                 return None;
                             }
 
-                            Some((km.krate, km.node_id, advisory))
+                            Some((km.krate, advisory))
                         })
                 })
                 .collect();
@@ -608,7 +608,7 @@ impl<'db, 'k> Report<'db, 'k> {
                 let mut warnings = std::collections::BTreeMap::<_, Vec<rustsec::Warning>>::new();
                 let mut vulns = Vec::new();
 
-                for (krate, _nid, advisory) in &db_advisories {
+                for (krate, advisory) in &db_advisories {
                     let package = rustsec::package::Package {
                         // :(
                         name: krate.name.parse().unwrap(),
@@ -687,7 +687,7 @@ impl<'db, 'k> Report<'db, 'k> {
             advisories.append(&mut db_advisories);
         }
 
-        advisories.sort_by(|a, b| a.1.cmp(&b.1));
+        advisories.sort_by(|a, b| a.0.cmp(b.0));
 
         Self {
             advisories,

@@ -198,7 +198,7 @@ impl<'de> Deserialize<'de> for Config {
                                 v.set(ValueInner::String(s));
                             }
                             ValueInner::Table(tab) => {
-                                if tab.contains_key(&"id".into()) {
+                                if tab.contains_key("id") {
                                     v.set(ValueInner::Table(tab));
                                     match IgnoreId::deserialize(&mut v) {
                                         Ok(iid) => u.push(Spanned::with_span(iid, v.span)),
@@ -994,7 +994,7 @@ expansions = [
         let toml_span::value::ValueInner::Table(mut tab) = tv.take() else {
             unreachable!()
         };
-        let mut expansions = tab.remove(&"expansions".into()).unwrap();
+        let mut expansions = tab.remove("expansions").unwrap();
         let toml_span::value::ValueInner::Array(exp) = expansions.take() else {
             unreachable!()
         };
@@ -1002,7 +1002,7 @@ expansions = [
         use toml_span::Deserialize as _;
 
         let mut files = crate::diag::Files::new();
-        let cfg_id = files.add("expansions.toml", toml.into());
+        let cfg_id = files.add("expansions.toml", toml);
 
         let mut output = String::new();
 
