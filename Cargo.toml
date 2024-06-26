@@ -76,7 +76,7 @@ goblin = { version = "0.8", default-features = false, features = [
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.16", features = ["targets"] }
+krates = { version = "0.17", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Faster char searching
@@ -115,7 +115,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml-span = { version = "0.2", features = ["reporting"] }
+toml-span = { version = "0.3", features = ["reporting"] }
 # Small fast hash crate
 twox-hash = { version = "1.5", default-features = false }
 # Url parsing/manipulation
@@ -141,7 +141,7 @@ fs_extra = "1.3"
 insta = { version = "1.21", features = ["json"] }
 tame-index = { version = "0.12", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
-toml-span = { version = "0.2", features = ["serde"] }
+toml-span = { version = "0.3", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.1.0"
 # divan = "0.1"
@@ -155,8 +155,3 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
-
-[patch.crates-io]
-krates = { path = "../krates" }
-toml-span = { path = "../toml-span/toml-span" }
-tame-index = { path = "../tame-index" }
