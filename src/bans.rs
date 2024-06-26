@@ -1640,9 +1640,10 @@ fn check_workspace_duplicates(
         let has_workspace_declaration = llen != 0;
 
         for (mdep, _parent, id) in parents {
-            // Unfortunately it's cargo doens't allow `workspace = false`, so if
+            // Unfortunately cargo doesn't allow `workspace = false`, so if
             // there are situations where the user wants to explicitly opt out
-            // of the lint for a specific crate/crates/manifest...
+            // of the lint for a specific crate/crates/manifest they need to use
+            // [package.metadata.cargo-deny.workspace-duplicates]
             if mdep.workspace.is_some() {
                 continue;
             }
