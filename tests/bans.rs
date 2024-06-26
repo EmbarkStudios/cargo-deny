@@ -270,3 +270,24 @@ deny = [
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Ensures that duplicate workspace items are found and linted
+#[test]
+fn deny_duplicate_workspace_items() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "workspace",
+            no_default_features: true,
+            targets: &["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"],
+            ..Default::default()
+        },
+        r#"
+multiple-versions = 'allow'
+workspace-duplicates = 'deny'
+unused-workspace-dependencies = 'warn'
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}

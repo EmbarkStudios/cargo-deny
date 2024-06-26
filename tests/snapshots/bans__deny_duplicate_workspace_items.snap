@@ -1,0 +1,567 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "crate-two",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 23,
+          "message": "workspace dependency",
+          "span": "crate-two"
+        },
+        {
+          "column": 1,
+          "line": 16,
+          "message": "",
+          "span": "crate-two"
+        }
+      ],
+      "message": "crate crate-two = 0.1.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "member-one",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "root",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 20,
+          "message": "workspace dependency",
+          "span": "member-one"
+        },
+        {
+          "column": 1,
+          "line": 20,
+          "message": "",
+          "span": "member"
+        },
+        {
+          "column": 47,
+          "line": 20,
+          "message": "note the dependency is renamed",
+          "span": "member-one"
+        }
+      ],
+      "message": "crate member-one = 0.1.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.10.6"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "member-one",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "member-two",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "root",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 15,
+          "message": "workspace dependency",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 7,
+          "message": "",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 14,
+          "message": "",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 13,
+          "message": "",
+          "span": "spdx"
+        }
+      ],
+      "message": "crate spdx = 0.10.6 is used 3 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.6.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-one",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "member-two",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "root",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 35,
+          "message": "patched workspace dependency",
+          "span": "spdx-very-old"
+        },
+        {
+          "column": 1,
+          "line": 18,
+          "message": "note this is the original dependency that is patched",
+          "span": "spdx-very-old"
+        },
+        {
+          "column": 92,
+          "line": 35,
+          "message": "note the workspace dependency is renamed",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 19,
+          "message": "",
+          "span": "spdx-very-old"
+        },
+        {
+          "column": 109,
+          "line": 19,
+          "message": "note the dependency is renamed",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 7,
+          "message": "",
+          "span": "spdx-very-old"
+        },
+        {
+          "column": 109,
+          "line": 7,
+          "message": "note the dependency is renamed",
+          "span": "spdx"
+        }
+      ],
+      "message": "crate spdx = 0.6.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "member-one",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "member-two",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "root",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 19,
+          "message": "workspace dependency",
+          "span": "spdx-git"
+        },
+        {
+          "column": 87,
+          "line": 19,
+          "message": "note the workspace dependency is renamed",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 15,
+          "message": "",
+          "span": "spdx-git"
+        },
+        {
+          "column": 87,
+          "line": 15,
+          "message": "note the dependency is renamed",
+          "span": "spdx"
+        }
+      ],
+      "message": "crate spdx = 0.7.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "root",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 17,
+          "message": "workspace dependency",
+          "span": "spdx-old"
+        },
+        {
+          "column": 42,
+          "line": 17,
+          "message": "note the workspace dependency is renamed",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 19,
+          "message": "",
+          "span": "spdx"
+        },
+        {
+          "column": 1,
+          "line": 7,
+          "message": "",
+          "span": "spdx"
+        }
+      ],
+      "message": "crate spdx = 0.9.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "workspace-duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wildcards-test-allow-git",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "member-one",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "member-two",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "root",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 27,
+          "message": "workspace dependency",
+          "span": "wildcards-test-allow-git"
+        },
+        {
+          "column": 1,
+          "line": 8,
+          "message": "",
+          "span": "wildcards-test-allow-git"
+        }
+      ],
+      "message": "crate wildcards-test-allow-git = 0.1.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-workspace-dependency",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 1,
+          "line": 36,
+          "message": "unused and patched workspace dependency",
+          "span": "non-existent"
+        },
+        {
+          "column": 1,
+          "line": 29,
+          "message": "note this is the original dependency that is patched",
+          "span": "non-existent"
+        },
+        {
+          "column": 90,
+          "line": 36,
+          "message": "note the dependency is renamed",
+          "span": "tinyvec"
+        }
+      ],
+      "message": "workspace dependency is declared, but unused",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-workspace-dependency",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 1,
+          "line": 31,
+          "message": "unused workspace dependency",
+          "span": "unused-version"
+        },
+        {
+          "column": 48,
+          "line": 31,
+          "message": "note the dependency is renamed",
+          "span": "smallvec"
+        }
+      ],
+      "message": "workspace dependency is declared, but unused",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

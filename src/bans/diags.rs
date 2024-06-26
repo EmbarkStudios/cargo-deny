@@ -53,6 +53,7 @@ pub enum Code {
     UnusedWrapper,
     WorkspaceDuplicate,
     UnresolvedWorkspaceDependency,
+    UnusedWorkspaceDependency,
 }
 
 impl From<Code> for String {
@@ -853,13 +854,13 @@ impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
     fn from(wd: WorkspaceDuplicate<'k>) -> Self {
         Diagnostic::new(wd.severity.into())
             .with_message(format!(
-                "crate {} was used {} times in the workspace, but {}",
-                wd.total_uses,
+                "crate {} is used {} times in the workspace, {}",
                 wd.duplicate,
+                wd.total_uses,
                 if wd.has_workspace_declaration {
-                    "not all declarations used the shared workspace dependency"
+                    "but not all declarations use the shared workspace dependency"
                 } else {
-                    "there was no shared workspace dependency for it"
+                    "and there was no shared workspace dependency for it"
                 }
             ))
             .with_code(Code::WorkspaceDuplicate)
@@ -876,6 +877,7 @@ pub(crate) struct UnresolveWorkspaceDependency<'m, 'k> {
 impl<'m, 'k> From<UnresolveWorkspaceDependency<'m, 'k>> for Diag {
     fn from(uwd: UnresolveWorkspaceDependency<'m, 'k>) -> Self {
         Diagnostic::bug()
+            .with_code(Code::UnresolvedWorkspaceDependency)
             .with_message("failed to resolve a workspace dependency")
             .with_labels(vec![
                 Label::primary(
@@ -886,5 +888,51 @@ impl<'m, 'k> From<UnresolveWorkspaceDependency<'m, 'k>> for Diag {
                 Label::secondary(uwd.manifest.id, uwd.dep.value_span),
             ])
             .into()
+    }
+}
+
+pub(crate) struct UnusedWorkspaceDependencies<'u> {
+    pub(crate) unused: &'u [crate::diag::UnusedWorkspaceDep],
+    pub(crate) level: crate::LintLevel,
+    pub(crate) id: FileId,
+}
+
+impl<'u> From<UnusedWorkspaceDependencies<'u>> for Pack {
+    fn from(uwd: UnusedWorkspaceDependencies<'u>) -> Self {
+        let mut pack = Pack::new(Check::Bans);
+
+        for unused in uwd.unused {
+            let mut labels = vec![Label::primary(uwd.id, unused.key).with_message(format!(
+                "unused {}workspace dependency",
+                if unused.patched.is_some() {
+                    "and patched "
+                } else {
+                    ""
+                }
+            ))];
+
+            if let Some(patched) = unused.patched {
+                labels.push(
+                    Label::secondary(uwd.id, patched)
+                        .with_message("note this is the original dependency that is patched"),
+                );
+            }
+
+            if let Some(rename) = &unused.rename {
+                labels.push(
+                    Label::secondary(uwd.id, rename.span)
+                        .with_message("note the dependency is renamed"),
+                );
+            }
+
+            pack.push(
+                Diagnostic::new(uwd.level.into())
+                    .with_code(Code::UnusedWorkspaceDependency)
+                    .with_message("workspace dependency is declared, but unused")
+                    .with_labels(labels),
+            );
+        }
+
+        pack
     }
 }

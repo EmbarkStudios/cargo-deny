@@ -7,6 +7,7 @@ expression: validated
   "multiple_versions": "deny",
   "multiple_versions_include_dev": false,
   "workspace_duplicates": "warn",
+  "unused_workspace_dependencies": "allow",
   "highlight": "SimplestPath",
   "denied": [
     {

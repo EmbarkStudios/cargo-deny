@@ -54,6 +54,7 @@ expression: unique
     "unmatched-wrapper",
     "unresolved-workspace-dependency",
     "unsound",
+    "unused-workspace-dependency",
     "unused-wrapper",
     "vulnerability",
     "wildcard",

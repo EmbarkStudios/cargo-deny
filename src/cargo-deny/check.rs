@@ -5,10 +5,9 @@ use crate::{
 use cargo_deny::{
     advisories, bans,
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
-    licenses, sources, CheckCtx, LintLevel, PathBuf,
+    licenses, sources, CheckCtx, PathBuf,
 };
 use log::error;
-use rayon::iter::ParallelBridge;
 use std::time::Instant;
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
@@ -290,50 +289,6 @@ pub(crate) fn cmd(
     } else {
         None
     };
-
-    if check_bans && bans.workspace_duplicates != LintLevel::Allow {
-        use rayon::iter::ParallelIterator;
-
-        let ws_members: Vec<_> = krates
-            .workspace_members()
-            .par_bridge()
-            .map(|ws_krate| {
-                let krates::Node::Krate { krate, .. } = ws_krate else {
-                    unreachable!("krates::workspace_members gave us a feature?")
-                };
-                let mp = krate.manifest_path.clone();
-                let res = std::fs::read_to_string(&mp);
-                (mp, res)
-            })
-            .collect();
-
-        for (path, res) in ws_members {
-            match res {
-                Ok(contents) => {
-                    if path == "/home/jake/code/ark/wim-app/components/report/Cargo.toml" {
-                        println!("{path} =>\n{contents}");
-                    }
-                    files.add(path, contents);
-                }
-                Err(err) => {
-                    log::error!("failed to read '{path}': {err}");
-                }
-            }
-        }
-
-        // Ensure the workspace root manifest is also present
-        let ws_root = krates.workspace_root().join("Cargo.toml");
-        if files.id_for_path(&ws_root).is_none() {
-            match std::fs::read_to_string(&ws_root) {
-                Ok(contents) => {
-                    files.add(ws_root, contents);
-                }
-                Err(err) => {
-                    log::error!("failed to read root workspace manifest '{ws_root}': {err}");
-                }
-            }
-        }
-    }
 
     let graph_out_dir = args.graph;
 

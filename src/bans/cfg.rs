@@ -336,6 +336,8 @@ pub struct Config {
     /// How to handle workspace dependencies on the same crate that aren't declared
     /// in `[workspace.dependencies]`
     pub workspace_duplicates: LintLevel,
+    /// How to handle [`workspace.dependencies`] that are not used
+    pub unused_workspace_dependencies: LintLevel,
     /// How the duplicate graphs are highlighted
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
@@ -377,6 +379,7 @@ impl Default for Config {
             multiple_versions: LintLevel::Warn,
             multiple_versions_include_dev: false,
             workspace_duplicates: LintLevel::Warn,
+            unused_workspace_dependencies: LintLevel::Allow,
             highlight: GraphHighlight::All,
             deny: Vec::new(),
             allow: Vec::new(),
@@ -404,6 +407,9 @@ impl<'de> Deserialize<'de> for Config {
         let workspace_duplicates = th
             .optional("workspace-duplicates")
             .unwrap_or(LintLevel::Warn);
+        let unused_workspace_dependencies = th
+            .optional("unused-workspace-dependencies")
+            .unwrap_or(LintLevel::Allow);
         let highlight = th.optional("highlight").unwrap_or_default();
         let deny = th.optional("deny").unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
@@ -423,6 +429,7 @@ impl<'de> Deserialize<'de> for Config {
             multiple_versions,
             multiple_versions_include_dev,
             workspace_duplicates,
+            unused_workspace_dependencies,
             highlight,
             deny,
             allow,
@@ -731,6 +738,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             multiple_versions: self.multiple_versions,
             multiple_versions_include_dev: self.multiple_versions_include_dev,
             workspace_duplicates: self.workspace_duplicates,
+            unused_workspace_dependencies: self.unused_workspace_dependencies,
             highlight: self.highlight,
             denied,
             denied_multiple_versions,
@@ -904,6 +912,7 @@ pub struct ValidConfig {
     pub multiple_versions: LintLevel,
     pub multiple_versions_include_dev: bool,
     pub workspace_duplicates: LintLevel,
+    pub unused_workspace_dependencies: LintLevel,
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<ValidKrateBan>,
     pub(crate) denied_multiple_versions: Vec<PackageSpec>,
