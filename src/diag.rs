@@ -440,10 +440,10 @@ lines
 
         let toml = toml_span::parse(FILE).unwrap();
 
-        let mut diags = Vec::new();
-
-        // The simplest diagnostic
-        diags.push(Diagnostic::warning().with_message("simple"));
+        let mut diags = vec![
+            // The simplest diagnostic
+            Diagnostic::warning().with_message("simple"),
+        ];
 
         // Still simple
         diags.push(
