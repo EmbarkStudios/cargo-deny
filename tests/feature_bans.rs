@@ -1,4 +1,5 @@
-#![cfg(no)]
+#![cfg(any())]
+
 use cargo_deny::{func_name, test_utils::*};
 
 /// Ensures that you can ban features in your own workspace. `simple` is brought

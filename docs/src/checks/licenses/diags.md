@@ -1,5 +1,6 @@
 # Licenses Diagnostics
 
+<!-- markdownlint-disable-next-line heading-increment -->
 ### `rejected`
 
 One or more licenses for a crate were rejected because they were not configured to be [allowed](cfg.md#the-allow-and-deny-fields-optional).

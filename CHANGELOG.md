@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#673](https://github.com/EmbarkStudios/cargo-deny/pull/673) added linting of `[workspace.dependencies]`, resolving [#436](https://github.com/EmbarkStudios/cargo-deny/issues/436) and [#525](https://github.com/EmbarkStudios/cargo-deny/issues/525).
+  - Added lint [`workspace-duplicates`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-workspace-duplicates-field-optional), which allows checking for missing usage of `workspace = true` for direct workspace dependencies that are used more than once in the workspace.
+  - Added lint [`unused-workspace-dependencies`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-unused-workspace-dependencies-field-optional), which allows checking for dependencies declared in `[workspace.dependencies]` that aren't actually used.
+
+### Changed
+- [PR#673](https://github.com/EmbarkStudios/cargo-deny/pull/673) changed how span information for workspace dependencies worked, which meant improvements were made to the output for the `bans.wildcards` lint. Previously fake cargo manifests were created that weren't even necessarily valid toml files, however now the actual cargo manifests are used, meaning that the lint will now point to the correct file and line location of the dependency declaration that uses a wildcard.
+- [PR#675](https://github.com/EmbarkStudios/cargo-deny/pull/675) changed the utf-8 characters used in rendering diagnostics, inspired by [rust-lang/rust#126597](https://github.com/rust-lang/rust/pull/126597).
+- [PR#676](https://github.com/EmbarkStudios/cargo-deny/pull/676) updated notably `gix` -> 0.64 (and tame-index).
+
+### Fixed
+- [PR#668](https://github.com/EmbarkStudios/cargo-deny/pull/668) resolved [#667](https://github.com/EmbarkStudios/cargo-deny/issues/667) by adding a missing feature flag to allow local cargo registry support.
+
 ## [0.14.24] - 2024-05-24
 ### Changed
 - [PR#663](https://github.com/EmbarkStudios/cargo-deny/pull/663) updated some crates, notably `gix` -> 0.63 (and tame-index).

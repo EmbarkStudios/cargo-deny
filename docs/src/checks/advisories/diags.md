@@ -1,5 +1,6 @@
 # Advisories Diagnostics
 
+<!-- markdownlint-disable-next-line heading-increment -->
 ### `vulnerability`
 
 A [`vulnerability`](cfg.md#the-vulnerability-field-optional) advisory was detected for a crate.

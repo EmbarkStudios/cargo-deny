@@ -203,7 +203,6 @@ impl KrateContext {
         Ok(graph?)
     }
 
-    #[cfg(not(feature = "standalone"))]
     fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
         let mut mdc = krates::Cmd::new();
 
@@ -226,61 +225,6 @@ impl KrateContext {
         let mdc: krates::cm::MetadataCommand = mdc.into();
         Ok(mdc.exec()?)
     }
-
-    #[cfg(feature = "standalone")]
-    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
-        use anyhow::Context as _;
-        use cargo::{core, ops, util};
-
-        let mut config = util::Config::default()?;
-
-        config.configure(
-            0,
-            true,
-            None,
-            opts.frozen,
-            opts.locked,
-            opts.offline,
-            &None,
-            &[],
-            &[],
-        )?;
-
-        let mut manifest_path = opts.manifest_path;
-
-        // Cargo doesn't like non-absolute paths
-        if !manifest_path.is_absolute() {
-            manifest_path = cargo_deny::utf8path(
-                std::env::current_dir()
-                    .context("unable to determine current directory")?
-                    .join(manifest_path),
-            )?;
-        }
-
-        let features = std::rc::Rc::new(
-            opts.features
-                .into_iter()
-                .map(|feat| core::FeatureValue::new(util::interning::InternedString::new(&feat)))
-                .collect(),
-        );
-
-        let ws = core::Workspace::new(manifest_path.as_std_path(), &config)?;
-        let options = ops::OutputMetadataOptions {
-            cli_features: core::resolver::features::CliFeatures {
-                features,
-                all_features: opts.all_features,
-                uses_default_features: !opts.no_default_features,
-            },
-            no_deps: false,
-            version: 1,
-            filter_platforms: vec![],
-        };
-
-        let md = ops::output_metadata(&ws, &options)?;
-        let md_value = serde_json::to_value(md)?;
-
-        Ok(serde_json::from_value(md_value)?)
-    }
 }
 
 struct MetadataOptions {
@@ -293,7 +237,6 @@ struct MetadataOptions {
     offline: bool,
 }
 
-#[cfg(not(feature = "standalone"))]
 fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
     use anyhow::Context as _;
     let mut cargo =
@@ -321,45 +264,6 @@ fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
     } else {
         anyhow::bail!(String::from_utf8(output.stderr).context("non-utf8 error output")?);
     }
-}
-
-#[cfg(feature = "standalone")]
-fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
-    use anyhow::Context;
-    use cargo::{core, ops, util};
-
-    let mut config = util::Config::default()?;
-
-    config.configure(
-        0,
-        true,
-        None,
-        opts.frozen,
-        opts.locked,
-        opts.offline,
-        &None,
-        &[],
-        &[],
-    )?;
-
-    let mut manifest_path = opts.manifest_path;
-
-    // Cargo doesn't like non-absolute paths
-    if !manifest_path.is_absolute() {
-        manifest_path = cargo_deny::utf8path(
-            std::env::current_dir()
-                .context("unable to determine current directory")?
-                .join(manifest_path),
-        )?;
-    }
-
-    let ws = core::Workspace::new(manifest_path.as_std_path(), &config)?;
-    let options = ops::FetchOptions {
-        config: &config,
-        targets: Vec::new(),
-    };
-    ops::fetch(&ws, &options)?;
-    Ok(())
 }
 
 #[inline]
