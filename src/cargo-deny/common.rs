@@ -596,7 +596,7 @@ impl<'a> DiagPrinter<'a> {
                     which: OutputFormat::Human(Human {
                         stream,
                         grapher: krates.map(diag::InclusionGrapher::new),
-                        config: term::Config::default(),
+                        config: cargo_deny::diag::codespan_config(),
                         feature_depth,
                     }),
                     max_severity,

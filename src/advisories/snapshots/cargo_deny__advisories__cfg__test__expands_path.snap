@@ -6,14 +6,14 @@ error: unable to obtain $HOME: HOME directory could not be obtained from the OS
   ┌─ expansions.toml:3:6
   │
 3 │     "~/nope", # can't find $HOME
-  │      ^
+  │      ━
 
 
 error: unable to obtain $HOME: non-utf8 path: PathBuf contains invalid UTF-8: �berraschung: Path contains invalid UTF-8
   ┌─ expansions.toml:4:6
   │
 4 │     "~/not-utf8", # $HOME is not a utf-8 path
-  │      ^
+  │      ━
 
 
 /this-home/works
@@ -23,7 +23,7 @@ error: opening `{` is unbalanced
   ┌─ expansions.toml:8:6
   │
 8 │     "${no-end", # fails due to unclosed {
-  │      ^^^^^^^^
+  │      ━━━━━━━━
 
 
 /missing/but i have a default/
@@ -31,21 +31,21 @@ error: failed to expand variable: '"\xDCberraschung"' is not utf-8
    ┌─ expansions.toml:10:16
    │
 10 │     "/non-utf8/$NON_UTF8", # fails due to NON_UTF8
-   │                ^^^^^^^^^
+   │                ━━━━━━━━━
 
 
 error: variable name cannot be empty
    ┌─ expansions.toml:11:6
    │
 11 │     "$/empty", # fails due to empty variable
-   │      ^
+   │      ━
 
 
 error: variable name cannot be empty
    ┌─ expansions.toml:12:18
    │
 12 │     "/also-empty/${}", # ditto
-   │                  ^^^
+   │                  ━━━
 
 
 /has-trailing/trail
@@ -54,14 +54,14 @@ error: variable name cannot be empty
    ┌─ expansions.toml:15:6
    │
 15 │     "$!", # fails due to empty variable name
-   │      ^
+   │      ━
 
 
 error: variable name is invalid
    ┌─ expansions.toml:16:6
    │
 16 │     "${!}", # fails due to invalid character in variable name
-   │      ^^^^
+   │      ━━━━
 
 
 /expands/stuff-in-the-middle-like-this

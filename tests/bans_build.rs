@@ -1,3 +1,7 @@
+// Ignore these tests on macos since they are only run in CI, which is actually just
+// a potato masquerading as a computer
+#![cfg(not(target_os = "macos"))]
+
 use cargo_deny::{field_eq, func_name, test_utils::*};
 
 /// Verifies we can detect and error on builtin globs

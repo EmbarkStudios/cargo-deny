@@ -200,7 +200,7 @@ pub(crate) fn write_diagnostics(
     errors: impl Iterator<Item = crate::diag::Diagnostic>,
 ) -> String {
     let mut s = codespan_reporting::term::termcolor::NoColor::new(Vec::new());
-    let config = codespan_reporting::term::Config::default();
+    let config = crate::diag::codespan_config();
 
     for diag in errors {
         codespan_reporting::term::emit(&mut s, &config, files, &diag).unwrap();
@@ -294,7 +294,7 @@ where
         || {
             let mut diagnostics = Vec::new();
 
-            const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+            const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
             let trx = crossbeam::channel::after(TIMEOUT);
             loop {

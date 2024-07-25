@@ -1,0 +1,111 @@
+---
+source: src/diag.rs
+expression: "String::from_utf8(term.into_inner()).unwrap()"
+---
+warning: simple
+
+error[code-id]: with code
+
+warning: label
+  ┌─ fake-path.toml:3:11
+  │
+3 │ value1 = "value"
+  │           ━━━━━
+
+warning: labels, ordered
+  ┌─ fake-path.toml:3:11
+  │
+3 │ value1 = "value"
+  │           ━━━━━
+4 │ value2 = 29
+  │          ──
+
+warning: labels, out of order
+  ┌─ fake-path.toml:4:10
+  │
+3 │ value1 = "value"
+  │           ─────
+4 │ value2 = 29
+  │          ━━
+
+error[code-id]: with code and note
+ ├ simple note
+
+note: note only
+ ├ i don't even have a label
+
+warning: label and note
+  ┌─ fake-path.toml:3:11
+  │
+3 │ value1 = "value"
+  │           ━━━━━
+  │
+  ├ i have a label too
+
+warning: single line notes and label
+  ┌─ fake-path.toml:8:9
+  │
+8 │ text = "this is a single line of note text"
+  │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  │
+  ├ this is a single line of note text
+
+warning: multi line
+   ┌─ fake-path.toml:13:1
+   │  
+13 │ ╭ this is a longer text note that
+14 │ │ has multiple
+15 │ │ lines
+16 │ │ """
+   │ ╰┘
+   │  
+   ├ this is a longer text note that
+   ├ has multiple
+   ├ lines
+
+warning: multiple labels on same line
+  ┌─ fake-path.toml:8:9
+  │
+8 │ text = "this is a single line of note text"
+  │         ──── ── ─ ────── ──── ── ──── ────
+  │
+  ├ this is a single line of note text
+
+warning: multiple labels with messages on same line
+  ┌─ fake-path.toml:8:9
+  │
+8 │ text = "this is a single line of note text"
+  │         ──── ── ─ ────── ──── ── ──── ──── word 7
+  │         │    │  │ │      │    │  │     
+  │         │    │  │ │      │    │  word 6
+  │         │    │  │ │      │    word 5
+  │         │    │  │ │      word 4
+  │         │    │  │ word 3
+  │         │    │  word 2
+  │         │    word 1
+  │         word 0
+  │
+  ├ this is a single line of note text
+
+warning: multiple labels with messages on same line
+   ┌─ fake-path.toml:13:1
+   │
+13 │ this is a longer text note that
+   │ ━━━━ ── ━ ────── ━━━━ ──── ━━━━ word 6
+   │ │    │  │ │      │    │     
+   │ │    │  │ │      │    word 5
+   │ │    │  │ │      word 4
+   │ │    │  │ word 3
+   │ │    │  word 2
+   │ │    word 1
+   │ word 0
+14 │ has multiple
+   │ ─── ━━━━━━━━ word 8
+   │ │    
+   │ word 7
+15 │ lines
+   │ ───── word 9
+   │
+   ├ this is a longer text note that
+   ├ has multiple
+   ├ lines

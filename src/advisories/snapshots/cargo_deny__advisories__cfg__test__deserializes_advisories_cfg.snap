@@ -6,28 +6,28 @@ warning[deprecated]: this key will be removed in a future update, see https://gi
   ┌─ tests/cfg/advisories.toml:4:1
   │
 4 │ vulnerability = "deny"
-  │ ^^^^^^^^^^^^^
+  │ ━━━━━━━━━━━━━
 
 warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/advisories.toml:5:1
   │
 5 │ unmaintained = "warn"
-  │ ^^^^^^^^^^^^
+  │ ━━━━━━━━━━━━
 
 warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/advisories.toml:6:1
   │
 6 │ unsound = "warn"
-  │ ^^^^^^^
+  │ ━━━━━━━
 
 warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
   ┌─ tests/cfg/advisories.toml:8:1
   │
 8 │ notice = "warn"
-  │ ^^^^^^
+  │ ━━━━━━
 
 warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
    ┌─ tests/cfg/advisories.toml:14:1
    │
 14 │ severity-threshold = "medium"
-   │ ^^^^^^^^^^^^^^^^^^
+   │ ━━━━━━━━━━━━━━━━━━
