@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.15.0] - 2024-07-25
 ### Added
 - [PR#673](https://github.com/EmbarkStudios/cargo-deny/pull/673) added linting of `[workspace.dependencies]`, resolving [#436](https://github.com/EmbarkStudios/cargo-deny/issues/436) and [#525](https://github.com/EmbarkStudios/cargo-deny/issues/525).
   - Added lint [`workspace-duplicates`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-workspace-duplicates-field-optional), which allows checking for missing usage of `workspace = true` for direct workspace dependencies that are used more than once in the workspace.
@@ -620,7 +621,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...HEAD
+[0.15.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...0.15.0
 [0.14.24]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...0.14.24
 [0.14.23]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.22...0.14.23
 [0.14.22]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.21...0.14.22
