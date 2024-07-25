@@ -1644,6 +1644,7 @@ fn check_workspace_duplicates(
             // there are situations where the user wants to explicitly opt out
             // of the lint for a specific crate/crates/manifest they need to use
             // [package.metadata.cargo-deny.workspace-duplicates]
+            // TODO: ...actually support this https://github.com/EmbarkStudios/cargo-deny/issues/677
             if mdep.workspace.is_some() {
                 continue;
             }
