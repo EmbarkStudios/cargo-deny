@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#676](https://github.com/EmbarkStudios/cargo-deny/pull/676) updated notably `gix` -> 0.64 (and tame-index).
+
+### Fixed
+- [PR#668](https://github.com/EmbarkStudios/cargo-deny/pull/668) resolved [#667](https://github.com/EmbarkStudios/cargo-deny/issues/667) by adding a missing feature flag to allow local cargo registry support.
+
 ## [0.14.24] - 2024-05-24
 ### Changed
 - [PR#663](https://github.com/EmbarkStudios/cargo-deny/pull/663) updated some crates, notably `gix` -> 0.63 (and tame-index).
