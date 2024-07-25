@@ -294,9 +294,15 @@ where
         || {
             let mut diagnostics = Vec::new();
 
-            const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+            // Macs, simply the worst
+            let secs = if std::env::var_os("CI").is_some() && cfg!(target_os = "macos") {
+                30
+            } else {
+                10
+            };
 
-            let trx = crossbeam::channel::after(TIMEOUT);
+            let timeout = std::time::Duration::from_secs(secs);
+            let trx = crossbeam::channel::after(timeout);
             loop {
                 crossbeam::select! {
                     recv(rx) -> msg => {
@@ -308,7 +314,7 @@ where
                         }
                     }
                     recv(trx) -> _ => {
-                        anyhow::bail!("Timed out after {TIMEOUT:?}");
+                        anyhow::bail!("Timed out after {timeout:?}");
                     }
                 }
             }
