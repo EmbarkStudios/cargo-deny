@@ -6,26 +6,24 @@ warning: duplicate items detected
    ┌─ duplicates:9:6
    │
  9 │     "RUSTSEC-0000-0001",
-   │      -----------------
+   │      ─────────────────
 10 │     { crate = "boop" },
 11 │     "RUSTSEC-0000-0001",
-   │      -----------------
+   │      ─────────────────
 
 warning: duplicate items detected
    ┌─ duplicates:10:5
    │
 10 │     { crate = "boop" },
-   │     ------------------
+   │     ──────────────────
 11 │     "RUSTSEC-0000-0001",
 12 │     "boop",
-   │      ----
+   │      ────
 
 warning: duplicate items detected
   ┌─ duplicates:5:6
   │
 5 │     "https://one.reg",
-  │      ---------------
+  │      ───────────────
 6 │     "https://one.reg",
-  │      ---------------
-
-
+  │      ───────────────

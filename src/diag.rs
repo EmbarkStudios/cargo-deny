@@ -376,9 +376,24 @@ impl std::str::FromStr for DiagnosticCode {
     }
 }
 
+/// A codespan config that modifies the character set used
+///
+/// This is a shared function so it is used by both check and tests
+pub fn codespan_config() -> codespan_reporting::term::Config {
+    let mut config = codespan_reporting::term::Config::default();
+    // TODO: rustc spans have 2 note bullets, the default one that is used for everything..
+    // _except_ the last note, which uses `╰`, but codespan_reporting only has a single
+    // note bullet, so would be good to add a PR to add that in since it does look nicer
+    config.chars.note_bullet = '├';
+    config.chars.multi_primary_caret_start = '┘';
+    config.chars.multi_secondary_caret_start = '┘';
+    config.chars.single_primary_caret = '━';
+    config.chars.single_secondary_caret = '─';
+    config
+}
+
 #[cfg(test)]
 mod test {
-
     #[test]
     fn codes_unique() {
         let mut unique = std::collections::BTreeSet::<&'static str>::new();
@@ -390,5 +405,247 @@ mod test {
         }
 
         insta::assert_debug_snapshot!(unique);
+    }
+
+    /// While _most_ of the possible output if codespan is covered by various tests
+    /// there are a couple of cases that aren't covered, so we just generate a
+    /// set of outputs to easily show output differences when changing settings
+    #[test]
+    fn codespan_output() {
+        use codespan_reporting::diagnostic::{Diagnostic, Label};
+        let mut files = super::Files::new();
+
+        let mut term = codespan_reporting::term::termcolor::NoColor::new(Vec::new());
+        let config = super::codespan_config();
+
+        const FILE: &str = r#"
+[table.key]
+value1 = "value"
+value2 = 29
+
+[[table.notes]]
+name = "short"
+text = "this is a single line of note text"
+
+[[table.notes]]
+name = "long"
+text = """
+this is a longer text note that
+has multiple
+lines
+"""
+"#;
+
+        let file_id = files.add("fake-path.toml", FILE);
+
+        let toml = toml_span::parse(FILE).unwrap();
+
+        let mut diags = Vec::new();
+
+        // The simplest diagnostic
+        diags.push(Diagnostic::warning().with_message("simple"));
+
+        // Still simple
+        diags.push(
+            Diagnostic::error()
+                .with_message("with code")
+                .with_code("code-id"),
+        );
+
+        // Single label
+        diags.push(
+            Diagnostic::warning()
+                .with_message("label")
+                .with_labels(vec![Label::primary(
+                    file_id,
+                    toml.pointer("/table/key/value1").unwrap().span,
+                )]),
+        );
+
+        // Multiple labels in order
+        diags.push(
+            Diagnostic::warning()
+                .with_message("labels, ordered")
+                .with_labels(vec![
+                    Label::primary(file_id, toml.pointer("/table/key/value1").unwrap().span),
+                    Label::secondary(file_id, toml.pointer("/table/key/value2").unwrap().span),
+                ]),
+        );
+
+        // Multiple labels out of order
+        diags.push(
+            Diagnostic::warning()
+                .with_message("labels, out of order")
+                .with_labels(vec![
+                    Label::primary(file_id, toml.pointer("/table/key/value2").unwrap().span),
+                    Label::secondary(file_id, toml.pointer("/table/key/value1").unwrap().span),
+                ]),
+        );
+
+        // Simple with note
+        diags.push(
+            Diagnostic::error()
+                .with_message("with code and note")
+                .with_code("code-id")
+                .with_notes(vec!["simple note".into()]),
+        );
+
+        // Only note, no labels
+        diags.push(
+            Diagnostic::note()
+                .with_message("note only")
+                .with_notes(vec!["i don't even have a label".into()]),
+        );
+
+        // Label and note
+        diags.push(
+            Diagnostic::warning()
+                .with_message("label and note")
+                .with_labels(vec![Label::primary(
+                    file_id,
+                    toml.pointer("/table/key/value1").unwrap().span,
+                )])
+                .with_notes(vec!["i have a label too".into()]),
+        );
+
+        // single line notes and label
+        {
+            let val = toml.pointer("/table/notes/0/text").unwrap();
+
+            diags.push(
+                Diagnostic::warning()
+                    .with_message("single line notes and label")
+                    .with_labels(vec![Label::primary(file_id, val.span)])
+                    .with_notes(
+                        val.as_str()
+                            .unwrap()
+                            .lines()
+                            .map(|s| s.to_owned())
+                            .collect(),
+                    ),
+            );
+        }
+
+        // multi-line label and notes
+        {
+            let val = toml.pointer("/table/notes/1/text").unwrap();
+            diags.push(
+                Diagnostic::warning()
+                    .with_message("multi line")
+                    .with_labels(vec![Label::primary(file_id, val.span)])
+                    .with_notes(
+                        val.as_str()
+                            .unwrap()
+                            .lines()
+                            .map(|s| s.to_owned())
+                            .collect(),
+                    ),
+            );
+        }
+
+        // multiple labels on same line
+        {
+            let val = toml.pointer("/table/notes/0/text").unwrap();
+            let mut offset = val.span.start;
+            diags.push(
+                Diagnostic::warning()
+                    .with_message("multiple labels on same line")
+                    .with_labels(
+                        val.as_str()
+                            .unwrap()
+                            .split(' ')
+                            .map(|word| {
+                                let lab = Label::secondary(file_id, offset..offset + word.len());
+                                offset += word.len() + 1;
+                                lab
+                            })
+                            .collect(),
+                    )
+                    .with_notes(
+                        val.as_str()
+                            .unwrap()
+                            .lines()
+                            .map(|s| s.to_owned())
+                            .collect(),
+                    ),
+            );
+        }
+
+        // multiple labels on same line with messages
+        {
+            let val = toml.pointer("/table/notes/0/text").unwrap();
+            let mut offset = val.span.start;
+            diags.push(
+                Diagnostic::warning()
+                    .with_message("multiple labels with messages on same line")
+                    .with_labels(
+                        val.as_str()
+                            .unwrap()
+                            .split(' ')
+                            .enumerate()
+                            .map(|(i, word)| {
+                                let lab = Label::secondary(file_id, offset..offset + word.len())
+                                    .with_message(format!("word {i}"));
+                                offset += word.len() + 1;
+                                lab
+                            })
+                            .collect(),
+                    )
+                    .with_notes(
+                        val.as_str()
+                            .unwrap()
+                            .lines()
+                            .map(|s| s.to_owned())
+                            .collect(),
+                    ),
+            );
+        }
+
+        // multiple labels on multiple lines with messages
+        {
+            let val = toml.pointer("/table/notes/1/text").unwrap();
+            let mut offset = val.span.start;
+            diags.push(
+                Diagnostic::warning()
+                    .with_message("multiple labels with messages on same line")
+                    .with_labels(
+                        val.as_str()
+                            .unwrap()
+                            .split(char::is_whitespace)
+                            .enumerate()
+                            .filter_map(|(i, word)| {
+                                if word.is_empty() {
+                                    return None;
+                                }
+                                let lab = Label::new(
+                                    if i % 2 == 0 {
+                                        codespan_reporting::diagnostic::LabelStyle::Primary
+                                    } else {
+                                        codespan_reporting::diagnostic::LabelStyle::Secondary
+                                    },
+                                    file_id,
+                                    offset..offset + word.len(),
+                                )
+                                .with_message(format!("word {i}"));
+                                offset += word.len() + 1;
+                                Some(lab)
+                            })
+                            .collect(),
+                    )
+                    .with_notes(
+                        val.as_str()
+                            .unwrap()
+                            .lines()
+                            .map(|s| s.to_owned())
+                            .collect(),
+                    ),
+            );
+        }
+
+        for diag in diags {
+            codespan_reporting::term::emit(&mut term, &config, &files, &diag).unwrap();
+        }
+
+        insta::assert_snapshot!(String::from_utf8(term.into_inner()).unwrap());
     }
 }
