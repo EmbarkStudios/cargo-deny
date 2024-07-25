@@ -1,5 +1,6 @@
 # Sources diagnostics
 
+<!-- markdownlint-disable-next-line heading-increment -->
 ### `git-source-underspecified`
 
 A `git` source uses a specification that doesn't meet the minimum specifier required by [`sources.required-git-spec`](cfg.md#the-required-git-spec-optional).
