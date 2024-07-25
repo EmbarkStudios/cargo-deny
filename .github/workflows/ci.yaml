@@ -86,7 +86,7 @@ jobs:
         # Also, build and run with musl, this lets us ensure that
         # musl still works, which is important for the linux binaries
         # we release, but wasn't exercised until now
-        run: cargo install --path . --debug --target ${{ matrix.target }}
+        run: cargo install --locked --path . --debug --target ${{ matrix.target }}
       - name: self check
         run: cargo deny -L debug --all-features --locked check
       # - name: check external users
