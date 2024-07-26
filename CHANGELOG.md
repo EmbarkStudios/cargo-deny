@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ## [0.15.0] - 2024-07-25
+### Fixed
+- [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) fixed [#680](https://github.com/EmbarkStudios/cargo-deny/issues/680) by always stripping `.git` from urls when matching sources to resolved nodes as they are allowed, but (generally) have no semantic meaning are stripped by cargo when emitting metadata.
+
 ### Added
 - [PR#673](https://github.com/EmbarkStudios/cargo-deny/pull/673) added linting of `[workspace.dependencies]`, resolving [#436](https://github.com/EmbarkStudios/cargo-deny/issues/436) and [#525](https://github.com/EmbarkStudios/cargo-deny/issues/525).
   - Added lint [`workspace-duplicates`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-workspace-duplicates-field-optional), which allows checking for missing usage of `workspace = true` for direct workspace dependencies that are used more than once in the workspace.
