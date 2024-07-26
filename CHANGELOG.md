@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.15.1] - 2024-07-26
 ### Fixed
 - [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) fixed [#680](https://github.com/EmbarkStudios/cargo-deny/issues/680) by always stripping `.git` from urls when matching sources to resolved nodes as they are allowed, but (generally) have no semantic meaning are stripped by cargo when emitting metadata.
 
@@ -624,7 +625,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...HEAD
+[0.15.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...0.15.1
 [0.15.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...0.15.0
 [0.14.24]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...0.14.24
 [0.14.23]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.22...0.14.23
