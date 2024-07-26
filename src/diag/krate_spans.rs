@@ -741,7 +741,10 @@ fn read_workspace_deps<'k>(
                     }),
                     Source::Git { repo, spec: dspec },
                 ) => {
-                    if url.host_str() != repo.host_str() || url.path() != repo.path() {
+                    if url.host_str() != repo.host_str()
+                        || url.path().trim_end_matches(".git")
+                            != repo.path().trim_end_matches(".git")
+                    {
                         return None;
                     }
 
