@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ## [0.15.1] - 2024-07-26
 ### Fixed
-- [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) fixed [#680](https://github.com/EmbarkStudios/cargo-deny/issues/680) by always stripping `.git` from urls when matching sources to resolved nodes as they are allowed, but (generally) have no semantic meaning are stripped by cargo when emitting metadata.
+- [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) fixed [#680](https://github.com/EmbarkStudios/cargo-deny/issues/680) by always stripping `.git` from urls when matching sources to resolved nodes as they are allowed, but (generally) have no semantic meaning and are stripped by cargo when emitting metadata.
 
 ## [0.15.0] - 2024-07-25
 ### Added
