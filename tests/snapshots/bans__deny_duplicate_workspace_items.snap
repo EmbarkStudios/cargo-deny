@@ -353,7 +353,7 @@ expression: diags
           "span": "spdx-git"
         },
         {
-          "column": 87,
+          "column": 91,
           "line": 19,
           "message": "note the workspace dependency is renamed",
           "span": "spdx"

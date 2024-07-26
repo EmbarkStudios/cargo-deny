@@ -16,7 +16,7 @@ spdx = "0.10"
 # Validates that we recognize the workspace dependency exists even though it is renamed
 spdx-old = { version = "0.9", package = "spdx" }
 spdx-very-old = { version = "0.8", package = "spdx" }
-spdx-git = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.7.0", package = "spdx" }
+spdx-git = { git = "https://github.com/EmbarkStudios/spdx.git", tag = "0.7.0", package = "spdx" }
 member-one = { path = "crates/member-one" }
 member-two = { path = "crates/member-two" }
 # Validates we can find workspace dependency sources from non-crates.io registries
