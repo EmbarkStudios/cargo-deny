@@ -294,10 +294,16 @@ where
         || {
             let mut diagnostics = Vec::new();
 
-            let timeout = match std::env::var("CARGO_DENY_TEST_TIMEOUT") {
-                Ok(timeout) => timeout.parse().unwrap_or(30),
-                _ => 30,
+            let default = if std::env::var_os("CI").is_some() {
+                60
+            } else {
+                30
             };
+
+            let timeout = std::env::var("CARGO_DENY_TEST_TIMEOUT_SECS")
+                .ok()
+                .and_then(|ts| ts.parse().ok())
+                .unwrap_or(default);
             let timeout = std::time::Duration::from_secs(timeout);
 
             let trx = crossbeam::channel::after(timeout);
