@@ -294,9 +294,19 @@ where
         || {
             let mut diagnostics = Vec::new();
 
-            const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+            let default = if std::env::var_os("CI").is_some() {
+                60
+            } else {
+                30
+            };
 
-            let trx = crossbeam::channel::after(TIMEOUT);
+            let timeout = std::env::var("CARGO_DENY_TEST_TIMEOUT_SECS")
+                .ok()
+                .and_then(|ts| ts.parse().ok())
+                .unwrap_or(default);
+            let timeout = std::time::Duration::from_secs(timeout);
+
+            let trx = crossbeam::channel::after(timeout);
             loop {
                 crossbeam::select! {
                     recv(rx) -> msg => {
@@ -308,7 +318,7 @@ where
                         }
                     }
                     recv(trx) -> _ => {
-                        anyhow::bail!("Timed out after {TIMEOUT:?}");
+                        anyhow::bail!("Timed out after {timeout:?}");
                     }
                 }
             }
