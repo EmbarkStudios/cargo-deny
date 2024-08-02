@@ -43,8 +43,8 @@ Being limited to private crates is due to crates.io not allowing packages to be 
 Determines what happens when a more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use `workspace = true`
 
 * `deny` - Will emit an error for each dependency declaration that does not use `workspace = true`
-* `warn` (default) - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
-* `allow` - Ignores checking for `workspace = true`
+* `warn` - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
+* `allow` (default) - Ignores checking for `workspace = true` for workspace crates
 
 ### The `unused-workspace-dependencies` field (optional)
 

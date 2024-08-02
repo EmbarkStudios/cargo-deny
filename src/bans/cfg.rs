@@ -406,7 +406,7 @@ impl<'de> Deserialize<'de> for Config {
             .unwrap_or_default();
         let workspace_duplicates = th
             .optional("workspace-duplicates")
-            .unwrap_or(LintLevel::Warn);
+            .unwrap_or(LintLevel::Allow);
         let unused_workspace_dependencies = th
             .optional("unused-workspace-dependencies")
             .unwrap_or(LintLevel::Allow);
