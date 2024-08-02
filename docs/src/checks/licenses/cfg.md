@@ -51,9 +51,7 @@ If `true`, licenses are checked even for `dev-dependencies`. By default this is 
 version = 2
 ```
 
-The licenses section has an upcoming breaking change, with deprecation warnings for several fields that will be removed. Setting `version = 2` will opt-in to the future default behavior.
-
-The breaking change is as follows:
+The version field is (at the time of this writing) no longer used, the following fields have been removed and will now emit errors.
 
 - `unlicensed` - Removed, if a crate is unlicensed you should open an issue/PR to fix it, and in the meantime, you may add a [clarification](#the-clarify-field-optional).
 - `deny` - Removed, all licenses are denied unless explicitly allowed
@@ -61,20 +59,9 @@ The breaking change is as follows:
 - `allow-osi-fsf-free` - Removed, all licenses are denied unless explicitly allowed
 - `default` - Removed, all licenses are denied unless explicitly allowed
 
-### The `unlicensed` field (optional)
+### The `allow` field (optional)
 
-Determines what happens when a crate has not explicitly specified its license terms, and no license information could be confidently detected via `LICENSE*` files in the crate's source.
-
-- `deny` (default) - All unlicensed crates will emit an error and fail the license check
-- `allow` - All unlicensed crates will show a note, but will not fail the license check
-- `warn` - All unlicensed crates will show a warning, but will not fail the license check
-
-### The `allow` and `deny` fields (optional)
-
-The licenses that should be allowed or denied, note that the same license cannot
-appear in both the `allow` and `deny` lists.
-
-[`deny` is **DEPRECATED**](#the-version-field-optional)
+The licenses that are explicitly allowed.
 
 #### Note on GNU licenses
 
@@ -90,7 +77,6 @@ So, for example, if you wanted to disallow `GPL-2.0` licenses, but allow `GPL-3.
 ```ini
 [licenses]
 allow = [ "GPL-3.0" ]
-deny = [ "GPL-2.0" ]
 ```
 
 This gets worse with the GFDL licenses, which also have an `invariants` modifier. Before licenses are checked they are normalized to make them consistent for all licenses.
@@ -149,44 +135,6 @@ exceptions = [
     { crate = "cloudabi", allow = ["BSD-2-Clause"] },
 ]
 ```
-
-### The `copyleft` field (optional)
-
-[**DEPRECATED**](#the-version-field-optional)
-
-Determines what happens when a license that is considered [copyleft](https://www.gnu.org/licenses/license-list.html) is encountered.
-
-- `warn` (default) - Will emit a warning that a copyleft license was detected, but will not fail the license check
-- `deny` - The license is not accepted if it is copyleft, but the license check might not fail if the expression still evaluates to true
-- `allow` - The license is accepted if it is copyleft
-
-### The `allow-osi-fsf-free` field (optional)
-
-[**DEPRECATED**](#the-version-field-optional)
-
-Determines what happens when licenses aren't explicitly allowed or denied, but **are** marked as [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html) in version 3.23 of the [SPDX License List](https://spdx.org/licenses/).
-
-- `both` - The license is accepted if it is both OSI approved and FSF Free
-- `either` - The license is accepted if it is either OSI approved or FSF Free
-- `osi` - The license is accepted if it is OSI approved
-- `fsf` - The license is accepted if it is FSF Free
-- `osi-only` - The license is accepted if it is OSI approved and not FSF Free
-- `fsf-only` - The license is accepted if it is FSF Free and not OSI approved
-- `neither` (default) - No special consideration is given the license
-
-### The `default` field (optional)
-
-[**DEPRECATED**](#the-version-field-optional)
-
-Determines what happens when a license is encountered that:
-
-1. Isn't in the `allow` or `deny` lists
-1. Isn't `copyleft`
-1. Isn't OSI Approved nor FSF Free/Libre, or `allow-osi-fsf-free = "neither"`
-
-- `warn` - Will emit a warning that the license was detected, but will not fail the license check
-- `deny` (default) - The license is not accepted, but the license check might not fail if the expression still evaluates to true
-- `allow` - The license is accepted
 
 ### The `confidence-threshold` field (optional)
 
