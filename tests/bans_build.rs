@@ -1,12 +1,20 @@
-// Ignore these tests on macos since they are only run in CI, which is actually just
-// a potato masquerading as a computer
-#![cfg(not(target_os = "macos"))]
-
 use cargo_deny::{field_eq, func_name, test_utils::*};
+
+macro_rules! ci_ignore {
+    () => {
+        #[allow(clippy::disallowed_macros)]
+        if std::env::var_os("CI").is_some() {
+            eprintln!("potato detected, ignoring test");
+            return;
+        }
+    };
+}
 
 /// Verifies we can detect and error on builtin globs
 #[test]
 fn detects_scripts_by_builtin_glob() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -36,6 +44,8 @@ include-dependencies = true
 /// Verifies we can detect and error on extensions provided by the user
 #[test]
 fn detects_scripts_by_user_extension() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -56,6 +66,8 @@ fn detects_scripts_by_user_extension() {
 /// Verifies we detect and error on scripts detected by shebang
 #[test]
 fn detects_scripts_by_shebang() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -79,6 +91,8 @@ fn detects_scripts_by_shebang() {
 /// Verifies we detect and error on native executables
 #[test]
 fn detects_native_executables() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -105,6 +119,8 @@ include-dependencies = true
 /// Verifies user provided builscript checksums are always validated correctly
 #[test]
 fn detects_build_script_mismatch() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -135,6 +151,8 @@ build-script = "00abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef00
 /// skipped
 #[test]
 fn skips_matching_build_scripts() {
+    ci_ignore!();
+
     let diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -166,6 +184,8 @@ build-script = "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf
 /// Verifies that build scripts are denied if not allowed nor bypassed
 #[test]
 fn allows_build_scripts_or_bypass() {
+    ci_ignore!();
+
     let diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -194,6 +214,8 @@ build-script = "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf
 /// Verifies executables are allowed by glob patterns
 #[test]
 fn allows_by_glob() {
+    ci_ignore!();
+
     let diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -225,6 +247,8 @@ allow-globs = [
 /// Verifies executables are allowed by path/checksum
 #[test]
 fn allows_by_path() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
@@ -261,6 +285,8 @@ allow = [
 /// Verifies unmatched configs emit diagnostics
 #[test]
 fn emits_unmatched_warnings() {
+    ci_ignore!();
+
     let mut diags = gather_bans(
         func_name!(),
         KrateGather {
