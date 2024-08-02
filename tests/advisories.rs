@@ -65,7 +65,7 @@ fn find_by_code<'a>(diags: &'a [serde_json::Value], code: &str) -> Option<&'a se
 fn detects_vulnerabilities() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("vulnerability = 'deny'");
+    let cfg = tu::Config::new("");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
@@ -88,7 +88,7 @@ fn detects_vulnerabilities() {
 fn detects_unmaintained() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("unmaintained = 'warn'");
+    let cfg = tu::Config::new("");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
@@ -110,7 +110,7 @@ fn detects_unmaintained() {
 fn detects_unsound() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("unsound = 'warn'");
+    let cfg = tu::Config::new("");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
@@ -135,7 +135,6 @@ fn downgrades_lint_levels() {
 
     let cfg = tu::Config::new(
         r#"
-unmaintained = "warn"
 ignore = [
     "RUSTSEC-2016-0004",
     { id = "RUSTSEC-2019-0001", reason = "this is a test" },
@@ -206,8 +205,7 @@ fn detects_yanked() {
     let dbs = advisories::DbSet { dbs: Vec::new() };
 
     {
-        let cfg =
-            tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+        let cfg = tu::Config::new("yanked = 'deny'");
 
         let indices = advisories::Indices {
             indices: Vec::new(),
@@ -247,8 +245,6 @@ ignore = [
     # This crate is not in the graph, so we should get a warning about it
     "boop",
 ]
-unmaintained = "allow"
-vulnerability = "allow"
 "#,
         );
 
@@ -284,7 +280,7 @@ vulnerability = "allow"
 fn warns_on_index_failures() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+    let cfg = tu::Config::new("yanked = 'deny'");
 
     let source = cargo_deny::Source::crates_io(false);
 
@@ -334,9 +330,7 @@ fn warns_on_index_failures() {
 fn warns_on_ignored_and_withdrawn() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new(
-        "yanked = 'deny'\nunmaintained = 'deny'\nvulnerability = 'deny'\nignore = ['RUSTSEC-2020-0053']",
-    );
+    let cfg = tu::Config::new("yanked = 'deny'\nignore = ['RUSTSEC-2020-0053']");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
@@ -681,7 +675,7 @@ fn crates_io_source_replacement() {
 
     let indices = advisories::Indices::load(&krates, cargo_home.clone());
 
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+    let cfg = tu::Config::new("yanked = 'deny'");
 
     let dbs = advisories::DbSet { dbs: Vec::new() };
 
@@ -793,7 +787,7 @@ fn crates_io_source_replacement() {
 
     let indices = advisories::Indices::load(&krates, cargo_home.clone());
 
-    let cfg = tu::Config::new("yanked = 'deny'\nunmaintained = 'allow'\nvulnerability = 'allow'");
+    let cfg = tu::Config::new("yanked = 'deny'");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {

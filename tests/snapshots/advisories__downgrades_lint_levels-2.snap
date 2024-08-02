@@ -25,13 +25,13 @@ expression: ignored
       "labels": [
         {
           "column": 13,
-          "line": 5,
+          "line": 4,
           "message": "advisory ignored here",
           "span": "RUSTSEC-2019-0001"
         },
         {
           "column": 43,
-          "line": 5,
+          "line": 4,
           "message": "ignore reason",
           "span": "this is a test"
         }
@@ -71,13 +71,13 @@ expression: ignored
       "labels": [
         {
           "column": 13,
-          "line": 5,
+          "line": 4,
           "message": "advisory ignored here",
           "span": "RUSTSEC-2019-0001"
         },
         {
           "column": 43,
-          "line": 5,
+          "line": 4,
           "message": "ignore reason",
           "span": "this is a test"
         }
@@ -109,7 +109,7 @@ expression: ignored
       "labels": [
         {
           "column": 6,
-          "line": 4,
+          "line": 3,
           "message": "advisory ignored here",
           "span": "RUSTSEC-2016-0004"
         }

@@ -75,7 +75,13 @@ pub struct Deprecated {
 
 impl From<Deprecated> for Diagnostic {
     fn from(dep: Deprecated) -> Self {
-        Diagnostic::new(Severity::Warning)
+        let severity = if matches!(dep.reason, DeprecationReason::Removed(_)) {
+            Severity::Error
+        } else {
+            Severity::Warning
+        };
+
+        Diagnostic::new(severity)
             .with_message(dep.reason.to_string())
             .with_labels(vec![Label::primary(dep.file_id, dep.key)])
             .with_code(Code::Deprecated)

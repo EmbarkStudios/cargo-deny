@@ -499,33 +499,4 @@ mod test {
 
         insta::assert_json_snapshot!(validated);
     }
-
-    #[test]
-    fn correct_duplicate_license_spans() {
-        let cfg = r#"[licenses]
-allow = [
-    "MIT",
-    "Apache-2.0",
-    "BSD-3-Clause",
-    "ISC",
-    "CC0-1.0",
-    "Unicode-DFS-2016",
-]
-deny = [
-    "MIT",
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-3.0",
-]"#;
-
-        let cd = ConfigData::<Licenses>::load_str("license-in-allow-and-deny", cfg);
-        let _validated = cd.validate_with_diags(
-            |l| l.licenses,
-            |files, diags| {
-                let diags = write_diagnostics(files, diags.into_iter());
-                insta::assert_snapshot!(diags);
-            },
-        );
-    }
 }
