@@ -860,7 +860,7 @@ impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
                 if wd.has_workspace_declaration {
                     "but not all declarations use the shared workspace dependency"
                 } else {
-                    "and there was no shared workspace dependency for it"
+                    "and there is no shared workspace dependency for it"
                 }
             ))
             .with_code(Code::WorkspaceDuplicate)
