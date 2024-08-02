@@ -1,6 +1,5 @@
 [bans]
 multiple-versions = "deny"
-workspace-duplicates = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
 highlight = "simplest-path"
@@ -19,6 +18,11 @@ deny = [
     ], reason = "we want to get rid of this crate but there is still one user of it" },
 ]
 skip-tree = [{ name = "blah", depth = 20 }]
+
+[bans.workspace-dependencies]
+duplicates = "allow"
+include-path-dependencies = false
+unused = "allow"
 
 [[bans.skip]]
 name = "rand"

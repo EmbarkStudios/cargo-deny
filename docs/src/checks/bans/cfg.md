@@ -38,21 +38,36 @@ If specified, alters how the `wildcard` field behaves:
 
 Being limited to private crates is due to crates.io not allowing packages to be published with `path` or `git` dependencies except for `dev-dependencies`.
 
-### The `workspace-duplicates` field (optional)
+### The `workspace-dependencies` field (optional)
 
-Determines what happens when a more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use `workspace = true`
+Used to configure how [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) are treated.
 
-* `deny` - Will emit an error for each dependency declaration that does not use `workspace = true`
-* `warn` (default) - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
-* `allow` - Ignores checking for `workspace = true`
+```ini
+[bans.workspace-dependencies]
+duplicates = 'deny'
+include-path-dependencies = true
+unused = 'deny'
+```
 
-### The `unused-workspace-dependencies` field (optional)
+#### The `duplicates` field (optional)
+
+Determines what happens when more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use `workspace = true`
+
+* `deny` (default) - Will emit an error for each dependency declaration that does not use `workspace = true`
+* `warn` - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
+* `allow` - Ignores checking for `workspace = true` for dependencies in workspace crates
+
+#### The `include-path-dependencies` field (optional)
+
+If true, path dependencies will be included in the duplication check, otherwise they are completely ignored.
+
+#### The `unused` field (optional)
 
 Determines what happens when a dependency in [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) is not used in the workspace.
 
-* `deny` - Will emit an error for each dependency that is not actually used in the workspace.
+* `deny` (default) - Will emit an error for each dependency that is not actually used in the workspace.
 * `warn` - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.
-* `allow` - (default) Ignores checking for unused workspace dependencies.
+* `allow` - Ignores checking for unused workspace dependencies.
 
 ### The `highlight` field (optional)
 

@@ -6,8 +6,11 @@ expression: validated
   "file_id": 0,
   "multiple_versions": "deny",
   "multiple_versions_include_dev": false,
-  "workspace_duplicates": "warn",
-  "unused_workspace_dependencies": "allow",
+  "workspace_dependencies": {
+    "duplicates": "allow",
+    "include_path_dependencies": false,
+    "unused": "allow"
+  },
   "highlight": "SimplestPath",
   "denied": [
     {
