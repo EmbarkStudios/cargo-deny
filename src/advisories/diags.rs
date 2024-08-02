@@ -123,24 +123,6 @@ impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
                 );
 
                 LintLevel::Allow
-            } else if let Some(deprecated) = &self.cfg.deprecated {
-                'll: {
-                    if let (Some(st), Some(sev)) = (
-                        deprecated.severity_threshold,
-                        advisory.cvss.as_ref().map(|c| c.severity()),
-                    ) {
-                        if sev < st {
-                            break 'll LintLevel::Allow;
-                        }
-                    }
-
-                    match adv_ty {
-                        AdvisoryType::Vulnerability => deprecated.vulnerability,
-                        AdvisoryType::Unmaintained => deprecated.unmaintained,
-                        AdvisoryType::Unsound => deprecated.unsound,
-                        AdvisoryType::Notice => deprecated.notice,
-                    }
-                }
             } else {
                 LintLevel::Deny
             };
