@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.16.0] - 2024-08-02
 ### Removed
 - [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) finished the deprecation introduced in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611), making the usage of the deprecated fields into errors.
 
@@ -654,7 +655,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...HEAD
+[0.16.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...0.16.0
 [0.15.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...0.15.1
 [0.15.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...0.15.0
 [0.14.24]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.23...0.14.24
