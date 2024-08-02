@@ -345,9 +345,8 @@ impl<'de> Deserialize<'de> for WorkspaceDepsConfig {
         let mut th = TableHelper::new(value)?;
 
         let duplicates = th.optional("duplicates").unwrap_or(LintLevel::Deny);
-        let include_path_dependencies =
-            th.optional("include-path-dependencies").unwrap_or_default();
-        let unused = th.optional("unused").unwrap_or(LintLevel::Allow);
+        let include_path_dependencies = th.optional("include-path-dependencies").unwrap_or(true);
+        let unused = th.optional("unused").unwrap_or(LintLevel::Deny);
 
         th.finalize(None)?;
 

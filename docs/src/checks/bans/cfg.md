@@ -65,9 +65,9 @@ If true, path dependencies will be included in the duplication check, otherwise 
 
 Determines what happens when a dependency in [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) is not used in the workspace.
 
-* `deny` - Will emit an error for each dependency that is not actually used in the workspace.
+* `deny` (default) - Will emit an error for each dependency that is not actually used in the workspace.
 * `warn` - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.
-* `allow` - (default) Ignores checking for unused workspace dependencies.
+* `allow` - Ignores checking for unused workspace dependencies.
 
 ### The `highlight` field (optional)
 
