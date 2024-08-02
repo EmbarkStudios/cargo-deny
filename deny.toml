@@ -40,7 +40,6 @@ unknown-registry = "deny"
 unknown-git = "deny"
 
 [licenses]
-version = 2
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
 allow = [

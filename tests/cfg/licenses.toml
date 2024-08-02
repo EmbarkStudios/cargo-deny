@@ -1,14 +1,6 @@
 [licenses]
-unlicensed = "warn"
-allow-osi-fsf-free = "both"
-copyleft = "deny"
-default = "warn"
 unused-allowed-license = "warn"
 confidence-threshold = 0.95
-deny = [
-    "Nokia",
-    "BSD-2-Clause",
-]
 allow = [
     "EUPL-1.2",
     "Apache-2.0 WITH LLVM-exception",

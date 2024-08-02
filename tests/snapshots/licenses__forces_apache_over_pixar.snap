@@ -36,7 +36,7 @@ expression: diags
         {
           "column": 30,
           "line": 5,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Pixar"
         }
       ],

@@ -41,7 +41,7 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         }
       ],
@@ -85,7 +85,7 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: explicitly denied",
+          "message": "rejected: license is not explicitly allowed",
           "span": "GPL-3.0"
         }
       ],

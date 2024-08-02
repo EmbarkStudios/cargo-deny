@@ -9,7 +9,7 @@ expression: "diags.iter().find(|diag|\n            field_eq!(diag, \"/fields/cod
     "labels": [
       {
         "column": 12,
-        "line": 4,
+        "line": 2,
         "message": "no crate matched advisory criteria",
         "span": "RUSTSEC-2020-0053"
       }

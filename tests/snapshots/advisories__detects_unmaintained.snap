@@ -56,7 +56,7 @@ expression: unmaintained_diag
       "Announcement: https://github.com/dcuddeback/libusb-rs/issues/33",
       "Solution: No safe upgrade is available!"
     ],
-    "severity": "warning"
+    "severity": "error"
   },
   "type": "diagnostic"
 }

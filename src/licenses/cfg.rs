@@ -194,23 +194,6 @@ impl serde::Serialize for Licensee {
     }
 }
 
-#[cfg_attr(test, derive(serde::Serialize))]
-pub(crate) struct Deprecated {
-    /// Determines what happens when license information cannot be determined
-    /// for a crate
-    pub unlicensed: LintLevel,
-    /// Accepts license requirements based on whether they are OSI Approved or
-    /// FSF/Free Libre
-    pub allow_osi_fsf_free: BlanketAgreement,
-    /// Determines what happens when a copyleft license is detected
-    pub copyleft: LintLevel,
-    /// Determines what happens when a license doesn't match any previous
-    /// predicates
-    pub default: LintLevel,
-    /// Licenses that will be rejected in a license expression
-    pub deny: Vec<Licensee>,
-}
-
 /// Top level configuration for the a license check
 pub struct Config {
     pub private: Private,
@@ -231,7 +214,6 @@ pub struct Config {
     /// If true, performs license checks for dev-dependencies for workspace
     /// crates as well
     pub include_dev: bool,
-    deprecated: Option<Deprecated>,
     deprecated_spans: Vec<Span>,
 }
 
@@ -245,7 +227,6 @@ impl Default for Config {
             clarify: Vec::new(),
             exceptions: Vec::new(),
             include_dev: false,
-            deprecated: None,
             deprecated_spans: Vec::new(),
         }
     }
@@ -255,20 +236,20 @@ impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let mut th = TableHelper::new(value)?;
 
-        let version = th.optional("version").unwrap_or(1);
+        let _version = th.optional("version").unwrap_or(1);
 
         let mut fdeps = Vec::new();
 
         let private = th.optional("private").unwrap_or_default();
-        let unlicensed = deprecated(&mut th, "unlicensed", &mut fdeps).unwrap_or(LintLevel::Deny);
-        let allow_osi_fsf_free =
-            deprecated(&mut th, "allow-osi-fsf-free", &mut fdeps).unwrap_or_default();
-        let copyleft = deprecated(&mut th, "copyleft", &mut fdeps).unwrap_or(LintLevel::Warn);
-        let default = deprecated(&mut th, "default", &mut fdeps).unwrap_or(LintLevel::Deny);
+        let _unlicensed = deprecated(&mut th, "unlicensed", &mut fdeps).unwrap_or(LintLevel::Deny);
+        let _allow_osi_fsf_free = deprecated(&mut th, "allow-osi-fsf-free", &mut fdeps)
+            .unwrap_or(BlanketAgreement::default());
+        let _copyleft = deprecated(&mut th, "copyleft", &mut fdeps).unwrap_or(LintLevel::Warn);
+        let _default = deprecated(&mut th, "default", &mut fdeps).unwrap_or(LintLevel::Deny);
         let confidence_threshold = th
             .optional("confidence-threshold")
             .unwrap_or(DEFAULT_CONFIDENCE_THRESHOLD);
-        let deny = deprecated(&mut th, "deny", &mut fdeps).unwrap_or_default();
+        let _deny: Vec<Licensee> = deprecated(&mut th, "deny", &mut fdeps).unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
         let unused_allowed_license = th
             .optional("unused-allowed-license")
@@ -279,18 +260,6 @@ impl<'de> Deserialize<'de> for Config {
 
         th.finalize(None)?;
 
-        let deprecated = if version <= 1 {
-            Some(Deprecated {
-                unlicensed,
-                allow_osi_fsf_free,
-                copyleft,
-                default,
-                deny,
-            })
-        } else {
-            None
-        };
-
         Ok(Self {
             private,
             confidence_threshold,
@@ -299,7 +268,6 @@ impl<'de> Deserialize<'de> for Config {
             clarify,
             exceptions,
             include_dev,
-            deprecated,
             deprecated_spans: fdeps,
         })
     }
@@ -335,14 +303,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
-        let mut deprecated = self.deprecated;
-
-        let mut denied = deprecated
-            .as_mut()
-            .map_or(Vec::new(), |d| std::mem::take(&mut d.deny));
         let mut allowed = self.allow;
-
-        denied.par_sort();
         allowed.par_sort();
 
         let mut exceptions = Vec::with_capacity(self.exceptions.len());
@@ -351,22 +312,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
             allowed: exc.allow,
             file_id: ctx.cfg_id,
         }));
-
-        // Ensure the config doesn't contain the same exact license as both
-        // denied and allowed, that's confusing and probably not intended, so
-        // they should pick one
-        for (di, d) in denied.iter().enumerate() {
-            if let Ok(ai) = allowed.binary_search(d) {
-                ctx.push(
-                    Diagnostic::error()
-                        .with_message("a license id was specified in both `allow` and `deny`")
-                        .with_labels(vec![
-                            Label::secondary(ctx.cfg_id, denied[di].0.span).with_message("deny"),
-                            Label::secondary(ctx.cfg_id, allowed[ai].0.span).with_message("allow"),
-                        ]),
-                );
-            }
-        }
 
         let mut clarifications = Vec::with_capacity(self.clarify.len());
         for c in self.clarify {
@@ -405,9 +350,9 @@ impl crate::cfg::UnvalidatedConfig for Config {
         for dep in self.deprecated_spans {
             ctx.push(
                 Deprecated {
-                    reason: DeprecationReason::WillBeRemoved(Some(
+                    reason: DeprecationReason::Removed(
                         "https://github.com/EmbarkStudios/cargo-deny/pull/611",
-                    )),
+                    ),
                     key: dep,
                     file_id: ctx.cfg_id,
                 }
@@ -422,10 +367,8 @@ impl crate::cfg::UnvalidatedConfig for Config {
             confidence_threshold: self.confidence_threshold,
             clarifications,
             exceptions,
-            denied,
             allowed,
             ignore_sources,
-            deprecated,
             include_dev: self.include_dev,
         }
     }
@@ -516,12 +459,10 @@ pub struct ValidConfig {
     pub private: Private,
     pub unused_allowed_license: LintLevel,
     pub confidence_threshold: f32,
-    pub denied: Vec<Licensee>,
     pub allowed: Vec<Licensee>,
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
     pub ignore_sources: Vec<url::Url>,
-    pub(crate) deprecated: Option<Deprecated>,
     pub include_dev: bool,
 }
 
@@ -557,34 +498,5 @@ mod test {
         );
 
         insta::assert_json_snapshot!(validated);
-    }
-
-    #[test]
-    fn correct_duplicate_license_spans() {
-        let cfg = r#"[licenses]
-allow = [
-    "MIT",
-    "Apache-2.0",
-    "BSD-3-Clause",
-    "ISC",
-    "CC0-1.0",
-    "Unicode-DFS-2016",
-]
-deny = [
-   "MIT",
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-3.0",
-]"#;
-
-        let cd = ConfigData::<Licenses>::load_str("license-in-allow-and-deny", cfg);
-        let _validated = cd.validate_with_diags(
-            |l| l.licenses,
-            |files, diags| {
-                let diags = write_diagnostics(files, diags.into_iter());
-                insta::assert_snapshot!(diags);
-            },
-        );
     }
 }

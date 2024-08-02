@@ -63,7 +63,7 @@ expression: unsound_diag
       "Announcement: https://github.com/rust-lang-nursery/failure/issues/336",
       "Solution: No safe upgrade is available!"
     ],
-    "severity": "warning"
+    "severity": "error"
   },
   "type": "diagnostic"
 }
