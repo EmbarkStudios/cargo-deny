@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Removed
+- [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) finished the deprecation introduced in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611), making the usage of the deprecated fields into errors.
+
+#### `[advisories]`
+
+The following fields have all been removed in favor of denying all advisories by default. To ignore an advisory the [`ignore`](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#the-ignore-field-optional) field can be used as before.
+
+- `vulnerability` - Vulnerability advisories are now `deny` by default
+- `unmaintained` - Unmaintained advisories are now `deny` by default
+- `unsound` - Unsound advisories are now `deny` by default
+- `notice` - Notice advisories are now `deny` by default
+- `severity-threshold` - The severity of vulnerabilities is now irrelevant
+
+#### `[licenses]`
+
+The following fields have all been removed in favor of denying all licenses that are not explicitly allowed via either [`allow`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#the-allow-field-optional) or [`exceptions`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#the-exceptions-field-optional).
+
+- `unlicensed` - Crates whose license(s) cannot be confidently determined are now always errors. The [`clarify`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#the-clarify-field-optional) field can be used to help cargo-deny determine the license.
+- `allow-osi-fsf-free` - The OSI/FSF Free attributes are now irrelevant, only whether it is explicitly allowed.
+- `copyleft` - The copyleft attribute is now irrelevant, only whether it is explicitly allowed.
+- `default` - The default is now `deny`.
+- `deny` - All licenses are now denied by default, this field added nothing.
+
+### Changed
+- [PR#685](https://github.com/EmbarkStudios/cargo-deny/pull/685) follows up on [PR#673](https://github.com/EmbarkStudios/cargo-deny/pull/673), moving the fields that were added to their own separate [`bans.workspace-dependencies`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-workspace-dependencies-field-optional) section. This is an unannounced breaking change but is fairly minor and 0.15.0 was never released on github actions so the amount of people affected by this will be (hopefully) small. This also makes the workspace duplicate detection off by default since the field is optional, _but_ makes it so that if not specified workspace duplicates are now `deny` instead of `warn`.
+
+### Fixed
+- [PR#685](https://github.com/EmbarkStudios/cargo-deny/pull/685) resolved [#682](https://github.com/EmbarkStudios/cargo-deny/issues/682) by adding the `include-path-dependencies` field, allowing path dependencies to be ignored if it is `false`.
+
 ## [0.15.1] - 2024-07-26
 ### Fixed
 - [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) fixed [#680](https://github.com/EmbarkStudios/cargo-deny/issues/680) by always stripping `.git` from urls when matching sources to resolved nodes as they are allowed, but (generally) have no semantic meaning and are stripped by cargo when emitting metadata.

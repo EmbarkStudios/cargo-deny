@@ -50,7 +50,7 @@ askalono = { version = "0.4", default-features = false }
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
 camino = "1.1"
-cfg-expr = "0.15"
+cfg-expr = "0.16"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
