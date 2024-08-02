@@ -284,8 +284,10 @@ fn deny_duplicate_workspace_items() {
         },
         r#"
 multiple-versions = 'allow'
-workspace-duplicates = 'deny'
-unused-workspace-dependencies = 'warn'
+
+[workspace-dependencies]
+include-path-dependencies = true
+unused = 'warn'
 "#,
     );
 

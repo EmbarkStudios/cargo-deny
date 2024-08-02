@@ -329,15 +329,41 @@ pub type CrateAllow = PackageSpecOrExtended<Reason>;
 pub type CrateSkip = PackageSpecOrExtended<Reason>;
 pub type TreeSkip = PackageSpecOrExtended<TreeSkipExtended>;
 
+#[cfg_attr(test, derive(serde::Serialize))]
+pub struct WorkspaceDepsConfig {
+    /// How to handle workspace dependencies on the same crate that aren't declared
+    /// in `[workspace.dependencies]`
+    pub duplicates: LintLevel,
+    /// Whether path dependencies are treated as duplicates
+    pub include_path_dependencies: bool,
+    /// How to handle [`workspace.dependencies`] that are not used
+    pub unused: LintLevel,
+}
+
+impl<'de> Deserialize<'de> for WorkspaceDepsConfig {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let mut th = TableHelper::new(value)?;
+
+        let duplicates = th.optional("duplicates").unwrap_or(LintLevel::Deny);
+        let include_path_dependencies =
+            th.optional("include-path-dependencies").unwrap_or_default();
+        let unused = th.optional("unused").unwrap_or(LintLevel::Allow);
+
+        th.finalize(None)?;
+
+        Ok(Self {
+            duplicates,
+            include_path_dependencies,
+            unused,
+        })
+    }
+}
+
 pub struct Config {
     /// How to handle multiple versions of the same crate
     pub multiple_versions: LintLevel,
     pub multiple_versions_include_dev: bool,
-    /// How to handle workspace dependencies on the same crate that aren't declared
-    /// in `[workspace.dependencies]`
-    pub workspace_duplicates: LintLevel,
-    /// How to handle [`workspace.dependencies`] that are not used
-    pub unused_workspace_dependencies: LintLevel,
+    pub workspace_dependencies: Option<WorkspaceDepsConfig>,
     /// How the duplicate graphs are highlighted
     pub highlight: GraphHighlight,
     /// The crates that will cause us to emit failures
@@ -378,8 +404,7 @@ impl Default for Config {
         Self {
             multiple_versions: LintLevel::Warn,
             multiple_versions_include_dev: false,
-            workspace_duplicates: LintLevel::Warn,
-            unused_workspace_dependencies: LintLevel::Allow,
+            workspace_dependencies: None,
             highlight: GraphHighlight::All,
             deny: Vec::new(),
             allow: Vec::new(),
@@ -404,12 +429,6 @@ impl<'de> Deserialize<'de> for Config {
         let multiple_versions_include_dev = th
             .optional("multiple-versions-include-dev")
             .unwrap_or_default();
-        let workspace_duplicates = th
-            .optional("workspace-duplicates")
-            .unwrap_or(LintLevel::Allow);
-        let unused_workspace_dependencies = th
-            .optional("unused-workspace-dependencies")
-            .unwrap_or(LintLevel::Allow);
         let highlight = th.optional("highlight").unwrap_or_default();
         let deny = th.optional("deny").unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
@@ -423,13 +442,14 @@ impl<'de> Deserialize<'de> for Config {
         let allow_build_scripts = th.optional("allow-build-scripts");
         let build = th.optional("build");
 
+        let workspace_dependencies = th.optional("workspace-dependencies");
+
         th.finalize(None)?;
 
         Ok(Self {
             multiple_versions,
             multiple_versions_include_dev,
-            workspace_duplicates,
-            unused_workspace_dependencies,
+            workspace_dependencies,
             highlight,
             deny,
             allow,
@@ -737,8 +757,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             file_id: ctx.cfg_id,
             multiple_versions: self.multiple_versions,
             multiple_versions_include_dev: self.multiple_versions_include_dev,
-            workspace_duplicates: self.workspace_duplicates,
-            unused_workspace_dependencies: self.unused_workspace_dependencies,
+            workspace_dependencies: self.workspace_dependencies,
             highlight: self.highlight,
             denied,
             denied_multiple_versions,
@@ -911,8 +930,7 @@ pub struct ValidConfig {
     pub file_id: FileId,
     pub multiple_versions: LintLevel,
     pub multiple_versions_include_dev: bool,
-    pub workspace_duplicates: LintLevel,
-    pub unused_workspace_dependencies: LintLevel,
+    pub workspace_dependencies: Option<WorkspaceDepsConfig>,
     pub highlight: GraphHighlight,
     pub(crate) denied: Vec<ValidKrateBan>,
     pub(crate) denied_multiple_versions: Vec<PackageSpec>,

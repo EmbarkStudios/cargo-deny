@@ -205,8 +205,7 @@ pub fn check(
         skipped,
         multiple_versions,
         multiple_versions_include_dev,
-        workspace_duplicates,
-        unused_workspace_dependencies,
+        workspace_dependencies,
         highlight,
         tree_skipped,
         wildcards,
@@ -994,15 +993,17 @@ pub fn check(
 
         // Check the workspace to detect dependencies that are used more than once
         // but don't use a shared [workspace.[dev-/build-]dependencies] declaration
-        if workspace_duplicates != LintLevel::Allow {
-            scope.spawn(|_| {
-                check_workspace_duplicates(
-                    ctx.krates,
-                    ctx.krate_spans,
-                    workspace_duplicates,
-                    &mut ws_duplicate_packs,
-                );
-            });
+        if let Some(ws_deps) = &workspace_dependencies {
+            if ws_deps.duplicates != LintLevel::Allow {
+                scope.spawn(|_| {
+                    check_workspace_duplicates(
+                        ctx.krates,
+                        ctx.krate_spans,
+                        ws_deps,
+                        &mut ws_duplicate_packs,
+                    );
+                });
+            }
         }
     });
 
@@ -1032,16 +1033,18 @@ pub fn check(
         sink.push(pack);
     }
 
-    if unused_workspace_dependencies != LintLevel::Allow {
-        if let Some(id) = krate_spans
-            .workspace_id
-            .filter(|_id| !krate_spans.unused_workspace_deps.is_empty())
-        {
-            sink.push(diags::UnusedWorkspaceDependencies {
-                id,
-                unused: &krate_spans.unused_workspace_deps,
-                level: unused_workspace_dependencies,
-            });
+    if let Some(ws_deps) = workspace_dependencies {
+        if ws_deps.unused != LintLevel::Allow {
+            if let Some(id) = krate_spans
+                .workspace_id
+                .filter(|_id| !krate_spans.unused_workspace_deps.is_empty())
+            {
+                sink.push(diags::UnusedWorkspaceDependencies {
+                    id,
+                    unused: &krate_spans.unused_workspace_deps,
+                    level: ws_deps.unused,
+                });
+            }
         }
     }
 
@@ -1561,7 +1564,7 @@ fn validate_file_checksum(path: &crate::Path, expected: &cfg::Checksum) -> anyho
 fn check_workspace_duplicates(
     krates: &Krates,
     krate_spans: &crate::diag::KrateSpans<'_>,
-    severity: LintLevel,
+    cfg: &cfg::WorkspaceDepsConfig,
     diags: &mut Vec<Pack>,
 ) {
     use crate::diag::Label;
@@ -1592,6 +1595,10 @@ fn check_workspace_duplicates(
         };
 
         for mdep in man.deps(true) {
+            if mdep.dep.path.is_some() && !cfg.include_path_dependencies {
+                continue;
+            }
+
             deps.entry(&mdep.krate.id)
                 .or_default()
                 .push((mdep, krate, man.id));
@@ -1612,7 +1619,7 @@ fn check_workspace_duplicates(
             .workspace_span(kid)
             .zip(krate_spans.workspace_id)
         {
-            labels.push(Label::primary(ws_id, ws_span.key).with_message(format!(
+            labels.push(Label::secondary(ws_id, ws_span.key).with_message(format!(
                 "{}workspace dependency",
                 if ws_span.patched.is_some() {
                     "patched "
@@ -1649,7 +1656,7 @@ fn check_workspace_duplicates(
                 continue;
             }
 
-            labels.push(Label::secondary(id, mdep.key_span));
+            labels.push(Label::primary(id, mdep.key_span));
 
             if let Some(rename) = &mdep.rename {
                 labels.push(
@@ -1680,7 +1687,7 @@ fn check_workspace_duplicates(
         pack.push(diags::WorkspaceDuplicate {
             duplicate,
             labels,
-            severity,
+            severity: cfg.duplicates,
             has_workspace_declaration,
             total_uses: total,
         });
