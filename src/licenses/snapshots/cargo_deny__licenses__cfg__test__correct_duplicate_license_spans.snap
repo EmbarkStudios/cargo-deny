@@ -2,16 +2,7 @@
 source: src/licenses/cfg.rs
 expression: diags
 ---
-error: a license id was specified in both `allow` and `deny`
-   ┌─ license-in-allow-and-deny:3:6
-   │
- 3 │     "MIT",
-   │      ─── allow
-   ·
-11 │    "MIT",
-   │     ─── deny
-
-warning[deprecated]: this key will be removed in a future update, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for details
+warning[deprecated]: this key has been removed, see https://github.com/EmbarkStudios/cargo-deny/pull/611 for migration information
    ┌─ license-in-allow-and-deny:10:1
    │
 10 │ deny = [

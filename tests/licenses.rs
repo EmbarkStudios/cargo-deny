@@ -106,21 +106,18 @@ fn accepts_exceptions() {
 
 #[test]
 fn detects_unlicensed() {
-    let cfg = tu::Config::new("unlicensed = 'warn'");
+    let cfg = tu::Config::new("");
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, None);
 
-    diags.retain(|d| field_eq!(d, "/fields/severity", "warning"));
+    diags.retain(|d| field_eq!(d, "/fields/code", "unlicensed"));
 
     insta::assert_json_snapshot!(diags);
 }
 
 #[test]
 fn flags_unencountered_licenses() {
-    let cfg = tu::Config::new(
-        "allow = ['Aladdin', 'MIT']
-    unlicensed = 'allow'",
-    );
+    let cfg = tu::Config::new("allow = ['Aladdin', 'MIT']");
 
     // Override the warning to be a failure
     let overrides = cargo_deny::overrides! {
@@ -129,7 +126,7 @@ fn flags_unencountered_licenses() {
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, Some(overrides));
 
-    diags.retain(|d| field_eq!(d, "/fields/severity", "error"));
+    diags.retain(|d| field_eq!(d, "/fields/code", "license-not-encountered"));
 
     insta::assert_json_snapshot!(diags);
 }
@@ -138,7 +135,6 @@ fn flags_unencountered_licenses() {
 fn flags_unencountered_exceptions() {
     let cfg = tu::Config::new(
         "allow = ['MIT']
-    unlicensed = 'allow'
     exceptions = [{name='bippity-boppity-boop', allow = ['Aladdin']}]",
     );
 
@@ -149,7 +145,7 @@ fn flags_unencountered_exceptions() {
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, Some(overrides));
 
-    diags.retain(|d| field_eq!(d, "/fields/severity", "error"));
+    diags.retain(|d| field_eq!(d, "/fields/code", "license-exception-not-encountered"));
 
     insta::assert_json_snapshot!(diags);
 }
@@ -165,10 +161,7 @@ fn lax_fallback() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let cfg = tu::Config::<Config>::new(
-        "allow = ['GPL-2.0', 'LGPL-3.0']
-    unlicensed = 'deny'",
-    );
+    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
@@ -248,7 +241,6 @@ fn handles_dev_dependencies() {
     let cfg = tu::Config::new(
         r#"
 allow = ['Apache-2.0']
-deny = ['GPL-3.0']
 include-dev = true
 "#,
     );

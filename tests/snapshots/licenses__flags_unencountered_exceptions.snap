@@ -10,7 +10,7 @@ expression: diags
       "labels": [
         {
           "column": 26,
-          "line": 3,
+          "line": 2,
           "message": "unmatched license exception",
           "span": "bippity-boppity-boop"
         }

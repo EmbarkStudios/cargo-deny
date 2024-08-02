@@ -63,13 +63,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -148,13 +148,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -231,13 +231,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -329,13 +329,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -381,13 +381,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -449,13 +449,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -542,13 +542,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -679,13 +679,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -739,13 +739,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -807,13 +807,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -867,13 +867,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -919,13 +919,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1002,13 +1002,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1087,13 +1087,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1147,7 +1147,7 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         }
       ],
@@ -1198,13 +1198,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1282,19 +1282,19 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Zlib"
         },
         {
           "column": 20,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         },
         {
           "column": 34,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         }
       ],
@@ -1383,19 +1383,19 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         },
         {
           "column": 33,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Zlib"
         }
       ],
@@ -1468,13 +1468,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1544,13 +1544,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1604,13 +1604,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1681,13 +1681,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1741,13 +1741,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1793,13 +1793,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1853,13 +1853,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1921,13 +1921,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -1981,13 +1981,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2049,13 +2049,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2109,13 +2109,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2177,13 +2177,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2237,13 +2237,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2305,13 +2305,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2365,13 +2365,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2425,13 +2425,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2493,13 +2493,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],
@@ -2553,13 +2553,13 @@ expression: diags
         {
           "column": 12,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         },
         {
           "column": 19,
           "line": 4,
-          "message": "rejected: not explicitly allowed",
+          "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         }
       ],

@@ -29,7 +29,7 @@ expression: diags
         }
       ],
       "message": "features-galore = 0.1.0 is unlicensed",
-      "severity": "warning"
+      "severity": "error"
     },
     "type": "diagnostic"
   }
