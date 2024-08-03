@@ -702,6 +702,7 @@ mod test {
     use url::Url;
 
     #[test]
+    #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
     fn converts_url_to_path() {
         let root_path = crate::utf8path(std::env::current_dir().unwrap()).unwrap();
 
