@@ -94,11 +94,11 @@ Generally, I think most projects in the Rust space probably follow a similar pro
 
 When working in a company or organization, it is often the case that all crates will be forked to a shared organization account rather than a personal Github account. However, if you lint your git sources, every new and deleted fork needs to keep that list updated, which is tedious, even if all the forks fall under the same organization (in Github terminology), even though presumably only people you trust have permission to create forks there, and you would like to just blanket trust any repo under that org.
 
-The `allow-org` object allows you to specify 1 or more organizations or users in several VCS providers to more easily configure git sources for your projects.
+The `allow-org` object allows you to specify multiple organizations or users in several VCS providers to more easily configure git sources for your projects.
 
 #### The `github` field (optional)
 
-Allows you to specify one or more `github.com` organizations to allow as git sources.
+Allows you to specify multiple `github.com` organizations to allow as git sources.
 
 ```ini
 [sources.allow-org]
@@ -107,7 +107,7 @@ github = ["YourCoolOrgGoesHere"]
 
 #### The `gitlab` field (optional)
 
-Allows you to specify one or more `gitlab.com` organizations to allow as git sources.
+Allows you to specify multiple `gitlab.com` organizations to allow as git sources.
 
 ```ini
 [sources.allow-org]
@@ -116,7 +116,7 @@ gitlab = ["YourCoolOrgGoesHere"]
 
 #### The `bitbucket` field (optional)
 
-Allows you to specify one or more `bitbucket.org` organizations to allow as git sources.
+Allows you to specify multiple `bitbucket.org` organizations to allow as git sources.
 
 ```ini
 [sources.allow-org]
