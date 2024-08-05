@@ -766,7 +766,9 @@ fn read_workspace_deps<'k>(
                     // situations
                     let dir = km.krate.manifest_path.parent()?;
                     let path = crate::Path::new(path);
-                    if path.as_str().contains("..") {
+
+                    // Handle cases of current '.' or parent '..' directories
+                    if path.as_str().contains('.') {
                         let mut pb = krates.workspace_root().to_owned();
                         for comp in path.components() {
                             match comp {
