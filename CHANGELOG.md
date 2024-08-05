@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.16.1] - 2024-08-05
 ### Fixed
 - [PR#691](https://github.com/EmbarkStudios/cargo-deny/pull/691) fixed an issue where workspace dependencies that used the current dir '.' path component would incorrectly trigger the `unused-workspace-dependency` lint.
 
@@ -658,7 +659,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...HEAD
+[0.16.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...0.16.1
 [0.16.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...0.16.0
 [0.15.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...0.15.1
 [0.15.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.14.24...0.15.0
