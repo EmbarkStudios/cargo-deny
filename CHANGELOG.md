@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#691](https://github.com/EmbarkStudios/cargo-deny/pull/691) fixed an issue where workspace dependencies that used the current dir '.' path component would incorrectly trigger the `unused-workspace-dependency` lint.
+
 ## [0.16.0] - 2024-08-02
 ### Removed
 - [PR#681](https://github.com/EmbarkStudios/cargo-deny/pull/681) finished the deprecation introduced in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611), making the usage of the deprecated fields into errors.
