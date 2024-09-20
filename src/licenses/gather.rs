@@ -80,7 +80,7 @@ fn get_file_source(root: &Path, path: PathBuf) -> PackFile {
                 break;
             }
 
-            let keep = std::cmp::max(s.trim_end_matches(|p| p == '\r' || p == '\n').len(), min);
+            let keep = std::cmp::max(s.trim_end_matches(['\r', '\n']).len(), min);
             s.truncate(keep);
             s.push('\n');
 

@@ -27,17 +27,6 @@ The source of the SPDX expression used to evaluate the crate's licensing require
 1. **Mismatches:** If the Cargo.toml documents a given SPDX expression that does not match the actual license files in the package, this is not checked.
 1. **Inventiveness**: It is possible to place licensing data somewhere that is not in these locations, or have names that start with things other than `LICENSE`. There is no guarantee such placements inside a package would lose their legal force, even if there is other licensing data that cargo-deny may detect first and assume is comprehensive.
 
-### Evaluation Precedence
-
-Currently, the precedence for determining whether a particular license is accepted or rejected is as follows:
-
-1. A license specified in the `deny` list is **always rejected**.
-1. A license specified in the `allow` list is **always accepted**.
-1. If the license is considered [copyleft](https://en.wikipedia.org/wiki/Copyleft), the
-[`[licenses.copyleft]`](cfg.md#the-copyleft-field-optional) configuration determines its status
-1. If the license is [OSI Approved](https://opensource.org/licenses) or [FSF Free/Libre](https://www.gnu.org/licenses/license-list.en.html), the [`[licenses.allow-osi-fsf-free]`](cfg.md#the-allow-osi-fsf-free-field-optional) configuration determines its status, if it is `neither` the check continues
-1. If the license does not match any of the above criteria, the [`[licenses.default]`](cfg.md#the-default-field-optional) configuration determines its status
-
 ## Example output
 
 ![licenses output](../../output/licenses.svg)

@@ -86,11 +86,5 @@ where
     let (k, mut v) = th.take(field)?;
     spans.push(k.span);
 
-    match T::deserialize(&mut v) {
-        Ok(v) => Some(v),
-        Err(mut err) => {
-            th.errors.append(&mut err.errors);
-            None
-        }
-    }
+    T::deserialize(&mut v).ok()
 }

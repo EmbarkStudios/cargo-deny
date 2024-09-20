@@ -4,6 +4,7 @@ rustflags = [
     # do not change or add/remove here, but one can add exceptions after this section
     # for more info see: <https://github.com/EmbarkStudios/rust-ecosystem/issues/59>
     "-Dunsafe_code",
+    "-Wunexpected_cfgs",
     "-Wclippy::all",
     "-Wclippy::await_holding_lock",
     "-Wclippy::char_lit_as_u8",
@@ -44,7 +45,6 @@ rustflags = [
     "-Wclippy::match_wild_err_arm",
     "-Wclippy::match_wildcard_for_single_variants",
     "-Wclippy::mem_forget",
-    "-Wclippy::mismatched_target_os",
     "-Wclippy::missing_enforced_import_renames",
     "-Wclippy::mut_mut",
     "-Wclippy::mutex_integer",
