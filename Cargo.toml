@@ -54,7 +54,7 @@ cfg-expr = "0.17"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
-clap = { version = "4.3", features = ["derive", "env"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 # Used for diagnostic reporting
 codespan = { version = "0.11", features = ["serialization"] }
 codespan-reporting = { version = "0.11", features = ["serialization"] }
@@ -138,12 +138,12 @@ features = [
 # Folder copying
 fs_extra = "1.3"
 # Snapshot testing
-insta = { version = "1.21", features = ["json"] }
+insta = { version = "1.40", features = ["json"] }
 tame-index = { version = "0.14", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.3", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
-tempfile = "3.1.0"
+tempfile = "3.12"
 # divan = "0.1"
 
 # [[bench]]
