@@ -161,6 +161,7 @@ pub(crate) fn cmd(
     krate_ctx.all_features |= graph.all_features;
     krate_ctx.no_default_features |= graph.no_default_features;
     krate_ctx.exclude_dev |= graph.exclude_dev | args.exclude_dev;
+    krate_ctx.exclude_unpublished |= graph.exclude_unpublished;
 
     // If not specified on the cmd line, fallback to the feature related config options
     if krate_ctx.features.is_empty() {

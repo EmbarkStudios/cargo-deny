@@ -98,6 +98,12 @@ pub(crate) struct GraphContext {
     #[arg(long)]
     /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
     pub(crate) exclude_dev: bool,
+    #[arg(long)]
+    /// If set, prune all unpublished workspace members from the cargo metadata.
+    /// Workspace members are considered unpublished if they they are explicitly marked with `publish = false` as such.
+    /// The pruned crates are still used for the initial dependency resolution by cargo,
+    /// but are not used as roots in the crate graph.
+    pub(crate) exclude_unpublished: bool,
 }
 
 /// Lints your project's crate graph
@@ -296,6 +302,7 @@ fn real_main() -> Result<(), Error> {
         locked: args.ctx.locked,
         offline: args.ctx.offline,
         exclude_dev: args.ctx.exclude_dev,
+        exclude_unpublished: args.ctx.exclude_unpublished,
     };
 
     let log_ctx = crate::common::LogContext {

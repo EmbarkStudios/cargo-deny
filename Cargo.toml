@@ -156,3 +156,6 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
+
+[patch.crates-io]
+krates = { git = "https://github.com/Tastaturtaste/krates", branch = "fix-include-workspace-crates", version = "0.17" }

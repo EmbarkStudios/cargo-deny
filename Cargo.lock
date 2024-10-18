@@ -1928,8 +1928,7 @@ dependencies = [
 [[package]]
 name = "krates"
 version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ac9a4a6857b3732e7504712e2d41d5edaad70424d3dcb7166868e57094f06c"
+source = "git+https://github.com/Tastaturtaste/krates?branch=fix-include-workspace-crates#b6224f46b236476506666d449eee53149860e496"
 dependencies = [
  "camino",
  "cfg-expr",
