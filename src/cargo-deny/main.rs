@@ -99,10 +99,10 @@ pub(crate) struct GraphContext {
     /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
     pub(crate) exclude_dev: bool,
     #[arg(long)]
-    /// If set, prune all unpublished workspace members from the cargo metadata.
+    /// If set, exclude unpublished workspace members from graph roots.
     /// Workspace members are considered unpublished if they they are explicitly marked with `publish = false` as such.
-    /// The pruned crates are still used for the initial dependency resolution by cargo,
-    /// but are not used as roots in the crate graph.
+    /// Note that the excluded workspace members are still used for the initial dependency resolution by cargo,
+    /// which might affect the exact version of used dependencies.
     pub(crate) exclude_unpublished: bool,
 }
 

@@ -89,9 +89,11 @@ Options:
       --exclude-dev
           If set, excludes all dev-dependencies, not just ones for non-workspace crates
 
+      --exclude-unpublished
+          If set, exclude unpublished workspace members from graph roots. Workspace members are considered unpublished if they they are explicitly marked with `publish = false` as such. Note that the excluded workspace members are still used for the initial dependency resolution by cargo, which might affect the exact version of used dependencies
+
   -h, --help
           Print help (see a summary with '-h')
 
   -V, --version
           Print version
-
