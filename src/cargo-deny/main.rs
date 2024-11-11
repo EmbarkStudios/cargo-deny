@@ -387,14 +387,19 @@ mod test {
         // get the long help text for the command
         let mut buffer = Vec::new();
         app.write_long_help(&mut buffer).unwrap();
-        let help_text = std::str::from_utf8(&buffer).unwrap();
+        let content = std::str::from_utf8(&buffer).unwrap();
+
+        let snapshot = insta::_macro_support::SnapshotValue::FileText {
+            name: Some(cmd_name.as_str().into()),
+            content,
+        };
 
         // use internal `insta` function instead of the macro so we can pass in the
         // right module information from the crate and to gather up the errors instead of panicking directly on failures
+        #[allow(clippy::disallowed_types)]
         insta::_macro_support::assert_snapshot(
-            cmd_name.clone().into(),
-            help_text,
-            env!("CARGO_MANIFEST_DIR"),
+            snapshot,
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")),
             "cli-cmd",
             module_path!(),
             file!(),

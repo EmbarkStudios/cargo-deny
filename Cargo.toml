@@ -45,7 +45,7 @@ nu-ansi-term = "0.50"
 # Easy errors
 anyhow = "1.0"
 # Used for detecting the license type of a file
-askalono = { version = "0.4", default-features = false }
+askalono = { version = "0.5", default-features = false }
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
@@ -61,7 +61,7 @@ codespan-reporting = { version = "0.11", features = ["serialization"] }
 # Brrrrr
 crossbeam = "0.8"
 # Logging utilities
-fern = "0.6"
+fern = "0.7"
 # Glob matching
 globset = "0.4"
 # Native executable detection
@@ -92,7 +92,7 @@ reqwest = { version = "0.12", default-features = false, features = ["http2"] }
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Used for interacting with advisory databases
-rustsec = { version = "0.29", default-features = false }
+rustsec = { version = "0.30", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -105,7 +105,7 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.26", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.14", default-features = false, features = [
+tame-index = { version = "0.15", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -118,15 +118,15 @@ time = { version = "0.3", default-features = false, features = [
 # Deserialization of configuration files and crate manifests
 toml-span = { version = "0.3", features = ["reporting"] }
 # Small fast hash crate
-twox-hash = { version = "1.5", default-features = false }
+twox-hash = { version = "2.0", default-features = false, features = ["xxhash32"] }
 # Url parsing/manipulation
-url = "2.1"
+url = "2.5"
 # Directory traversal
 walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.66"
+version = "0.67"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -139,12 +139,12 @@ features = [
 # Folder copying
 fs_extra = "1.3"
 # Snapshot testing
-insta = { version = "1.40", features = ["json"] }
-tame-index = { version = "0.14", features = ["local-builder"] }
+insta = { version = "1.41", features = ["json"] }
+tame-index = { version = "0.15", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.3", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
-tempfile = "3.12"
+tempfile = "3.14"
 # divan = "0.1"
 
 # [[bench]]

@@ -655,8 +655,8 @@ impl<'db, 'k> Report<'db, 'k> {
                     settings: rustsec::report::Settings {
                         // We already prune packages we don't care about, so don't filter
                         // any here
-                        target_arch: None,
-                        target_os: None,
+                        target_arch: Vec::new(),
+                        target_os: Vec::new(),
                         // We handle the severity ourselves
                         severity: None,
                         // We handle the ignoring of particular advisory ids ourselves
