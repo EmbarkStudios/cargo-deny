@@ -613,22 +613,58 @@ impl Gatherer {
                 // 2 TODO
 
                 // 3
-                match &krate.license {
-                    Some(license_field) => {
-                        // Reasons this can fail:
-                        //
-                        // * Empty! The rust crate used to validate this field has a bug
-                        // https://github.com/rust-lang-nursery/license-exprs/issues/23
-                        // * It also just does basic lexing, so parens, duplicate operators,
-                        // unpaired exceptions etc can all fail validation
-                        //
-                        // Note that these only apply to _old_ versions, as `spdx`
-                        // is now used by crates.io to validate, but it uses lax
-                        // rules to allow some license identifiers that aren't
-                        // technically correct
+                if let Some(license_field) = &krate.license {
+                    // Reasons this can fail:
+                    //
+                    // * Empty! The rust crate used to validate this field has a bug
+                    // https://github.com/rust-lang-nursery/license-exprs/issues/23
+                    // * It also just does basic lexing, so parens, duplicate operators,
+                    // unpaired exceptions etc can all fail validation
+                    //
+                    // Note that these only apply to _old_ versions, as `spdx`
+                    // is now used by crates.io to validate, but it uses lax
+                    // rules to allow some license identifiers that aren't
+                    // technically correct
 
-                        match spdx::Expression::parse(license_field) {
-                            Ok(validated) => {
+                    match spdx::Expression::parse(license_field) {
+                        Ok(validated) => {
+                            let (id, span) = get_span("license");
+
+                            return KrateLicense {
+                                krate,
+                                lic_info: LicenseInfo::SpdxExpression {
+                                    expr: validated,
+                                    nfo: LicenseExprInfo {
+                                        file_id: id,
+                                        offset: span.start,
+                                        source: LicenseExprSource::Metadata,
+                                    },
+                                },
+                                labels,
+                                notes: Vec::new(),
+                            };
+                        }
+                        Err(err) => {
+                            let (id, lic_span) = get_span("license");
+                            let lic_span =
+                                lic_span.start + err.span.start..lic_span.start + err.span.end;
+
+                            labels.push(
+                                Label::secondary(id, lic_span).with_message(err.reason.to_string()),
+                            );
+
+                            // If we fail strict parsing, attempt to use lax parsing,
+                            // though still emitting a warning so the user is aware
+                            if let Ok(validated) = spdx::Expression::parse_mode(
+                                license_field,
+                                spdx::ParseMode {
+                                    allow_lower_case_operators: true,
+                                    // We already force correct this when loading crates
+                                    allow_slash_as_or_operator: false,
+                                    allow_imprecise_license_names: true,
+                                    allow_postfix_plus_on_gpl: true,
+                                },
+                            ) {
                                 let (id, span) = get_span("license");
 
                                 return KrateLicense {
@@ -645,54 +681,14 @@ impl Gatherer {
                                     notes: Vec::new(),
                                 };
                             }
-                            Err(err) => {
-                                let (id, lic_span) = get_span("license");
-                                let lic_span =
-                                    lic_span.start + err.span.start..lic_span.start + err.span.end;
-
-                                labels.push(
-                                    Label::secondary(id, lic_span)
-                                        .with_message(err.reason.to_string()),
-                                );
-
-                                // If we fail strict parsing, attempt to use lax parsing,
-                                // though still emitting a warning so the user is aware
-                                if let Ok(validated) = spdx::Expression::parse_mode(
-                                    license_field,
-                                    spdx::ParseMode {
-                                        allow_lower_case_operators: true,
-                                        // We already force correct this when loading crates
-                                        allow_slash_as_or_operator: false,
-                                        allow_imprecise_license_names: true,
-                                        allow_postfix_plus_on_gpl: true,
-                                    },
-                                ) {
-                                    let (id, span) = get_span("license");
-
-                                    return KrateLicense {
-                                        krate,
-                                        lic_info: LicenseInfo::SpdxExpression {
-                                            expr: validated,
-                                            nfo: LicenseExprInfo {
-                                                file_id: id,
-                                                offset: span.start,
-                                                source: LicenseExprSource::Metadata,
-                                            },
-                                        },
-                                        labels,
-                                        notes: Vec::new(),
-                                    };
-                                }
-                            }
                         }
                     }
-                    None => {
-                        let (id, lic_span) = get_span("license");
-                        labels.push(
-                            Label::secondary(id, lic_span)
-                                .with_message("license expression was not specified"),
-                        );
-                    }
+                } else {
+                    let (id, lic_span) = get_span("license");
+                    labels.push(
+                        Label::secondary(id, lic_span)
+                            .with_message("license expression was not specified"),
+                    );
                 }
 
                 // 4

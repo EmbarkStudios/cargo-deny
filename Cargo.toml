@@ -65,13 +65,14 @@ fern = "0.6"
 # Glob matching
 globset = "0.4"
 # Native executable detection
-goblin = { version = "0.8", default-features = false, features = [
+goblin = { version = "0.9", default-features = false, features = [
   "elf32",
   "elf64",
   "mach32",
   "mach64",
   "pe32",
   "pe64",
+  "te",
 ] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
