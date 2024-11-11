@@ -13,7 +13,6 @@ all-features = true
 [advisories]
 version = 2
 ignore = [
-    { id = "RUSTSEC-2022-0092", reason = "askalono always provides valid utf-8 files from a cache, this is not relevant" },
 ]
 
 [bans]
@@ -28,7 +27,7 @@ deny = [
     { crate = "windows", reason = "bloated and unnecessary", use-instead = "ideally inline bindings, practically, windows-sys" },
 ]
 skip = [
-    { crate = "winnow@0.5.40", reason = "gix 0.59 was yanked, see https://github.com/Byron/gitoxide/issues/1309" },
+    { crate = "hashbrown@0.14.5", reason = "gix uses this old version" },
 ]
 skip-tree = [
     { crate = "windows-sys@0.52.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
@@ -48,6 +47,7 @@ allow = [
     "MPL-2.0",
     "BSD-3-Clause",
     "ISC",
+    "Unicode-3.0",
 ]
 exceptions = [
     # Use exceptions for these as they only have a single user
