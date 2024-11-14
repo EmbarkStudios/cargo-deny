@@ -24,6 +24,7 @@ pub struct KrateContext {
     pub locked: bool,
     pub offline: bool,
     pub exclude_dev: bool,
+    pub exclude_unpublished: bool,
 }
 
 impl KrateContext {
@@ -169,7 +170,14 @@ impl KrateContext {
                     }),
             );
         }
-
+        if self.exclude_unpublished {
+            gb.include_workspace_crates(metadata.workspace_packages().iter().filter_map(
+                |package| match package.publish {
+                    Some(ref registries) if registries.is_empty() => None,
+                    _ => Some(package.manifest_path.as_std_path()),
+                },
+            ));
+        }
         // Attempt to open the crates.io index so that the feature sets for every
         // crate in the graph are correct, however, don't consider it a hard failure
         // if we can't for some reason, as the graph will _probably_ still be accurate

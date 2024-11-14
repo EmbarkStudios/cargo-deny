@@ -48,6 +48,7 @@ pub struct GraphConfig {
     pub no_default_features: bool,
     /// By default, dev dependencies for workspace crates are not ignored
     pub exclude_dev: bool,
+    pub exclude_unpublished: bool,
 }
 
 impl<'de> Deserialize<'de> for GraphConfig {
@@ -59,6 +60,7 @@ impl<'de> Deserialize<'de> for GraphConfig {
         let all_features = th.optional("all-features").unwrap_or_default();
         let no_default_features = th.optional("no-default-features").unwrap_or_default();
         let exclude_dev = th.optional("exclude-dev").unwrap_or_default();
+        let exclude_unpublished = th.optional("exclude-unpublished").unwrap_or_default();
         th.finalize(None)?;
 
         Ok(Self {
@@ -68,6 +70,7 @@ impl<'de> Deserialize<'de> for GraphConfig {
             all_features,
             no_default_features,
             exclude_dev,
+            exclude_unpublished,
         })
     }
 }
