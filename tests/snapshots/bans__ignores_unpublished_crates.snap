@@ -1,0 +1,6 @@
+---
+source: tests/bans.rs
+expression: diags
+snapshot_kind: text
+---
+[]

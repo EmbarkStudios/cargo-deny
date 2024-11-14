@@ -158,4 +158,4 @@ opt-level = 3
 opt-level = 3
 
 [patch.crates-io]
-krates = { git = "https://github.com/Tastaturtaste/krates", branch = "fix-include-workspace-crates", version = "0.17" }
+krates = { path = "../krates" }

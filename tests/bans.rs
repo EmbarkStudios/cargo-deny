@@ -118,6 +118,40 @@ allow-wildcard-paths = true
     insta::assert_json_snapshot!(diags);
 }
 
+/// Ensures that individual workspace crates can be ignored
+#[test]
+fn ignores_unpublished_crates() {
+    let project_dir = camino::Utf8PathBuf::from("./tests/test_data/workspace");
+
+    let mut cmd = krates::Cmd::new();
+    cmd.current_dir(project_dir.clone());
+
+    let mut kb = krates::Builder::new();
+    kb.ignore_kind(krates::DepKind::Build, krates::Scope::All);
+    kb.include_workspace_crates([project_dir.join("crates/member-two/Cargo.toml")]);
+    let krates = kb
+        .build(cmd, krates::NoneFilter)
+        .expect("failed to build crate graph");
+
+    let diags = gather_diagnostics::<cargo_deny::bans::cfg::Config, _, _>(
+        &krates,
+        func_name!(),
+        // If either the workspace `root` or `member-one` crates are pulled in,
+        // they will emit diagnostics that won't be emitted by just including member-two
+        r#"
+multiple-versions = 'allow'
+wildcards = 'deny'
+allow-wildcard-paths = true
+"#
+        .into(),
+        |ctx, tx| {
+            cargo_deny::bans::check(ctx, None, tx);
+        },
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Ensures that dependencies with wildcard and git are allowed for private packages
 #[test]
 fn allow_git_wildcards_private_package() {
