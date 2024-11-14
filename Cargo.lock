@@ -1930,6 +1930,8 @@ dependencies = [
 [[package]]
 name = "krates"
 version = "0.17.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df0e34dcebfd130ff62396179e65d781fb313cc186a6607b6c34f500d89e9672"
 dependencies = [
  "camino",
  "cfg-expr",
