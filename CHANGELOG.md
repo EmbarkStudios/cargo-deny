@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.16.2] - 2024-11-15
 ### Fixed
 - [PR#703](https://github.com/EmbarkStudios/cargo-deny/pull/703) resolved [#696](https://github.com/EmbarkStudios/cargo-deny/issues/696) by no longer emitting errors when failing to deserialize deprecated fields, and removed some lingering documentation that wasn't removed in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611).
 - [PR#719](https://github.com/EmbarkStudios/cargo-deny/pull/719) updated to `krates` -> 0.17.5, fixing an issue where `cargo-deny` could [panic](https://github.com/EmbarkStudios/krates/issues/97) due to [incorrectly resolving](https://github.com/EmbarkStudios/krates/issues/84) features for different versions of the same crate referenced by a single crate.
@@ -673,7 +674,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...HEAD
+[0.16.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...0.16.2
 [0.16.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...0.16.1
 [0.16.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...0.16.0
 [0.15.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.0...0.15.1
