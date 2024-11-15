@@ -157,15 +157,6 @@ impl cfg::UnvalidatedConfig for Config {
 
             if let Some(start_scheme) = astr.find("://") {
                 if let Some(i) = astr[..start_scheme].find('+') {
-                    ctx.push(
-                        Diagnostic::warning()
-                            .with_message("scheme modifiers are unnecessary")
-                            .with_labels(vec![Label::primary(
-                                ctx.cfg_id,
-                                aurl.span.start..aurl.span.start + start_scheme,
-                            )]),
-                    );
-
                     skip = i + 1;
                 }
             }

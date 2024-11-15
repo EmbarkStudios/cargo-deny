@@ -1,9 +1,6 @@
 ---
 source: src/sources/cfg.rs
 expression: diags
+snapshot_kind: text
 ---
-warning: scheme modifiers are unnecessary
-  ┌─ tests/cfg/sources.toml:7:6
-  │
-7 │     "sparse+https://fake.sparse.com",
-  │      ━━━━━━━━━━━━
+
