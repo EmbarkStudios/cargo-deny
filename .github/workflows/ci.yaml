@@ -244,6 +244,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-22.04
-    needs: [typos, lint, test, self, publish-check, doc-book]
+    needs: [typos, lint, test, self, publish-check, doc-book, msrv]
     steps:
       - run: echo "All test jobs passed"
