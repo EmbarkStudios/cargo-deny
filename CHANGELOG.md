@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#703](https://github.com/EmbarkStudios/cargo-deny/pull/703) resolved [#696](https://github.com/EmbarkStudios/cargo-deny/issues/696) by no longer emitting errors when failing to deserialize deprecated fields, and removed some lingering documentation that wasn't removed in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611).
+- [PR#719](https://github.com/EmbarkStudios/cargo-deny/pull/719) updated to `krates` -> 0.17.5, fixing an issue where `cargo-deny` could [panic](https://github.com/EmbarkStudios/krates/issues/97) due to [incorrectly resolving](https://github.com/EmbarkStudios/krates/issues/84) features for different versions of the same crate referenced by a single crate.
+- [PR#719](https://github.com/EmbarkStudios/cargo-deny/pull/719) resolved [#706](https://github.com/EmbarkStudios/cargo-deny/issues/706) by removing a warning issued when users use ignored scheme modifiers for source urls.
+- [PR#719](https://github.com/EmbarkStudios/cargo-deny/pull/719) resolved [#718](https://github.com/EmbarkStudios/cargo-deny/issues/718) by updating the book with missing arguments.
+
+### Added
+- [PR#715](https://github.com/EmbarkStudios/cargo-deny/pull/715) resolved [#714](https://github.com/EmbarkStudios/cargo-deny/issues/714) by adding support for Edition 2024. Thanks [@kpcyrd](https://github.com/kpcyrd)!
+- [PR#710](https://github.com/EmbarkStudios/cargo-deny/pull/710) resolved [#708](https://github.com/EmbarkStudios/cargo-deny/issues/708) by allowing for unpublished workspace crates to be excluded from the dependency graph that checks are run against, either via the `--exclude-unpublished` CLI argument or the `graph.exclude-unpublished` config field. Thanks [@Tastaturtaste](https://github.com/Tastaturtaste)!
+
+### Changed
+- [PR#711](https://github.com/EmbarkStudios/cargo-deny/pull/711) updated `goblin` -> 0.9.2
+- [PR#713](https://github.com/EmbarkStudios/cargo-deny/pull/713) updated various crates, notably `rustsec` -> 0.30.
+
 ## [0.16.1] - 2024-08-05
 ### Fixed
 - [PR#691](https://github.com/EmbarkStudios/cargo-deny/pull/691) fixed an issue where workspace dependencies that used the current dir '.' path component would incorrectly trigger the `unused-workspace-dependency` lint.
