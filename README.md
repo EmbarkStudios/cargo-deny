@@ -12,7 +12,7 @@
 [![API Docs](https://docs.rs/cargo-deny/badge.svg)](https://docs.rs/cargo-deny)
 [![Docs](https://img.shields.io/badge/The%20Book-📕-brightgreen.svg)](https://embarkstudios.github.io/cargo-deny/)
 [![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.70.0-blue?color=fc8d62&logo=rust)](https://blog.rust-lang.org/2023/06/01/Rust-1.70.0.html)
-[![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.23-blue.svg)](https://spdx.org/licenses/)
+[![SPDX Version](https://img.shields.io/badge/SPDX%20Version-3.25.0-blue.svg)](https://spdx.org/licenses/)
 [![dependency status](https://deps.rs/repo/github/EmbarkStudios/cargo-deny/status.svg)](https://deps.rs/repo/github/EmbarkStudios/cargo-deny)
 [![Build Status](https://github.com/EmbarkStudios/cargo-deny/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/cargo-deny/actions?workflow=CI)
 
