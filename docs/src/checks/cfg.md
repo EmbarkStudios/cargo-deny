@@ -72,6 +72,10 @@ If set, and `--features` is not specified on the cmd line, these features will b
 
 If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks. This option can also be enabled on cmd line with `--exclude-dev` either [before](../cli/common.md#--exclude-dev) or [after](../cli/check.md#--exclude-dev) the `check` subcommand.
 
+### The `exclude-unpublished` field (optional)
+
+If set to `true`, workspace crates marked as `publish = false` will not be used as roots in the dependency graph, meaning they, and any dependencies they have that aren't directly or indirectly referenced by workspace crates that _are_ published, will be excluded from the dependency graph that checks are executed against.
+
 ## The `output` field (optional)
 
 ### The `feature-depth` field (optional)
