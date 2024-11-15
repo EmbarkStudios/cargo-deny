@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#722](https://github.com/EmbarkStudios/cargo-deny/pull/722) updated the SPDX license list to 3.25.0.
+
 ## [0.16.2] - 2024-11-15
 ### Fixed
 - [PR#703](https://github.com/EmbarkStudios/cargo-deny/pull/703) resolved [#696](https://github.com/EmbarkStudios/cargo-deny/issues/696) by no longer emitting errors when failing to deserialize deprecated fields, and removed some lingering documentation that wasn't removed in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611).
