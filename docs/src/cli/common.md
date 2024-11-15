@@ -72,6 +72,31 @@ Possible values:
 
 One or more platforms to filter crates with. If a dependency is target specific, it will be ignored if it does not match at least 1 of the specified targets. This overrides the top-level [`targets = []`](../checks/cfg.md) configuration value.
 
-### `--offline`
+### `--exclude-unpublished`
 
-Disables network I/O.
+If set, exclude unpublished workspace members from graph roots.
+
+Workspace members are considered unpublished if they they are explicitly marked with `publish = false`. Note that the excluded workspace members are still used for the initial dependency resolution by cargo, which might affect the exact version of used dependencies.
+
+### `--allow-git-index`
+
+If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled only if using a cargo < 1.70.0 without the sparse protocol enabled
+
+### [`--locked`](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html#option-cargo-fetch---locked)
+
+Asserts that the exact same dependencies and versions are used as when the existing Cargo.lock file was originally generated. Cargo will exit with an error when either of the following scenarios arises:
+
+* The lock file is missing.
+* Cargo attempted to change the lock file due to a different dependency resolution.
+
+### [`--offline`](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html#option-cargo-fetch---offline)
+
+Prevents Cargo and `cargo-deny` from accessing the network for any reason. Without this flag, Cargo will stop with an error if it needs to access the network and the network is not available. With this flag, Cargo will attempt to proceed without the network if possible.
+
+Beware that this may result in different dependency resolution than online mode. Cargo will restrict itself to crates that are downloaded locally, even if there might be a newer version as indicated in the local copy of the index. See the cargo-fetch(1) command to download dependencies before going offline.
+
+`cargo-deny` will also not fetch advisory databases with this option, meaning that any new or updated advisories since the last time the database(s) were fetched won't be known and thus won't be checked against the dependency graph.
+
+### [`--frozen`](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html#option-cargo-fetch---frozen)
+
+Equivalent to specifying both `--locked` and `--offline`.

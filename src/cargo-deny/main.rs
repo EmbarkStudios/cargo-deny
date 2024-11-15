@@ -79,30 +79,31 @@ pub(crate) struct GraphContext {
     /// Space or comma separated list of features to activate
     #[arg(long, value_delimiter = ',')]
     pub(crate) features: Vec<String>,
-    /// Require Cargo.lock and cache are up to date
+    /// Equivalent to specifying both `--locked` and `--offline`
     #[arg(long)]
     pub(crate) frozen: bool,
-    /// Require Cargo.lock is up to date
-    #[arg(long)]
-    pub(crate) locked: bool,
     /// Run without accessing the network.
     ///
     /// If used with the `check` subcommand, this disables advisory database
     /// fetching
     #[arg(long)]
     pub(crate) offline: bool,
+    /// Assert that `Cargo.lock` will remain unchanged
+    #[arg(long)]
+    pub(crate) locked: bool,
     /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
     /// only if using a cargo < 1.70.0 without the sparse protocol enabled
     #[arg(long)]
     pub(crate) allow_git_index: bool,
-    #[arg(long)]
     /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
-    pub(crate) exclude_dev: bool,
     #[arg(long)]
+    pub(crate) exclude_dev: bool,
     /// If set, exclude unpublished workspace members from graph roots.
-    /// Workspace members are considered unpublished if they they are explicitly marked with `publish = false` as such.
+    ///
+    /// Workspace members are considered unpublished if they they are explicitly marked with `publish = false`.
     /// Note that the excluded workspace members are still used for the initial dependency resolution by cargo,
     /// which might affect the exact version of used dependencies.
+    #[arg(long)]
     pub(crate) exclude_unpublished: bool,
 }
 

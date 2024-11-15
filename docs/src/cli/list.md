@@ -4,6 +4,12 @@ Similarly to [cargo-license](https://github.com/onur/cargo-license), `list` prin
 
 ## Options
 
+### `-c, --config <CONFIG>`
+
+Path to the config to use
+
+Defaults to `<cwd>/deny.toml` if not specified
+
 ### `-f, --format`
 
 The format of the output
@@ -12,13 +18,7 @@ The format of the output
 * `json`
 * `tsv`
 
-### `--color`
-
-Output coloring, only applies to the `human` format.
-
-* `auto` (default) - Only colors if stdout is a TTY
-* `always` - Always emits colors
-* `never` - Never emits colors
+### [`--color`](../cli/common.md#--color)
 
 Colors:
 
