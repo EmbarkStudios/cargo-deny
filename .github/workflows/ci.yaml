@@ -41,6 +41,19 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+  msrv:
+    name: MSRV check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.81.0
+          components: "clippy"
+      - run: cargo fetch
+      - name: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
   test:
     name: Test
     strategy:
@@ -231,6 +244,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-22.04
-    needs: [typos, lint, test, self, publish-check, doc-book]
+    needs: [typos, lint, test, self, publish-check, doc-book, msrv]
     steps:
       - run: echo "All test jobs passed"

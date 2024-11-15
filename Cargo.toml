@@ -15,7 +15,7 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["docs/", "examples/", ".github/", "tests"]
-rust-version = "1.70.0"
+rust-version = "1.81.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
