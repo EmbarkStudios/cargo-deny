@@ -28,6 +28,7 @@ pub enum Code {
     Skipped,
     Wildcard,
     UnmatchedSkip,
+    UnnecessarySkip,
     AllowedByWrapper,
     UnmatchedWrapper,
     SkippedByRoot,
@@ -218,6 +219,26 @@ impl<'a> From<UnmatchedSkip<'a>> for Diag {
             ))
             .with_code(Code::UnmatchedSkip)
             .with_labels(us.skip_cfg.to_labels(Some("unmatched skip configuration")))
+            .into()
+    }
+}
+
+pub(crate) struct UnnecessarySkip<'a> {
+    pub(crate) skip_cfg: &'a SpecAndReason,
+}
+
+impl<'a> From<UnnecessarySkip<'a>> for Diag {
+    fn from(us: UnnecessarySkip<'a>) -> Self {
+        Diagnostic::new(Severity::Warning)
+            .with_message(format!(
+                "skip '{}' applied to a crate with only one version",
+                us.skip_cfg.spec,
+            ))
+            .with_code(Code::UnnecessarySkip)
+            .with_labels(
+                us.skip_cfg
+                    .to_labels(Some("unnecessary skip configuration")),
+            )
             .into()
     }
 }

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [PR#721](https://github.com/EmbarkStudios/cargo-deny/pull/721) updated `rust-version` to 1.81.0 to accurately reflect the minimum rust version required to compile, resolving [#720](https://github.com/EmbarkStudios/cargo-deny/issues/720).
 - [PR#722](https://github.com/EmbarkStudios/cargo-deny/pull/722) updated the SPDX license list to 3.25.0.
 
+### Fixed
+- [PR#726](https://github.com/EmbarkStudios/cargo-deny/pull/726) resolved [#725](https://github.com/EmbarkStudios/cargo-deny/issues/725) by adding the `unnecessary-skip` diagnostic, emitted when there is a `skip` configured for a crate that only has one version in the graph.
+
 ## [0.16.2] - 2024-11-15
 ### Fixed
 - [PR#703](https://github.com/EmbarkStudios/cargo-deny/pull/703) resolved [#696](https://github.com/EmbarkStudios/cargo-deny/issues/696) by no longer emitting errors when failing to deserialize deprecated fields, and removed some lingering documentation that wasn't removed in [PR#611](https://github.com/EmbarkStudios/cargo-deny/pull/611).

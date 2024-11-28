@@ -1,0 +1,241 @@
+---
+source: tests/bans.rs
+expression: diags
+snapshot_kind: text
+---
+[
+  {
+    "fields": {
+      "code": "skipped",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "serde_json",
+            "version": "1.0.118"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "cargo_metadata",
+                "version": "0.18.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "krates",
+                    "version": "0.16.6"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "wildcards-test-allow-git",
+                        "version": "0.1.0"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "member-one",
+                            "version": "0.1.0"
+                          },
+                          "parents": [
+                            {
+                              "Krate": {
+                                "kind": "build",
+                                "name": "member-two",
+                                "version": "0.1.0"
+                              },
+                              "parents": [
+                                {
+                                  "Krate": {
+                                    "name": "root",
+                                    "version": "0.1.0"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "Krate": {
+                                "name": "root",
+                                "version": "0.1.0"
+                              },
+                              "repeat": true
+                            }
+                          ]
+                        },
+                        {
+                          "Krate": {
+                            "kind": "build",
+                            "name": "member-two",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 6,
+          "line": 9,
+          "message": "skipped here",
+          "span": "serde_json"
+        }
+      ],
+      "message": "crate 'serde_json = 1.0.118' skipped when checking for duplicates",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "skipped",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.6.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-one",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "build",
+                    "name": "member-two",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "root",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 6,
+          "line": 5,
+          "message": "skipped here",
+          "span": "spdx:<0.10.0"
+        }
+      ],
+      "message": "crate 'spdx = 0.6.0' skipped when checking for duplicates",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "skipped",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "spdx",
+            "version": "0.9.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "member-two",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "root",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "root",
+                "version": "0.1.0"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 6,
+          "line": 5,
+          "message": "skipped here",
+          "span": "spdx:<0.10.0"
+        }
+      ],
+      "message": "crate 'spdx = 0.9.0' skipped when checking for duplicates",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unmatched-skip",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 6,
+          "line": 7,
+          "message": "unmatched skip configuration",
+          "span": "smallvec@1.0.0"
+        }
+      ],
+      "message": "skipped crate 'smallvec = =1.0.0' was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unnecessary-skip",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 6,
+          "line": 9,
+          "message": "unnecessary skip configuration",
+          "span": "serde_json"
+        }
+      ],
+      "message": "skip 'serde_json' applied to a crate with only one version",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]
