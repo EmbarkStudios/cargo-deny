@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.16.3] - 2024-11-28
 ### Changed
 - [PR#721](https://github.com/EmbarkStudios/cargo-deny/pull/721) updated `rust-version` to 1.81.0 to accurately reflect the minimum rust version required to compile, resolving [#720](https://github.com/EmbarkStudios/cargo-deny/issues/720).
 - [PR#722](https://github.com/EmbarkStudios/cargo-deny/pull/722) updated the SPDX license list to 3.25.0.
@@ -681,7 +682,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.3...HEAD
+[0.16.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...0.16.3
 [0.16.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...0.16.2
 [0.16.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...0.16.1
 [0.16.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.15.1...0.16.0
