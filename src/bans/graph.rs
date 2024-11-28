@@ -88,7 +88,7 @@ pub(crate) fn create_graph(
     dup_name: &str,
     highlight: GraphHighlight,
     krates: &crate::Krates,
-    dup_ids: &[usize],
+    dup_ids: &[(usize, bool)],
 ) -> Result<String, Error> {
     use pg::visit::{EdgeRef, NodeRef};
 
@@ -97,16 +97,23 @@ pub(crate) fn create_graph(
 
     let mut node_stack = Vec::with_capacity(dup_ids.len());
 
-    let duplicates: Vec<_> = dup_ids.iter().map(|di| krates[*di].id.clone()).collect();
+    let duplicates: Vec<_> = dup_ids
+        .iter()
+        .filter_map(|(di, skipped)| (!*skipped).then_some(krates[*di].id.clone()))
+        .collect();
 
-    for (index, dupid) in dup_ids.iter().zip(duplicates.iter()) {
+    for (index, dupid) in dup_ids
+        .iter()
+        .filter_map(|(index, skipped)| (!*skipped).then_some(*index))
+        .zip(duplicates.iter())
+    {
         let dn = DupNode {
             kid: dupid,
             feature: None,
         };
         let nid = graph.add_node(dn);
         node_map.insert(dn, nid);
-        node_stack.push((krates::NodeId::new(*index), nid));
+        node_stack.push((krates::NodeId::new(index), nid));
     }
 
     {

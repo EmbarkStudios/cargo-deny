@@ -314,12 +314,16 @@ pub fn check(
 
     struct MultiDetector<'a> {
         name: &'a str,
-        dupes: smallvec::SmallVec<[usize; 2]>,
+        dupes: smallvec::SmallVec<[(usize, bool); 4]>,
+        // Keep track of the crates that actually have > 1 version, regardless of skips
+        // if a skip is encountered for a krate that only has 1 version, warn about it
+        krates_with_dupes: Vec<&'a str>,
     }
 
     let mut multi_detector = MultiDetector {
         name: &ctx.krates.krates().next().unwrap().name,
         dupes: smallvec::SmallVec::new(),
+        krates_with_dupes: Vec::new(),
     };
 
     let filtered_krates = if !multiple_versions_include_dev {
@@ -376,12 +380,25 @@ pub fn check(
             .collect(),
     );
 
-    let report_duplicates = |multi_detector: &MultiDetector<'_>, sink: &mut diag::ErrorSink| {
-        if multi_detector.dupes.len() <= 1 {
+    let report_duplicates = |multi_detector: &mut MultiDetector<'_>, sink: &mut diag::ErrorSink| {
+        let skipped = multi_detector
+            .dupes
+            .iter()
+            .filter(|(_, skipped)| *skipped)
+            .count();
+        if multi_detector.dupes.len() > 1 {
+            multi_detector.krates_with_dupes.push(multi_detector.name);
+        }
+
+        if multi_detector.dupes.len() - skipped <= 1 {
             return;
         }
 
-        let lint_level = if multi_detector.dupes.iter().any(|kindex| {
+        let lint_level = if multi_detector.dupes.iter().any(|(kindex, skipped)| {
+            if *skipped {
+                return false;
+            }
+
             let krate = &ctx.krates[*kindex];
             dmv.matches(krate).is_some()
         }) {
@@ -408,7 +425,11 @@ pub fn check(
 
         let mut kids = smallvec::SmallVec::<[Dupe; 2]>::new();
 
-        for dup in multi_detector.dupes.iter().cloned() {
+        for dup in multi_detector
+            .dupes
+            .iter()
+            .filter_map(|(ind, skipped)| (!*skipped).then_some(*ind))
+        {
             let krate = &ctx.krates[dup];
 
             let span = &ctx.krate_spans.lock_span(&krate.id).total;
@@ -850,6 +871,15 @@ pub fn check(
 
                 if should_add_dupe(&krate.id) {
                     if let Some(matches) = skipped.matches(krate) {
+                        if multi_detector.name != krate.name {
+                            report_duplicates(&mut multi_detector, &mut sink);
+
+                            multi_detector.name = &krate.name;
+                            multi_detector.dupes.clear();
+                        }
+
+                        multi_detector.dupes.push((i, true));
+
                         for rm in matches {
                             pack.push(diags::Skipped {
                                 krate,
@@ -863,13 +893,13 @@ pub fn check(
                         }
                     } else if !tree_skipper.matches(krate, &mut pack) {
                         if multi_detector.name != krate.name {
-                            report_duplicates(&multi_detector, &mut sink);
+                            report_duplicates(&mut multi_detector, &mut sink);
 
                             multi_detector.name = &krate.name;
                             multi_detector.dupes.clear();
                         }
 
-                        multi_detector.dupes.push(i);
+                        multi_detector.dupes.push((i, false));
 
                         'wildcards: {
                             if wildcards != LintLevel::Allow && !krate.is_git_source() {
@@ -958,7 +988,7 @@ pub fn check(
                 }
 
                 if i == last {
-                    report_duplicates(&multi_detector, &mut sink);
+                    report_duplicates(&mut multi_detector, &mut sink);
                 }
 
                 tx.push(i, krate, pack);
@@ -1050,12 +1080,16 @@ pub fn check(
 
     let mut pack = Pack::new(Check::Bans);
 
-    for skip in skip_hit
-        .into_iter()
-        .zip(skipped.0.into_iter())
-        .filter_map(|(hit, skip)| (!hit).then_some(skip))
-    {
-        pack.push(diags::UnmatchedSkip { skip_cfg: &skip });
+    for (hit, skip) in skip_hit.into_iter().zip(skipped.0.into_iter()) {
+        if !hit {
+            pack.push(diags::UnmatchedSkip { skip_cfg: &skip });
+        } else if multi_detector
+            .krates_with_dupes
+            .binary_search(&skip.spec.name.value.as_str())
+            .is_err()
+        {
+            pack.push(diags::UnnecessarySkip { skip_cfg: &skip });
+        }
     }
 
     for wrapper in ban_wrappers
