@@ -41,6 +41,10 @@ A [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspa
 
 A crate version in [`bans.skip`](cfg.md#the-skip-field-optional) was not encountered.
 
+### `unnecessary-skip`
+
+A crate specified in [`bans.skip`](cfg.md#the-skip-field-optional) was in the graph, but that crate only had one version, making the `skip` entry useless.
+
 ### `allowed-by-wrapper`
 
 A crate in `bans.deny` was allowed since it was directly depended on by a [`wrappers`](cfg.md#the-wrappers-field-optional) crate.
