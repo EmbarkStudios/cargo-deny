@@ -31,6 +31,7 @@ skip = [
 ]
 skip-tree = [
     { crate = "windows-sys@0.52.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
+    { crate = "thiserror@1.0.69", reason = "gix depends on both the 1.0 and 2.0 versions" },
 ]
 
 [sources]
