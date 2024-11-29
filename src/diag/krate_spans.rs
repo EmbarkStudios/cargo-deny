@@ -637,12 +637,11 @@ fn read_workspace_deps<'k>(
                         name,
                     ) {
                         Ok(url) => url::Url::parse(url.as_str())
-                            .map_err(|err| {
+                            .inspect_err(|err| {
                                 log::warn!(
                                     "unable to parse url '{}' for registry '{name}': {err}",
                                     url.as_str()
                                 );
-                                err
                             })
                             .ok(),
                         Err(err) => {

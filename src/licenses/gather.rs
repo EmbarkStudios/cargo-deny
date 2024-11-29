@@ -393,7 +393,7 @@ pub struct Summary<'a> {
     pub nfos: Vec<KrateLicense<'a>>,
 }
 
-impl<'a> Summary<'a> {
+impl Summary<'_> {
     fn new(store: Arc<LicenseStore>) -> Self {
         Self {
             store,
