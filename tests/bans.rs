@@ -92,11 +92,11 @@ fn allow_path_wildcards_public_package() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("wildcards/allow-paths-public"),
-        r#"
+        r"
 multiple-versions = 'allow'
 wildcards = 'deny'
 allow-wildcard-paths = true
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -108,11 +108,11 @@ fn allow_path_wildcards_private_package() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("wildcards/allow-paths-private"),
-        r#"
+        r"
 multiple-versions = 'allow'
 wildcards = 'deny'
 allow-wildcard-paths = true
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -138,11 +138,11 @@ fn ignores_unpublished_crates() {
         func_name!(),
         // If either the workspace `root` or `member-one` crates are pulled in,
         // they will emit diagnostics that won't be emitted by just including member-two
-        r#"
+        r"
 multiple-versions = 'allow'
 wildcards = 'deny'
 allow-wildcard-paths = true
-"#
+"
         .into(),
         |ctx, tx| {
             cargo_deny::bans::check(ctx, None, tx);
@@ -158,11 +158,11 @@ fn allow_git_wildcards_private_package() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("wildcards/allow-git"),
-        r#"
+        r"
 multiple-versions = 'allow'
 wildcards = 'deny'
 allow-wildcard-paths = true
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -176,10 +176,10 @@ fn deterministic_duplicate_ordering() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("duplicates"),
-        r#"
+        r"
 multiple-versions = 'deny'
 multiple-versions-include-dev = true
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -208,10 +208,10 @@ fn duplicate_graphs() {
     use cargo_deny::bans;
 
     let krates = KrateGather::new("duplicates").gather();
-    let cfg = r#"
+    let cfg = r"
 multiple-versions = 'deny'
 multiple-versions-include-dev = true
-"#
+"
     .into();
 
     let dup_graphs = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
@@ -238,14 +238,14 @@ fn deny_multiple_versions_for_specific_krates() {
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("duplicates"),
-        r#"
+        r"
 multiple-versions = 'allow'
 multiple-versions-include-dev = true
 deny = [
     { name = 'block-buffer', deny-multiple-versions = true },
     { name = 'generic-array', deny-multiple-versions = true },
 ]
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -261,11 +261,11 @@ fn deny_target_specific_dependencies() {
             no_default_features: true,
             ..Default::default()
         },
-        r#"
+        r"
 deny = [
     'serde'
 ]
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -278,11 +278,11 @@ deny = [
             targets: &["x86_64-windows-pc-msvc"],
             ..Default::default()
         },
-        r#"
+        r"
 deny = [
     'serde'
 ]
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -295,11 +295,11 @@ deny = [
             targets: &["x86_64-windows-pc-msvc", "aarch64-linux-android"],
             ..Default::default()
         },
-        r#"
+        r"
 deny = [
     'serde'
 ]
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -316,13 +316,13 @@ fn deny_duplicate_workspace_items() {
             targets: &["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"],
             ..Default::default()
         },
-        r#"
+        r"
 multiple-versions = 'allow'
 
 [workspace-dependencies]
 include-path-dependencies = true
 unused = 'warn'
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);
@@ -339,7 +339,7 @@ fn unused_skips_generate_warnings() {
             targets: &["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"],
             ..Default::default()
         },
-        r#"
+        r"
 multiple-versions = 'deny'
 skip = [
     # This actually has 3 versions, skip the two lower ones
@@ -349,7 +349,7 @@ skip = [
     # This crate is in the graph, but there is only one version
     'serde_json',
 ]
-"#,
+",
     );
 
     insta::assert_json_snapshot!(diags);

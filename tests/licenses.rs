@@ -239,10 +239,10 @@ license-files = [
 #[test]
 fn handles_dev_dependencies() {
     let cfg = tu::Config::new(
-        r#"
+        r"
 allow = ['Apache-2.0']
 include-dev = true
-"#,
+",
     );
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, None);
@@ -267,9 +267,9 @@ fn forces_apache_over_pixar() {
         .unwrap();
 
     let cfg = tu::Config::new(
-        r#"
+        r"
     allow = ['Apache-2.0']
-    "#,
+    ",
     );
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);

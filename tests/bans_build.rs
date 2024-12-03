@@ -25,11 +25,11 @@ fn detects_scripts_by_builtin_glob() {
             ..Default::default()
         },
         Config::new(
-            r#"
+            r"
 [build]
 enable-builtin-globs = true
 include-dependencies = true
-"#,
+",
         ),
     );
 
@@ -103,11 +103,11 @@ fn detects_native_executables() {
             ..Default::default()
         },
         Config::new(
-            r#"
+            r"
 [build]
 enable-builtin-globs = true
 include-dependencies = true
-"#,
+",
         ),
     );
 
