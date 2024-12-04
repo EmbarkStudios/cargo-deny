@@ -541,7 +541,7 @@ pub(crate) struct HomePath<'a> {
     pub(crate) home: Option<&'a crate::Path>,
 }
 
-impl<'a> fmt::Display for HomePath<'a> {
+impl fmt::Display for HomePath<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(rel_path) = self.home.and_then(|home| self.path.strip_prefix(home).ok()) {
             f.write_str("$CARGO_HOME/")?;

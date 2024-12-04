@@ -66,7 +66,7 @@ fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
     n
 }
 
-impl<'a> crate::CheckCtx<'a, super::cfg::ValidConfig> {
+impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
     pub(crate) fn diag_for_advisory<F>(
         &self,
         krate: &crate::Krate,

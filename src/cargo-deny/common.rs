@@ -348,7 +348,7 @@ enum OutputFormat<'a> {
 }
 
 impl<'a> OutputFormat<'a> {
-    fn lock(&'a self, max_severity: Severity) -> OutputLock<'a, '_> {
+    fn lock(&'a self, max_severity: Severity) -> OutputLock<'a, 'a> {
         match self {
             Self::Human(human) => OutputLock::Human(
                 human,
@@ -366,7 +366,7 @@ pub enum StdLock<'a> {
     //Out(std::io::StdoutLock<'a>),
 }
 
-impl<'a> Write for StdLock<'a> {
+impl Write for StdLock<'_> {
     fn write(&mut self, d: &[u8]) -> std::io::Result<usize> {
         match self {
             Self::Err(stderr) => stderr.write(d),
@@ -392,7 +392,7 @@ pub enum OutputLock<'a, 'b> {
     Json(&'a Json<'a>, Severity, StdLock<'b>),
 }
 
-impl<'a, 'b> OutputLock<'a, 'b> {
+impl OutputLock<'_, '_> {
     pub fn print(&mut self, diag: CsDiag, files: &Files) {
         match self {
             Self::Human(cfg, max, l, _) => {
@@ -525,7 +525,7 @@ impl<'a> DiagPrinter<'a> {
     }
 
     #[inline]
-    pub fn lock(&'a self) -> OutputLock<'a, '_> {
+    pub fn lock(&'a self) -> OutputLock<'a, 'a> {
         self.which.lock(self.max_severity)
     }
 }

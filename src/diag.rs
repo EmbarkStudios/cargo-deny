@@ -161,7 +161,7 @@ impl<'f> codespan_reporting::files::Files<'f> for Files {
         let start = *file
             .line_starts
             .get(line_index)
-            .ok_or_else(|| FilesErr::LineTooLarge {
+            .ok_or(FilesErr::LineTooLarge {
                 given: line_index,
                 max: file.line_starts.len(),
             })?;

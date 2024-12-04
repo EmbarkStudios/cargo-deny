@@ -3,20 +3,15 @@ use cargo_deny::{
     licenses::{self, cfg::Config},
     test_utils as tu, Krates,
 };
-use parking_lot::Once;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
-static mut STORE: Option<Arc<licenses::LicenseStore>> = None;
-static INIT: Once = Once::new();
+static STORE: OnceLock<Arc<licenses::LicenseStore>> = OnceLock::new();
 
+#[inline]
 fn store() -> Arc<licenses::LicenseStore> {
-    #[allow(unsafe_code)]
-    unsafe {
-        INIT.call_once(|| {
-            STORE = Some(Arc::new(licenses::LicenseStore::from_cache().unwrap()));
-        });
-        STORE.as_ref().unwrap().clone()
-    }
+    STORE
+        .get_or_init(|| Arc::new(licenses::LicenseStore::from_cache().unwrap()))
+        .clone()
 }
 
 fn setup<'k>(

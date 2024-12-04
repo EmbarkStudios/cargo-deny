@@ -24,13 +24,13 @@ impl<'a, 'b: 'a> From<&'b Krate> for Node<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Node<'a> {
+impl fmt::Debug for Node<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}({})", self.name, self.version)
     }
 }
 
-impl<'a> fmt::Display for Node<'a> {
+impl fmt::Display for Node<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}({})", self.name, self.version)
     }
@@ -60,7 +60,7 @@ struct NodeAttributes<'a> {
     fill_color: Option<&'static str>,
 }
 
-impl<'a> NodeAttributes<'a> {
+impl NodeAttributes<'_> {
     fn has_attrs(&self) -> bool {
         self.label.is_some()
             || self.shape.is_some()

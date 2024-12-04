@@ -10,7 +10,7 @@ pub struct ValidationContext<'ctx> {
     pub diagnostics: &'ctx mut Vec<diag::Diagnostic>,
 }
 
-impl<'ctx> ValidationContext<'ctx> {
+impl ValidationContext<'_> {
     #[inline]
     pub fn push(&mut self, diag: diag::Diagnostic) {
         self.diagnostics.push(diag);
