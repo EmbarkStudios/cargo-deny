@@ -388,8 +388,9 @@ impl Krate {
             Source::Sparse(surl) | Source::Registry(surl) | Source::Git { url: surl, .. } => surl,
         };
 
-        kurl.host() == url.host() && (exact && kurl.path() == url.path())
-            || (!exact && kurl.path().starts_with(url.path()))
+        kurl.host() == url.host()
+            && ((exact && kurl.path() == url.path())
+                || (!exact && kurl.path().starts_with(url.path())))
     }
 
     #[inline]
@@ -614,7 +615,7 @@ pub fn krates_with_index(
 
 #[cfg(test)]
 mod test {
-    use super::Source;
+    use super::{Krate, PathBuf, Source, Url};
 
     #[test]
     fn parses_sources() {
@@ -674,5 +675,39 @@ mod test {
                 .dir_name,
             super::CRATES_IO_SPARSE_DIR
         );
+    }
+
+    #[test]
+    fn inexact_match_fails_for_different_hosts() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "git+ssh://git@repo1.test.org/path/test.git".to_owned(),
+                    &PathBuf::new(),
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("ssh://git@repo2.test.org:8000").unwrap();
+
+        assert!(!krate.matches_url(&url, false));
+    }
+
+    #[test]
+    fn inexact_match_passes_for_same_hosts() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "git+ssh://git@repo1.test.org/path/test.git".to_owned(),
+                    &PathBuf::new(),
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("ssh://git@repo1.test.org:8000").unwrap();
+
+        assert!(krate.matches_url(&url, false));
     }
 }
