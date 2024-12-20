@@ -1,0 +1,397 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>config - cargo-deny</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li class="chapter-item expanded "><a href="../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li class="chapter-item expanded "><a href="../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li class="chapter-item expanded "><a href="../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li class="chapter-item expanded "><a href="../cli/list.html"><strong aria-hidden="true">2.4.</strong> list</a></li></ol></li><li class="chapter-item expanded "><a href="../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../checks/cfg.html" class="active"><strong aria-hidden="true">3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">cargo-deny</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="config"><a class="header" href="#config">config</a></h1>
+<p>The top level config for cargo-deny, by default called <code>deny.toml</code>.</p>
+<h2 id="example---cargo-denys-own-configuration"><a class="header" href="#example---cargo-denys-own-configuration">Example - cargo-deny's own configuration</a></h2>
+<pre><code class="language-ini">[graph]
+# cargo-deny is really only ever intended to run on the &quot;normal&quot; tier-1 targets
+targets = [
+    &quot;x86_64-unknown-linux-gnu&quot;,
+    &quot;aarch64-unknown-linux-gnu&quot;,
+    &quot;x86_64-unknown-linux-musl&quot;,
+    &quot;aarch64-apple-darwin&quot;,
+    &quot;x86_64-apple-darwin&quot;,
+    &quot;x86_64-pc-windows-msvc&quot;,
+]
+all-features = true
+
+[advisories]
+version = 2
+ignore = [
+]
+
+[bans]
+multiple-versions = &quot;deny&quot;
+wildcards = 'deny'
+deny = [
+    { crate = &quot;git2&quot;, use-instead = &quot;gix&quot; },
+    { crate = &quot;openssl&quot;, use-instead = &quot;rustls&quot; },
+    { crate = &quot;openssl-sys&quot;, use-instead = &quot;rustls&quot; },
+    &quot;libssh2-sys&quot;,
+    { crate = &quot;cmake&quot;, use-instead = &quot;cc&quot; },
+    { crate = &quot;windows&quot;, reason = &quot;bloated and unnecessary&quot;, use-instead = &quot;ideally inline bindings, practically, windows-sys&quot; },
+]
+skip = [
+    { crate = &quot;hashbrown@0.14.5&quot;, reason = &quot;gix uses this old version&quot; },
+    { crate = &quot;core-foundation@0.9.4&quot;, reason = &quot;reqwest -&gt; system-configuration uses this old version&quot; },
+]
+skip-tree = [
+    { crate = &quot;windows-sys@0.52.0&quot;, reason = &quot;a foundational crate for many that bumps far too frequently to ever have a shared version&quot; },
+    { crate = &quot;thiserror@1.0.69&quot;, reason = &quot;gix depends on both the 1.0 and 2.0 versions&quot; },
+]
+
+[sources]
+unknown-registry = &quot;deny&quot;
+unknown-git = &quot;deny&quot;
+
+[licenses]
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = [
+    &quot;Apache-2.0&quot;,
+    &quot;Apache-2.0 WITH LLVM-exception&quot;,
+    &quot;MIT&quot;,
+    &quot;MPL-2.0&quot;,
+    &quot;BSD-3-Clause&quot;,
+    &quot;ISC&quot;,
+    &quot;Unicode-3.0&quot;,
+]
+exceptions = [
+    # Use exceptions for these as they only have a single user
+    { allow = [&quot;Zlib&quot;], crate = &quot;tinyvec&quot; },
+    { allow = [&quot;OpenSSL&quot;], crate = &quot;ring&quot; },
+]
+
+# Sigh
+[[licenses.clarify]]
+crate = &quot;ring&quot;
+# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
+# https://spdx.org/licenses/OpenSSL.html
+# ISC - Both BoringSSL and ring use this for their new files
+# MIT - &quot;Files in third_party/ have their own licenses, as described therein. The MIT
+# license, for third_party/fiat, which, unlike other third_party directories, is
+# compiled into non-test libraries, is included below.&quot;
+# OpenSSL - Obviously
+expression = &quot;ISC AND MIT AND OpenSSL&quot;
+license-files = [{ path = &quot;LICENSE&quot;, hash = 0xbd0eed23 }]
+
+[[licenses.clarify]]
+crate = &quot;webpki&quot;
+expression = &quot;ISC&quot;
+license-files = [{ path = &quot;LICENSE&quot;, hash = 0x001c7e6c }]
+
+# Actually &quot;ISC-style&quot;
+[[licenses.clarify]]
+crate = &quot;rustls-webpki&quot;
+expression = &quot;ISC&quot;
+license-files = [{ path = &quot;LICENSE&quot;, hash = 0x001c7e6c }]
+</code></pre>
+<h2 id="the-graph-field-optional"><a class="header" href="#the-graph-field-optional">The <code>graph</code> field (optional)</a></h2>
+<p>The graph tables provides configuration options for how the dependency graph that the various checks are executed against is constructed.</p>
+<pre><code class="language-ini">[graph]
+targets = [
+    &quot;x86_64-unknown-linux-gnu&quot;,
+    { triple = &quot;aarch64-apple-darwin&quot; },
+    { triple = &quot;x86_64-pc-windows-msvc&quot;, features = [&quot;sse2&quot;] },
+]
+exclude = [&quot;some-crate@0.1.0&quot;]
+all-features = true
+no-default-features = false
+features = [&quot;some-feature&quot;]
+exclude-dev = true
+</code></pre>
+<h3 id="the-targets-field-optional"><a class="header" href="#the-targets-field-optional">The <code>targets</code> field (optional)</a></h3>
+<p>By default, cargo-deny will consider every single crate that is resolved by cargo, including target specific dependencies eg</p>
+<pre><code class="language-ini">[target.x86_64-pc-windows-msvc.dependencies]
+winapi = &quot;0.3.8&quot;
+
+[target.'cfg(target_os = &quot;fuchsia&quot;)'.dependencies]
+fuchsia-cprng = &quot;0.1.1&quot;
+</code></pre>
+<p>But unless you are actually targeting <code>x86_64-fuchsia</code> or <code>aarch64-fuchsia</code>, the <code>fuchsia-cprng</code> is never actually going to be compiled or linked into your project, so checking it is pointless for you.</p>
+<p>The <code>targets</code> field allows you to specify one or more targets which you <strong>actually</strong> build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.</p>
+<h4 id="the-targetstriple-field-optional-or-triple_string"><a class="header" href="#the-targetstriple-field-optional-or-triple_string">The <code>targets.triple</code> field (optional) or <code>&quot;&lt;triple_string&gt;&quot;</code></a></h4>
+<p>The <a href="https://forge.rust-lang.org/release/platform-support.html">target triple</a> for the target you wish to filter target specific dependencies with. If the target triple specified is <strong>not</strong> one of the targets builtin to <code>rustc</code>, the configuration check for that target will be limited to only the raw <code>[target.&lt;target-triple&gt;.dependencies]</code> style of target configuration, as <code>cfg()</code> expressions require us to know the details about the target.</p>
+<h4 id="the-targetsfeatures-field-optional"><a class="header" href="#the-targetsfeatures-field-optional">The <code>targets.features</code> field (optional)</a></h4>
+<p>Rust <code>cfg()</code> expressions support the <a href="https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute"><code>target_feature = &quot;feature-name&quot;</code></a> predicate, but at the moment, the only way to actually pass them when compiling is to use the <code>RUSTFLAGS</code> environment variable. The <code>features</code> field allows you to specify 1 or more <code>target_feature</code>s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is <a href="https://github.com/EmbarkStudios/cfg-expr/issues/1">planned</a>.</p>
+<h3 id="the-exclude-field-optional"><a class="header" href="#the-exclude-field-optional">The <code>exclude</code> field (optional)</a></h3>
+<p>Just as with the <a href="../cli/common.html#--exclude"><code>--exclude</code></a> command line option, this field allows you to specify one or more <a href="https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html">Package ID specifications</a> that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.</p>
+<p>Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.</p>
+<h3 id="the-all-features-field-optional"><a class="header" href="#the-all-features-field-optional">The <code>all-features</code> field (optional)</a></h3>
+<p>If set to <code>true</code>, <code>--all-features</code> will be used when collecting metadata.</p>
+<h3 id="the-no-default-features-field-optional"><a class="header" href="#the-no-default-features-field-optional">The <code>no-default-features</code> field (optional)</a></h3>
+<p>If set to <code>true</code>, <code>--no-default-features</code> will be used when collecting metadata.</p>
+<h3 id="the-features-field-optional"><a class="header" href="#the-features-field-optional">The <code>features</code> field (optional)</a></h3>
+<p>If set, and <code>--features</code> is not specified on the cmd line, these features will be used when collecting metadata.</p>
+<h3 id="the-exclude-dev-field-optional"><a class="header" href="#the-exclude-dev-field-optional">The <code>exclude-dev</code> field (optional)</a></h3>
+<p>If set to <code>true</code>, all <code>dev-dependencies</code>, even one for workspace crates, are not included in the crate graph used for any of the checks. This option can also be enabled on cmd line with <code>--exclude-dev</code> either <a href="../cli/common.html#--exclude-dev">before</a> or <a href="../cli/check.html#--exclude-dev">after</a> the <code>check</code> subcommand.</p>
+<h3 id="the-exclude-unpublished-field-optional"><a class="header" href="#the-exclude-unpublished-field-optional">The <code>exclude-unpublished</code> field (optional)</a></h3>
+<p>If set to <code>true</code>, workspace crates marked as <code>publish = false</code> will not be used as roots in the dependency graph, meaning they, and any dependencies they have that aren't directly or indirectly referenced by workspace crates that <em>are</em> published, will be excluded from the dependency graph that checks are executed against.</p>
+<h2 id="the-output-field-optional"><a class="header" href="#the-output-field-optional">The <code>output</code> field (optional)</a></h2>
+<h3 id="the-feature-depth-field-optional"><a class="header" href="#the-feature-depth-field-optional">The <code>feature-depth</code> field (optional)</a></h3>
+<p>The maximum depth that features will be displayed when inclusion graphs are included in diagnostics, unless specified via <code>--feature-depth</code> on the command line. Only applies to diagnostics that actually print features. If not specified defaults to <code>1</code>.</p>
+<h2 id="package-specs"><a class="header" href="#package-specs">Package Specs</a></h2>
+<p>Many configuration options require a package specifier at a minimum, which we'll describe here. The options that use package specifiers will be called out in their individual documentation. We'll use the <a href="bans/cfg.html#the-deny-field-optional"><code>bans.deny</code></a> option in the following examples.</p>
+<h3 id="string-format"><a class="header" href="#string-format">String format</a></h3>
+<p>If the particular only requires a package spec at a minimum, then the string format can be used, which comes in three forms.</p>
+<h4 id="simple"><a class="header" href="#simple">Simple</a></h4>
+<pre><code class="language-ini"># Will match any version of the simple crate
+deny = [&quot;simple&quot;]
+</code></pre>
+<p>The simplest string is one which is just the crate name. In this case, the version requirement used when checking will be <code>*</code> meaning it will match against all versions of that crate in the graph.</p>
+<h4 id="with-version-requirements"><a class="header" href="#with-version-requirements">With Version Requirements</a></h4>
+<pre><code class="language-ini"># Will match only this versions of the simple crate that match the predicate(s)
+deny = [&quot;simple:&lt;=0.1,&gt;0.2&quot;]
+</code></pre>
+<p>If you want to apply version requirements (predicates) to the crate, simply append them following a <code>:</code> separator.</p>
+<h4 id="exact"><a class="header" href="#exact">Exact</a></h4>
+<pre><code class="language-ini"># Will match only this exact version of the simple crate
+deny = [
+    &quot;simple@0.1.0&quot;,
+    # This is semantically equivalent to the above
+    &quot;simple:=0.1.0&quot;,
+]
+</code></pre>
+<p>The exact form is a specialization of the version requirements, where the semver after the <code>@</code> is transformed to be <a href="https://docs.rs/semver/latest/semver/enum.Op.html#opexact">= (Exact)</a>.</p>
+<h3 id="table-format"><a class="header" href="#table-format">Table format</a></h3>
+<h4 id="crate-format"><a class="header" href="#crate-format">Crate format</a></h4>
+<pre><code class="language-ini">deny = [
+    { crate = &quot;simple@0.1.0&quot; }, # equivalent to &quot;simple@0.1.0&quot;
+    { crate = &quot;simple&quot;, wrappers = [&quot;example&quot;] },
+]
+</code></pre>
+<p>The crate format is a replacement for the old <code>name</code> and/or <code>version</code> table format. It uses the string format described above in a single <code>crate</code> key.</p>
+<h4 id="old-format"><a class="header" href="#old-format">Old format</a></h4>
+<pre><code class="language-ini">deny = [
+    { name = &quot;simple&quot; },
+    { name = &quot;simple&quot;, version = &quot;*&quot; }
+    { name = &quot;simple&quot;, wrappers = [&quot;example&quot;] }
+]
+</code></pre>
+<p>The old format uses a required <code>name</code> key and an optional <code>version</code> key. This format is deprecated and should not be used.</p>
+<h2 id="the-licenses-section"><a class="header" href="#the-licenses-section">The <code>[licenses]</code> section</a></h2>
+<p>See the <a href="licenses/cfg.html">licenses config</a> for more info.</p>
+<h2 id="the-bans-section"><a class="header" href="#the-bans-section">The <code>[bans]</code> section</a></h2>
+<p>See the <a href="bans/cfg.html">bans config</a> for more info.</p>
+<h2 id="the-advisories-section"><a class="header" href="#the-advisories-section">The <code>[advisories]</code> section</a></h2>
+<p>See the <a href="advisories/cfg.html">advisories config</a> for more info.</p>
+<h2 id="the-sources-section"><a class="header" href="#the-sources-section">The <code>[sources]</code> section</a></h2>
+<p>See the <a href="sources/cfg.html">sources config</a> for more info.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../checks/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../checks/advisories/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../checks/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../checks/advisories/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
