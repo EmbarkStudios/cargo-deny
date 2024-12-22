@@ -7,3 +7,5 @@ license = "MIT"
 
 [dependencies]
 itoa = "*"
+
+[workspace]

@@ -22,3 +22,5 @@ gitea-release = { git = "https://tulpa.dev/cadey/gitea-release" }
 
 # This will not be since the base path doesn't match
 mlua_serde = { git = "https://tulpa.dev/lua/mlua_serde" }
+
+[workspace]

@@ -8,3 +8,5 @@ sqlx = "0.5"
 
 [dev-dependencies]
 async-graphql = "3.0"
+
+[workspace]

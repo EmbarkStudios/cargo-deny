@@ -8,3 +8,5 @@ edition = "2018"
 [[bin]]
 name = "deny-copyleft"
 path = "main.rs"
+
+[workspace]

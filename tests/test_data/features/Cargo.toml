@@ -33,3 +33,5 @@ serde = ["dep:serde", "rgb?/serde"]
 stream = ["request?/stream"]
 zlib = ["git/zlib-ng-compat", "request?/deflate"]
 ssh = ["git/ssh", "git/ssh_key_from_memory"]
+
+[workspace]

@@ -9,3 +9,5 @@ license = "MIT"
 dangerous-dep = { version = "0.1.0", path = "../dangerous-dep", features = [
     "not-dangerous-at-all",
 ] }
+
+[workspace]
