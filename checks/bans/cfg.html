@@ -1,0 +1,521 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>config - cargo-deny</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li class="chapter-item expanded "><a href="../../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li class="chapter-item expanded "><a href="../../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li class="chapter-item expanded "><a href="../../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li class="chapter-item expanded "><a href="../../cli/list.html"><strong aria-hidden="true">2.4.</strong> list</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/cfg.html"><strong aria-hidden="true">3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/bans/index.html"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/bans/cfg.html" class="active"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">cargo-deny</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="the-bans-section"><a class="header" href="#the-bans-section">The <code>[bans]</code> section</a></h1>
+<p>Contains all of the configuration for <code>cargo deny check bans</code></p>
+<h2 id="example-config"><a class="header" href="#example-config">Example Config</a></h2>
+<pre><code class="language-ini">[bans]
+multiple-versions = &quot;deny&quot;
+wildcards = &quot;deny&quot;
+allow-wildcard-paths = true
+highlight = &quot;simplest-path&quot;
+workspace-default-features = &quot;warn&quot;
+external-default-features = &quot;deny&quot;
+allow = [
+    { name = &quot;all-versionsa&quot; },
+    &quot;version-rangea:&lt;0.1.1&quot;,
+    &quot;specific-versionb@0.1.2&quot;,
+    &quot;any-version&quot;,
+]
+deny = [
+    &quot;specific-versiond@0.1.9&quot;,
+    { name = &quot;all-versionsd&quot;, wrappers = [
+        &quot;specific-versiona&quot;,
+    ], reason = &quot;we want to get rid of this crate but there is still one user of it&quot; },
+]
+skip-tree = [{ name = &quot;blah&quot;, depth = 20 }]
+
+[bans.workspace-dependencies]
+duplicates = &quot;allow&quot;
+include-path-dependencies = false
+unused = &quot;allow&quot;
+
+[[bans.skip]]
+name = &quot;rand&quot;
+version = &quot;=0.6.5&quot;
+
+[[bans.features]]
+name = &quot;featured-krate&quot;
+version = &quot;1.0&quot;
+deny = [&quot;bad-feature&quot;]
+allow = [&quot;good-feature&quot;]
+exact = true
+reason = &quot;`bad-feature` is bad&quot;
+
+[bans.build]
+allow-build-scripts = [{ name = &quot;all-versionsa&quot; }]
+executables = &quot;warn&quot;
+interpreted = &quot;deny&quot;
+script-extensions = [&quot;cs&quot;]
+enable-builtin-globs = true
+include-dependencies = true
+include-workspace = true
+include-archives = true
+
+[[bans.build.bypass]]
+name = &quot;allversionsa&quot;
+build-script = &quot;5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7&quot;
+required-features = [&quot;feature-used-at-build-time&quot;]
+allow-globs = [&quot;scripts/*.cs&quot;]
+allow = [
+    { path = &quot;bin/x86_64-linux&quot;, checksum = &quot;5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7&quot; },
+]
+</code></pre>
+<h3 id="the-multiple-versions-field-optional"><a class="header" href="#the-multiple-versions-field-optional">The <code>multiple-versions</code> field (optional)</a></h3>
+<p>Determines what happens when multiple versions of the same crate are encountered.</p>
+<ul>
+<li><code>deny</code> - Will emit an error for each crate with duplicates and fail the check.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate with duplicates, but does not fail the check.</li>
+<li><code>allow</code> - Ignores duplicate versions of the same crate.</li>
+</ul>
+<h3 id="the-multiple-versions-include-dev-field-optional"><a class="header" href="#the-multiple-versions-include-dev-field-optional">The <code>multiple-versions-include-dev</code> field (optional)</a></h3>
+<p>If <code>true</code>, <code>dev-dependencies</code> are included when checking for multiple versions of crates. By default this is false, and any crates that are only reached via dev dependency edges are ignored when checking for multiple versions. Note that this also means that <code>skip</code> and <code>skip</code> tree are not used, which may lead to warnings about unused configuration.</p>
+<h3 id="the-wildcards-field-optional"><a class="header" href="#the-wildcards-field-optional">The <code>wildcards</code> field (optional)</a></h3>
+<p>Determines what happens when a dependency is specified with the <code>*</code> (wildcard) version.</p>
+<ul>
+<li><code>deny</code> - Will emit an error for each crate specified with a wildcard version.</li>
+<li><code>warn</code> (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.</li>
+<li><code>allow</code> - Ignores all wildcard version specifications.</li>
+</ul>
+<h3 id="the-allow-wildcard-paths-field-optional"><a class="header" href="#the-allow-wildcard-paths-field-optional">The <code>allow-wildcard-paths</code> field (optional)</a></h3>
+<p>If specified, alters how the <code>wildcard</code> field behaves:</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies">path</a> or <a href="https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories">git</a> <code>dependencies</code> in <strong>private</strong> crates will no longer emit a warning or error.</li>
+<li>path or git <code>dev-dependencies</code> in both public and private crates will no longer emit a warning or error.</li>
+<li>path or git <code>dependencies</code> and <code>build-dependencies</code> in <strong>public</strong> crates will continue to produce warnings and errors.</li>
+</ul>
+<p>Being limited to private crates is due to crates.io not allowing packages to be published with <code>path</code> or <code>git</code> dependencies except for <code>dev-dependencies</code>.</p>
+<h3 id="the-workspace-dependencies-field-optional"><a class="header" href="#the-workspace-dependencies-field-optional">The <code>workspace-dependencies</code> field (optional)</a></h3>
+<p>Used to configure how <a href="https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table"><code>[workspace.dependencies]</code></a> are treated.</p>
+<pre><code class="language-ini">[bans.workspace-dependencies]
+duplicates = 'deny'
+include-path-dependencies = true
+unused = 'deny'
+</code></pre>
+<h4 id="the-duplicates-field-optional"><a class="header" href="#the-duplicates-field-optional">The <code>duplicates</code> field (optional)</a></h4>
+<p>Determines what happens when more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use <code>workspace = true</code></p>
+<ul>
+<li><code>deny</code> (default) - Will emit an error for each dependency declaration that does not use <code>workspace = true</code></li>
+<li><code>warn</code> - Will emit a warning for each dependency declaration that does not use <code>workspace = true</code>, but does not fail the check.</li>
+<li><code>allow</code> - Ignores checking for <code>workspace = true</code> for dependencies in workspace crates</li>
+</ul>
+<h4 id="the-include-path-dependencies-field-optional"><a class="header" href="#the-include-path-dependencies-field-optional">The <code>include-path-dependencies</code> field (optional)</a></h4>
+<p>If true, path dependencies will be included in the duplication check, otherwise they are completely ignored.</p>
+<h4 id="the-unused-field-optional"><a class="header" href="#the-unused-field-optional">The <code>unused</code> field (optional)</a></h4>
+<p>Determines what happens when a dependency in <a href="https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table"><code>[workspace.dependencies]</code></a> is not used in the workspace.</p>
+<ul>
+<li><code>deny</code> (default) - Will emit an error for each dependency that is not actually used in the workspace.</li>
+<li><code>warn</code> - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.</li>
+<li><code>allow</code> - Ignores checking for unused workspace dependencies.</li>
+</ul>
+<h3 id="the-highlight-field-optional"><a class="header" href="#the-highlight-field-optional">The <code>highlight</code> field (optional)</a></h3>
+<p>When multiple versions of the same crate are encountered and <code>multiple-versions</code> is set to <code>warn</code> or <code>deny</code>, using the <code>-g &lt;dir&gt;</code> option will print out a <a href="https://www.graphviz.org/">dotgraph</a> of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.</p>
+<ul>
+<li><code>lowest-version</code> - Highlights the path to the lowest duplicate version. Highlighted in <img src="https://placehold.it/15/ff0000/000000?text=+" alt="red" /></li>
+<li><code>simplest-path</code> - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in <img src="https://placehold.it/15/0000FF/000000?text=+" alt="blue" />.</li>
+<li><code>all</code> - Highlights both the <code>lowest-version</code> and <code>simplest-path</code>. If they are the same, they are only highlighted in <img src="https://placehold.it/15/ff0000/000000?text=+" alt="red" />.</li>
+</ul>
+<p><img src="https://i.imgur.com/xtarzeU.png" alt="Imgur" /></p>
+<h3 id="the-deny-field-optional"><a class="header" href="#the-deny-field-optional">The <code>deny</code> field (optional)</a></h3>
+<pre><code class="language-ini">deny = [&quot;package-spec&quot;]
+</code></pre>
+<p>Determines specific crates that are denied. Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<h4 id="the-wrappers-field-optional"><a class="header" href="#the-wrappers-field-optional">The <code>wrappers</code> field (optional)</a></h4>
+<pre><code class="language-ini">deny = [{ crate = &quot;crate-you-don't-want:&lt;=0.7.0&quot;, wrappers = [&quot;this-can-use-it&quot;] }]
+</code></pre>
+<p>This field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.</p>
+<h4 id="the-deny-multiple-versions-field-optional"><a class="header" href="#the-deny-multiple-versions-field-optional">The <code>deny-multiple-versions</code> field (optional)</a></h4>
+<pre><code class="language-ini">multiple-versions = 'allow'
+deny = [{ crate = &quot;crate-you-want-only-one-version-of&quot;, deny-multiple-versions = true }]
+</code></pre>
+<p>This field allows specific crates to deny multiple versions of themselves, but allowing or warning on multiple versions for all other crates. This field cannot be set simultaneously with <code>wrappers</code>.</p>
+<h4 id="the-denyreason-field-optional"><a class="header" href="#the-denyreason-field-optional">The <code>deny.reason</code> field (optional)</a></h4>
+<pre><code class="language-ini">deny = [{ crate = &quot;package-spec&quot;, reason = &quot;the reason this crate is banned&quot;}]
+</code></pre>
+<p>This field provides the reason the crate is banned as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.</p>
+<h4 id="the-denyuse-instead-field-optional"><a class="header" href="#the-denyuse-instead-field-optional">The <code>deny.use-instead</code> field (optional)</a></h4>
+<pre><code class="language-ini">deny = [{ crate = &quot;openssl&quot;, use-instead = &quot;rustls&quot;}]
+</code></pre>
+<p>This is a shorthand for the most common case for banning a particular crate, which is that your project has chosen to use a different crate for that functionality.</p>
+<h3 id="the-allow-field-optional"><a class="header" href="#the-allow-field-optional">The <code>allow</code> field (optional)</a></h3>
+<pre><code class="language-ini">deny = [&quot;package-spec&quot;]
+</code></pre>
+<p>Determines specific crates that are allowed. If the <code>allow</code> list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<h4 id="the-allowreason-field-optional"><a class="header" href="#the-allowreason-field-optional">The <code>allow.reason</code> field (optional)</a></h4>
+<pre><code class="language-ini">allow = [{ crate = &quot;package-spec&quot;, reason = &quot;the reason this crate is allowed&quot;}]
+</code></pre>
+<p>This field provides the reason the crate is allowed as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.</p>
+<h3 id="the-external-default-features-field-optional"><a class="header" href="#the-external-default-features-field-optional">The <code>external-default-features</code> field (optional)</a></h3>
+<p>Determines the lint level used for when the <code>default</code> feature is enabled on a crate not in the workspace. This lint level will can then be overridden on a per-crate basis if desired.</p>
+<p>For example, if <code>an-external-crate</code> had the <code>default</code> feature enabled it could be explicitly allowed.</p>
+<pre><code class="language-ini">[bans]
+external-default-features = &quot;deny&quot;
+
+[[bans.features]]
+crate = &quot;an-external-crate&quot;
+allow = [&quot;default&quot;]
+</code></pre>
+<h3 id="the-workspace-default-features-field-optional"><a class="header" href="#the-workspace-default-features-field-optional">The <code>workspace-default-features</code> field (optional)</a></h3>
+<p>The workspace version of <code>external-default-features</code>.</p>
+<pre><code class="language-ini">[bans]
+external-default-features = &quot;allow&quot;
+
+[[bans.features]]
+crate = &quot;a-workspace-crate&quot;
+deny = [&quot;default&quot;]
+</code></pre>
+<h3 id="the-features-field-optional"><a class="header" href="#the-features-field-optional">The <code>features</code> field (optional)</a></h3>
+<pre><code class="language-ini">[[bans.features]]
+crate = &quot;featured-krate:1.0&quot;
+deny = [&quot;bad-feature&quot;]
+allow = [&quot;good-feature&quot;]
+exact = true
+</code></pre>
+<p>Allows specification of crate specific allow/deny lists of features. Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<h4 id="the-featuresdeny-field-optional"><a class="header" href="#the-featuresdeny-field-optional">The <code>features.deny</code> field (optional)</a></h4>
+<p>Denies specific features for the crate.</p>
+<h4 id="the-featuresallow-field-optional"><a class="header" href="#the-featuresallow-field-optional">The <code>features.allow</code> field (optional)</a></h4>
+<p>Allows specific features for the crate, enabled features not in this list are denied.</p>
+<h4 id="the-featuresexact-field-optional"><a class="header" href="#the-featuresexact-field-optional">The <code>features.exact</code> field (optional)</a></h4>
+<p>If specified, requires that the features in <code>allow</code> exactly match the features enabled on the crate, and will fail if features are allowed that are not enabled.</p>
+<h3 id="the-skip-field-optional"><a class="header" href="#the-skip-field-optional">The <code>skip</code> field (optional)</a></h3>
+<pre><code class="language-ini">skip = [
+    &quot;package-spec&quot;,
+    { crate = &quot;package-spec&quot;, reason = &quot;an old version is used by crate-x, see &lt;PR link&gt; for updating it&quot; },
+]
+</code></pre>
+<p>When denying duplicate versions, it's often the case that there is a window of time where you must wait for, for example, PRs to be accepted and new version published, before 1 or more duplicates are gone. The <code>skip</code> field allows you to temporarily ignore a crate during duplicate detection so that no errors are emitted, until it is no longer need.</p>
+<p>It is recommended to use specific version constraints for crates in the <code>skip</code> list, as cargo-deny will emit warnings when any entry in the <code>skip</code> list no longer matches a crate in your graph so that you can cleanup your configuration.</p>
+<p>Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<h3 id="the-skip-tree-field-optional"><a class="header" href="#the-skip-tree-field-optional">The <code>skip-tree</code> field (optional)</a></h3>
+<pre><code class="language-ini">skip-tree = [
+    &quot;windows-sys&lt;=0.52&quot;, # will skip this crate and _all_ direct and transitive dependencies
+    { crate = &quot;windows-sys&lt;=0.52&quot;, reason = &quot;several crates use the outdated 0.42 and 0.45 versions&quot; },
+    { crate = &quot;windows-sys&lt;=0.52&quot;, depth = 3, reason = &quot;several crates use the outdated 0.42 and 0.45 versions&quot; },
+]
+</code></pre>
+<p>When dealing with duplicate versions, it's often the case that a particular crate acts as a nexus point for a cascade effect, by either using bleeding edge versions of certain crates while in alpha or beta, or on the opposite end of the spectrum, a crate is using severely outdated dependencies while much of the rest of the ecosystem has moved to more recent versions. In both cases, it can be quite tedious to explicitly <code>skip</code> each transitive dependency pulled in by that crate that clashes with your other dependencies, which is where <code>skip-tree</code> comes in.</p>
+<p><code>skip-tree</code> entries are similar to <code>skip</code> in that they are used to specify a crate name and version range that will be skipped, but they also have an additional <code>depth</code> field used to specify how many levels from the crate will also be skipped. A depth of <code>0</code> would be the same as specifying the crate in the <code>skip</code> field.</p>
+<p>Note that by default, the <code>depth</code> is infinite.</p>
+<p>Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<p><strong>NOTE:</strong> <code>skip-tree</code> is a very big hammer, and should be used with care.</p>
+<h3 id="the-build-field-optional"><a class="header" href="#the-build-field-optional">The <code>build</code> field (optional)</a></h3>
+<p>The <code>build</code> field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a <a href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">build script</a>, or they are a <a href="https://doc.rust-lang.org/reference/procedural-macros.html">procedural macro</a>. The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of <a href="https://en.wikipedia.org/wiki/Shebang_(Unix)">interpreted shebang scripts</a>.</p>
+<p>While the intention of this configuration is to raise awareness of crates that have or use precompiled binaries or scripts, or otherwise contain file types that you want to be aware of, the compile time crate linting supplied by cargo-deny does <strong>NOT</strong> protect you from actively malicious code.</p>
+<p>A quick run down of things that cargo-deny <strong>WILL NOT DETECT</strong>.</p>
+<ul>
+<li>The crate just straight up does bad things like uploading your SSH keys to a remote server using vanilla rust code</li>
+<li>The crate contains compressed, or otherwise obfuscated executable binaries</li>
+<li>The build script uses <code>include!()</code> for code that is benign in one version, then replaces it with something malicious without triggering a checksum mismatch on the build script contents itself.</li>
+<li>A build time dependency of a non-malicious crate does any of the above.</li>
+<li>Tons of other stuff I haven't thought of because I am not a security person</li>
+</ul>
+<p>So all this is to say, <code>cargo-deny</code> (currently) is only really useful for analyzing when crates have native executables, and/or the crate maintainers have either forgotten or purposefully left helper scripts for their CI/release management/etc in the crate source that are not actually ever executed automatically.</p>
+<h4 id="the-allow-build-scripts-field-optional"><a class="header" href="#the-allow-build-scripts-field-optional">The <code>allow-build-scripts</code> field (optional)</a></h4>
+<p>Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.</p>
+<h4 id="the-executables-field-optional"><a class="header" href="#the-executables-field-optional">The <code>executables</code> field (optional)</a></h4>
+<p>This controls how native executables are handled. Note this check is done by actually reading the file headers from disk so that this check works on Windows as well, ie the executable bit is irrelevant.</p>
+<ul>
+<li><code>deny</code> (default) - Emits an error when native executables are detected.</li>
+<li><code>warn</code> - Prints a warning when native executables are detected, but does not fail the check.</li>
+<li><code>allow</code> - Prints a note when native executables are detected, but does not fail the check.</li>
+</ul>
+<p>This check currently only handles the major executable formats.</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Executable_and_Linkable_Format">ELF</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Portable_Executable">PE</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Mach-O">Mach-O</a></li>
+</ul>
+<h4 id="the-interpreted-field-optional"><a class="header" href="#the-interpreted-field-optional">The <code>interpreted</code> field (optional)</a></h4>
+<p>This controls how interpreted scripts are handled. Note this check is done by actually reading the file header from disk so that this check works on Windows as well, ie the executable bit is irrelevant.</p>
+<ul>
+<li><code>deny</code> - Emits an error when interpreted scripts are detected.</li>
+<li><code>warn</code> - Prints a warning when interpreted scripts are detected, but does not fail the check.</li>
+<li><code>allow</code> (default) - Prints a note when interpreted scripts are detected, but does not fail the check.</li>
+</ul>
+<h4 id="the-script-extensions-field-optional"><a class="header" href="#the-script-extensions-field-optional">The <code>script-extensions</code> field (optional)</a></h4>
+<p>If supplied scans crates that execute at compile time for any files with the specified extension(s), emitting an error for every one that matches.</p>
+<h4 id="the-enable-builtin-globs-field-optional"><a class="header" href="#the-enable-builtin-globs-field-optional">The <code>enable-builtin-globs</code> field (optional)</a></h4>
+<p>If <code>true</code>, enables the builtin glob patterns for common languages that tend to by installed on most developer machines, such as python.</p>
+<pre><code class="language-ini"># List of &quot;common&quot; patterns for scripting languages or easily executable
+# compiled languages that could be used for local execution with build scripts
+# or proc macros. Obviously this list is not and never can be complete since
+# in most cases extensions are only for humans and most tools will happily
+# execute scripts/code they can regardless of extension (eg. shell scripts),
+# and besides that, an _actually_ malicious crate could generate files on demand,
+# download from a remote location, or, really, anything
+globs = [
+    &quot;*.bat&quot;, &quot;*.cmd&quot;, # batch
+    &quot;*.go&quot;, # Go `go run &lt;file.go&gt;`
+    &quot;*.java&quot;, # Java `java &lt;file.java&gt;`
+    &quot;*.js&quot;, &quot;*._js&quot;, &quot;*.es&quot;, &quot;*.es6&quot;, # javascript
+    &quot;*.pl&quot;, &quot;*.perl&quot;, &quot;*.pm&quot;, # perl
+    &quot;*.6pl&quot;, &quot;*.6pm&quot;, &quot;*.p6&quot;, &quot;*.p6l&quot;, &quot;*.p6m&quot;, &quot;*.pl6&quot;, &quot;*.pm6&quot;, &quot;*.t&quot;, # perl 6
+    &quot;*.ps1&quot;, &quot;*.psd1&quot;, &quot;*.psm1&quot;, # powershell
+    &quot;*.py&quot;, # python
+    &quot;*.rb&quot;, # ruby
+    &quot;*.sh&quot;, &quot;*.bash&quot;, &quot;*.zsh&quot;, # shell
+]
+</code></pre>
+<h4 id="the-include-dependencies-field-optional"><a class="header" href="#the-include-dependencies-field-optional">The <code>include-dependencies</code> field (optional)</a></h4>
+<p>By default, only the crate that executes at compile time is scanned, but if set to <code>true</code>, this field will check this crate as well as all of its dependencies. This option is disabled by default, as this will tend to only find CI scripts that people leave in their published crates.</p>
+<h4 id="the-include-workspace-field-optional"><a class="header" href="#the-include-workspace-field-optional">The <code>include-workspace</code> field (optional)</a></h4>
+<p>If <code>true</code>, workspace crates will also be scanned. This defaults to false as you presumably have some degree of trust for your own code.</p>
+<h4 id="the-include-archives-field-optional"><a class="header" href="#the-include-archives-field-optional">The <code>include-archives</code> field (optional)</a></h4>
+<p>If <code>true</code>, archive files (eg. Windows .lib, Unix .a, C++ .o object files etc) are also counted as native code. This defaults to false, as these tend to need to be linked before they can be executed.</p>
+<h4 id="the-bypass-field-optional"><a class="header" href="#the-bypass-field-optional">The <code>bypass</code> field (optional)</a></h4>
+<p>While all the previous configuration is about configuration the global checks that run on compile time crates, the <code>allow</code> field is how one can suppress those lints on a crate-by-crate basis.</p>
+<p>Each entry uses the same <a href="../cfg.html#package-specs">PackageSpec</a> as other parts of cargo-deny's configuration.</p>
+<pre><code class="language-ini">[build.bypass]
+crate = &quot;crate-name&quot;
+</code></pre>
+<h5 id="the-build-script-and-required-features-field-optional"><a class="header" href="#the-build-script-and-required-features-field-optional">The <code>build-script</code> and <code>required-features</code> field (optional)</a></h5>
+<p>If set to a valid, 64-character hexadecimal <a href="https://en.wikipedia.org/wiki/SHA-2">SHA-256</a>, the <code>build-script</code> field will cause the rest of the scanning to be bypassed <em>if</em> the crate's build script's checksum matches the user specified checksum <strong>AND</strong> none of the features specified in the <code>required-features</code> field are enabled. If the checksum does not match, the calculated checksum will be emitted as a warning, and the crate will be scanned as if a checksum was not supplied.</p>
+<p><strong>NOTE:</strong> These options only applies to crate with build scripts, not proc macros, as proc macros do not have a single entry point that can be easily checksummed.</p>
+<pre><code class="language-ini">[[build.bypass]]
+name = &quot;crate-name&quot;
+build-script = &quot;5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7&quot;
+</code></pre>
+<h5 id="the-allow-globs-field-optional"><a class="header" href="#the-allow-globs-field-optional">The <code>allow-globs</code> field (optional)</a></h5>
+<p>Bypasses scanning of files that match one or more of the glob patterns specified. Note that unlike the <a href="#the-script-extensions-field-optional"><code>script-extensions</code></a> field that applies to all crates, these globs can match anything, not just extensions.</p>
+<pre><code class="language-ini">[build]
+script-extensions = [&quot;cs&quot;]
+
+[[build.bypass]]
+crate = &quot;crate-name&quot;
+allow-globs = [
+    &quot;scripts/*.cs&quot;,
+]
+</code></pre>
+<h5 id="the-bypassallow-field-optional"><a class="header" href="#the-bypassallow-field-optional">The <code>bypass.allow</code> field (optional)</a></h5>
+<p>Bypasses scanning a single file.</p>
+<pre><code class="language-ini">[build]
+executables = &quot;deny&quot;
+
+[[build.bypass]]
+crate = &quot;crate-name&quot;
+allow = [
+    { path = &quot;bin/x86_64-linux&quot;, checksum = &quot;5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7&quot; }
+]
+</code></pre>
+<h6 id="the-path-field"><a class="header" href="#the-path-field">The <code>path</code> field</a></h6>
+<p>The path, relative to the crate root, of the file to bypass scanning.</p>
+<h6 id="the-checksum-field-optional"><a class="header" href="#the-checksum-field-optional">The <code>checksum</code> field (optional)</a></h6>
+<p>The 64-character hexadecimal <a href="https://en.wikipedia.org/wiki/SHA-2">SHA-256</a> checksum of the file. If the checksum does not match, an error is emitted.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../checks/bans/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../checks/bans/diags.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../checks/bans/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../checks/bans/diags.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
