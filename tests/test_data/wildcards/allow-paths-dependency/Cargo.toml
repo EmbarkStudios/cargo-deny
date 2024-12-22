@@ -9,3 +9,5 @@ license = "MIT"
 
 [dependencies]
 sqlx = "0.5"
+
+[workspace]

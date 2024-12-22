@@ -19,3 +19,5 @@ prost-build = { version = "<0.10", optional = true }
 ring = { version = "0.16.20", optional = true }
 # The shot heard around the world
 serde = { version = "=1.0.172", features = ["derive"], optional = true }
+
+[workspace]

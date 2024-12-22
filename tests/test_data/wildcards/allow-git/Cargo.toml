@@ -12,3 +12,5 @@ publish = false
 [dependencies]
 # An arbitrary choice of actually existent Git repository
 wildcards-test-allow-git = { package = "krates", git = "https://github.com/EmbarkStudios/krates", rev = "b03ecd6f3204a1b1ec04fbaead2d0d122a3a4494" }
+
+[workspace]

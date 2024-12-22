@@ -7,3 +7,5 @@ license = "MIT"
 
 [dependencies]
 safe-wrapper = { path = "../safe-wrapper", version = "0.1.0" }
+
+[workspace]

@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 from-git = { version = "*", package = "crate-one", registry = "embark-deny-git" }
 from-sparse = { version = "*", package = "crate-two", registry = "embark-deny-sparse" }
+
+[workspace]

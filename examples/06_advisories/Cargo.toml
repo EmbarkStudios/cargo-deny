@@ -31,3 +31,5 @@ static_type_map = "0.3"
 # The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
 # https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md
 lettre = "0.10.0-alpha.3"
+
+[workspace]

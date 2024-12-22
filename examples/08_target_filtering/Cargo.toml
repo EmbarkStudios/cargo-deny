@@ -40,3 +40,5 @@ difference = "2.0.0"
 
 [target.'cfg(all(target_arch = "wasm32", target_feature = "atomics"))'.dependencies]
 wasm-bindgen-futures = "0.4.6"
+
+[workspace]

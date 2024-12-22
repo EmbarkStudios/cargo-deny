@@ -7,3 +7,5 @@ publish = false
 
 [lib]
 path = "lib.rs"
+
+[workspace]

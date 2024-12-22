@@ -26,3 +26,5 @@ amethyst_core = { git = "https://gitlab.com/amethyst-engine/amethyst", rev = "0c
 krates = { git = "https://github.com/EmbarkStudios/krates", branch = "main" }
 line-wrap = { git = "https://bitbucket.org/marshallpierce/line-wrap-rs" }
 spdx = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.3.4" }
+
+[workspace]

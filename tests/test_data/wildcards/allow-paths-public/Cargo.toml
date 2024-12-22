@@ -7,3 +7,5 @@ license = "MIT"
 
 [dependencies]
 wildcards-test-allow-paths-dependency = { path = "../allow-paths-dependency" }
+
+[workspace]

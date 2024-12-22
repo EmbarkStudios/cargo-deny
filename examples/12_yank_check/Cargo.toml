@@ -14,3 +14,5 @@ spdx = "=0.3.1"
 crate-two = { version = "=0.1.0", registry = "embark-deny" }
 # This one is not
 crate-one = { version = "=0.1.0", registry = "embark-deny-sparse" }
+
+[workspace]

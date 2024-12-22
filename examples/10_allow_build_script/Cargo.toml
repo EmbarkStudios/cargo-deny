@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 openssl-sys = "0.9.74"
+
+[workspace]

@@ -42,3 +42,5 @@ stream = ["request?/stream"]
 tls = ["tls-no-reqwest", "request?/rustls-tls"]
 tls-no-reqwest = ["rustls"]
 zlib = ["git/zlib-ng-compat", "request?/deflate"]
+
+[workspace]

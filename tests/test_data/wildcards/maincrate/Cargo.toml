@@ -8,3 +8,5 @@ license = "MIT"
 [dependencies]
 ansi_term = "*"
 wildcards-test-dep = { path = "../dependency", version = "0.1.0" }
+
+[workspace]

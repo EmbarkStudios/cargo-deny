@@ -11,3 +11,5 @@ path = "main.rs"
 
 [dependencies]
 rustls-webpki = "=0.100.1"
+
+[workspace]
