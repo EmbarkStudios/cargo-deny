@@ -69,5 +69,5 @@ curl -L -o $DIR/archive.tar.gz https://github.com/EmbarkStudios/$NAME/releases/d
 tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
 
 # Run cargo deny check in our current directory
-$DIR/$NAME --context . -L debug check bans licenses advisories
+$DIR/$NAME -L debug check bans licenses advisories
 ```
