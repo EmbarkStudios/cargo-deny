@@ -61,6 +61,7 @@ macro_rules! enum_deser {
                     return Err(toml_span::Error::from((
                         toml_span::ErrorKind::UnexpectedValue {
                             expected: <$enum as VariantNames>::VARIANTS,
+                            value: None,
                         },
                         value.span,
                     ))
@@ -134,9 +135,9 @@ impl Source {
             "registry" => {
                 if url_str == tame_index::CRATES_IO_INDEX {
                     // registry/src/index.crates.io-6f17d22bba15001f/crate-version/Cargo.toml
-                    let is_sparse = manifest_path.ancestors().nth(2).map_or(false, |dir| {
+                    let is_sparse = manifest_path.ancestors().nth(2).is_some_and(|dir| {
                         dir.file_name()
-                            .map_or(false, |dir_name| dir_name == CRATES_IO_SPARSE_DIR)
+                            .is_some_and(|dir_name| dir_name == CRATES_IO_SPARSE_DIR)
                     });
                     Ok(Self::crates_io(is_sparse))
                 } else {
@@ -359,7 +360,7 @@ impl Krate {
     /// Returns true if the crate is marked as `publish = false`, or
     /// it is only published to the specified private registries
     pub(crate) fn is_private(&self, private_registries: &[&str]) -> bool {
-        self.publish.as_ref().map_or(false, |v| {
+        self.publish.as_ref().is_some_and(|v| {
             if v.is_empty() {
                 true
             } else {
@@ -395,17 +396,17 @@ impl Krate {
 
     #[inline]
     pub(crate) fn is_crates_io(&self) -> bool {
-        self.source.as_ref().map_or(false, |src| src.is_crates_io())
+        self.source.as_ref().is_some_and(|src| src.is_crates_io())
     }
 
     #[inline]
     pub(crate) fn is_git_source(&self) -> bool {
-        self.source.as_ref().map_or(false, |src| src.is_git())
+        self.source.as_ref().is_some_and(|src| src.is_git())
     }
 
     #[inline]
     pub(crate) fn is_registry(&self) -> bool {
-        self.source.as_ref().map_or(false, |src| src.is_registry())
+        self.source.as_ref().is_some_and(|src| src.is_registry())
     }
 }
 
