@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#742](https://github.com/EmbarkStudios/cargo-deny/pull/742) updated `gix` to 0.70, to resolve [RUSTSEC-2025-0001](https://rustsec.org/advisories/RUSTSEC-2025-0001.html).
+
+### Fixed
+- [PR#739](https://github.com/EmbarkStudios/cargo-deny/pull/739) fixed an issue where sources could match even if the hostname was not the same.
+
 ## [0.16.3] - 2024-11-28
 ### Changed
 - [PR#721](https://github.com/EmbarkStudios/cargo-deny/pull/721) updated `rust-version` to 1.81.0 to accurately reflect the minimum rust version required to compile, resolving [#720](https://github.com/EmbarkStudios/cargo-deny/issues/720).
