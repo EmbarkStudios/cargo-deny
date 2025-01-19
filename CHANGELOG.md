@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.16.4] - 2025-01-19
 ### Changed
 - [PR#742](https://github.com/EmbarkStudios/cargo-deny/pull/742) updated `gix` to 0.70, to resolve [RUSTSEC-2025-0001](https://rustsec.org/advisories/RUSTSEC-2025-0001.html).
 
@@ -688,7 +689,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.4...HEAD
+[0.16.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.3...0.16.4
 [0.16.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...0.16.3
 [0.16.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...0.16.2
 [0.16.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.0...0.16.1
