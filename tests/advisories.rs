@@ -165,7 +165,7 @@ ignore = [
         .filter(|v| {
             v.pointer("/fields/code")
                 .and_then(|s| s.as_str())
-                .map_or(false, |s| s == "advisory-ignored")
+                .is_some_and(|s| s == "advisory-ignored")
         })
         .collect();
 
@@ -228,7 +228,7 @@ fn detects_yanked() {
             .filter(|v| {
                 v.pointer("/fields/message")
                     .and_then(|v| v.as_str())
-                    .map_or(false, |v| v.starts_with("detected yanked crate"))
+                    .is_some_and(|v| v.starts_with("detected yanked crate"))
             })
             .collect();
 
@@ -264,7 +264,7 @@ ignore = [
             .filter(|v| {
                 v.pointer("/fields/message")
                     .and_then(|v| v.as_str())
-                    .map_or(false, |v| {
+                    .is_some_and(|v| {
                         v.starts_with("detected yanked crate") || v.starts_with("yanked crate")
                     })
             })
@@ -695,7 +695,7 @@ fn crates_io_source_replacement() {
         .filter(|v| {
             v.pointer("/fields/message")
                 .and_then(|v| v.as_str())
-                .map_or(false, |v| v.starts_with("detected yanked crate"))
+                .is_some_and(|v| v.starts_with("detected yanked crate"))
         })
         .collect();
 

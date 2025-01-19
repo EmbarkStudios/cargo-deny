@@ -792,7 +792,7 @@ fn read_workspace_deps<'k>(
                         }
                     } else if dir
                         .strip_prefix(krates.workspace_root())
-                        .map_or(false, |dir| dir != path)
+                        .is_ok_and(|dir| dir != path)
                     {
                         return None;
                     }

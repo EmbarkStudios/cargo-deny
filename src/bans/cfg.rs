@@ -499,7 +499,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         }
                     }
 
-                    if dmv.map_or(false, |d| d.value) {
+                    if dmv.is_some_and(|d| d.value) {
                         dmulti.push(spec);
                         continue;
                     }

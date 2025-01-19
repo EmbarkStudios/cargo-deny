@@ -41,7 +41,7 @@ fn find_license_files(dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
                 };
 
                 if p.is_file()
-                    && p.file_name().map_or(false, |f| {
+                    && p.file_name().is_some_and(|f| {
                         f.starts_with("LICENSE") || f.starts_with("COPYING")
                     })
                 {
@@ -488,7 +488,7 @@ impl Gatherer {
         let files_lock = std::sync::Arc::new(parking_lot::RwLock::new(files));
 
         // Most users will not care about licenses for dev dependencies
-        let krates = if cfg.map_or(false, |cfg| cfg.include_dev) {
+        let krates = if cfg.is_some_and(|cfg| cfg.include_dev) {
             krates.krates().collect()
         } else {
             krates.krates_filtered(krates::DepKind::Dev)
