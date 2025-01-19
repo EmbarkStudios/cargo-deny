@@ -116,7 +116,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml-span = { version = "0.3", features = ["reporting"] }
+toml-span = { version = "0.4", features = ["reporting"] }
 # Small fast hash crate
 twox-hash = { version = "2.0", default-features = false, features = ["xxhash32"] }
 # Url parsing/manipulation
@@ -142,7 +142,7 @@ fs_extra = "1.3"
 insta = { version = "1.41", features = ["json"] }
 tame-index = { version = "0.17", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
-toml-span = { version = "0.3", features = ["serde"] }
+toml-span = { version = "0.4", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.14"
 # divan = "0.1"

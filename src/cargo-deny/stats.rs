@@ -77,7 +77,7 @@ fn stats_to_exit_code(stats: AllStats) -> Option<i32> {
         .into_iter()
         .enumerate()
         .fold(0, |mut acc, (i, stats)| {
-            if stats.map_or(false, |s| s.errors > 0) {
+            if stats.is_some_and(|s| s.errors > 0) {
                 acc |= 1 << i;
             }
             acc
