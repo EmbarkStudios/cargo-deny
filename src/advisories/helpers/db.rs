@@ -95,8 +95,7 @@ fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
     )?;
     db_path.push(local_dir.dir_name);
 
-    dbg!(url);
-    Ok(dbg!(db_path))
+    Ok(db_path)
 }
 
 fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<AdvisoryDb> {
