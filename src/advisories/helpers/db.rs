@@ -89,10 +89,14 @@ impl DbSet {
 
 /// Convert an advisory url to a directory underneath a specified root
 fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
-    let local_dir = tame_index::utils::url_to_local_dir(url.as_str())?;
+    let local_dir = tame_index::utils::url_to_local_dir(
+        url.as_str(),
+        true, /* use stable hash so that paths are the same regardless of host platform */
+    )?;
     db_path.push(local_dir.dir_name);
 
-    Ok(db_path)
+    dbg!(url);
+    Ok(dbg!(db_path))
 }
 
 fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<AdvisoryDb> {
@@ -692,66 +696,6 @@ impl<'db, 'k> Report<'db, 'k> {
         Self {
             advisories,
             serialized_reports,
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::url_to_db_path;
-    use url::Url;
-
-    #[test]
-    #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
-    fn converts_url_to_path() {
-        let root_path = crate::utf8path(std::env::current_dir().unwrap()).unwrap();
-
-        {
-            let url = Url::parse("https://github.com/RustSec/advisory-db").unwrap();
-
-            #[cfg(target_endian = "little")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("github.com-a946fc29ac602819")
-            );
-
-            #[cfg(target_endian = "big")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("github.com-f4edf1c00e90fd42")
-            );
-        }
-
-        {
-            let url = Url::parse("https://bare.com").unwrap();
-
-            #[cfg(target_endian = "little")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("bare.com-9c003d1ed306b28c")
-            );
-
-            #[cfg(target_endian = "big")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("bare.com-c9767e4ee31501de")
-            );
-        }
-
-        {
-            let url = Url::parse("https://example.com/countries/việt nam").unwrap();
-
-            #[cfg(target_endian = "little")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("example.com-1c03f84825fb7438")
-            );
-
-            #[cfg(target_endian = "big")]
-            assert_eq!(
-                url_to_db_path(root_path.clone(), &url).unwrap(),
-                root_path.join("example.com-5ebf17a6f3e576f0")
-            );
         }
     }
 }

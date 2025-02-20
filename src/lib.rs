@@ -670,8 +670,10 @@ mod test {
     /// meh, we depend on tame-index to stay up to date
     #[test]
     fn validate_crates_io_sparse_dir_name() {
+        let stable =
+            tame_index::utils::cargo_version(None).unwrap() >= tame_index::Version::new(1, 85, 0);
         assert_eq!(
-            tame_index::utils::url_to_local_dir(tame_index::CRATES_IO_HTTP_INDEX)
+            tame_index::utils::url_to_local_dir(tame_index::CRATES_IO_HTTP_INDEX, stable)
                 .unwrap()
                 .dir_name,
             super::CRATES_IO_SPARSE_DIR
