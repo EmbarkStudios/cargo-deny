@@ -99,13 +99,13 @@ semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
-smallvec = "1.9"
+smallvec = "1.14"
 # Used for parsing and checking SPDX license expressions
 spdx = "0.10"
 # Lazy
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.17", default-features = false, features = [
+tame-index = { version = "0.18", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -139,12 +139,12 @@ features = [
 # Folder copying
 fs_extra = "1.3"
 # Snapshot testing
-insta = { version = "1.41", features = ["json"] }
-tame-index = { version = "0.17", features = ["local-builder"] }
+insta = { version = "1.42", features = ["json"] }
+tame-index = { version = "0.18", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.4", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
-tempfile = "3.14"
+tempfile = "3.17"
 # divan = "0.1"
 
 # [[bench]]

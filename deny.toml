@@ -29,6 +29,8 @@ deny = [
 skip = [
     { crate = "hashbrown@0.14.5", reason = "gix uses this old version" },
     { crate = "core-foundation@0.9.4", reason = "reqwest -> system-configuration uses this old version" },
+    { crate = "getrandom@0.2.15", reason = "ring uses this old version" },
+    { crate = "winnow@0.6.26", reason = "gix* uses this old version" },
 ]
 skip-tree = [
     { crate = "windows-sys@0.52.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
