@@ -1,5 +1,5 @@
-[submodule "tests/advisory-db/github.com-c373669cccc50ac0"]
-	path = tests/advisory-db/github.com-c373669cccc50ac0
+[submodule "tests/advisory-db/github.com-c046ebb82572a8ef"]
+	path = tests/advisory-db/github.com-c046ebb82572a8ef
 	url = https://github.com/EmbarkStudios/test-advisory-db
 [submodule "tests/advisory-db/github.com-9b36585d9d99f7b3"]
 	path = tests/advisory-db/github.com-9b36585d9d99f7b3
