@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.17.0] - 2025-02-20
 ### Changed
 - [PR#745](https://github.com/EmbarkStudios/cargo-deny/pull/745) updated `tame-index` to [0.18.0](https://github.com/EmbarkStudios/tame-index/releases/tag/0.18.0) so that cargo 1.85.0 is transparently supported along with older cargo versions.
 - [PR#745](https://github.com/EmbarkStudios/cargo-deny/pull/745) now uses the same stable hashing as cargo 1.85.0 for the advisory databases, which changes their path, but will notably now be the same across all host platforms.
@@ -693,7 +694,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.17.0...HEAD
+[0.17.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.4...0.17.0
 [0.16.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.3...0.16.4
 [0.16.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...0.16.3
 [0.16.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.1...0.16.2
