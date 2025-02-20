@@ -590,7 +590,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         deny: cf.deny,
                         exact: cf.exact,
                     },
-                    reason: cf.reason.map(Reason::from),
+                    reason: cf.reason,
                 }
             })
             .collect();

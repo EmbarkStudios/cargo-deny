@@ -472,7 +472,7 @@ pub struct CheckCtx<'ctx, T> {
 /// If the requirement is `None` then it is also satisfied.
 #[inline]
 pub fn match_req(version: &Version, req: Option<&semver::VersionReq>) -> bool {
-    req.map_or(true, |req| req.matches(version))
+    req.is_none_or(|req| req.matches(version))
 }
 
 #[inline]
@@ -495,7 +495,7 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> (GitSpec, Option<String>) {
     let needs_chopping = url.path().ends_with(&GIT_EXT);
     if needs_chopping {
         let last = {
-            let last = url.path_segments().unwrap().last().unwrap();
+            let last = url.path_segments().unwrap().next_back().unwrap();
             last[..last.len() - GIT_EXT.len()].to_owned()
         };
         url.path_segments_mut().unwrap().pop().push(&last);

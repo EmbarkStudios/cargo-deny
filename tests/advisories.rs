@@ -581,7 +581,7 @@ fn crates_io_source_replacement() {
         let index_krates: Vec<_> = krates
             .krates()
             .filter_map(|k| {
-                if k.source.as_ref().map_or(true, |s| !s.is_crates_io()) {
+                if k.source.as_ref().is_none_or(|s| !s.is_crates_io()) {
                     return None;
                 }
                 Some(IndexPkg {

@@ -583,7 +583,7 @@ impl<'db, 'k> Report<'db, 'k> {
                     advisory
                         .metadata
                         .collection
-                        .map_or(true, |c| c == rustsec::Collection::Crates)
+                        .is_none_or(|c| c == rustsec::Collection::Crates)
                 })
                 .flat_map(|advisory| {
                     krates
