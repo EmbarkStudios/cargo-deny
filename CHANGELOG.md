@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#745](https://github.com/EmbarkStudios/cargo-deny/pull/745) updated `tame-index` to [0.18.0](https://github.com/EmbarkStudios/tame-index/releases/tag/0.18.0) so that cargo 1.85.0 is transparently supported along with older cargo versions.
+- [PR#745](https://github.com/EmbarkStudios/cargo-deny/pull/745) now uses the same stable hashing as cargo 1.85.0 for the advisory databases, which changes their path, but will notably now be the same across all host platforms.
+
 ## [0.16.4] - 2025-01-19
 ### Changed
 - [PR#742](https://github.com/EmbarkStudios/cargo-deny/pull/742) updated `gix` to 0.70, to resolve [RUSTSEC-2025-0001](https://rustsec.org/advisories/RUSTSEC-2025-0001.html).
