@@ -94,6 +94,7 @@ impl DbSet {
 /// identifier, but then hash the url as the user provides it to ensure the
 /// directory name is unique
 fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
+    let url = Url::parse(&url.as_str().to_lowercase())?;
     let name = url
         .path_segments()
         .and_then(|mut ps| ps.next_back())
