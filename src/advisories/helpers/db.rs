@@ -88,12 +88,19 @@ impl DbSet {
 }
 
 /// Convert an advisory url to a directory underneath a specified root
+///
+/// This uses a similar, but different, scheme to how cargo names eg. index
+/// directories, we take the path portion of the url and use that as a friendly
+/// identifier, but then hash the url as the user provides it to ensure the
+/// directory name is unique
 fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
-    let local_dir = tame_index::utils::url_to_local_dir(
-        url.as_str(),
-        true, /* use stable hash so that paths are the same regardless of host platform */
-    )?;
-    db_path.push(local_dir.dir_name);
+    let name = url
+        .path_segments()
+        .and_then(|mut ps| ps.next_back())
+        .unwrap_or("empty_");
+
+    let hash = twox_hash::XxHash64::oneshot(0xca80de71, url.as_str().as_bytes());
+    db_path.push(format!("{name}-{hash:016x}"));
 
     Ok(db_path)
 }
