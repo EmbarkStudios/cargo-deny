@@ -2,5 +2,5 @@
 	path = tests/advisory-db/github.com-c046ebb82572a8ef
 	url = https://github.com/EmbarkStudios/test-advisory-db
 [submodule "tests/advisory-db/github.com-6caef394c3b504ea"]
-	path = tests/advisory-db/github.com-6caef394c3b504ea
+	path = tests/advisory-db/advisory-db-d0afbf0b2e3a7ec0
 	url = https://github.com/rustsec/advisory-db
