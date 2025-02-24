@@ -233,12 +233,11 @@ fn setup_logger(
 }
 
 fn real_main() -> Result<(), Error> {
-    let args =
-        Opts::parse_from({
-            std::env::args()
-                .enumerate()
-                .filter_map(|(i, a)| if i == 1 && a == "deny" { None } else { Some(a) })
-        });
+    let args = Opts::parse_from({
+        std::env::args()
+            .enumerate()
+            .filter_map(|(i, a)| if i == 1 && a == "deny" { None } else { Some(a) })
+    });
 
     let log_level = args.log_level;
 

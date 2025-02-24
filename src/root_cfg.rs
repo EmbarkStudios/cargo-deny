@@ -26,9 +26,12 @@ impl<'de> Deserialize<'de> for Target {
                 (triple, features)
             }
             other => {
-                return Err(
-                    toml_span::de_helpers::expected("a string or table", other, value.span).into(),
-                );
+                return Err(toml_span::de_helpers::expected(
+                    "a string or table",
+                    other,
+                    value.span,
+                )
+                .into());
             }
         };
 
