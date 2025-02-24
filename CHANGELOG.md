@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) changed the directory naming of advisory databases, [again](https://github.com/EmbarkStudios/cargo-deny/pull/745), so the name uses the last path component and a different, but also stable, hashing algorithm. Eg. the default `https://github.com/rustsec/advisory-db` will now be placed in `$CARGO_HOME/advisory-dbs/advisory-db-3157b0e258782691`.
+- [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) changed the MSRV to 1.85.0 and uses edition 2024.
+
+### Fixed
+- [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) fixes an issue when using cargo 1.85.0 where source urls were not being properly assigned to crates.io due to the constant being used no longer matching the new path used in cargo 1.85.0 causing eg. workspace dependency checks to fail.
+
 ## [0.17.0] - 2025-02-20
 ### Changed
 - [PR#745](https://github.com/EmbarkStudios/cargo-deny/pull/745) updated `tame-index` to [0.18.0](https://github.com/EmbarkStudios/tame-index/releases/tag/0.18.0) so that cargo 1.85.0 is transparently supported along with older cargo versions.
