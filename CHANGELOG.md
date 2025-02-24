@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.0] - 2025-02-24
 ### Changed
 - [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) changed the directory naming of advisory databases, [again](https://github.com/EmbarkStudios/cargo-deny/pull/745), so the name uses the last path component and a different, but also stable, hashing algorithm. Eg. the default `https://github.com/rustsec/advisory-db` will now be placed in `$CARGO_HOME/advisory-dbs/advisory-db-3157b0e258782691`.
 - [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) changed the MSRV to 1.85.0 and uses edition 2024.
@@ -701,7 +702,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.17.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.0...HEAD
+[0.18.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.17.0...0.18.0
 [0.17.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.4...0.17.0
 [0.16.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.3...0.16.4
 [0.16.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.2...0.16.3
