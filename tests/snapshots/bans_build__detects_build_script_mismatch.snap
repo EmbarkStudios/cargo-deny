@@ -32,7 +32,7 @@ expression: diags
       ],
       "message": "file did not match the expected checksum",
       "notes": [
-        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ittapi-sys-0.3.3/build.rs'",
+        "path = '$CARGO_HOME/registry/src/index.crates.io-1949cf8c6b5b557f/ittapi-sys-0.3.3/build.rs'",
         "error = build script failed checksum: checksum mismatch, calculated 474a3eb189a698475d8a6f4b358eb0790db6379aea8b8a85ac925102784cd520"
       ],
       "severity": "warning"
