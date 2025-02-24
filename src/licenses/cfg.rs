@@ -1,11 +1,11 @@
 #![cfg_attr(docsrs, doc(include = "../../docs/licenses/cfg.md"))]
 
 use crate::{
-    cfg::{deprecated, PackageSpec, ValidationContext},
-    diag::{Diagnostic, FileId, Label},
     LintLevel, PathBuf, Span, Spanned,
+    cfg::{PackageSpec, ValidationContext, deprecated},
+    diag::{Diagnostic, FileId, Label},
 };
-use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{DeserError, Deserialize, de_helpers::TableHelper, value::Value};
 
 const DEFAULT_CONFIDENCE_THRESHOLD: f32 = 0.8;
 
@@ -296,7 +296,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string())
+                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string()),
                             ]),
                     );
                 }
@@ -324,8 +324,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                     ctx.push(
                         Diagnostic::error()
                             .with_message("unable to parse license expression")
-                            .with_labels(vec![Label::primary(ctx.cfg_id, expr_span)
-                                .with_message(err.reason.to_string())]),
+                            .with_labels(vec![
+                                Label::primary(ctx.cfg_id, expr_span)
+                                    .with_message(err.reason.to_string()),
+                            ]),
                     );
 
                     continue;
@@ -469,7 +471,7 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::{write_diagnostics, ConfigData};
+    use crate::test_utils::{ConfigData, write_diagnostics};
 
     struct Licenses {
         licenses: Config,

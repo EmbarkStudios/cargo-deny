@@ -1,7 +1,7 @@
 use crate::{Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
-pub use rustsec::{advisory::Id, Database};
+pub use rustsec::{Database, advisory::Id};
 use std::fmt;
 use url::Url;
 
@@ -270,7 +270,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         let remote_head_id = tame_index::utils::git::write_fetch_head(&repo, &outcome, &remote)
             .context("failed to write FETCH_HEAD")?;
 
-        use gix::refs::{transaction as tx, Target};
+        use gix::refs::{Target, transaction as tx};
 
         // In all (hopefully?) cases HEAD is a symbolic reference to
         // refs/heads/<branch> which is a peeled commit id, if that's the case

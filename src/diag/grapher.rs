@@ -1,7 +1,7 @@
 use super::NodePrint;
 use crate::{DepKind, Krates};
 use anyhow::Context;
-use krates::{petgraph as pg, Edge, Node};
+use krates::{Edge, Node, petgraph as pg};
 use std::collections::HashSet;
 
 #[derive(serde::Serialize)]

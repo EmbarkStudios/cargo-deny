@@ -1,7 +1,7 @@
 use cargo_deny::{
+    PathBuf,
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
-    PathBuf,
 };
 
 mod cfg;
@@ -186,7 +186,9 @@ impl KrateContext {
         // what this can look like in practice if we don't have the index metadata
         // to supplement/fix the cargo metadata
         if let Err(err) = cargo_deny::krates_with_index(&mut gb, None, None) {
-            log::error!("failed to open the local crates.io index, feature sets for crates may not be correct: {err}");
+            log::error!(
+                "failed to open the local crates.io index, feature sets for crates may not be correct: {err}"
+            );
         }
 
         let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {

@@ -1,8 +1,9 @@
 use anyhow::{Context as _, Result};
 use cargo_deny::{
+    PathBuf,
     diag::{Diagnostic, Files, Severity},
     root_cfg::{GraphConfig, OutputConfig},
-    PathBuf, {advisories, bans, licenses, sources},
+    {advisories, bans, licenses, sources},
 };
 
 pub struct ValidConfig {

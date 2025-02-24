@@ -2,7 +2,7 @@ pub mod cfg;
 pub(crate) mod diags;
 mod helpers;
 
-use crate::{diag, LintLevel};
+use crate::{LintLevel, diag};
 pub use diags::Code;
 pub use helpers::{
     db::{AdvisoryDb, DbSet, Fetch, Id, Report},

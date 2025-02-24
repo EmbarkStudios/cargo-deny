@@ -1,7 +1,7 @@
 use crate::{
+    CheckCtx, PathBuf,
     cfg::ValidationContext,
     diag::{self, ErrorSink, FileId, Files, KrateSpans, PackChannel},
-    CheckCtx, PathBuf,
 };
 
 #[derive(Default, Clone)]

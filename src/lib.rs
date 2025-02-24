@@ -21,8 +21,8 @@ pub use cfg::UnvalidatedConfig;
 use krates::cm;
 pub use krates::{DepKind, Kid};
 pub use toml_span::{
-    span::{Span, Spanned},
     Deserialize, Error,
+    span::{Span, Spanned},
 };
 
 /// The possible lint levels for the various lints. These function similarly
@@ -668,12 +668,14 @@ mod test {
                 && crates_io_sparse_but_git.is_crates_io()
         );
 
-        assert!(Source::from_metadata(
-            "registry+https://my-own-my-precious.com/".to_owned(),
-            empty_dir
-        )
-        .unwrap()
-        .is_registry());
+        assert!(
+            Source::from_metadata(
+                "registry+https://my-own-my-precious.com/".to_owned(),
+                empty_dir
+            )
+            .unwrap()
+            .is_registry()
+        );
         assert!(
             Source::from_metadata("sparse+https://my-registry.rs/".to_owned(), empty_dir)
                 .unwrap()

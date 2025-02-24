@@ -214,7 +214,9 @@ impl<'k> Manifest<'k> {
                     err
                 }).ok().map(|vr| toml_span::Spanned::with_span(vr, dep_value.span)), None)
             } else {
-                log::error!("dependency {krate} -> {dep_krate} is not a string nor table, this should be invalid...");
+                log::error!(
+                    "dependency {krate} -> {dep_krate} is not a string nor table, this should be invalid..."
+                );
                 (None, None, None)
             };
 
@@ -867,7 +869,10 @@ fn read_workspace_deps<'k>(
                         .rename
                         .as_ref()
                         .map_or(&ws_dep.krate.name, |r| r.as_ref());
-                    log::error!("[workspace.dependencies.{name}] was resolved to {}...which wasn't in the list of available crates. This should be impossible", ws_dep.krate.id);
+                    log::error!(
+                        "[workspace.dependencies.{name}] was resolved to {}...which wasn't in the list of available crates. This should be impossible",
+                        ws_dep.krate.id
+                    );
                 }
             }
             WsDep::Unresolved(unresolved) => {

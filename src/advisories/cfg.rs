@@ -1,12 +1,13 @@
 use crate::{
+    LintLevel, PathBuf, Span, Spanned,
     cfg::{PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    utf8path, LintLevel, PathBuf, Span, Spanned,
+    utf8path,
 };
 use anyhow::Context as _;
 use rustsec::advisory;
 use time::Duration;
-use toml_span::{de_helpers::*, value::ValueInner, Deserialize, Value};
+use toml_span::{Deserialize, Value, de_helpers::*, value::ValueInner};
 use url::Url;
 
 pub(crate) type AdvisoryId = Spanned<advisory::Id>;
@@ -465,7 +466,9 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
     // of the function
     for c in value.chars() {
         if c == ',' {
-            anyhow::bail!("'{c}' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead");
+            anyhow::bail!(
+                "'{c}' is valid in the RFC-3339 duration format but not supported by this implementation, use '.' instead"
+            );
         }
 
         if c != '.' && c != 'T' && !c.is_ascii_digit() && !UNITS.iter().any(|(uc, _)| c == *uc) {
@@ -720,7 +723,7 @@ fn shellexpand(
 mod test {
 
     use super::{parse_rfc3339_duration as dur_parse, *};
-    use crate::test_utils::{write_diagnostics, ConfigData};
+    use crate::test_utils::{ConfigData, write_diagnostics};
 
     struct Advisories {
         advisories: Config,

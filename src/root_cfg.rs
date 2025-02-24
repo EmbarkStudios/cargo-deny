@@ -1,11 +1,11 @@
 use crate::{
-    advisories::cfg::Config as AdvisoriesConfig, bans::cfg::Config as BansConfig,
-    licenses::cfg::Config as LicensesConfig, sources::cfg::Config as SourcesConfig, Spanned,
+    Spanned, advisories::cfg::Config as AdvisoriesConfig, bans::cfg::Config as BansConfig,
+    licenses::cfg::Config as LicensesConfig, sources::cfg::Config as SourcesConfig,
 };
 use toml_span::{
+    DeserError, Deserialize,
     de_helpers::TableHelper,
     value::{Value, ValueInner},
-    DeserError, Deserialize,
 };
 
 pub struct Target {
@@ -28,7 +28,7 @@ impl<'de> Deserialize<'de> for Target {
             other => {
                 return Err(
                     toml_span::de_helpers::expected("a string or table", other, value.span).into(),
-                )
+                );
             }
         };
 

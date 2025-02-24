@@ -1,7 +1,7 @@
 use super::cfg::{FileSource, ValidClarification, ValidConfig};
 use crate::{
-    diag::{FileId, Files, Label},
     Krate, Path, PathBuf,
+    diag::{FileId, Files, Label},
 };
 use rayon::prelude::*;
 use smallvec::SmallVec;
@@ -64,7 +64,7 @@ fn get_file_source(root: &Path, path: PathBuf) -> PackFile {
                 return PackFile {
                     path,
                     data: PackFileData::Bad(e),
-                }
+                };
             }
         };
 
@@ -145,7 +145,7 @@ impl LicensePack {
                     license_files: Vec::new(),
                     root: root.to_owned(),
                     err: Some(e),
-                }
+                };
             }
         };
 
@@ -214,8 +214,10 @@ impl LicensePack {
             let len = synth_toml.len();
             return Err((
                 synth_toml,
-                vec![Label::secondary(file, 17..len - 1)
-                    .with_message("unable to gather license files")],
+                vec![
+                    Label::secondary(file, 17..len - 1)
+                        .with_message("unable to gather license files"),
+                ],
             ));
         }
 
@@ -308,7 +310,9 @@ impl LicensePack {
                             }
                         }
                         Err(err) => {
-                            panic!("askalono's elimination strategy failed (this used to be impossible): {err}");
+                            panic!(
+                                "askalono's elimination strategy failed (this used to be impossible): {err}"
+                            );
                         }
                     }
                 }

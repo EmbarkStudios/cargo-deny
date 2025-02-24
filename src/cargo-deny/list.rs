@@ -1,6 +1,6 @@
 use crate::common::ValidConfig;
 use anyhow::{Context as _, Error};
-use cargo_deny::{diag::Files, licenses, Kid, PathBuf};
+use cargo_deny::{Kid, PathBuf, diag::Files, licenses};
 use nu_ansi_term::Color;
 use serde::Serialize;
 

@@ -1,6 +1,6 @@
 use crate::{
-    diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
     LintLevel,
+    diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
 };
 
 #[derive(
@@ -122,10 +122,11 @@ impl From<UnmatchedAllowSource> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("allowed source was not encountered")
             .with_code(Code::UnmatchedSource)
-            .with_labels(vec![uas
-                .allow_src_cfg
-                .into_label()
-                .with_message("no crate source matched these criteria")])
+            .with_labels(vec![
+                uas.allow_src_cfg
+                    .into_label()
+                    .with_message("no crate source matched these criteria"),
+            ])
             .into()
     }
 }
@@ -143,10 +144,11 @@ impl From<UnmatchedAllowOrg> for Diag {
                 uao.org_type
             ))
             .with_code(Code::UnmatchedOrganization)
-            .with_labels(vec![uao
-                .allow_org_cfg
-                .into_label()
-                .with_message("no crate source fell under this organization")])
+            .with_labels(vec![
+                uao.allow_org_cfg
+                    .into_label()
+                    .with_message("no crate source fell under this organization"),
+            ])
             .into()
     }
 }

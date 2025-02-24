@@ -1,8 +1,8 @@
 use cargo_deny::{
+    Krates,
     advisories::{self, cfg},
     field_eq, func_name,
     test_utils::{self as tu},
-    Krates,
 };
 
 struct TestCtx {
@@ -343,10 +343,12 @@ fn warns_on_ignored_and_withdrawn() {
             );
         });
 
-    insta::assert_json_snapshot!(diags
-        .iter()
-        .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
-        .unwrap());
+    insta::assert_json_snapshot!(
+        diags
+            .iter()
+            .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
+            .unwrap()
+    );
 }
 
 #[inline]
@@ -362,14 +364,16 @@ fn to_path(td: &tempfile::TempDir) -> Option<&cargo_deny::Path> {
 /// Validates that stale advisory databases result in an error
 #[test]
 fn fails_on_stale_advisory_database() {
-    assert!(advisories::DbSet::load(
-        "tests/advisory-db".into(),
-        vec![],
-        advisories::Fetch::Disallow(time::Duration::seconds(0)),
-    )
-    .unwrap_err()
-    .to_string()
-    .contains("repository is stale"));
+    assert!(
+        advisories::DbSet::load(
+            "tests/advisory-db".into(),
+            vec![],
+            advisories::Fetch::Disallow(time::Duration::seconds(0)),
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("repository is stale")
+    );
 }
 
 use advisories::Fetch;

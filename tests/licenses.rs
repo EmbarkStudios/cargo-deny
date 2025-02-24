@@ -1,7 +1,7 @@
 use cargo_deny::{
-    diag, field_eq, func_name,
+    Krates, diag, field_eq, func_name,
     licenses::{self, cfg::Config},
-    test_utils as tu, Krates,
+    test_utils as tu,
 };
 use std::sync::{Arc, OnceLock};
 
