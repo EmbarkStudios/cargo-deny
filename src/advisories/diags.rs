@@ -1,7 +1,7 @@
 use super::cfg::IgnoreId;
 use crate::{
-    diag::{Check, Diagnostic, FileId, Label, Pack, Severity},
     LintLevel,
+    diag::{Check, Diagnostic, FileId, Label, Pack, Severity},
 };
 use rustsec::advisory::{Informational, Metadata, Versions};
 
@@ -160,11 +160,13 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
         let diag = pack.push(
             Diagnostic::new(severity)
                 .with_message(advisory.title.clone())
-                .with_labels(vec![Label::primary(
-                    self.krate_spans.lock_id,
-                    self.krate_spans.lock_span(&krate.id).total,
-                )
-                .with_message(message)])
+                .with_labels(vec![
+                    Label::primary(
+                        self.krate_spans.lock_id,
+                        self.krate_spans.lock_span(&krate.id).total,
+                    )
+                    .with_message(message),
+                ])
                 .with_code(code)
                 .with_notes(notes),
         );
@@ -185,11 +187,13 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
                     krate.name
                 ))
                 .with_code(Code::Yanked)
-                .with_labels(vec![Label::primary(
-                    self.krate_spans.lock_id,
-                    self.krate_spans.lock_span(&krate.id).total,
-                )
-                .with_message("yanked version")]),
+                .with_labels(vec![
+                    Label::primary(
+                        self.krate_spans.lock_id,
+                        self.krate_spans.lock_span(&krate.id).total,
+                    )
+                    .with_message("yanked version"),
+                ]),
         );
 
         pack
@@ -212,11 +216,13 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
         krate: &crate::Krate,
         error: D,
     ) -> Pack {
-        let mut labels = vec![Label::secondary(
-            self.krate_spans.lock_id,
-            self.krate_spans.lock_span(&krate.id).total,
-        )
-        .with_message("crate whose registry we failed to query")];
+        let mut labels = vec![
+            Label::secondary(
+                self.krate_spans.lock_id,
+                self.krate_spans.lock_span(&krate.id).total,
+            )
+            .with_message("crate whose registry we failed to query"),
+        ];
 
         // Don't show the config location if it's the default, since it just points
         // to the beginning and confuses users

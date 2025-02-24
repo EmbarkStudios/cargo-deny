@@ -1,6 +1,6 @@
 use crate::{
-    diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
     Krate,
+    diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
 };
 
 #[derive(
@@ -70,10 +70,11 @@ impl From<UnmatchedLicenseAllowance> for Diag {
         Diagnostic::new(ula.severity)
             .with_message("license was not encountered")
             .with_code(Code::LicenseNotEncountered)
-            .with_labels(vec![ula
-                .allowed_license_cfg
-                .into_label()
-                .with_message("unmatched license allowance")])
+            .with_labels(vec![
+                ula.allowed_license_cfg
+                    .into_label()
+                    .with_message("unmatched license allowance"),
+            ])
             .into()
     }
 }
@@ -87,10 +88,11 @@ impl From<UnmatchedLicenseException> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("license exception was not encountered")
             .with_code(Code::LicenseExceptionNotEncountered)
-            .with_labels(vec![ule
-                .license_exc_cfg
-                .into_label()
-                .with_message("unmatched license exception")])
+            .with_labels(vec![
+                ule.license_exc_cfg
+                    .into_label()
+                    .with_message("unmatched license exception"),
+            ])
             .into()
     }
 }

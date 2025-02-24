@@ -3,9 +3,9 @@ use crate::{
     stats::{AllStats, Stats},
 };
 use cargo_deny::{
-    advisories, bans,
+    CheckCtx, PathBuf, advisories, bans,
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
-    licenses, sources, CheckCtx, PathBuf,
+    licenses, sources,
 };
 use log::error;
 use std::time::Instant;
@@ -187,7 +187,9 @@ pub(crate) fn cmd(
                     match cl {
                         CodeOrLevel::Code(code) => {
                             if let Some(current) = code_overrides.get(code.as_str()) {
-                                anyhow::bail!("unable to override code '{code}' to '{severity:?}', it has already been overridden to '{current:?}'");
+                                anyhow::bail!(
+                                    "unable to override code '{code}' to '{severity:?}', it has already been overridden to '{current:?}'"
+                                );
                             }
 
                             code_overrides.insert(code.as_str(), severity);
@@ -196,14 +198,12 @@ pub(crate) fn cmd(
                             let ls = level.into();
                             if let Some(current) =
                                 level_overrides.iter().find_map(|(input, output)| {
-                                    if ls == *input {
-                                        Some(*output)
-                                    } else {
-                                        None
-                                    }
+                                    if ls == *input { Some(*output) } else { None }
                                 })
                             {
-                                anyhow::bail!("unable to override level '{level:?}' to '{severity:?}', it has already been overridden to '{current:?}'");
+                                anyhow::bail!(
+                                    "unable to override level '{level:?}' to '{severity:?}', it has already been overridden to '{current:?}'"
+                                );
                             }
 
                             level_overrides.push((ls, severity));

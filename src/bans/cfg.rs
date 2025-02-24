@@ -1,9 +1,9 @@
 use crate::{
+    LintLevel, Spanned,
     cfg::{PackageSpec, PackageSpecOrExtended, Reason, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    LintLevel, Spanned,
 };
-use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{DeserError, Deserialize, de_helpers::TableHelper, value::Value};
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct CrateBanExtended {
@@ -605,8 +605,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         ctx.diagnostics.push(
                             Diagnostic::error()
                                 .with_message("non-ascii file extension provided")
-                                .with_labels(vec![Label::primary(ctx.cfg_id, ext.span)
-                                    .with_message("invalid extension")]),
+                                .with_labels(vec![
+                                    Label::primary(ctx.cfg_id, ext.span)
+                                        .with_message("invalid extension"),
+                                ]),
                         );
                         continue;
                     }
@@ -635,8 +637,10 @@ impl crate::cfg::UnvalidatedConfig for Config {
                             ctx.diagnostics.push(
                                 Diagnostic::error()
                                     .with_message(format!("invalid glob pattern: {err}"))
-                                    .with_labels(vec![Label::primary(ctx.cfg_id, ext.span)
-                                        .with_message("extension")]),
+                                    .with_labels(vec![
+                                        Label::primary(ctx.cfg_id, ext.span)
+                                            .with_message("extension"),
+                                    ]),
                             );
                         }
                     }

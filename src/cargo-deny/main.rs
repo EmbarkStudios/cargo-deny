@@ -233,16 +233,11 @@ fn setup_logger(
 }
 
 fn real_main() -> Result<(), Error> {
-    let args =
-        Opts::parse_from({
-            std::env::args().enumerate().filter_map(|(i, a)| {
-                if i == 1 && a == "deny" {
-                    None
-                } else {
-                    Some(a)
-                }
-            })
-        });
+    let args = Opts::parse_from({
+        std::env::args()
+            .enumerate()
+            .filter_map(|(i, a)| if i == 1 && a == "deny" { None } else { Some(a) })
+    });
 
     let log_level = args.log_level;
 
@@ -331,7 +326,9 @@ fn real_main() -> Result<(), Error> {
             let show_stats = cargs.show_stats;
 
             if args.ctx.offline {
-                log::info!("network access disabled via --offline flag, disabling advisory database fetching");
+                log::info!(
+                    "network access disabled via --offline flag, disabling advisory database fetching"
+                );
                 cargs.disable_fetch = true;
             }
 

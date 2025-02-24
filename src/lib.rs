@@ -21,8 +21,8 @@ pub use cfg::UnvalidatedConfig;
 use krates::cm;
 pub use krates::{DepKind, Kid};
 pub use toml_span::{
-    span::{Span, Spanned},
     Deserialize, Error,
+    span::{Span, Spanned},
 };
 
 /// The possible lint levels for the various lints. These function similarly
@@ -94,10 +94,30 @@ pub enum Source {
 
 /// The directory name under which crates sourced from the crates.io sparse
 /// registry are placed
-#[cfg(target_endian = "little")]
-const CRATES_IO_SPARSE_DIR: &str = "index.crates.io-6f17d22bba15001f";
-#[cfg(target_endian = "big")]
-const CRATES_IO_SPARSE_DIR: &str = "index.crates.io-d11c229612889eed";
+fn crates_io_sparse_dir() -> &'static str {
+    static mut CRATES_IO_SPARSE_DIR: String = String::new();
+    static CRATES_IO_INIT: parking_lot::Once = parking_lot::Once::new();
+
+    #[allow(unsafe_code)]
+    // SAFETY: We're mutating a static, but we only allow one mutation
+    unsafe {
+        CRATES_IO_INIT.call_once(|| {
+            let Ok(version) = tame_index::utils::cargo_version(None) else {
+                return;
+            };
+            let Ok(url_dir) = tame_index::utils::url_to_local_dir(
+                tame_index::CRATES_IO_HTTP_INDEX,
+                version >= semver::Version::new(1, 85, 0),
+            ) else {
+                return;
+            };
+            CRATES_IO_SPARSE_DIR = url_dir.dir_name;
+        });
+
+        #[allow(static_mut_refs)]
+        &CRATES_IO_SPARSE_DIR
+    }
+}
 
 impl Source {
     pub fn crates_io(is_sparse: bool) -> Self {
@@ -137,7 +157,7 @@ impl Source {
                     // registry/src/index.crates.io-6f17d22bba15001f/crate-version/Cargo.toml
                     let is_sparse = manifest_path.ancestors().nth(2).is_some_and(|dir| {
                         dir.file_name()
-                            .is_some_and(|dir_name| dir_name == CRATES_IO_SPARSE_DIR)
+                            .is_some_and(|dir_name| dir_name == crates_io_sparse_dir())
                     });
                     Ok(Self::crates_io(is_sparse))
                 } else {
@@ -632,7 +652,7 @@ mod test {
             format!("registry+{}", tame_index::CRATES_IO_INDEX),
             super::Path::new(&format!(
                 "registry/src/{}/cargo-deny-0.69.0/Cargo.toml",
-                super::CRATES_IO_SPARSE_DIR
+                super::crates_io_sparse_dir(),
             )),
         )
         .unwrap();
@@ -648,12 +668,14 @@ mod test {
                 && crates_io_sparse_but_git.is_crates_io()
         );
 
-        assert!(Source::from_metadata(
-            "registry+https://my-own-my-precious.com/".to_owned(),
-            empty_dir
-        )
-        .unwrap()
-        .is_registry());
+        assert!(
+            Source::from_metadata(
+                "registry+https://my-own-my-precious.com/".to_owned(),
+                empty_dir
+            )
+            .unwrap()
+            .is_registry()
+        );
         assert!(
             Source::from_metadata("sparse+https://my-registry.rs/".to_owned(), empty_dir)
                 .unwrap()
@@ -676,7 +698,7 @@ mod test {
             tame_index::utils::url_to_local_dir(tame_index::CRATES_IO_HTTP_INDEX, stable)
                 .unwrap()
                 .dir_name,
-            super::CRATES_IO_SPARSE_DIR
+            super::crates_io_sparse_dir(),
         );
     }
 

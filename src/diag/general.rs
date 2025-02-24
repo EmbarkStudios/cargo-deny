@@ -1,8 +1,8 @@
 //! Contains general diagnostics that are shared between various checks
 
 use crate::{
-    diag::{Diagnostic, FileId, Label, Severity},
     Span,
+    diag::{Diagnostic, FileId, Label, Severity},
 };
 use std::fmt;
 

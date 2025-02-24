@@ -5,7 +5,7 @@ use krates::petgraph as pg;
 use semver::Version;
 use std::{
     borrow::Cow,
-    collections::{btree_map::Entry, BTreeMap, HashSet},
+    collections::{BTreeMap, HashSet, btree_map::Entry},
     fmt,
 };
 

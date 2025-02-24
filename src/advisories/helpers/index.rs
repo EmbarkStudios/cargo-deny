@@ -1,7 +1,7 @@
 use crate::{Krate, Krates, Source};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::collections::BTreeMap;
-use tame_index::{index::ComboIndexCache, Error, IndexLocation, IndexUrl};
+use tame_index::{Error, IndexLocation, IndexUrl, index::ComboIndexCache};
 
 type YankMap = Vec<(semver::Version, bool)>;
 

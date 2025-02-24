@@ -96,7 +96,7 @@ expression: diags
       ],
       "message": "file checksum matched",
       "notes": [
-        "path = '$CARGO_HOME/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs'"
+        "path = '$CARGO_HOME/registry/src/index.crates.io-1949cf8c6b5b557f/ring-0.16.20/build.rs'"
       ],
       "severity": "help"
     },

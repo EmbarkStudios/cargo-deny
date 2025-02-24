@@ -1,6 +1,6 @@
 use crate::common::ValidConfig;
 use anyhow::{Context as _, Error};
-use cargo_deny::{advisories, diag::Files, PathBuf};
+use cargo_deny::{PathBuf, advisories, diag::Files};
 
 #[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum FetchSource {

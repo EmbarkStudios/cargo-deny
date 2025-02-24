@@ -1,5 +1,5 @@
 use crate::PathBuf;
-use anyhow::{ensure, Context, Error};
+use anyhow::{Context, Error, ensure};
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct Args {

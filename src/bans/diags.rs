@@ -1,11 +1,11 @@
 use std::fmt;
 
 use crate::{
-    bans::{cfg, SpecAndReason},
+    Krate, Spanned,
+    bans::{SpecAndReason, cfg},
     diag::{
         CfgCoord, Check, Diag, Diagnostic, FileId, GraphNode, KrateCoord, Label, Pack, Severity,
     },
-    Krate, Spanned,
 };
 
 #[derive(
@@ -146,10 +146,9 @@ impl<'a> From<Duplicates<'a>> for Diag {
                 dup.num_dupes, dup.krate_name,
             ))
             .with_code(Code::Duplicate)
-            .with_labels(vec![dup
-                .krates_coord
-                .into_label()
-                .with_message("lock entries")])
+            .with_labels(vec![
+                dup.krates_coord.into_label().with_message("lock entries"),
+            ])
             .into()
     }
 }
@@ -252,10 +251,11 @@ impl From<UnusedWrapper> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("wrapper for banned crate was not encountered")
             .with_code(Code::UnusedWrapper)
-            .with_labels(vec![us
-                .wrapper_cfg
-                .into_label()
-                .with_message("unmatched wrapper")])
+            .with_labels(vec![
+                us.wrapper_cfg
+                    .into_label()
+                    .with_message("unmatched wrapper"),
+            ])
             .into()
     }
 }
@@ -328,10 +328,11 @@ impl From<UnmatchedSkipRoot> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("skip tree root was not found in the dependency graph")
             .with_code(Code::UnmatchedSkipRoot)
-            .with_labels(vec![usr
-                .skip_root_cfg
-                .into_label()
-                .with_message("no crate matched these criteria")])
+            .with_labels(vec![
+                usr.skip_root_cfg
+                    .into_label()
+                    .with_message("no crate matched these criteria"),
+            ])
             .into()
     }
 }
@@ -361,10 +362,11 @@ pub(crate) struct ExactFeaturesMismatch<'a> {
 
 impl From<ExactFeaturesMismatch<'_>> for Diag {
     fn from(efm: ExactFeaturesMismatch<'_>) -> Self {
-        let mut labels = vec![efm
-            .exact_coord
-            .into_label()
-            .with_message("exact enabled here")];
+        let mut labels = vec![
+            efm.exact_coord
+                .into_label()
+                .with_message("exact enabled here"),
+        ];
 
         labels.extend(
             efm.missing_allowed
@@ -424,10 +426,9 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
                 fna.feature, fna.krate,
             ))
             .with_code(Code::FeatureNotExplicitlyAllowed)
-            .with_labels(vec![fna
-                .allowed
-                .into_label()
-                .with_message("allowed features")]);
+            .with_labels(vec![
+                fna.allowed.into_label().with_message("allowed features"),
+            ]);
 
         Diag {
             diag,
@@ -457,7 +458,7 @@ impl From<FeatureBanned<'_>> for Diag {
             ))
             .with_code(Code::FeatureBanned)
             .with_labels(vec![
-                Label::primary(fed.file_id, fed.feature.span).with_message("feature denied here")
+                Label::primary(fed.file_id, fed.feature.span).with_message("feature denied here"),
             ]);
 
         Diag {
@@ -488,7 +489,7 @@ impl From<UnknownFeature<'_>> for Diag {
             ))
             .with_code(Code::UnknownFeature)
             .with_labels(vec![
-                Label::primary(uf.file_id, uf.feature.span).with_message("unknown feature")
+                Label::primary(uf.file_id, uf.feature.span).with_message("unknown feature"),
             ]);
 
         Diag {
@@ -519,7 +520,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
             ))
             .with_code(Code::DefaultFeatureEnabled)
             .with_labels(vec![
-                Label::primary(dfe.file_id, dfe.level.span).with_message("lint level")
+                Label::primary(dfe.file_id, dfe.level.span).with_message("lint level"),
             ]);
 
         Diag {
@@ -637,7 +638,7 @@ impl From<ChecksumMatch<'_>> for Diag {
             .with_notes(vec![format!("path = '{}'", cm.path)])
             .with_code(Code::ChecksumMatch)
             .with_labels(vec![
-                Label::primary(cm.file_id, cm.checksum.span).with_message("checksum")
+                Label::primary(cm.file_id, cm.checksum.span).with_message("checksum"),
             ]);
 
         Diag {
@@ -672,7 +673,7 @@ impl From<ChecksumMismatch<'_>> for Diag {
             .with_notes(notes)
             .with_code(Code::ChecksumMismatch)
             .with_labels(vec![
-                Label::primary(cm.file_id, cm.checksum.span).with_message("expected checksum")
+                Label::primary(cm.file_id, cm.checksum.span).with_message("expected checksum"),
             ]);
 
         Diag {
@@ -824,11 +825,10 @@ impl<'a> From<UnmatchedBypass<'a>> for Diag {
         Diagnostic::new(Severity::Warning)
             .with_message("crate build bypass was not encountered")
             .with_code(Code::UnmatchedBypass)
-            .with_labels(vec![Label::primary(
-                ubc.file_id,
-                ubc.unmatched.spec.name.span,
-            )
-            .with_message("unmatched bypass")])
+            .with_labels(vec![
+                Label::primary(ubc.file_id, ubc.unmatched.spec.name.span)
+                    .with_message("unmatched bypass"),
+            ])
             .into()
     }
 }

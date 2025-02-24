@@ -7,7 +7,7 @@ authors = [
   "Embark <opensource@embark-studios.com>",
   "Jake Shadle <jake.shadle@embark-studios.com>",
 ]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 documentation = "https://docs.rs/cargo-deny"
@@ -15,7 +15,7 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["docs/", "examples/", ".github/", "tests"]
-rust-version = "1.81.0"
+rust-version = "1.85.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -50,7 +50,7 @@ askalono = { version = "0.5", default-features = false }
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
 camino = "1.1"
-cfg-expr = "0.17"
+cfg-expr = "0.18"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
@@ -77,7 +77,7 @@ goblin = { version = "0.9", default-features = false, features = [
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.17", features = ["targets"] }
+krates = { version = "0.18", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Faster char searching

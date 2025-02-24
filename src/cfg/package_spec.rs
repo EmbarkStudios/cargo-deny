@@ -1,10 +1,10 @@
-use crate::{cfg::Span, Spanned};
+use crate::{Spanned, cfg::Span};
 use semver::VersionReq;
 use std::fmt;
 use toml_span::{
-    de_helpers::{expected, TableHelper},
-    value::{Value, ValueInner},
     DeserError, Deserialize,
+    de_helpers::{TableHelper, expected},
+    value::{Value, ValueInner},
 };
 
 /// A package identifier, consisting of a package name and a version requirement
@@ -178,7 +178,9 @@ impl Ord for PackageSpec {
                                             semver::Op::Caret => Self::Caret,
                                             semver::Op::Wildcard => Self::Wildcard,
                                             // I fucking despise non_exhaustive
-                                            _ => panic!("semver has added a new Op, but non_exhaustive means we can't detect that at compile time, so please open an issue so that the additional match arm can be added"),
+                                            _ => panic!(
+                                                "semver has added a new Op, but non_exhaustive means we can't detect that at compile time, so please open an issue so that the additional match arm can be added"
+                                            ),
                                         }
                                     }
                                 }

@@ -1,10 +1,10 @@
 use super::OrgType;
 use crate::{
+    LintLevel, Spanned,
     cfg::{self, ValidationContext},
     diag::FileId,
-    LintLevel, Spanned,
 };
-use toml_span::{de_helpers::TableHelper, value::Value, DeserError, Deserialize};
+use toml_span::{DeserError, Deserialize, de_helpers::TableHelper, value::Value};
 
 #[derive(Default)]
 pub struct Orgs {
@@ -180,7 +180,7 @@ impl cfg::UnvalidatedConfig for Config {
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string())
+                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string()),
                             ]),
                     );
                 }
@@ -240,7 +240,7 @@ pub struct ValidConfig {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::{write_diagnostics, ConfigData};
+    use crate::test_utils::{ConfigData, write_diagnostics};
 
     #[test]
     fn deserializes_sources_cfg() {

@@ -197,7 +197,7 @@ fn write_full_stats(summary: &mut String, stats: &AllStats, color: bool) {
 
 #[cfg(test)]
 mod test {
-    use super::{stats_to_exit_code as ec, AllStats, Stats};
+    use super::{AllStats, Stats, stats_to_exit_code as ec};
 
     #[test]
     fn exit_code() {

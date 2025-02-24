@@ -4,8 +4,8 @@ use cfg::ValidConfig;
 pub use diags::Code;
 
 use crate::{
-    diag::{CfgCoord, Check, ErrorSink, Label, Pack},
     LintLevel,
+    diag::{CfgCoord, Check, ErrorSink, Label, Pack},
 };
 
 const CRATES_IO_URL: &str = "https://github.com/rust-lang/crates.io-index";

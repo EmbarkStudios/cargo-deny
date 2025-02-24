@@ -1,8 +1,8 @@
 use cargo_deny::{
+    Krates,
     advisories::{self, cfg},
     field_eq, func_name,
     test_utils::{self as tu},
-    Krates,
 };
 
 struct TestCtx {
@@ -343,10 +343,12 @@ fn warns_on_ignored_and_withdrawn() {
             );
         });
 
-    insta::assert_json_snapshot!(diags
-        .iter()
-        .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
-        .unwrap());
+    insta::assert_json_snapshot!(
+        diags
+            .iter()
+            .find(|diag| field_eq!(diag, "/fields/code", "advisory-not-detected"))
+            .unwrap()
+    );
 }
 
 #[inline]
@@ -362,22 +364,24 @@ fn to_path(td: &tempfile::TempDir) -> Option<&cargo_deny::Path> {
 /// Validates that stale advisory databases result in an error
 #[test]
 fn fails_on_stale_advisory_database() {
-    assert!(advisories::DbSet::load(
-        "tests/advisory-db".into(),
-        vec![],
-        advisories::Fetch::Disallow(time::Duration::seconds(0)),
-    )
-    .unwrap_err()
-    .to_string()
-    .contains("repository is stale"));
+    assert!(
+        advisories::DbSet::load(
+            "tests/advisory-db".into(),
+            vec![],
+            advisories::Fetch::Disallow(time::Duration::seconds(0)),
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("repository is stale")
+    );
 }
 
 use advisories::Fetch;
 
 const TEST_DB_URL: &str = "https://github.com/EmbarkStudios/test-advisory-db";
-const TEST_DB_PATH: &str = "tests/advisory-db/github.com-c046ebb82572a8ef";
-const GIT_PATH: &str = "github.com-c046ebb82572a8ef/.git";
-const GIT_SUB_PATH: &str = ".git/modules/tests/advisory-db/github.com-c046ebb82572a8ef";
+const TEST_DB_PATH: &str = "tests/advisory-db/test-advisory-db-c27873b782cceedc";
+const GIT_PATH: &str = "test-advisory-db-c27873b782cceedc/.git";
+const GIT_SUB_PATH: &str = ".git/modules/tests/advisory-db/test-advisory-db-c27873b782cceedc";
 
 /// Expected HEAD without fetch
 const EXPECTED_ONE: &str = "1f44d565d81692a44b8c7af8a80f587e19757f8c";

@@ -4,9 +4,9 @@ mod graph;
 
 use self::cfg::{ValidBuildConfig, ValidConfig, ValidTreeSkip};
 use crate::{
+    Kid, Krate, Krates, LintLevel,
     cfg::{PackageSpec, Reason, Span, Spanned},
     diag::{self, CfgCoord, FileId, KrateCoord},
-    Kid, Krate, Krates, LintLevel,
 };
 use anyhow::Error;
 pub use diags::Code;

@@ -1,7 +1,7 @@
 use crate::{Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
-pub use rustsec::{advisory::Id, Database};
+pub use rustsec::{Database, advisory::Id};
 use std::fmt;
 use url::Url;
 
@@ -88,12 +88,20 @@ impl DbSet {
 }
 
 /// Convert an advisory url to a directory underneath a specified root
+///
+/// This uses a similar, but different, scheme to how cargo names eg. index
+/// directories, we take the path portion of the url and use that as a friendly
+/// identifier, but then hash the url as the user provides it to ensure the
+/// directory name is unique
 fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
-    let local_dir = tame_index::utils::url_to_local_dir(
-        url.as_str(),
-        true, /* use stable hash so that paths are the same regardless of host platform */
-    )?;
-    db_path.push(local_dir.dir_name);
+    let url = Url::parse(&url.as_str().to_lowercase())?;
+    let name = url
+        .path_segments()
+        .and_then(|mut ps| ps.next_back())
+        .unwrap_or("empty_");
+
+    let hash = twox_hash::XxHash64::oneshot(0xca80de71, url.as_str().as_bytes());
+    db_path.push(format!("{name}-{hash:016x}"));
 
     Ok(db_path)
 }
@@ -262,7 +270,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         let remote_head_id = tame_index::utils::git::write_fetch_head(&repo, &outcome, &remote)
             .context("failed to write FETCH_HEAD")?;
 
-        use gix::refs::{transaction as tx, Target};
+        use gix::refs::{Target, transaction as tx};
 
         // In all (hopefully?) cases HEAD is a symbolic reference to
         // refs/heads/<branch> which is a peeled commit id, if that's the case
