@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#749](https://github.com/EmbarkStudios/cargo-deny/pull/749) updated `krates` to pull in the fix for [EmbarkStudios/krates#100](https://github.com/EmbarkStudios/krates/issues/100).
+
 ## [0.18.0] - 2025-02-24
 ### Changed
 - [PR#746](https://github.com/EmbarkStudios/cargo-deny/pull/746) changed the directory naming of advisory databases, [again](https://github.com/EmbarkStudios/cargo-deny/pull/745), so the name uses the last path component and a different, but also stable, hashing algorithm. Eg. the default `https://github.com/rustsec/advisory-db` will now be placed in `$CARGO_HOME/advisory-dbs/advisory-db-3157b0e258782691`.
