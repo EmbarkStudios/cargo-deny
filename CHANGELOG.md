@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.2] - 2025-03-10
 ### Added
 - [PR#753](https://github.com/EmbarkStudios/cargo-deny/pull/753) resolved [#752](https://github.com/EmbarkStudios/cargo-deny/issues/752) by adding back the `advisories.unmaintained` config option. See the [docs](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#the-unmaintained-field-optional) for how it can be used. The default matches the current behavior, which is to error on any `unmaintained` advisory, but adding `unmaintained = "workspace"` to the `[advisories]` table will mean unmaintained advisories will only error if the crate is a direct dependency of your workspace.
 
@@ -709,7 +710,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...HEAD
+[0.18.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.0...0.18.1
 [0.18.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.17.0...0.18.0
 [0.17.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.16.4...0.17.0
