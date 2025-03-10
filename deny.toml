@@ -11,7 +11,7 @@ targets = [
 all-features = true
 
 [advisories]
-version = 2
+unmaintained = "workspace"
 ignore = [
 ]
 
