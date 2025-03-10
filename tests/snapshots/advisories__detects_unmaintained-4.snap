@@ -1,0 +1,5 @@
+---
+source: tests/advisories.rs
+expression: unmaintained_advisories(diags)
+---
+[]

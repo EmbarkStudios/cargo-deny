@@ -1,0 +1,150 @@
+---
+source: tests/advisories.rs
+expression: unmaintained_advisories(diags)
+---
+[
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [],
+        "categories": [],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2024-09-01",
+        "description": "This crate is no longer maintained, and the author recommends using the maintained [`web-time`] crate instead.\n\n[`web-time`]: https://crates.io/crates/web-time",
+        "id": "RUSTSEC-2024-0384",
+        "informational": "unmaintained",
+        "keywords": [],
+        "license": "CC0-1.0",
+        "package": "instant",
+        "references": [
+          "https://crates.io/crates/instant/0.1.13",
+          "https://github.com/sebcrozet/instant/issues/52"
+        ],
+        "related": [],
+        "source": null,
+        "title": "`instant` is unmaintained",
+        "url": null,
+        "withdrawn": null
+      },
+      "code": "unmaintained",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "instant",
+            "version": "0.1.10"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "fastrand",
+                "version": "1.4.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "lettre",
+                    "version": "0.10.0-rc.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "parking_lot",
+                "version": "0.11.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "r2d2",
+                    "version": "0.8.9"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "lettre",
+                        "version": "0.10.0-rc.3"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "scheduled-thread-pool",
+                    "version": "0.2.5"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "r2d2",
+                        "version": "0.8.9"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "trust-dns-resolver",
+                    "version": "0.20.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "parking_lot_core",
+                "version": "0.8.3"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "parking_lot",
+                    "version": "0.11.1"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 58,
+          "message": "unmaintained advisory detected",
+          "span": "instant 0.1.10 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "`instant` is unmaintained",
+      "notes": [
+        "ID: RUSTSEC-2024-0384",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0384",
+        "This crate is no longer maintained, and the author recommends using the maintained [`web-time`] crate instead.\n\n[`web-time`]: https://crates.io/crates/web-time",
+        "Solution: No safe upgrade is available!"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

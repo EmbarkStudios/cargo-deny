@@ -6,3 +6,4 @@ ignore = [
     "crate@0.1",
     { crate = "yanked", reason = "a new version has not been released" },
 ]
+unmaintained = "workspace"
