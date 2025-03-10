@@ -73,8 +73,55 @@ pub fn check<R, S>(
     let mut ignore_hits: BitVec = BitVec::repeat(false, ctx.cfg.ignore.len());
     let mut ignore_yanked_hits: BitVec = BitVec::repeat(false, ctx.cfg.ignore_yanked.len());
 
+    use crate::cfg::Scope;
+    let ws_set = if matches!(
+        ctx.cfg.unmaintained.value,
+        Scope::Workspace | Scope::Transitive
+    ) {
+        ctx.krates
+            .workspace_members()
+            .filter_map(|wm| {
+                if let krates::Node::Krate { id, .. } = wm {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<std::collections::BTreeSet<_>>()
+    } else {
+        Default::default()
+    };
+
     // Emit diagnostics for any advisories found that matched crates in the graph
-    for (krate, advisory) in &report.advisories {
+    'lup: for (krate, advisory) in &report.advisories {
+        'block: {
+            if advisory
+                .metadata
+                .informational
+                .as_ref()
+                .is_some_and(|info| info.is_unmaintained())
+            {
+                match ctx.cfg.unmaintained.value {
+                    Scope::All => break 'block,
+                    Scope::None => continue 'lup,
+                    Scope::Workspace | Scope::Transitive => {
+                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                        let dds = ctx.krates.direct_dependents(nid);
+
+                        let transitive = ctx.cfg.unmaintained.value == Scope::Transitive;
+                        if dds
+                            .iter()
+                            .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
+                        {
+                            break 'block;
+                        }
+
+                        continue 'lup;
+                    }
+                }
+            }
+        }
+
         let diag = ctx.diag_for_advisory(
             krate,
             &advisory.metadata,

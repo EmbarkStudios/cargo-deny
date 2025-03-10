@@ -3,11 +3,11 @@
 <!-- markdownlint-disable-next-line heading-increment -->
 ### `vulnerability`
 
-A [`vulnerability`](cfg.md#the-vulnerability-field-optional) advisory was detected for a crate.
+A `vulnerability` advisory was detected for a crate.
 
 ### `notice`
 
-A [`notice`](cfg.md#the-notice-field-optional) advisory was detected for a crate.
+A `notice` advisory was detected for a crate.
 
 ### `unmaintained`
 
@@ -15,7 +15,7 @@ An [`unmaintained`](cfg.md#the-unmaintained-field-optional) advisory was detecte
 
 ### `unsound`
 
-An [`unsound`](cfg.md#the-unsound-field-optional) advisory was detected for a crate.
+An `unsound` advisory was detected for a crate.
 
 ### `yanked`
 

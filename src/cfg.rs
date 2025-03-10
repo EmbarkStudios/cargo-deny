@@ -52,6 +52,22 @@ pub trait UnvalidatedConfig {
     fn validate(self, ctx: ValidationContext<'_>) -> Self::ValidCfg;
 }
 
+#[derive(Copy, Clone, PartialEq, strum::VariantNames, strum::VariantArray)]
+#[cfg_attr(test, derive(serde::Serialize))]
+#[strum(serialize_all = "kebab-case")]
+pub enum Scope {
+    /// Matches any crate
+    All,
+    /// Matches crates in the workspace
+    Workspace,
+    /// Matches external crates
+    Transitive,
+    /// Matches no crates
+    None,
+}
+
+crate::enum_deser!(Scope);
+
 #[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq, Eq, serde::Serialize))]
 pub struct Reason(pub Spanned<String>);

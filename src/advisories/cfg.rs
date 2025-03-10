@@ -1,6 +1,6 @@
 use crate::{
     LintLevel, PathBuf, Span, Spanned,
-    cfg::{PackageSpecOrExtended, Reason, ValidationContext},
+    cfg::{PackageSpecOrExtended, Reason, Scope, ValidationContext},
     diag::{Diagnostic, FileId, Label},
     utf8path,
 };
@@ -75,6 +75,8 @@ pub struct Config {
     pub yanked: Spanned<LintLevel>,
     /// Ignore advisories for the given IDs
     ignore: Vec<Spanned<IgnoreId>>,
+    /// Whether to error on unmaintained advisories, and for what scope
+    pub unmaintained: Spanned<Scope>,
     /// Ignore yanked crates
     pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// Use the git executable to fetch advisory database rather than gitoxide
@@ -98,6 +100,7 @@ impl Default for Config {
             db_path: None,
             db_urls: Vec::new(),
             ignore: Vec::new(),
+            unmaintained: Spanned::new(crate::cfg::Scope::All),
             ignore_yanked: Vec::new(),
             yanked: Spanned::new(LintLevel::Warn),
             git_fetch_with_cli: None,
@@ -145,9 +148,10 @@ impl<'de> Deserialize<'de> for Config {
         let mut fdeps = Vec::new();
 
         let _vulnerability = deprecated::<LintLevel>(&mut th, "vulnerability", &mut fdeps);
-        let _unmaintained = deprecated::<LintLevel>(&mut th, "unmaintained", &mut fdeps);
         let _unsound = deprecated::<LintLevel>(&mut th, "unsound", &mut fdeps);
         let _notice = deprecated::<LintLevel>(&mut th, "notice", &mut fdeps);
+
+        let unmaintained = th.optional_s::<Scope>("unmaintained");
 
         let yanked = th
             .optional_s("yanked")
@@ -293,6 +297,7 @@ impl<'de> Deserialize<'de> for Config {
             db_urls,
             yanked,
             ignore,
+            unmaintained: unmaintained.unwrap_or(Spanned::new(Scope::All)),
             ignore_yanked,
             git_fetch_with_cli,
             disable_yank_checking,
@@ -392,6 +397,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             db_path: db_path.unwrap_or_default(), // If we failed to get a path the default won't be used since errors will have occurred
             db_urls,
             ignore: ignore.into_iter().map(|s| s.value).collect(),
+            unmaintained: self.unmaintained,
             ignore_yanked: ignore_yanked
                 .into_iter()
                 .map(|s| crate::bans::SpecAndReason {
@@ -415,6 +421,7 @@ pub struct ValidConfig {
     pub db_path: PathBuf,
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<IgnoreId>,
+    pub(crate) unmaintained: Spanned<Scope>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub yanked: Spanned<LintLevel>,
     pub git_fetch_with_cli: bool,
