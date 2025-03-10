@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#753](https://github.com/EmbarkStudios/cargo-deny/pull/753) resolved [#752](https://github.com/EmbarkStudios/cargo-deny/issues/752) by adding back the `advisories.unmaintained` config option. See the [docs](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#the-unmaintained-field-optional) for how it can be used. The default matches the current behavior, which is to error on any `unmaintained` advisory, but adding `unmaintained = "workspace"` to the `[advisories]` table will mean unmaintained advisories will only error if the crate is a direct dependency of your workspace.
+
 ## [0.18.1] - 2025-02-27
 ### Fixed
 - [PR#749](https://github.com/EmbarkStudios/cargo-deny/pull/749) updated `krates` to pull in the fix for [EmbarkStudios/krates#100](https://github.com/EmbarkStudios/krates/issues/100).

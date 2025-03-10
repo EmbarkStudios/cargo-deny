@@ -39,7 +39,6 @@ version = 2
 The version field is (at the time of this writing) no longer used, the following fields have been removed and will now emit errors.
 
 - `vulnerability` - Removed, all vulnerability advisories now emit errors.
-- `unmaintained` - Removed, all unmaintained advisories now emit errors.
 - `unsound` - Removed, all unsound advisories now emit errors.
 - `notice` - Removed, all notice advisories now emit errors.
 - `severity-threshold` - Removed, all vulnerability advisories now emit errors.
@@ -68,6 +67,19 @@ ignore = [
 Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.
 
 In addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-spec) with an optional `reason`.
+
+### The `unmaintained` field (optional)
+
+```ini
+unmaintained = 'workspace'
+```
+
+Determines if ummaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
+
+- `all` (default) - Any crate that matches an unmaintained advisory will fail
+- `workspace` - Unmaintained advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
+- `transitive` - Unmaintained advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
+- `none` - Unmaintained advisories are completely ignored.
 
 ### The `git-fetch-with-cli` field (optional)
 
