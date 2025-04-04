@@ -50,14 +50,14 @@ askalono = { version = "0.5", default-features = false }
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
 camino = "1.1"
-cfg-expr = "0.18"
+cfg-expr = "0.19"
 # Allows us to do eg cargo metadata operations without relying on an external cargo
 #cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
 clap = { version = "4.5", features = ["derive", "env"] }
 # Used for diagnostic reporting
-codespan = { version = "0.11", features = ["serialization"] }
-codespan-reporting = { version = "0.11", features = ["serialization"] }
+codespan = { version = "0.12", features = ["serialization"] }
+codespan-reporting = { version = "0.12", features = ["serialization"] }
 # Brrrrr
 crossbeam = "0.8"
 # Logging utilities
@@ -77,7 +77,7 @@ goblin = { version = "0.9", default-features = false, features = [
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.18", features = ["targets"] }
+krates = { version = "0.19", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Faster char searching
@@ -105,7 +105,7 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.18", default-features = false, features = [
+tame-index = { version = "0.19", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -116,7 +116,7 @@ time = { version = "0.3", default-features = false, features = [
   "macros",
 ] }
 # Deserialization of configuration files and crate manifests
-toml-span = { version = "0.4", features = ["reporting"] }
+toml-span = { version = "0.5", features = ["reporting"] }
 # Small fast hash crate
 twox-hash = { version = "2.0", default-features = false, features = ["xxhash32"] }
 # Url parsing/manipulation
@@ -140,9 +140,9 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.42", features = ["json"] }
-tame-index = { version = "0.18", features = ["local-builder"] }
+tame-index = { version = "0.19", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
-toml-span = { version = "0.4", features = ["serde"] }
+toml-span = { version = "0.5", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.17"
 # divan = "0.1"

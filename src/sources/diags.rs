@@ -40,7 +40,7 @@ pub(crate) struct BelowMinimumRequiredSpec<'a> {
 impl<'a> From<BelowMinimumRequiredSpec<'a>> for Diag {
     fn from(bmrs: BelowMinimumRequiredSpec<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!(
+            .with_message(format_args!(
                 "'git' source is underspecified, expected '{}', but found '{}'",
                 bmrs.min_spec, bmrs.actual_spec,
             ))
@@ -64,7 +64,10 @@ pub(crate) struct ExplicitlyAllowedSource<'a> {
 impl<'a> From<ExplicitlyAllowedSource<'a>> for Diag {
     fn from(eas: ExplicitlyAllowedSource<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!("'{}' source explicitly allowed", eas.type_name))
+            .with_message(format_args!(
+                "'{}' source explicitly allowed",
+                eas.type_name
+            ))
             .with_code(Code::AllowedSource)
             .with_labels(vec![
                 eas.src_label.clone(),
@@ -103,7 +106,7 @@ pub(crate) struct SourceNotExplicitlyAllowed<'a> {
 impl<'a> From<SourceNotExplicitlyAllowed<'a>> for Diag {
     fn from(snea: SourceNotExplicitlyAllowed<'a>) -> Self {
         Diagnostic::new(snea.lint_level.into())
-            .with_message(format!(
+            .with_message(format_args!(
                 "detected '{}' source not explicitly allowed",
                 snea.type_name,
             ))
@@ -139,7 +142,7 @@ pub(crate) struct UnmatchedAllowOrg {
 impl From<UnmatchedAllowOrg> for Diag {
     fn from(uao: UnmatchedAllowOrg) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message(format!(
+            .with_message(format_args!(
                 "allowed '{}' organization  was not encountered",
                 uao.org_type
             ))

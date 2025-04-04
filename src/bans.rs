@@ -1296,7 +1296,7 @@ pub fn check_build(
                     Err(path) => {
                         pack.push(
                             crate::diag::Diagnostic::warning()
-                                .with_message(format!("path {path:?} is not utf-8, skipping")),
+                                .with_message(format_args!("path {path:?} is not utf-8, skipping")),
                         );
                         continue;
                     }
@@ -1305,7 +1305,7 @@ pub fn check_build(
                 let path = &absolute_path;
 
                 let Ok(rel_path) = path.strip_prefix(root) else {
-                    pack.push(crate::diag::Diagnostic::error().with_message(format!(
+                    pack.push(crate::diag::Diagnostic::error().with_message(format_args!(
                         "path '{path}' is not relative to crate root '{root}'"
                     )));
                     continue;
@@ -1653,14 +1653,16 @@ fn check_workspace_duplicates(
             .workspace_span(kid)
             .zip(krate_spans.workspace_id)
         {
-            labels.push(Label::secondary(ws_id, ws_span.key).with_message(format!(
-                "{}workspace dependency",
-                if ws_span.patched.is_some() {
-                    "patched "
-                } else {
-                    ""
-                }
-            )));
+            labels.push(
+                Label::secondary(ws_id, ws_span.key).with_message(format_args!(
+                    "{}workspace dependency",
+                    if ws_span.patched.is_some() {
+                        "patched "
+                    } else {
+                        ""
+                    }
+                )),
+            );
 
             if let Some(patched) = ws_span.patched {
                 labels.push(

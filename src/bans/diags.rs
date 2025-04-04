@@ -96,7 +96,7 @@ pub(crate) struct ExplicitlyBanned<'a> {
 impl<'a> From<ExplicitlyBanned<'a>> for Diag {
     fn from(eb: ExplicitlyBanned<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!("crate '{}' is explicitly banned", eb.krate))
+            .with_message(format_args!("crate '{}' is explicitly banned", eb.krate))
             .with_code(Code::Banned)
             .with_labels(eb.ban_cfg.to_labels(Some("banned here")))
             .into()
@@ -111,7 +111,7 @@ pub(crate) struct ExplicitlyAllowed<'a> {
 impl<'a> From<ExplicitlyAllowed<'a>> for Diag {
     fn from(ea: ExplicitlyAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!("crate '{}' is explicitly allowed", ea.krate))
+            .with_message(format_args!("crate '{}' is explicitly allowed", ea.krate))
             .with_code(Code::Allowed)
             .with_labels(ea.allow_cfg.to_labels(Some("allowed here")))
             .into()
@@ -125,7 +125,10 @@ pub(crate) struct NotAllowed<'a> {
 impl<'a> From<NotAllowed<'a>> for Diag {
     fn from(ib: NotAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!("crate '{}' is not explicitly allowed", ib.krate))
+            .with_message(format_args!(
+                "crate '{}' is not explicitly allowed",
+                ib.krate
+            ))
             .with_code(Code::NotAllowed)
             .into()
     }
@@ -141,7 +144,7 @@ pub(crate) struct Duplicates<'a> {
 impl<'a> From<Duplicates<'a>> for Diag {
     fn from(dup: Duplicates<'a>) -> Self {
         Diagnostic::new(dup.severity)
-            .with_message(format!(
+            .with_message(format_args!(
                 "found {} duplicate entries for crate '{}'",
                 dup.num_dupes, dup.krate_name,
             ))
@@ -161,7 +164,7 @@ pub(crate) struct Skipped<'a> {
 impl<'a> From<Skipped<'a>> for Diag {
     fn from(sk: Skipped<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!(
+            .with_message(format_args!(
                 "crate '{}' skipped when checking for duplicates",
                 sk.krate
             ))
@@ -183,7 +186,7 @@ impl<'a> From<Wildcards<'a>> for Pack {
         let labels = wc.labels;
         let diag = Diag::new(
             Diagnostic::new(wc.severity)
-                .with_message(format!(
+                .with_message(format_args!(
                     "found {} wildcard dependenc{} for crate '{}'{}",
                     labels.len(),
                     if labels.len() == 1 { "y" } else { "ies" },
@@ -212,7 +215,7 @@ pub(crate) struct UnmatchedSkip<'a> {
 impl<'a> From<UnmatchedSkip<'a>> for Diag {
     fn from(us: UnmatchedSkip<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message(format!(
+            .with_message(format_args!(
                 "skipped crate '{}' was not encountered",
                 us.skip_cfg.spec,
             ))
@@ -229,7 +232,7 @@ pub(crate) struct UnnecessarySkip<'a> {
 impl<'a> From<UnnecessarySkip<'a>> for Diag {
     fn from(us: UnnecessarySkip<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message(format!(
+            .with_message(format_args!(
                 "skip '{}' applied to a crate with only one version",
                 us.skip_cfg.spec,
             ))
@@ -270,7 +273,7 @@ pub(crate) struct BannedAllowedByWrapper<'a> {
 impl<'a> From<BannedAllowedByWrapper<'a>> for Diag {
     fn from(baw: BannedAllowedByWrapper<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!(
+            .with_message(format_args!(
                 "banned crate '{}' allowed by wrapper '{}'",
                 baw.banned_krate, baw.wrapper_krate
             ))
@@ -294,7 +297,7 @@ pub(crate) struct BannedUnmatchedWrapper<'a> {
 impl<'a> From<BannedUnmatchedWrapper<'a>> for Diag {
     fn from(buw: BannedUnmatchedWrapper<'a>) -> Self {
         Diagnostic::new(Severity::Warning)
-            .with_message(format!(
+            .with_message(format_args!(
                 "direct parent '{}' of banned crate '{}' was not marked as a wrapper",
                 buw.parent_krate, buw.banned_krate
             ))
@@ -312,7 +315,10 @@ pub(crate) struct SkippedByRoot<'a> {
 impl<'a> From<SkippedByRoot<'a>> for Diag {
     fn from(sbr: SkippedByRoot<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!("skipping crate '{}' due to root skip", sbr.krate))
+            .with_message(format_args!(
+                "skipping crate '{}' due to root skip",
+                sbr.krate
+            ))
             .with_code(Code::SkippedByRoot)
             .with_labels(sbr.skip_root_cfg.to_labels(Some("matched skip root")))
             .into()
@@ -344,7 +350,7 @@ pub(crate) struct BuildScriptNotAllowed<'a> {
 impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
     fn from(bs: BuildScriptNotAllowed<'a>) -> Self {
         Diagnostic::new(Severity::Error)
-            .with_message(format!(
+            .with_message(format_args!(
                 "crate '{}' has a build script but is not allowed to have one",
                 bs.krate
             ))
@@ -375,7 +381,7 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
         );
 
         let diag = Diagnostic::new(Severity::Error)
-            .with_message(format!(
+            .with_message(format_args!(
                 "feature set for crate '{}' did not match exactly",
                 efm.krate
             ))
@@ -421,7 +427,7 @@ pub(crate) struct FeatureNotExplicitlyAllowed<'a> {
 impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
     fn from(fna: FeatureNotExplicitlyAllowed<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Error)
-            .with_message(format!(
+            .with_message(format_args!(
                 "feature '{}' for crate '{}' was not explicitly allowed",
                 fna.feature, fna.krate,
             ))
@@ -452,7 +458,7 @@ pub(crate) struct FeatureBanned<'a> {
 impl From<FeatureBanned<'_>> for Diag {
     fn from(fed: FeatureBanned<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Error)
-            .with_message(format!(
+            .with_message(format_args!(
                 "feature '{}' for crate '{}' is explicitly denied",
                 fed.feature.value, fed.krate,
             ))
@@ -483,7 +489,7 @@ pub(crate) struct UnknownFeature<'a> {
 impl From<UnknownFeature<'_>> for Diag {
     fn from(uf: UnknownFeature<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Warning)
-            .with_message(format!(
+            .with_message(format_args!(
                 "found unknown feature '{}' for crate '{}'",
                 uf.feature.value, uf.krate,
             ))
@@ -514,7 +520,7 @@ pub(crate) struct DefaultFeatureEnabled<'a> {
 impl From<DefaultFeatureEnabled<'_>> for Diag {
     fn from(dfe: DefaultFeatureEnabled<'_>) -> Diag {
         let diag = Diagnostic::new(dfe.level.value.into())
-            .with_message(format!(
+            .with_message(format_args!(
                 "'default' feature enabled for crate '{}'",
                 dfe.krate,
             ))
@@ -793,7 +799,7 @@ pub(crate) struct FeaturesEnabled<'a> {
 impl From<FeaturesEnabled<'_>> for Diag {
     fn from(fe: FeaturesEnabled<'_>) -> Diag {
         let diag = Diagnostic::new(Severity::Note)
-            .with_message(format!(
+            .with_message(format_args!(
                 "{} features enabled for crate with build script, checking sources",
                 fe.enabled_features.len()
             ))
@@ -874,7 +880,7 @@ pub(crate) struct WorkspaceDuplicate<'k> {
 impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
     fn from(wd: WorkspaceDuplicate<'k>) -> Self {
         Diagnostic::new(wd.severity.into())
-            .with_message(format!(
+            .with_message(format_args!(
                 "crate {} is used {} times in the workspace, {}",
                 wd.duplicate,
                 wd.total_uses,
@@ -924,14 +930,16 @@ impl<'u> From<UnusedWorkspaceDependencies<'u>> for Pack {
         let mut pack = Pack::new(Check::Bans);
 
         for unused in uwd.unused {
-            let mut labels = vec![Label::primary(uwd.id, unused.key).with_message(format!(
-                "unused {}workspace dependency",
-                if unused.patched.is_some() {
-                    "and patched "
-                } else {
-                    ""
-                }
-            ))];
+            let mut labels = vec![
+                Label::primary(uwd.id, unused.key).with_message(format_args!(
+                    "unused {}workspace dependency",
+                    if unused.patched.is_some() {
+                        "and patched "
+                    } else {
+                        ""
+                    }
+                )),
+            ];
 
             if let Some(patched) = unused.patched {
                 labels.push(

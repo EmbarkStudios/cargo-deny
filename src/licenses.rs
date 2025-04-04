@@ -164,7 +164,7 @@ fn evaluate_expression(
                 nfo.offset + failed_req.span.start as usize
                     ..nfo.offset + failed_req.span.end as usize,
             )
-            .with_message(format!(
+            .with_message(format_args!(
                 "{}: {}",
                 if accepted { "accepted" } else { "rejected" },
                 match reason {

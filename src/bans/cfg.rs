@@ -490,7 +490,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                     )
                                     .with_labels(vec![
                                         Label::secondary(cfg_id, wrappers.span)
-                                            .with_message(format!("has {} `wrappers`", wrappers.value.len())),
+                                            .with_message(format_args!("has {} `wrappers`", wrappers.value.len())),
                                         Label::secondary(cfg_id, dmv.span)
                                             .with_message("has `deny-multiple-versions` set to true"),
                                     ]),
@@ -526,15 +526,15 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                first: (&PackageSpec, &str),
                                second: (&PackageSpec, &str)| {
             let diag = Diagnostic::error()
-                .with_message(format!(
+                .with_message(format_args!(
                     "a crate was specified in both `{}` and `{}`",
                     second.1, first.1
                 ))
                 .with_labels(vec![
                     Label::secondary(cfg_id, first.0.name.span)
-                        .with_message(format!("marked as `{}`", first.1)),
+                        .with_message(format_args!("marked as `{}`", first.1)),
                     Label::secondary(cfg_id, second.0.name.span)
-                        .with_message(format!("marked as `{}`", second.1)),
+                        .with_message(format_args!("marked as `{}`", second.1)),
                 ]);
 
             ctx.push(diag);
@@ -636,7 +636,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         Err(err) => {
                             ctx.diagnostics.push(
                                 Diagnostic::error()
-                                    .with_message(format!("invalid glob pattern: {err}"))
+                                    .with_message(format_args!("invalid glob pattern: {err}"))
                                     .with_labels(vec![
                                         Label::primary(ctx.cfg_id, ext.span)
                                             .with_message("extension"),
@@ -653,7 +653,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
 
             let script_extensions = gsb.build().unwrap_or_else(|err| {
                 ctx.diagnostics
-                    .push(Diagnostic::error().with_message(format!(
+                    .push(Diagnostic::error().with_message(format_args!(
                         "failed to build script extensions glob set: {err}"
                     )));
                 ValidGlobSet::default()
@@ -676,7 +676,9 @@ impl crate::cfg::UnvalidatedConfig for Config {
                                 Err(err) => {
                                     ctx.diagnostics.push(
                                         Diagnostic::error()
-                                            .with_message(format!("invalid glob pattern: {err}"))
+                                            .with_message(format_args!(
+                                                "invalid glob pattern: {err}"
+                                            ))
                                             .with_labels(vec![Label::primary(ctx.cfg_id, ag.span)]),
                                     );
                                 }
@@ -686,10 +688,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         match gsb.build() {
                             Ok(set) => Some(set),
                             Err(err) => {
-                                ctx.diagnostics
-                                    .push(Diagnostic::error().with_message(format!(
+                                ctx.diagnostics.push(Diagnostic::error().with_message(
+                                    format_args!(
                                         "failed to build script extensions glob set: {err}"
-                                    )));
+                                    ),
+                                ));
                                 None
                             }
                         }
