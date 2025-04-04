@@ -8,7 +8,12 @@ use rustsec::advisory::{Informational, Metadata, Versions};
 impl IgnoreId {
     fn to_labels(&self, id: FileId, msg: impl Into<String>) -> Vec<Label> {
         let mut v = Vec::with_capacity(self.reason.as_ref().map_or(1, |_| 2));
-        v.push(Label::primary(id, self.id.span).with_message(msg));
+        v.push(Label {
+            style: codespan_reporting::diagnostic::LabelStyle::Primary,
+            file_id: id,
+            range: self.id.span.into(),
+            message: msg.into(),
+        });
 
         if let Some(reason) = &self.reason {
             v.push(Label::secondary(id, reason.0.span).with_message("ignore reason"));
@@ -159,7 +164,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
 
         let diag = pack.push(
             Diagnostic::new(severity)
-                .with_message(advisory.title.clone())
+                .with_message(&advisory.title)
                 .with_labels(vec![
                     Label::primary(
                         self.krate_spans.lock_id,
@@ -182,7 +187,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
         pack.push(
             Diagnostic::new(self.cfg.yanked.value.into())
-                .with_message(format!(
+                .with_message(format_args!(
                     "detected yanked crate (try `cargo update -p {}`)",
                     krate.name
                 ))
@@ -203,7 +208,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
         pack.push(
             Diagnostic::note()
-                .with_message(format!("yanked crate '{krate}' detected, but ignored",))
+                .with_message(format_args!("yanked crate '{krate}' detected, but ignored",))
                 .with_code(Code::YankedIgnored)
                 .with_labels(self.cfg.ignore_yanked[ignore].to_labels(Some("yanked ignore"))),
         );

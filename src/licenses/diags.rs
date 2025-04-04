@@ -40,7 +40,7 @@ pub(crate) struct Unlicensed<'a> {
 impl<'a> From<Unlicensed<'a>> for Diag {
     fn from(u: Unlicensed<'a>) -> Self {
         Diagnostic::new(u.severity)
-            .with_message(format!("{} is unlicensed", u.krate))
+            .with_message(format_args!("{} is unlicensed", u.krate))
             .with_code(Code::Unlicensed)
             .with_labels(u.breadcrumbs)
             .into()
@@ -54,7 +54,10 @@ pub(crate) struct SkippedPrivateWorkspaceCrate<'a> {
 impl<'a> From<SkippedPrivateWorkspaceCrate<'a>> for Diag {
     fn from(spwc: SkippedPrivateWorkspaceCrate<'a>) -> Self {
         Diagnostic::new(Severity::Note)
-            .with_message(format!("skipping private workspace crate '{}'", spwc.krate))
+            .with_message(format_args!(
+                "skipping private workspace crate '{}'",
+                spwc.krate
+            ))
             .with_code(Code::SkippedPrivateWorkspaceCrate)
             .into()
     }

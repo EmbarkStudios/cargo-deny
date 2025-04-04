@@ -368,7 +368,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 Ok(pb) => Some(pb),
                 Err(err) => {
                     ctx.diagnostics.push(Diagnostic::error()
-                        .with_message(format!("unable to obtain default advisory-dbs directory: {err:#}"))
+                        .with_message(format_args!("unable to obtain default advisory-dbs directory: {err:#}"))
                         .with_notes(vec!["the default directory is determined by $CARGO_HOME -> $HOME/.cargo".into()]));
                     None
                 }
@@ -639,7 +639,7 @@ fn shellexpand(
             &expand(Expand::Home)
                 .map_err(|err| {
                     Diagnostic::error()
-                        .with_message(format!("unable to obtain $HOME: {err:#}"))
+                        .with_message(format_args!("unable to obtain $HOME: {err:#}"))
                         .with_labels(vec![Label::primary(cfg_id, span.start..span.start + 1)])
                 })?
                 .expect("this either fails or returns a path"),
@@ -704,7 +704,7 @@ fn shellexpand(
             }
             Err(err) => {
                 return Err(Diagnostic::error()
-                    .with_message(format!("failed to expand variable: {err:#}"))
+                    .with_message(format_args!("failed to expand variable: {err:#}"))
                     .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
             }
             Ok(None) => {

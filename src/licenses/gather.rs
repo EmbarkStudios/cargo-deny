@@ -652,9 +652,7 @@ impl Gatherer {
                             let lic_span =
                                 lic_span.start + err.span.start..lic_span.start + err.span.end;
 
-                            labels.push(
-                                Label::secondary(id, lic_span).with_message(err.reason.to_string()),
-                            );
+                            labels.push(Label::secondary(id, lic_span).with_message(err.reason));
 
                             // If we fail strict parsing, attempt to use lax parsing,
                             // though still emitting a warning so the user is aware
@@ -768,11 +766,12 @@ impl Gatherer {
                             };
 
                             for label in lic_file_labels {
-                                let span = label.range.start + old_end..label.range.end + old_end;
-                                labels.push(
-                                    Label::secondary(label.file_id, span)
-                                        .with_message(label.message),
-                                );
+                                labels.push(Label {
+                                    style: codespan_reporting::diagnostic::LabelStyle::Secondary,
+                                    file_id: label.file_id,
+                                    range: label.range.start + old_end..label.range.end + old_end,
+                                    message: label.message,
+                                });
                             }
                         }
                     }

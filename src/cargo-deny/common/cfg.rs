@@ -133,7 +133,7 @@ impl ValidConfig {
 
                 diags.push(
                     Diagnostic::warning()
-                        .with_message(format!("unknown target `{}` specified", target.filter.value))
+                        .with_message(format_args!("unknown target `{}` specified", target.filter.value))
                         .with_labels(vec![
                     cargo_deny::diag::Label::primary(
                         id,

@@ -180,7 +180,7 @@ impl cfg::UnvalidatedConfig for Config {
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string()),
+                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe),
                             ]),
                     );
                 }

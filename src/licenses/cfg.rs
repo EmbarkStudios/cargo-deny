@@ -296,7 +296,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         Diagnostic::error()
                             .with_message("failed to parse url")
                             .with_labels(vec![
-                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe.to_string()),
+                                Label::primary(ctx.cfg_id, aurl.span).with_message(pe),
                             ]),
                     );
                 }
@@ -325,8 +325,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                         Diagnostic::error()
                             .with_message("unable to parse license expression")
                             .with_labels(vec![
-                                Label::primary(ctx.cfg_id, expr_span)
-                                    .with_message(err.reason.to_string()),
+                                Label::primary(ctx.cfg_id, expr_span).with_message(err.reason),
                             ]),
                     );
 

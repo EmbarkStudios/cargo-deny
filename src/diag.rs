@@ -585,7 +585,7 @@ lines
                             .enumerate()
                             .map(|(i, word)| {
                                 let lab = Label::secondary(file_id, offset..offset + word.len())
-                                    .with_message(format!("word {i}"));
+                                    .with_message(format_args!("word {i}"));
                                 offset += word.len() + 1;
                                 lab
                             })
@@ -626,7 +626,7 @@ lines
                                     file_id,
                                     offset..offset + word.len(),
                                 )
-                                .with_message(format!("word {i}"));
+                                .with_message(format_args!("word {i}"));
                                 offset += word.len() + 1;
                                 Some(lab)
                             })

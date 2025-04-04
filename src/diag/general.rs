@@ -82,7 +82,7 @@ impl From<Deprecated> for Diagnostic {
         };
 
         Diagnostic::new(severity)
-            .with_message(dep.reason.to_string())
+            .with_message(dep.reason)
             .with_labels(vec![Label::primary(dep.file_id, dep.key)])
             .with_code(Code::Deprecated)
     }
