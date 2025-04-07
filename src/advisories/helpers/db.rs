@@ -327,7 +327,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
 
     // Now that we've updated HEAD, do the actual checkout
     let workdir = repo
-        .work_dir()
+        .workdir()
         .context("unable to checkout, repository is bare")?;
     let root_tree = repo
         .head()?

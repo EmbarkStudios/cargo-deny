@@ -105,7 +105,7 @@ spdx = "0.10"
 # Lazy
 strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.19", default-features = false, features = [
+tame-index = { version = "0.20", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -126,7 +126,7 @@ walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.70"
+version = "0.71"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -140,7 +140,7 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.42", features = ["json"] }
-tame-index = { version = "0.19", features = ["local-builder"] }
+tame-index = { version = "0.20", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.5", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
