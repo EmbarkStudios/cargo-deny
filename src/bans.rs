@@ -1123,7 +1123,7 @@ pub fn check_build(
         let has_build_script = krate
             .targets
             .iter()
-            .any(|t| t.kind.iter().any(|k| *k == TargetKind::CustomBuild));
+            .any(|t| t.kind.contains(&TargetKind::CustomBuild));
 
         !has_build_script
             || allow_build_scripts
@@ -1506,7 +1506,7 @@ fn check_is_executable(
 
             // If we have a shebang, look to see if we have the newline, otherwise we need to read more bytes
             let mut hdr = [0u8; 256];
-            let header = if !header.iter().any(|b| *b == b'\n') {
+            let header = if !header.contains(&b'\n') {
                 hdr[..16].copy_from_slice(&header);
                 let read = file.read(&mut hdr[16..])?;
                 &hdr[..read + 16]
