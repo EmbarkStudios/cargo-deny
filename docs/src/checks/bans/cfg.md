@@ -123,7 +123,7 @@ This is a shorthand for the most common case for banning a particular crate, whi
 ### The `allow` field (optional)
 
 ```ini
-deny = ["package-spec"]
+allow = ["package-spec"]
 ```
 
 Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
