@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.3] - 2025-06-11
 ### Changed
 - [PR#773](https://github.com/EmbarkStudios/cargo-deny/pull/773) changed cargo-deny's duplicate detection to automatically ignore versions whose only dependent is another version of the same crate.
 
@@ -713,7 +714,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...HEAD
+[0.18.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.0...0.18.1
 [0.18.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.17.0...0.18.0
