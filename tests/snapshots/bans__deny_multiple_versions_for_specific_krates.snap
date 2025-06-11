@@ -369,7 +369,7 @@ expression: diags
       "labels": [
         {
           "column": 1,
-          "line": 50,
+          "line": 51,
           "message": "lock entries",
           "span": "generic-array 0.12.4 registry+https://github.com/rust-lang/crates.io-index\ngeneric-array 0.14.5 registry+https://github.com/rust-lang/crates.io-index"
         }

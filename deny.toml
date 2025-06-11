@@ -30,11 +30,10 @@ skip = [
     { crate = "hashbrown@0.14.5", reason = "gix uses this old version" },
     { crate = "core-foundation@0.9.4", reason = "reqwest -> system-configuration uses this old version" },
     { crate = "getrandom@0.2.16", reason = "ring uses this old version" },
-    { crate = "webpki-roots@0.26.11", reason = "semver trick" },
 ]
 skip-tree = [
     { crate = "windows-sys@0.52.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
-    { crate = "thiserror@1.0.69", reason = "gix depends on both the 1.0 and 2.0 versions" },
+    { crate = "thiserror@1.0.69", reason = "rustsec depends 1.0, patched, but not released https://github.com/rustsec/rustsec/commit/9b97c0fc155752c8298a5b5406eb175765ceac93" },
 ]
 
 [sources]

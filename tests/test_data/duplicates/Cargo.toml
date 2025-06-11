@@ -5,6 +5,10 @@ edition = "2021"
 
 [dependencies]
 sqlx = "0.5"
+# This depends on webpki-roots 0.25
+minreq = { version = "2.13", features = ["https"] }
+# This depends on webpki-roots 1.0
+old-webpki-roots = { package = "webpki-roots", version = "=0.26.11" }
 
 [dev-dependencies]
 async-graphql = "3.0"

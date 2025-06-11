@@ -5,14 +5,68 @@ expression: diags
 [
   {
     "fields": {
+      "code": "duplicate",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "webpki-roots",
+            "version": "0.25.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "minreq",
+                "version": "2.13.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "duplicates",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Krate": {
+            "name": "webpki-roots",
+            "version": "0.26.11"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "duplicates",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 140,
+          "message": "lock entries",
+          "span": "webpki-roots 0.25.4 registry+https://github.com/rust-lang/crates.io-index\nwebpki-roots 0.26.11 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "found 2 duplicate entries for crate 'webpki-roots'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
       "code": "unmatched-skip",
       "graphs": [],
       "labels": [
         {
-          "column": 15,
+          "column": 6,
           "line": 4,
           "message": "unmatched skip configuration",
-          "span": "block-buffer"
+          "span": "block-buffer@0.7.3"
         }
       ],
       "message": "skipped crate 'block-buffer = =0.7.3' was not encountered",

@@ -13,7 +13,7 @@ spdx = "0.3.4"
 
 [build-dependencies]
 # And something from gitlab
-amethyst_core = "0.10.1"
+#amethyst_core = "0.10.1"
 # This was literally the only crate I could find locally that was hosted in Bitbucket
 line-wrap = "0.1.1"
 # It's actually kind of annoying to test this as cargo must download the index
@@ -22,7 +22,7 @@ line-wrap = "0.1.1"
 
 [patch.crates-io]
 anyhow = { git = "https://github.com/dtolnay/anyhow", branch = "master" }
-amethyst_core = { git = "https://gitlab.com/amethyst-engine/amethyst", rev = "0c2da617" }
+#amethyst_core = { git = "https://gitlab.com/amethyst-engine/amethyst", rev = "0c2da617" }
 krates = { git = "https://github.com/EmbarkStudios/krates", branch = "main" }
 line-wrap = { git = "https://bitbucket.org/marshallpierce/line-wrap-rs" }
 spdx = { git = "https://github.com/EmbarkStudios/spdx", tag = "0.3.4" }
