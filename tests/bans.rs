@@ -194,7 +194,7 @@ fn ignores_dev() {
         r#"
 multiple-versions = 'deny'
 skip = [
-    { name = 'block-buffer', version = "=0.7.3" },
+    "block-buffer@0.7.3"
 ]
 "#,
     );

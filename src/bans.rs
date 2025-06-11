@@ -381,6 +381,30 @@ pub fn check(
     );
 
     let report_duplicates = |multi_detector: &mut MultiDetector<'_>, sink: &mut diag::ErrorSink| {
+        if multi_detector.dupes.len() != 1 {
+            // Filter out crates that depend on another version of themselves https://github.com/dtolnay/semver-trick
+            multi_detector.dupes.retain(|(index, _)| {
+                let krate = &ctx.krates[*index];
+
+                // We _could_ just see if this crate's dependencies is another
+                // version of itself, but that means if there are other versions
+                // of the crate then the version that is doing the trick is not
+                // reported, so we do the more expensive check for the direct
+                // dependents
+                let direct = ctx
+                    .krates
+                    .direct_dependents(ctx.krates.nid_for_kid(&krate.id).unwrap());
+
+                let res = !direct.iter().all(|dir| dir.krate.name == krate.name);
+
+                if !res {
+                    log::debug!("ignoring duplicate crate '{krate}', its only dependents was another version of itself");
+                }
+
+                res
+            });
+        }
+
         let skipped = multi_detector
             .dupes
             .iter()

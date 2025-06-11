@@ -141,4 +141,19 @@ expression: dup_graphs.lock()
         }
     }
     ,
+    digraph {
+        0 [label="0.25.4", shape=box, style=rounded, color=red]
+        1 [label="0.26.11", shape=box, style=rounded, color=red]
+        2 [label="duplicates 0.1.0", shape=box, style=rounded]
+        3 [label="minreq 2.13.4", shape=box, style=rounded]
+        2 -> 1 [color=red]
+        3 -> 0 [color=blue]
+        2 -> 3 [color=blue]
+        subgraph cluster_0 {
+            {rank=same 0 1 }
+            style="rounded,filled";
+            label="webpki-roots"
+        }
+    }
+    ,
 ]
