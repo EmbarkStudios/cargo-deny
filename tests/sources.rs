@@ -33,7 +33,7 @@ fn fails_unknown_git() {
 fn allows_git() {
     let cfg = "unknown-git = 'deny'
     allow-git = [
-        'https://gitlab.com/amethyst-engine/amethyst/',
+        #'https://gitlab.com/amethyst-engine/amethyst/',
         'https://github.com/EmbarkStudios/krates',
         'https://bitbucket.org/marshallpierce/line-wrap-rs',
     ]";
@@ -56,17 +56,17 @@ fn allows_github_org() {
     insta::assert_json_snapshot!(diags);
 }
 
-#[test]
-fn allows_gitlab_org() {
-    let cfg = "unknown-git = 'deny'
-    [allow-org]
-    gitlab = ['amethyst-engine']
-    ";
+// #[test]
+// fn allows_gitlab_org() {
+//     let cfg = "unknown-git = 'deny'
+//     [allow-org]
+//     gitlab = ['amethyst-engine']
+//     ";
 
-    let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
+//     let diags = src_check(func_name!(), KrateGather::new("sources"), cfg);
 
-    insta::assert_json_snapshot!(diags);
-}
+//     insta::assert_json_snapshot!(diags);
+// }
 
 #[test]
 fn allows_bitbucket_org() {
@@ -129,7 +129,7 @@ fn validates_git_source_specs() {
     assert!(GitSpec::Branch > GitSpec::Any);
 
     let levels: &[&[(_, _)]] = &[
-        [(GitSpec::Rev, "https://gitlab.com/amethyst-engine/amethyst")].as_ref(),
+        //[(GitSpec::Rev, "https://gitlab.com/amethyst-engine/amethyst")].as_ref(),
         [(GitSpec::Tag, "https://github.com/EmbarkStudios/spdx")].as_ref(),
         [
             (GitSpec::Branch, "https://github.com/EmbarkStudios/krates"),

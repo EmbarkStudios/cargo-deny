@@ -9,80 +9,6 @@ expression: diags
       "graphs": [
         {
           "Krate": {
-            "name": "amethyst_core",
-            "version": "0.10.1"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "kind": "build",
-                "name": "sources",
-                "version": "0.1.0"
-              }
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 22,
-          "line": 7,
-          "message": "source",
-          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
-        }
-      ],
-      "message": "detected 'git' source not explicitly allowed",
-      "severity": "error"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "source-not-allowed",
-      "graphs": [
-        {
-          "Krate": {
-            "name": "amethyst_error",
-            "version": "0.5.1"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "name": "amethyst_core",
-                "version": "0.10.1"
-              },
-              "parents": [
-                {
-                  "Krate": {
-                    "kind": "build",
-                    "name": "sources",
-                    "version": "0.1.0"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 22,
-          "line": 8,
-          "message": "source",
-          "span": "git+https://gitlab.com/amethyst-engine/amethyst?rev=0c2da617"
-        }
-      ],
-      "message": "detected 'git' source not explicitly allowed",
-      "severity": "error"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "source-not-allowed",
-      "graphs": [
-        {
-          "Krate": {
             "name": "anyhow",
             "version": "1.0.68"
           },
@@ -99,7 +25,7 @@ expression: diags
       "labels": [
         {
           "column": 15,
-          "line": 9,
+          "line": 1,
           "message": "source",
           "span": "git+https://github.com/dtolnay/anyhow?branch=master"
         }
@@ -131,7 +57,7 @@ expression: diags
       "labels": [
         {
           "column": 15,
-          "line": 45,
+          "line": 11,
           "message": "source",
           "span": "git+https://github.com/EmbarkStudios/krates?branch=main"
         },
@@ -170,7 +96,7 @@ expression: diags
       "labels": [
         {
           "column": 17,
-          "line": 49,
+          "line": 13,
           "message": "source",
           "span": "git+https://bitbucket.org/marshallpierce/line-wrap-rs"
         }
@@ -203,7 +129,7 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 94,
+          "line": 27,
           "message": "source",
           "span": "git+https://github.com/EmbarkStudios/spdx?tag=0.3.4"
         },
