@@ -15,7 +15,7 @@ jobs:
   # Lightweight check for typos in any files. Config lives in 'typos.toml'
   typos:
     name: Typos
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       # Typos check should be pinned to the very specific version
@@ -24,7 +24,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -43,7 +43,7 @@ jobs:
 
   msrv:
     name: MSRV check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -58,7 +58,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-24.04, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
     runs-on: ${{ matrix.os }}
     env:
@@ -108,7 +108,7 @@ jobs:
   # Build `mdBook` documentation and upload it as a temporary build artifact
   doc-book:
     name: Build the book
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -125,7 +125,7 @@ jobs:
 
   publish-check:
     name: Publish Check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -136,30 +136,30 @@ jobs:
 
   release:
     name: Release
-    #if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         include:
-          # - os: ubuntu-24.04
-          #   toolchain: stable
-          #   target: x86_64-unknown-linux-musl
-          #   bin: cargo-deny
+          - os: ubuntu-24.04
+            toolchain: stable
+            target: x86_64-unknown-linux-musl
+            bin: cargo-deny
           - os: ubuntu-24.04-arm
             toolchain: stable
             target: aarch64-unknown-linux-musl
             bin: cargo-deny
-          # - os: windows-2022
-          #   toolchain: stable
-          #   target: x86_64-pc-windows-msvc
-          #   bin: cargo-deny.exe
-          # - os: macos-14
-          #   toolchain: stable
-          #   target: x86_64-apple-darwin
-          #   bin: cargo-deny
-          # - os: macos-14
-          #   toolchain: stable
-          #   target: aarch64-apple-darwin
-          #   bin: cargo-deny
+          - os: windows-2022
+            toolchain: stable
+            target: x86_64-pc-windows-msvc
+            bin: cargo-deny.exe
+          - os: macos-14
+            toolchain: stable
+            target: x86_64-apple-darwin
+            bin: cargo-deny
+          - os: macos-14
+            toolchain: stable
+            target: aarch64-apple-darwin
+            bin: cargo-deny
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -180,18 +180,14 @@ jobs:
         shell: bash
         run: |
           name=cargo-deny
-          tag="0.18.3" #$(git describe --tags --abbrev=0)
+          tag=$(git describe --tags --abbrev=0)
           release_name="$name-$tag-${{ matrix.target }}"
           release_tar="${release_name}.tar.gz"
           mkdir "$release_name"
           binary="target/${{ matrix.target }}/release/${{ matrix.bin }}"
 
           if [ "${{ matrix.target }}" != "x86_64-pc-windows-msvc" ]; then
-              # if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
-              #   $RUNNER_TEMP/musl/bin/aarch64-linux-musl-strip "$binary"
-              # else
-                strip "$binary"
-              # fi
+              strip "$binary"
           fi
 
           cp "$binary" "$release_name/"
@@ -218,7 +214,7 @@ jobs:
   publish:
     name: Publish Docs
     needs: [doc-book]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
@@ -240,7 +236,7 @@ jobs:
           BUILD_SOURCEVERSION: ${{ github.sha }}
 
   test_success:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [typos, lint, test, self, publish-check, doc-book, msrv]
     steps:
       - run: echo "All test jobs passed"
