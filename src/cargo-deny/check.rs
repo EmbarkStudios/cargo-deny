@@ -2,6 +2,7 @@ use crate::{
     common::ValidConfig,
     stats::{AllStats, Stats},
 };
+use anyhow::Context;
 use cargo_deny::{
     CheckCtx, PathBuf, advisories, bans,
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
@@ -77,6 +78,15 @@ pub struct Args {
     /// Defaults to <cwd>/deny.toml if not specified
     #[arg(short, long)]
     pub config: Option<PathBuf>,
+
+    /// Path to cargo metadata json
+    /// 
+    /// By default we use `cargo metadata` to generate
+    /// the metadata json, but you can override that behaviour by
+    /// providing the path to cargo metadata.
+    #[arg(long)]
+    pub metadata_path: Option<PathBuf>,
+
     /// Path to graph output root directory
     ///
     /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
@@ -132,6 +142,13 @@ pub(crate) fn cmd(
         &mut files,
         log_ctx,
     )?;
+
+    let metadata = if let Some(metadata_path) = args.metadata_path {
+        let data = std::fs::read_to_string(metadata_path).context("metadata path")?;
+        Some(serde_json::from_str(&data).context("cargo metadata")?)
+    } else {
+        None
+    };
 
     let check_advisories = args.which.is_empty()
         || args
@@ -237,7 +254,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            krates = Some(krate_ctx.gather_krates(graph.targets, graph.exclude));
+            krates = Some(krate_ctx.gather_krates(metadata, graph.targets, graph.exclude));
         });
 
         if check_advisories {
