@@ -323,7 +323,7 @@ pub fn write_graph_as_text(root: &GraphNode) -> String {
             }
 
             let c = if last_continues { TEE } else { ELL };
-            write!(out, "{c}{0}{0} ", RGT).unwrap();
+            write!(out, "{c}{RGT}{RGT} ").unwrap();
         }
 
         match &node.inner {

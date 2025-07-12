@@ -342,7 +342,7 @@ pub(crate) fn create_graph(
             for (i, (name, ids)) in dupe_nodes.iter().enumerate() {
                 writeln!(output, "{INDENT}subgraph cluster_{i} {{")?;
 
-                write!(output, "{0}{0}{{rank=same ", INDENT)?;
+                write!(output, "{INDENT}{INDENT}{{rank=same ")?;
 
                 for nid in ids {
                     write!(output, "{} ", nid.index())?;

@@ -318,7 +318,7 @@ impl LicensePack {
                 }
                 PackFileData::Bad(err) => {
                     let start = synth_toml.len();
-                    write!(synth_toml, "err = \"{}\"", err).unwrap();
+                    write!(synth_toml, "err = \"{err}\"").unwrap();
                     let end = synth_toml.len();
 
                     failures.push(

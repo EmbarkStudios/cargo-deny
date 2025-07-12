@@ -24,6 +24,13 @@ pub struct Args {
     /// Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
     #[arg(short, long)]
     config: Option<PathBuf>,
+    /// Path to cargo metadata json
+    ///
+    /// By default we use `cargo metadata` to generate
+    /// the metadata json, but you can override that behaviour by
+    /// providing the path to cargo metadata.
+    #[arg(long)]
+    metadata_path: Option<PathBuf>,
     /// Minimum confidence threshold for license text
     ///
     /// When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
@@ -57,8 +64,15 @@ pub fn cmd(
         log_ctx,
     )?;
 
+    let metadata = if let Some(metadata_path) = args.metadata_path {
+        let data = std::fs::read_to_string(metadata_path).context("metadata path")?;
+        Some(serde_json::from_str(&data).context("cargo metadata")?)
+    } else {
+        None
+    };
+
     let (krates, store) = rayon::join(
-        || krate_ctx.gather_krates(graph.targets, graph.exclude),
+        || krate_ctx.gather_krates(metadata, graph.targets, graph.exclude),
         crate::common::load_license_store,
     );
 

@@ -14,8 +14,6 @@ disallowed-types = [
     { path = "std::path::PathBuf", reason = "Use cargo_deny::PathBuf" },
 
     { path = "std::collections::LinkedList", reason = "LinkedList as a slow and almost never needed" },
-
-    { path = "ring::digest::SHA1_FOR_LEGACY_USE_ONLY", reason = "SHA-1 is cryptographically broken, and we are building new code so should not use it" },
 ]
 disallowed-macros = [
     "std::print",

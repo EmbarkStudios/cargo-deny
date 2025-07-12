@@ -109,6 +109,7 @@ impl KrateContext {
 
     pub fn gather_krates(
         self,
+        metadata: Option<krates::cm::Metadata>,
         cfg_targets: Vec<cargo_deny::root_cfg::Target>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
@@ -116,15 +117,19 @@ impl KrateContext {
         let start = std::time::Instant::now();
 
         log::debug!("gathering crate metadata");
-        let metadata = Self::get_metadata(MetadataOptions {
-            no_default_features: self.no_default_features,
-            all_features: self.all_features,
-            features: self.features,
-            manifest_path: self.manifest_path,
-            frozen: self.frozen,
-            locked: self.locked,
-            offline: self.offline,
-        })?;
+        let metadata = if let Some(md) = metadata {
+            md
+        } else {
+            Self::get_metadata(MetadataOptions {
+                no_default_features: self.no_default_features,
+                all_features: self.all_features,
+                features: self.features,
+                manifest_path: self.manifest_path,
+                frozen: self.frozen,
+                locked: self.locked,
+                offline: self.offline,
+            })?
+        };
         log::debug!(
             "gathered crate metadata in {}ms",
             start.elapsed().as_millis()
