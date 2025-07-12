@@ -18,6 +18,11 @@ Options:
           
           Defaults to <cwd>/deny.toml if not specified
 
+      --metadata-path <METADATA_PATH>
+          Path to cargo metadata json
+          
+          By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to cargo metadata.
+
   -g, --graph <GRAPH>
           Path to graph output root directory
           

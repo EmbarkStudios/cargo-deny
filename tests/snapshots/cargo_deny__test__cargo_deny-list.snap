@@ -12,6 +12,11 @@ Options:
           
           Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
 
+      --metadata-path <METADATA_PATH>
+          Path to cargo metadata json
+          
+          By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to cargo metadata.
+
   -t, --threshold <THRESHOLD>
           Minimum confidence threshold for license text
           
@@ -38,4 +43,3 @@ Options:
 
   -V, --version
           Print version
-
