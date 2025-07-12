@@ -80,7 +80,7 @@ pub struct Args {
     pub config: Option<PathBuf>,
 
     /// Path to cargo metadata json
-    /// 
+    ///
     /// By default we use `cargo metadata` to generate
     /// the metadata json, but you can override that behaviour by
     /// providing the path to cargo metadata.

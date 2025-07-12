@@ -117,15 +117,17 @@ impl KrateContext {
         let start = std::time::Instant::now();
 
         log::debug!("gathering crate metadata");
-        let metadata = metadata.map(Ok).unwrap_or_else(|| Self::get_metadata(MetadataOptions {
-            no_default_features: self.no_default_features,
-            all_features: self.all_features,
-            features: self.features,
-            manifest_path: self.manifest_path,
-            frozen: self.frozen,
-            locked: self.locked,
-            offline: self.offline,
-        }))?;
+        let metadata = metadata.map(Ok).unwrap_or_else(|| {
+            Self::get_metadata(MetadataOptions {
+                no_default_features: self.no_default_features,
+                all_features: self.all_features,
+                features: self.features,
+                manifest_path: self.manifest_path,
+                frozen: self.frozen,
+                locked: self.locked,
+                offline: self.offline,
+            })
+        })?;
         log::debug!(
             "gathered crate metadata in {}ms",
             start.elapsed().as_millis()
