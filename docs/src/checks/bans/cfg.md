@@ -271,7 +271,7 @@ If supplied scans crates that execute at compile time for any files with the spe
 
 #### The `enable-builtin-globs` field (optional)
 
-If `true`, enables the builtin glob patterns for common languages that tend to by installed on most developer machines, such as python.
+If `true`, enables the builtin glob patterns for common languages that tend to be installed on most developer machines, such as python.
 
 ```ini
 {{#include ../../../../src/bans/builtin_globs.toml}}
