@@ -117,12 +117,13 @@ impl<'a> From<SourceNotExplicitlyAllowed<'a>> for Diag {
 }
 
 pub(crate) struct UnmatchedAllowSource {
+    pub(crate) severity: Severity,
     pub(crate) allow_src_cfg: CfgCoord,
 }
 
 impl From<UnmatchedAllowSource> for Diag {
     fn from(uas: UnmatchedAllowSource) -> Self {
-        Diagnostic::new(Severity::Warning)
+        Diagnostic::new(uas.severity)
             .with_message("allowed source was not encountered")
             .with_code(Code::UnmatchedSource)
             .with_labels(vec![
