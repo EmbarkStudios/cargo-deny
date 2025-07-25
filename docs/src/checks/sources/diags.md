@@ -21,6 +21,8 @@ A crate's source was not explicitly allowed.
 
 An allowed source in [`sources.allow-git`](cfg.md#the-allow-git-field-optional) or [`sources.allow-registry`](cfg.md#the-allow-registry-field-optional) was not encountered.
 
+This diagnostic can be silenced by configuring the [`sources.unused-allowed-source`](cfg.md#the-unused-allowed-source-field-optional) field to "allow".
+
 ### `unmatched-organization`
 
 An allowed source in [`sources.allow-org`](cfg.md#the-allow-org-field-optional) was not encountered.

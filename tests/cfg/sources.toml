@@ -12,6 +12,7 @@ allow-git = [
 private = [
     "https://internal-host/repos",
 ]
+unused-allowed-source = "warn"
 [sources.allow-org]
 github = [
     "yourghid",
