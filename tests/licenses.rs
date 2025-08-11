@@ -156,7 +156,7 @@ fn lax_fallback() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
+    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0-or-later', 'LGPL-3.0-only']");
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
@@ -172,6 +172,27 @@ fn lax_fallback() {
     });
 
     insta::assert_json_snapshot!(diags);
+}
+
+/// Ensures deprecated licenses can be used in configs, since for GNU licenses
+/// we only compare on the exact license identifiers, and upstream crates may
+/// be using the deprecated identifiers
+#[test]
+fn allows_deprecated() {
+    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let (ctx, _summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |_ctx, _tx| {});
+
+    assert!(diags.is_empty());
 }
 
 /// Ensures clarifications are supported, even for nested license files

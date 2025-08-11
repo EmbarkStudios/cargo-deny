@@ -61,7 +61,7 @@ The version field is (at the time of this writing) no longer used, the following
 
 ### The `allow` field (optional)
 
-The licenses that are explicitly allowed.
+The licenses that are explicitly allowed. Licenses not in this list are denied by default, so if none of the licenses listed here can satisfy the license expression used by the project, the license check will fail.
 
 #### Note on GNU licenses
 
@@ -70,32 +70,15 @@ The licenses that are explicitly allowed.
 - LGPL
 - GFDL
 
-The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. When supplying one of the above licenses, to either `allow` or `deny`, you **must not** use the suffixes `-only` or `-or-later`, as they can only be used by the license holder themselves to decide under which terms to license their code.
+The GNU licenses are, of course, different from all the other licenses in the SPDX list which makes them annoying to deal with. In versions of cargo-deny <= 0.18.3 it would try to treat GNU licenses similarly to other licenses, attempting to follow the same rules as other licenses.
 
-So, for example, if you wanted to disallow `GPL-2.0` licenses, but allow `GPL-3.0` licenses, you could use the following configuration.
-
-```ini
-[licenses]
-allow = [ "GPL-3.0" ]
-```
-
-This gets worse with the GFDL licenses, which also have an `invariants` modifier. Before licenses are checked they are normalized to make them consistent for all licenses.
-
-Let's use [`GFDL-1.2`](https://spdx.org/licenses/GFDL-1.2-only.html) to show how license requirements are normalized.
-
-- `GFDL-1.2-invariants-only` => `GFDL-1.2-invariants`
-- `GFDL-1.2-invariants-or-later` => `GFDL-1.2-invariants+`
-- `GFDL-1.2-no-invariants-only` => `GFDL-1.2`
-- `GFDL-1.2-no-invariants-or-later` => `GFDL-1.2+`
-- `GFDL-1.2-only` => `GFDL-1.2`
-- `GFDL-1.2-or-later` => `GFDL-1.2+`
-
-So, for example, if you wanted to allow all version (1.1, 1.2, and 1.3), but only invariants for 1.3 you could use the following configuration.
+As of 0.18.4, GNU licenses are now treated pedantically. For example, if you want to allow `GPL-3.0` (deprecated), or `GPL-3.0-or-later` licenses, or `GPL-2.0-or-later`, but not `GPL-3.0-only`, you would need to do the following.
 
 ```ini
-[licenses]
-allow = [ "GFDL-1.1", "GFDL-1.2", "GFDL-1.3", "GFDL-1.3-variants"]
+allow = ['GPL-2.0-or-later', 'GPL-3.0', 'GPL-3.0-or-later']
 ```
+
+This also means that if a project declares their license as `GPL-2.0`, the deprecated form, you can't use `GPL-2.0-only`, it only matches `GPL-2.0`.
 
 ### The `exceptions` field (optional)
 

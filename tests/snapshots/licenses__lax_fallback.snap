@@ -16,10 +16,10 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 33,
+          "column": 26,
           "line": 4,
-          "message": "a GNU license was followed by a `+`",
-          "span": "+"
+          "message": "a deprecated license identifier was used",
+          "span": "GPL-2.0"
         },
         {
           "column": 12,

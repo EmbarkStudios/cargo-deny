@@ -168,7 +168,17 @@ impl<'de> Deserialize<'de> for Licensee {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
         let val = value.take_string(Some("an SPDX licensee string"))?;
 
-        match spdx::Licensee::parse(&val) {
+        match spdx::Licensee::parse_mode(
+            &val,
+            spdx::ParseMode {
+                // Allow deprecated, in case we are matching against GNU licenses
+                allow_deprecated: true,
+                // Imprecise names however are never needed
+                allow_imprecise_license_names: false,
+                allow_postfix_plus_on_gpl: false,
+                allow_slash_as_or_operator: false,
+            },
+        ) {
             Ok(licensee) => Ok(Self(Spanned::with_span(licensee, value.span))),
             Err(pe) => {
                 let offset = value.span.start;
@@ -280,7 +290,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
     ///
     /// 1. Ensures all SPDX identifiers are valid
     /// 1. Ensures all SPDX expressions are valid
-    /// 1. Ensures the same license is not both allowed and denied
     fn validate(self, mut ctx: ValidationContext<'_>) -> Self::ValidCfg {
         use rayon::prelude::*;
 

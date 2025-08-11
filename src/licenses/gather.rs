@@ -659,11 +659,11 @@ impl Gatherer {
                             if let Ok(validated) = spdx::Expression::parse_mode(
                                 license_field,
                                 spdx::ParseMode {
-                                    allow_lower_case_operators: true,
                                     // We already force correct this when loading crates
                                     allow_slash_as_or_operator: false,
                                     allow_imprecise_license_names: true,
                                     allow_postfix_plus_on_gpl: true,
+                                    allow_deprecated: true,
                                 },
                             ) {
                                 let (id, span) = get_span("license");

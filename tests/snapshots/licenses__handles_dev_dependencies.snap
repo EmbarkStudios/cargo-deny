@@ -79,6 +79,12 @@ expression: diags
         {
           "column": 12,
           "line": 4,
+          "message": "a deprecated license identifier was used",
+          "span": "GPL-3.0"
+        },
+        {
+          "column": 12,
+          "line": 4,
           "message": "license expression retrieved via Cargo.toml `license`",
           "span": "GPL-3.0"
         },
