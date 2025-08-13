@@ -55,14 +55,3 @@ exceptions = [
     # Use exceptions for these as they only have a single user
     { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
 ]
-
-[[licenses.clarify]]
-crate = "webpki"
-expression = "ISC"
-license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
-
-# Actually "ISC-style"
-[[licenses.clarify]]
-crate = "rustls-webpki"
-expression = "ISC"
-license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
