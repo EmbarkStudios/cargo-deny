@@ -698,16 +698,6 @@ impl Gatherer {
                                 let (file_id, span) =
                                     location.clone().unwrap_or_else(|| get_span("license"));
 
-                                // let (file_id, span) = if license_field.corrected.is_some()
-                                //     && let Some((file_id, span)) = location.clone()
-                                // {
-                                //     Self::correct_span(&license_field.original, &mut error.span);
-                                //     (file_id, span)
-                                // } else {
-                                //     // The span we write is the corrected one, so we don't need to adjust it
-                                //     get_span("license")
-                                // };
-
                                 diags.push(
                                     super::diags::ParseError {
                                         span,
@@ -891,13 +881,7 @@ impl Gatherer {
             return Some((file_id, range));
         }
 
-        let manifest = match std::fs::read_to_string(manifest_path) {
-            Ok(m) => m,
-            Err(error) => {
-                panic!("failed to read {manifest_path}: {error}");
-                return None;
-            }
-        };
+        let manifest = std::fs::read_to_string(manifest_path).ok()?;
 
         // We only ever load each manifest once, so it's fine if we take the
         // hit for the load but don't actually store it if we somehow

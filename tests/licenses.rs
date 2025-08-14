@@ -38,14 +38,22 @@ pub fn gather_licenses_with_overrides(
     cfg: impl Into<tu::Config<Config>>,
     overrides: Option<diag::DiagnosticOverrides>,
 ) -> Vec<serde_json::Value> {
-    let md: krates::cm::Metadata = serde_json::from_str(
-        &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
-    )
-    .unwrap();
+    let krates = if std::env::var_os("CI").is_some() {
+        let mut cmd = krates::Cmd::new();
+        cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
 
-    let krates: Krates = krates::Builder::new()
-        .build_with_metadata(md, krates::NoneFilter)
+        krates::Builder::new()
+            .build(cmd, krates::NoneFilter)
+            .unwrap()
+    } else {
+        let md: krates::cm::Metadata = serde_json::from_str(
+            &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
+        )
         .unwrap();
+        krates::Builder::new()
+            .build_with_metadata(md, krates::NoneFilter)
+            .unwrap()
+    };
 
     let (ctx, summary) = setup(&krates, name, cfg.into());
 
