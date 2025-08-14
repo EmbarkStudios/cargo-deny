@@ -161,6 +161,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         }
 
         pack.push(diags::UnmatchedAllowSource {
+            severity: ctx.cfg.unused_allowed_source.into(),
             allow_src_cfg: CfgCoord {
                 span: src.url.span,
                 file: ctx.cfg.file_id,

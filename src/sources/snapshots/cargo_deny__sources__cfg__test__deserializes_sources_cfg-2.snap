@@ -45,4 +45,5 @@ ValidConfig {
     required_git_spec: Some(
         Tag,
     ),
+    unused_allowed_source: Warn,
 }

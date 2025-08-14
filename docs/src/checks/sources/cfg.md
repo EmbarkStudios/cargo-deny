@@ -122,3 +122,11 @@ Allows you to specify multiple `bitbucket.org` organizations to allow as git sou
 [sources.allow-org]
 bitbucket = ["YourCoolOrgGoesHere"]
 ```
+
+### The `unused-allowed-source` field (optional)
+
+Determines what happens when one of the sources that appears in the `allow` list is not encountered in the dependency graph.
+
+- `warn` (default) - A warning is emitted for each source that appears in `sources.allow` but which is not used in any crate.
+- `allow` - Unused sources in the `sources.allow` list are ignored.
+- `deny` - An unused source in the `sources.allow` list triggers an error, and cause the source check to fail.
