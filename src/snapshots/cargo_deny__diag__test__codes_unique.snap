@@ -1,7 +1,6 @@
 ---
 source: src/diag.rs
 expression: unique
-snapshot_kind: text
 ---
 {
     "accepted",
@@ -33,6 +32,7 @@ snapshot_kind: text
     "missing-clarification-file",
     "not-allowed",
     "notice",
+    "parse-error",
     "path-bypassed",
     "path-bypassed-by-glob",
     "rejected",

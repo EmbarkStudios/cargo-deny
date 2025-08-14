@@ -27,13 +27,12 @@ deny = [
     { crate = "windows", reason = "bloated and unnecessary", use-instead = "ideally inline bindings, practically, windows-sys" },
 ]
 skip = [
-    { crate = "hashbrown@0.14.5", reason = "gix uses this old version" },
     { crate = "core-foundation@0.9.4", reason = "reqwest -> system-configuration uses this old version" },
     { crate = "getrandom@0.2.16", reason = "ring uses this old version" },
 ]
 skip-tree = [
     { crate = "windows-sys@0.52.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
-    { crate = "thiserror@1.0.69", reason = "rustsec depends 1.0, patched, but not released https://github.com/rustsec/rustsec/commit/9b97c0fc155752c8298a5b5406eb175765ceac93" },
+    { crate = "windows-sys@0.59.0", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
 ]
 
 [sources]
@@ -56,14 +55,3 @@ exceptions = [
     # Use exceptions for these as they only have a single user
     { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
 ]
-
-[[licenses.clarify]]
-crate = "webpki"
-expression = "ISC"
-license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
-
-# Actually "ISC-style"
-[[licenses.clarify]]
-crate = "rustls-webpki"
-expression = "ISC"
-license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]

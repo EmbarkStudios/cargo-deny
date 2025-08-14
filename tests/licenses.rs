@@ -38,12 +38,41 @@ pub fn gather_licenses_with_overrides(
     cfg: impl Into<tu::Config<Config>>,
     overrides: Option<diag::DiagnosticOverrides>,
 ) -> Vec<serde_json::Value> {
-    let md: krates::cm::Metadata = serde_json::from_str(
+    let mut md: krates::cm::Metadata = serde_json::from_str(
         &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
     )
     .unwrap();
 
-    let krates: Krates = krates::Builder::new()
+    if std::env::var_os("CI").is_some() {
+        std::process::Command::new("cargo")
+            .args([
+                "fetch",
+                "--locked",
+                "--manifest-path",
+                "tests/test_data/features-galore/Cargo.toml",
+            ])
+            .status()
+            .expect("failed to spawn cargo fetch");
+
+        let chome = std::env::var("CARGO_HOME").expect("CARGO_HOME not set");
+        let chome = cargo_deny::Path::new(&chome);
+
+        for pkg in &mut md.packages {
+            if let Ok(mp) = pkg.manifest_path.strip_prefix("/home/jake/.cargo") {
+                pkg.manifest_path = chome.join(mp);
+            } else if let Some(parent) = pkg.manifest_path.parent()
+                && parent.file_name() == Some("features-galore")
+            {
+                pkg.manifest_path = std::env::current_dir()
+                    .unwrap()
+                    .join("tests/test_data/features-galore/Cargo.toml")
+                    .try_into()
+                    .unwrap();
+            }
+        }
+    }
+
+    let krates = krates::Builder::new()
         .build_with_metadata(md, krates::NoneFilter)
         .unwrap();
 
@@ -105,7 +134,7 @@ fn detects_unlicensed() {
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, None);
 
-    diags.retain(|d| field_eq!(d, "/fields/code", "unlicensed"));
+    diags.retain(|d| field_eq!(d, "/fields/graphs/0/Krate/name", "features-galore"));
 
     insta::assert_json_snapshot!(diags);
 }
@@ -156,7 +185,7 @@ fn lax_fallback() {
         .build(cmd, krates::NoneFilter)
         .unwrap();
 
-    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
+    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0-or-later', 'LGPL-3.0-only']");
 
     let (ctx, summary) = setup(&krates, func_name!(), cfg);
 
@@ -172,6 +201,27 @@ fn lax_fallback() {
     });
 
     insta::assert_json_snapshot!(diags);
+}
+
+/// Ensures deprecated licenses can be used in configs, since for GNU licenses
+/// we only compare on the exact license identifiers, and upstream crates may
+/// be using the deprecated identifiers
+#[test]
+fn allows_deprecated_and_imprecise() {
+    let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let (ctx, _summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |_ctx, _tx| {});
+
+    assert!(diags.is_empty());
 }
 
 /// Ensures clarifications are supported, even for nested license files

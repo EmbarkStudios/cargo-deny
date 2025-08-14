@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#779](https://github.com/EmbarkStudios/cargo-deny/pull/779) added the `--metadata-path` argument to use a cargo metadata JSON file instead of calling cargo metadata, resolving [#777](https://github.com/EmbarkStudios/cargo-deny/issues/777).
+- [PR#782](https://github.com/EmbarkStudios/cargo-deny/pull/782) added `sources.unused-allow-source` to allow configuration of the lint level when a source is allowed but not used by any crate in the graph, closing [#781](https://github.com/EmbarkStudios/cargo-deny/issues/781).
+
+### Changed
+- [PR#786](https://github.com/EmbarkStudios/cargo-deny/pull/786) changed the license check output. `/` is no longer corrected to ` OR `, and if the license expression is found in the package's manifest, that span is used in diagnostic messages instead of the synthesized manifest.
+
+### Fixed
+- [PR#786](https://github.com/EmbarkStudios/cargo-deny/pull/786) resolved [#784](https://github.com/EmbarkStudios/cargo-deny/issues/784) by updating `spdx` to a new version that forces all GNU licenses to be exactly equal when comparing license expressions to licensee expressions, which is incredibly pedantic, but means the license comparison is entirely in the hands of the user so that I no longer have to deal with GNU licenses.
+
 ## [0.18.3] - 2025-06-11
 ### Changed
 - [PR#773](https://github.com/EmbarkStudios/cargo-deny/pull/773) changed cargo-deny's duplicate detection to automatically ignore versions whose only dependent is another version of the same crate.

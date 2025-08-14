@@ -5,6 +5,21 @@ expression: diags
 [
   {
     "fields": {
+      "graphs": [
+        {
+          "Krate": {
+            "name": "so-annoying",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "message": "license expression was not specified in manifest",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
       "code": "rejected",
       "graphs": [
         {
@@ -16,15 +31,9 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 12,
-          "line": 4,
-          "message": "license expression was not specified",
-          "span": ""
-        },
-        {
           "column": 15,
           "line": 5,
-          "message": "license expression retrieved via LICENSE-APACHE, LICENSE-PIXAR",
+          "message": "license expression retrieved via license files: LICENSE-APACHE and LICENSE-PIXAR",
           "span": "Apache-2.0 AND Pixar"
         },
         {
@@ -42,7 +51,7 @@ expression: diags
       ],
       "message": "failed to satisfy license requirements",
       "notes": [
-        "'LICENSE-APACHE' fuzzy matched to Pixar license, but it actually a normal Apache-2.0 license",
+        "'LICENSE-APACHE' fuzzy matched to Pixar license, but it is actually a normal Apache-2.0 license",
         "Pixar - Pixar License:",
         "  - No additional metadata available for license"
       ],

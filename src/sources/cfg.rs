@@ -109,7 +109,9 @@ impl<'de> Deserialize<'de> for Config {
         let allow_org = th.optional("allow-org").unwrap_or_default();
         let private = th.optional("private").unwrap_or_default();
         let required_git_spec = th.optional("required-git-spec");
-        let unused_allowed_source = th.optional("unused-allowed-source").unwrap_or(LintLevel::Warn);
+        let unused_allowed_source = th
+            .optional("unused-allowed-source")
+            .unwrap_or(LintLevel::Warn);
 
         th.finalize(None)?;
 
@@ -161,10 +163,10 @@ impl cfg::UnvalidatedConfig for Config {
             let astr = aurl.as_ref();
             let mut skip = 0;
 
-            if let Some(start_scheme) = astr.find("://") {
-                if let Some(i) = astr[..start_scheme].find('+') {
-                    skip = i + 1;
-                }
+            if let Some(start_scheme) = astr.find("://")
+                && let Some(i) = astr[..start_scheme].find('+')
+            {
+                skip = i + 1;
             }
 
             match url::Url::parse(&astr[skip..]) {

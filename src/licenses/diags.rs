@@ -23,6 +23,7 @@ pub enum Code {
     LicenseNotEncountered,
     LicenseExceptionNotEncountered,
     MissingClarificationFile,
+    ParseError,
 }
 
 impl From<Code> for String {
@@ -34,7 +35,6 @@ impl From<Code> for String {
 pub(crate) struct Unlicensed<'a> {
     pub(crate) severity: Severity,
     pub(crate) krate: &'a Krate,
-    pub(crate) breadcrumbs: Vec<Label>,
 }
 
 impl<'a> From<Unlicensed<'a>> for Diag {
@@ -42,7 +42,6 @@ impl<'a> From<Unlicensed<'a>> for Diag {
         Diagnostic::new(u.severity)
             .with_message(format_args!("{} is unlicensed", u.krate))
             .with_code(Code::Unlicensed)
-            .with_labels(u.breadcrumbs)
             .into()
     }
 }
@@ -105,9 +104,30 @@ pub(crate) struct MissingClarificationFile<'a> {
     pub(crate) cfg_file_id: crate::diag::FileId,
 }
 
-impl<'a> From<MissingClarificationFile<'a>> for Label {
+impl<'a> From<MissingClarificationFile<'a>> for Diagnostic {
     fn from(mcf: MissingClarificationFile<'a>) -> Self {
-        Label::secondary(mcf.cfg_file_id, mcf.expected.span)
+        Diagnostic::new(Severity::Warning)
             .with_message("unable to locate specified license file")
+            .with_code(Code::MissingClarificationFile)
+            .with_labels(vec![Label::secondary(mcf.cfg_file_id, mcf.expected.span)])
+    }
+}
+
+pub(crate) struct ParseError {
+    pub(crate) span: std::ops::Range<usize>,
+    pub(crate) file_id: crate::diag::FileId,
+    pub(crate) error: spdx::ParseError,
+}
+
+impl From<ParseError> for Diagnostic {
+    fn from(pe: ParseError) -> Self {
+        let span = pe.span.start + pe.error.span.start..pe.span.start + pe.error.span.end;
+
+        Diagnostic::new(Severity::Warning)
+            .with_message("error parsing SPDX license expression")
+            .with_code(Code::ParseError)
+            .with_labels(vec![
+                Label::secondary(pe.file_id, span).with_message(pe.error.reason),
+            ])
     }
 }

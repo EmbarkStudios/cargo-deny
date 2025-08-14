@@ -313,7 +313,7 @@ where
                         if let Ok(pack) = msg {
                             diagnostics.extend(pack);
                         } else {
-                            // Yay, the sender was dopped (i.e. check was finished)
+                            // Yay, the sender was dropped (i.e. check was finished)
                             break;
                         }
                     }

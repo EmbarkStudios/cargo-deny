@@ -5,7 +5,6 @@ expression: diags
 [
   {
     "fields": {
-      "code": "unlicensed",
       "graphs": [
         {
           "Krate": {
@@ -17,15 +16,48 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 4,
-          "message": "license expression was not specified",
+          "line": 5,
+          "message": "empty field",
           "span": ""
-        },
+        }
+      ],
+      "message": "license field was present but empty",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
         {
           "column": 9,
           "line": 2,
-          "message": "a valid license expression could not be retrieved for the crate",
+          "message": "",
           "span": "features-galore"
+        }
+      ],
+      "message": "a valid license expression could not be retrieved for the crate",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unlicensed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "features-galore",
+            "version": "0.1.0"
+          }
         }
       ],
       "message": "features-galore = 0.1.0 is unlicensed",

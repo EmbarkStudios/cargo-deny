@@ -1,40 +1,11 @@
 use super::cfg::GraphHighlight;
-use crate::{DepKind, Kid, Krate};
+use crate::{DepKind, Kid};
 use anyhow::{Context, Error};
 use krates::petgraph as pg;
-use semver::Version;
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashSet, btree_map::Entry},
-    fmt,
 };
-
-#[derive(Hash, Copy, Clone, PartialEq, Eq)]
-struct Node<'a> {
-    name: &'a str,
-    version: &'a Version,
-}
-
-impl<'a, 'b: 'a> From<&'b Krate> for Node<'a> {
-    fn from(d: &'b Krate) -> Self {
-        Self {
-            name: &d.name,
-            version: &d.version,
-        }
-    }
-}
-
-impl fmt::Debug for Node<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.name, self.version)
-    }
-}
-
-impl fmt::Display for Node<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.name, self.version)
-    }
-}
 
 type Id = pg::graph::NodeIndex<u32>;
 

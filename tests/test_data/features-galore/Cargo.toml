@@ -2,6 +2,7 @@
 name = "features-galore"
 version = "0.1.0"
 edition = "2021"
+license = ""
 
 [dependencies]
 parking_lot_core = "=0.9.3"

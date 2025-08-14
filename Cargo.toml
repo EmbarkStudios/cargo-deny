@@ -15,7 +15,7 @@ homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["docs/", "examples/", ".github/", "tests"]
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -85,7 +85,9 @@ memchr = "2.7"
 # Nicer sync primitives
 parking_lot = "0.12"
 # Moar brrrr
-rayon = "1.4"
+rayon = "1.11"
+# Laziness, but we already pull it in transitively
+regex = "1.11"
 # HTTP client backing gix, we don't use it directly but need it here for configuration
 # due to ...reasons
 reqwest = { version = "0.12", default-features = false, features = ["http2"] }
@@ -101,11 +103,11 @@ serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
 smallvec = "1.14"
 # Used for parsing and checking SPDX license expressions
-spdx = "0.10"
+spdx = "0.11"
 # Lazy
 strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.22", default-features = false, features = [
+tame-index = { version = "0.23", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -126,7 +128,7 @@ walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.72"
+version = "0.73"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -140,7 +142,7 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.43", features = ["json"] }
-tame-index = { version = "0.22", features = ["local-builder"] }
+tame-index = { version = "0.23", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.5", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
