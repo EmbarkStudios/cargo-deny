@@ -109,7 +109,9 @@ impl<'de> Deserialize<'de> for Config {
         let allow_org = th.optional("allow-org").unwrap_or_default();
         let private = th.optional("private").unwrap_or_default();
         let required_git_spec = th.optional("required-git-spec");
-        let unused_allowed_source = th.optional("unused-allowed-source").unwrap_or(LintLevel::Warn);
+        let unused_allowed_source = th
+            .optional("unused-allowed-source")
+            .unwrap_or(LintLevel::Warn);
 
         th.finalize(None)?;
 
