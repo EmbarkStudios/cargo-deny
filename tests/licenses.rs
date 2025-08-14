@@ -60,6 +60,14 @@ pub fn gather_licenses_with_overrides(
         for pkg in &mut md.packages {
             if let Ok(mp) = pkg.manifest_path.strip_prefix("/home/jake/.cargo") {
                 pkg.manifest_path = chome.join(mp);
+            } else if let Some(parent) = pkg.manifest_path.parent()
+                && parent.file_name() == Some("features-galore")
+            {
+                pkg.manifest_path = std::env::current_dir()
+                    .unwrap()
+                    .join("tests/test_data/features-galore/Cargo.toml")
+                    .try_into()
+                    .unwrap();
             }
         }
     }
