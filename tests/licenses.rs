@@ -44,6 +44,16 @@ pub fn gather_licenses_with_overrides(
     .unwrap();
 
     if std::env::var_os("CI").is_some() {
+        std::process::Command::new("cargo")
+            .args([
+                "fetch",
+                "--locked",
+                "--manifest-path",
+                "tests/test_data/features-galore/Cargo.toml",
+            ])
+            .status()
+            .expect("failed to spawn cargo fetch");
+
         let chome = std::env::var("CARGO_HOME").expect("CARGO_HOME not set");
         let chome = cargo_deny::Path::new(&chome);
 
