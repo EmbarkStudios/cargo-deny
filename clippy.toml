@@ -1,4 +1,4 @@
-msrv = "1.85.0"
+msrv = "1.88.0"
 
 disallowed-types = [
     { path = "std::sync::Mutex", reason = "Use the faster & simpler non-poisonable primitives in `parking_lot` instead" },
