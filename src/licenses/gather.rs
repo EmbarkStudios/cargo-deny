@@ -151,10 +151,10 @@ impl LicensePack {
 
         // Add the explicitly specified license if it wasn't
         // already found in the root directory
-        if let Some(lf) = &krate.license_file {
-            if !lic_paths.iter().any(|l| l.ends_with(lf)) {
-                lic_paths.push(lf.clone());
-            }
+        if let Some(lf) = &krate.license_file
+            && !lic_paths.iter().any(|l| l.ends_with(lf))
+        {
+            lic_paths.push(lf.clone());
         }
 
         let mut license_files: Vec<_> = lic_paths
@@ -585,16 +585,16 @@ impl Gatherer {
                             match lp.insert_clarification(clf) {
                                 Ok(_) => true,
                                 Err(reason) => {
-                                    if let MismatchReason::Error(err) = reason {
-                                        if err.kind() == std::io::ErrorKind::NotFound {
-                                            diags.push(
-                                                super::diags::MissingClarificationFile {
-                                                    expected: &clf.path,
-                                                    cfg_file_id: cfg.file_id,
-                                                }
-                                                .into(),
-                                            );
-                                        }
+                                    if let MismatchReason::Error(err) = reason
+                                        && err.kind() == std::io::ErrorKind::NotFound
+                                    {
+                                        diags.push(
+                                            super::diags::MissingClarificationFile {
+                                                expected: &clf.path,
+                                                cfg_file_id: cfg.file_id,
+                                            }
+                                            .into(),
+                                        );
                                     }
 
                                     false
@@ -926,13 +926,13 @@ mod test {
 
         let expected_hash = 0xbd0e_ed23;
 
-        if let super::PackFileData::Good(lf) = pf.data {
-            if lf.hash != expected_hash {
-                eprintln!("hash: {expected_hash:#x} != {:#x}", lf.hash);
+        if let super::PackFileData::Good(lf) = pf.data
+            && lf.hash != expected_hash
+        {
+            eprintln!("hash: {expected_hash:#x} != {:#x}", lf.hash);
 
-                for (i, (a, b)) in lf.content.chars().zip(expected.chars()).enumerate() {
-                    assert_eq!(a, b, "character @ {i}");
-                }
+            for (i, (a, b)) in lf.content.chars().zip(expected.chars()).enumerate() {
+                assert_eq!(a, b, "character @ {i}");
             }
         }
     }

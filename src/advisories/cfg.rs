@@ -168,17 +168,17 @@ impl<'de> Deserialize<'de> for Config {
                                 // Attempt to parse an advisory id first, note we can't
                                 // just immediately use parse as the from_str implementation
                                 // for id will just blindly accept any string
-                                if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other {
-                                    if let Ok(id) = s.parse::<advisory::Id>() {
-                                        u.push(Spanned::with_span(
-                                            IgnoreId {
-                                                id: Spanned::with_span(id, v.span),
-                                                reason: None,
-                                            },
-                                            v.span,
-                                        ));
-                                        continue;
-                                    }
+                                if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other
+                                    && let Ok(id) = s.parse::<advisory::Id>()
+                                {
+                                    u.push(Spanned::with_span(
+                                        IgnoreId {
+                                            id: Spanned::with_span(id, v.span),
+                                            reason: None,
+                                        },
+                                        v.span,
+                                    ));
+                                    continue;
                                 }
 
                                 v.set(ValueInner::String(s));

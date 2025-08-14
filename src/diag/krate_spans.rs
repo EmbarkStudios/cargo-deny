@@ -719,12 +719,12 @@ fn read_workspace_deps<'k>(
         let mut patched = None;
         // If the dependency is patched, use its source information instead as it is what
         // will actually be present in the graph
-        if matches!(&ws_src.source, Source::Registry { registry: None }) {
-            if let Some((pkey, psrc)) = patches.remove_entry(&key) {
-                patched = Some(key.span);
-                key = pkey;
-                ws_src = psrc;
-            }
+        if matches!(&ws_src.source, Source::Registry { registry: None })
+            && let Some((pkey, psrc)) = patches.remove_entry(&key)
+        {
+            patched = Some(key.span);
+            key = pkey;
+            ws_src = psrc;
         }
 
         let krate_name = ws_src

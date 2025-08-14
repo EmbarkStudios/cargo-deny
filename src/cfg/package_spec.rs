@@ -109,10 +109,8 @@ impl<'de> Deserialize<'de> for PackageSpec {
                     Span::new(ctx.span.start + i + 1, ctx.span.end),
                 ))
             })?;
-            if make_exact {
-                if let Some(comp) = v.comparators.get_mut(0) {
-                    comp.op = semver::Op::Exact;
-                }
+            if make_exact && let Some(comp) = v.comparators.get_mut(0) {
+                comp.op = semver::Op::Exact;
             }
 
             (Spanned::with_span(ctx.inner[..i].into(), ctx.span), Some(v))

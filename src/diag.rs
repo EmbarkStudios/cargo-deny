@@ -249,10 +249,10 @@ impl Pack {
     #[inline]
     pub(crate) fn push(&mut self, diag: impl Into<Diag>) -> &mut Diag {
         let mut diag = diag.into();
-        if diag.graph_nodes.is_empty() {
-            if let Some(kid) = self.kid.clone() {
-                diag.graph_nodes.push(GraphNode { kid, feature: None });
-            }
+        if diag.graph_nodes.is_empty()
+            && let Some(kid) = self.kid.clone()
+        {
+            diag.graph_nodes.push(GraphNode { kid, feature: None });
         }
 
         self.diags.push(diag);

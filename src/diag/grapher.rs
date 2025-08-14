@@ -281,10 +281,9 @@ pub fn diag_to_json(
         for gn in diag.graph_nodes {
             if let Ok(graph) =
                 grapher.build_graph(&gn, if diag.with_features { usize::MAX } else { 0 })
+                && let Ok(sgraph) = serde_json::value::to_value(graph)
             {
-                if let Ok(sgraph) = serde_json::value::to_value(graph) {
-                    graphs.push(sgraph);
-                }
+                graphs.push(sgraph);
             }
         }
 
