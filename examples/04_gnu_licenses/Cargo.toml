@@ -2,7 +2,7 @@
 name = "gnu-licenses"
 version = "0.1.0"
 authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
-license = "Apache-2.0/GPL-2.0+ AND LGPL-3.0-only"
+license = "Apache-2.0/GPL-2.0+ AND LGPL-3.0-only or gnu gpl v3"
 edition = "2018"
 
 [[bin]]

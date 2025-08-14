@@ -86,6 +86,8 @@ memchr = "2.7"
 parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.11"
+# Laziness, but we already pull it in transitively
+regex = "1.11"
 # HTTP client backing gix, we don't use it directly but need it here for configuration
 # due to ...reasons
 reqwest = { version = "0.12", default-features = false, features = ["http2"] }

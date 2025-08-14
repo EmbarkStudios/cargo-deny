@@ -34,13 +34,13 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 4,
-          "message": "license expression retrieved via Cargo.toml `license`",
+          "line": 9,
+          "message": "",
           "span": "MIT"
         },
         {
           "column": 12,
-          "line": 4,
+          "line": 9,
           "message": "rejected: license is not explicitly allowed",
           "span": "MIT"
         }
@@ -52,6 +52,39 @@ expression: diags
         "  - FSF Free/Libre"
       ],
       "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "parse-error",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "simple_ecs",
+            "version": "0.3.2"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "dev",
+                "name": "features-galore",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 6,
+          "message": "a deprecated license identifier was used",
+          "span": "GPL-3.0"
+        }
+      ],
+      "message": "error parsing SPDX license expression",
+      "severity": "warning"
     },
     "type": "diagnostic"
   },
@@ -78,19 +111,13 @@ expression: diags
       "labels": [
         {
           "column": 12,
-          "line": 4,
-          "message": "a deprecated license identifier was used",
+          "line": 6,
+          "message": "",
           "span": "GPL-3.0"
         },
         {
           "column": 12,
-          "line": 4,
-          "message": "license expression retrieved via Cargo.toml `license`",
-          "span": "GPL-3.0"
-        },
-        {
-          "column": 12,
-          "line": 4,
+          "line": 6,
           "message": "rejected: license is not explicitly allowed",
           "span": "GPL-3.0"
         }

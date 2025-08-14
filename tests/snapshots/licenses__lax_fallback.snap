@@ -5,6 +5,30 @@ expression: diags
 [
   {
     "fields": {
+      "code": "parse-error",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "gnu-licenses",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 23,
+          "line": 5,
+          "message": "a deprecated license identifier was used",
+          "span": "GPL-2.0"
+        }
+      ],
+      "message": "error parsing SPDX license expression",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
       "code": "accepted",
       "graphs": [
         {
@@ -16,34 +40,34 @@ expression: diags
       ],
       "labels": [
         {
-          "column": 26,
-          "line": 4,
-          "message": "a deprecated license identifier was used",
-          "span": "GPL-2.0"
+          "column": 12,
+          "line": 5,
+          "message": "",
+          "span": "Apache-2.0/GPL-2.0+ AND LGPL-3.0-only or gnu gpl v3"
         },
         {
           "column": 12,
-          "line": 4,
-          "message": "license expression retrieved via Cargo.toml `license`",
-          "span": "Apache-2.0 OR GPL-2.0+ AND LGPL-3.0-only"
-        },
-        {
-          "column": 12,
-          "line": 4,
+          "line": 5,
           "message": "rejected: license is not explicitly allowed",
           "span": "Apache-2.0"
         },
         {
-          "column": 26,
-          "line": 4,
+          "column": 23,
+          "line": 5,
           "message": "accepted: license is explicitly allowed",
           "span": "GPL-2.0"
         },
         {
-          "column": 39,
-          "line": 4,
+          "column": 36,
+          "line": 5,
           "message": "accepted: license is explicitly allowed",
           "span": "LGPL-3.0-only"
+        },
+        {
+          "column": 53,
+          "line": 5,
+          "message": "rejected: license is not explicitly allowed",
+          "span": "gnu gpl v3"
         }
       ],
       "message": "license requirements satisfied",

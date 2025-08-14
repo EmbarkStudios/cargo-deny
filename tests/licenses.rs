@@ -105,7 +105,7 @@ fn detects_unlicensed() {
 
     let mut diags = gather_licenses_with_overrides(func_name!(), cfg, None);
 
-    diags.retain(|d| field_eq!(d, "/fields/code", "unlicensed"));
+    diags.retain(|d| field_eq!(d, "/fields/graphs/0/Krate/name", "features-galore"));
 
     insta::assert_json_snapshot!(diags);
 }
@@ -178,7 +178,7 @@ fn lax_fallback() {
 /// we only compare on the exact license identifiers, and upstream crates may
 /// be using the deprecated identifiers
 #[test]
-fn allows_deprecated() {
+fn allows_deprecated_and_imprecise() {
     let cfg = tu::Config::<Config>::new("allow = ['GPL-2.0', 'LGPL-3.0']");
 
     let mut cmd = krates::Cmd::new();

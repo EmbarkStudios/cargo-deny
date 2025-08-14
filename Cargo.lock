@@ -258,6 +258,7 @@ dependencies = [
  "nu-ansi-term",
  "parking_lot",
  "rayon",
+ "regex",
  "reqwest",
  "ring",
  "rustsec",
