@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.4] - 2025-08-14
 ### Added
 - [PR#779](https://github.com/EmbarkStudios/cargo-deny/pull/779) added the `--metadata-path` argument to use a cargo metadata JSON file instead of calling cargo metadata, resolving [#777](https://github.com/EmbarkStudios/cargo-deny/issues/777).
 - [PR#782](https://github.com/EmbarkStudios/cargo-deny/pull/782) added `sources.unused-allow-source` to allow configuration of the lint level when a source is allowed but not used by any crate in the graph, closing [#781](https://github.com/EmbarkStudios/cargo-deny/issues/781).
@@ -724,7 +725,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...HEAD
+[0.18.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.0...0.18.1
