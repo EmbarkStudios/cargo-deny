@@ -894,7 +894,7 @@ impl Gatherer {
         let manifest = match std::fs::read_to_string(manifest_path) {
             Ok(m) => m,
             Err(error) => {
-                eprintln!("failed to read {manifest_path}: {error}");
+                panic!("failed to read {manifest_path}: {error}");
                 return None;
             }
         };
