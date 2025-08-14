@@ -41,6 +41,11 @@ pub fn gather_licenses_with_overrides(
     let krates = if std::env::var_os("CI").is_some() {
         let mut cmd = krates::Cmd::new();
         cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
+        cmd.lock_opts(krates::LockOptions {
+            locked: true,
+            frozen: false,
+            offline: false,
+        });
 
         krates::Builder::new()
             .build(cmd, krates::NoneFilter)
