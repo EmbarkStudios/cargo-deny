@@ -38,27 +38,25 @@ pub fn gather_licenses_with_overrides(
     cfg: impl Into<tu::Config<Config>>,
     overrides: Option<diag::DiagnosticOverrides>,
 ) -> Vec<serde_json::Value> {
-    let krates = if std::env::var_os("CI").is_some() {
-        let mut cmd = krates::Cmd::new();
-        cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
-        cmd.lock_opts(krates::LockOptions {
-            locked: true,
-            frozen: false,
-            offline: false,
-        });
+    let mut md: krates::cm::Metadata = serde_json::from_str(
+        &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
+    )
+    .unwrap();
 
-        krates::Builder::new()
-            .build(cmd, krates::NoneFilter)
-            .unwrap()
-    } else {
-        let md: krates::cm::Metadata = serde_json::from_str(
-            &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
-        )
+    if std::env::var_os("CI").is_some() {
+        let chome = std::env::var("CARGO_HOME").expect("CARGO_HOME not set");
+        let chome = cargo_deny::Path::new(&chome);
+
+        for pkg in &mut md.packages {
+            if let Ok(mp) = pkg.manifest_path.strip_prefix("/home/jake/.cargo") {
+                pkg.manifest_path = chome.join(mp);
+            }
+        }
+    }
+
+    let krates = krates::Builder::new()
+        .build_with_metadata(md, krates::NoneFilter)
         .unwrap();
-        krates::Builder::new()
-            .build_with_metadata(md, krates::NoneFilter)
-            .unwrap()
-    };
 
     let (ctx, summary) = setup(&krates, name, cfg.into());
 
