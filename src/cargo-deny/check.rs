@@ -336,6 +336,7 @@ pub(crate) fn cmd(
     let serialize_extra = match log_ctx.format {
         crate::Format::Json => true,
         crate::Format::Human => false,
+        crate::Format::Sarif => true,
     };
     let audit_compatible_output =
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;

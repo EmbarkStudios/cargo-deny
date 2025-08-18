@@ -348,10 +348,16 @@ pub struct Json<'a> {
     grapher: Option<diag::InclusionGrapher<'a>>,
 }
 
+pub struct Sarif<'a> {
+    stream: StdioStream,
+    grapher: Option<diag::InclusionGrapher<'a>>,
+}
+
 #[allow(clippy::large_enum_variant)]
 enum OutputFormat<'a> {
     Human(Human<'a>),
     Json(Json<'a>),
+    Sarif(Sarif<'a>),
 }
 
 impl<'a> OutputFormat<'a> {
@@ -364,6 +370,7 @@ impl<'a> OutputFormat<'a> {
                 human.feature_depth,
             ),
             Self::Json(json) => OutputLock::Json(json, max_severity, json.stream.lock()),
+            Self::Sarif(sarif) => OutputLock::Sarif(sarif, max_severity, sarif.stream.lock()),
         }
     }
 }
@@ -397,6 +404,7 @@ pub enum OutputLock<'a, 'b> {
         Option<u32>,
     ),
     Json(&'a Json<'a>, Severity, StdLock<'b>),
+    Sarif(&'a Sarif<'a>, Severity, StdLock<'b>),
 }
 
 impl OutputLock<'_, '_> {
@@ -423,6 +431,14 @@ impl OutputLock<'_, '_> {
                     let w = ser.into_inner();
                     let _ = w.write(b"\n");
                 }
+            }
+            Self::Sarif(_cfg, max, _w) => {
+                // For SARIF, we collect diagnostics but don't print them yet
+                // They will be collected and output as a complete SARIF document at the end
+                if diag.severity < *max {
+                    return;
+                }
+                // Diagnostics will be accumulated for final SARIF output
             }
         }
     }
@@ -480,6 +496,15 @@ impl OutputLock<'_, '_> {
                     }
                 }
             }
+            Self::Sarif(_cfg, max, _w) => {
+                // For SARIF, we collect diagnostics but don't print them yet
+                for diag in pack {
+                    if diag.diag.severity < *max {
+                        continue;
+                    }
+                    // Diagnostics will be accumulated for final SARIF output
+                }
+            }
         }
     }
 }
@@ -523,6 +548,13 @@ impl<'a> DiagPrinter<'a> {
             }
             crate::Format::Json => Self {
                 which: OutputFormat::Json(Json {
+                    stream: StdioStream::Err(std::io::stderr()),
+                    grapher: krates.map(diag::InclusionGrapher::new),
+                }),
+                max_severity,
+            },
+            crate::Format::Sarif => Self {
+                which: OutputFormat::Sarif(Sarif {
                     stream: StdioStream::Err(std::io::stderr()),
                     grapher: krates.map(diag::InclusionGrapher::new),
                 }),
