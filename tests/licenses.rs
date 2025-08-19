@@ -332,3 +332,30 @@ fn forces_apache_over_pixar() {
 
     insta::assert_json_snapshot!(diags);
 }
+
+#[test]
+fn insane_licenses() {
+    let cfg = tu::Config::new("allow = ['MIT']");
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("tests/test_data/insane-licenses/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let (ctx, summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |ctx, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    });
+
+    insta::assert_json_snapshot!(diags);
+}
