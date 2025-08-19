@@ -52,16 +52,11 @@ impl SarifCollector {
 
         // Add to rules if not already present
         let rule_id = format!("{:?}", code);
-        if !self.rules.contains_key(&rule_id) {
-            self.rules.insert(
-                rule_id,
-                RuleData {
-                    code,
-                    severity,
-                    description: get_rule_description(code),
-                },
-            );
-        }
+        self.rules.entry(rule_id).or_insert(RuleData {
+            code,
+            severity,
+            description: get_rule_description(code).to_string(),
+        });
     }
 
     pub fn generate_sarif(&self) -> SarifLog {
@@ -90,7 +85,7 @@ impl SarifCollector {
                     markdown: format!("[cargo-deny documentation](https://embarkstudios.github.io/cargo-deny/)"),
                 },
                 properties: RuleProperties {
-                    tags: get_rule_tags(rule_data.code),
+                    tags: get_rule_tags(rule_data.code).into_iter().map(|s| s.to_string()).collect(),
                     precision: "high".to_string(),
                     problem_severity: severity_to_sarif_level(rule_data.severity),
                 },
@@ -154,22 +149,22 @@ fn severity_to_sarif_level(severity: Severity) -> String {
     .to_string()
 }
 
-fn get_rule_description(code: DiagnosticCode) -> String {
+fn get_rule_description(code: DiagnosticCode) -> &'static str {
     match code {
-        DiagnosticCode::Advisory(_) => "Security advisory or vulnerability detected".to_string(),
-        DiagnosticCode::License(_) => "License compliance issue detected".to_string(),
-        DiagnosticCode::Bans(_) => "Banned or duplicate dependency detected".to_string(),
-        DiagnosticCode::Source(_) => "Crate source issue detected".to_string(),
-        DiagnosticCode::General(_) => "General cargo-deny check issue".to_string(),
+        DiagnosticCode::Advisory(_) => "Security advisory or vulnerability detected",
+        DiagnosticCode::License(_) => "License compliance issue detected",
+        DiagnosticCode::Bans(_) => "Banned or duplicate dependency detected",
+        DiagnosticCode::Source(_) => "Crate source issue detected",
+        DiagnosticCode::General(_) => "General cargo-deny check issue",
     }
 }
 
-fn get_rule_tags(code: DiagnosticCode) -> Vec<String> {
+fn get_rule_tags(code: DiagnosticCode) -> Vec<&'static str> {
     match code {
-        DiagnosticCode::Advisory(_) => vec!["security".to_string(), "vulnerability".to_string()],
-        DiagnosticCode::License(_) => vec!["license".to_string(), "compliance".to_string()],
-        DiagnosticCode::Bans(_) => vec!["dependencies".to_string(), "supply-chain".to_string()],
-        DiagnosticCode::Source(_) => vec!["sources".to_string(), "supply-chain".to_string()],
-        DiagnosticCode::General(_) => vec!["cargo-deny".to_string()],
+        DiagnosticCode::Advisory(_) => vec!["security", "vulnerability"],
+        DiagnosticCode::License(_) => vec!["license", "compliance"],
+        DiagnosticCode::Bans(_) => vec!["dependencies", "supply-chain"],
+        DiagnosticCode::Source(_) => vec!["sources", "supply-chain"],
+        DiagnosticCode::General(_) => vec!["cargo-deny"],
     }
 }

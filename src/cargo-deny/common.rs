@@ -432,14 +432,7 @@ impl OutputLock<'_, '_> {
                     let _ = w.write(b"\n");
                 }
             }
-            Self::Sarif(_cfg, max, _w) => {
-                // For SARIF, we collect diagnostics but don't print them yet
-                // They will be collected and output as a complete SARIF document at the end
-                if diag.severity < *max {
-                    return;
-                }
-                // Diagnostics will be accumulated for final SARIF output
-            }
+            Self::Sarif(..) => {} // SARIF collects diagnostics separately
         }
     }
 
@@ -496,15 +489,7 @@ impl OutputLock<'_, '_> {
                     }
                 }
             }
-            Self::Sarif(_cfg, max, _w) => {
-                // For SARIF, we collect diagnostics but don't print them yet
-                for diag in pack {
-                    if diag.diag.severity < *max {
-                        continue;
-                    }
-                    // Diagnostics will be accumulated for final SARIF output
-                }
-            }
+            Self::Sarif(..) => {} // SARIF collects diagnostics separately
         }
     }
 }
