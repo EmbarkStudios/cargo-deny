@@ -178,33 +178,30 @@ fn evaluate_expression(
                     notes.push("  - No additional metadata available for license".into());
                 }
             } else {
-                // This would only happen if askalono used a newer license list than spdx, but we update
-                // both simultaneously
+                // This would only happen if askalono used a newer license list
+                // than spdx, but we update both simultaneously
                 notes.push(format!("{} is not an SPDX license", failed_req.req));
             }
         }
 
-        let (id, offset) =
-            //if let Some(((file_id, range), original)) = original_loc.clone().zip(original) {
-                //let mut err_span = failed_req.span.start as usize..failed_req.span.end as usize;
-                //Gatherer::correct_span(original, &mut err_span);
-            if let Some((file_id, range)) = &original_loc {
-                (
-                    *file_id,
-                    range.start,
-                )
-            } else {
-                (
-                    nfo.file_id,
-                    nfo.offset,
-                )
-            };
+        let (id, offset) = if let Some((file_id, range)) = &original_loc {
+            (*file_id, range.start)
+        } else {
+            (nfo.file_id, nfo.offset)
+        };
 
         let start = offset + failed_req.span.start as usize;
 
         // TODO: fix this in spdx, but we only get the span for the license, not the exception
-        let end = if let Some(exc) = &failed_req.req.exception {
-            failed_req.span.end as usize + 6 /*" WITH "*/ + exc.name.len()
+        let end = if let Some(ai) = &failed_req.req.addition {
+            failed_req.span.end as usize + 6 /*" WITH "*/ + match ai {
+                spdx::AdditionItem::Spdx(exc) => exc.name.len(),
+                spdx::AdditionItem::Other { doc_ref, add_ref } => {
+                    /*AdditionRef-*/ 12 + add_ref.len() + doc_ref.as_deref().map_or(0, |dr| {
+                        /*DocumentRef-:*/ 13 + dr.len()
+                    })
+                }
+            }
         } else {
             failed_req.span.end as usize
         };
@@ -254,9 +251,9 @@ pub fn check(
     for krate_lic_nfo in summary.nfos {
         let mut pack = Pack::with_kid(Check::Licenses, krate_lic_nfo.krate.id.clone());
 
-        // If the user has set this, check if it's a private workspace
-        // crate or a crate from a private registry and just print out
-        // a help message that we skipped it
+        // If the user has set this, check if it's a private workspace crate or
+        // a crate from a private registry and just print out a help message
+        // that we skipped it
         if ctx.cfg.private.ignore
             && (krate_lic_nfo.krate.is_private(&private_registries)
                 || ctx

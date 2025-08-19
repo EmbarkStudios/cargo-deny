@@ -1,0 +1,65 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "rejected",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "insane-licenses",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 5,
+          "message": "",
+          "span": "(MIT or Apache-2.0 with LLVM-exception) and BSD-2-Clause with AdditionRef-boop or BSD-3-Clause with DocumentRef-bippity:AdditionRef-boppity"
+        },
+        {
+          "column": 13,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 20,
+          "line": 5,
+          "message": "rejected: license is not explicitly allowed",
+          "span": "Apache-2.0 with LLVM-exception"
+        },
+        {
+          "column": 56,
+          "line": 5,
+          "message": "rejected: license is not explicitly allowed",
+          "span": "BSD-2-Clause with AdditionRef-boop"
+        },
+        {
+          "column": 94,
+          "line": 5,
+          "message": "rejected: license is not explicitly allowed",
+          "span": "BSD-3-Clause with DocumentRef-bippity:AdditionRef-boppity"
+        }
+      ],
+      "message": "failed to satisfy license requirements",
+      "notes": [
+        "Apache-2.0 - Apache License 2.0:",
+        "  - OSI approved",
+        "  - FSF Free/Libre",
+        "BSD-2-Clause - BSD 2-Clause \"Simplified\" License:",
+        "  - OSI approved",
+        "  - FSF Free/Libre",
+        "BSD-3-Clause - BSD 3-Clause \"New\" or \"Revised\" License:",
+        "  - OSI approved",
+        "  - FSF Free/Libre"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

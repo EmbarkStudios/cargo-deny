@@ -1,0 +1,7 @@
+[package]
+name = "insane-licenses"
+version = "0.1.0"
+edition = "2024"
+license = "(MIT or Apache-2.0 with LLVM-exception) and BSD-2-Clause with AdditionRef-boop or BSD-3-Clause with DocumentRef-bippity:AdditionRef-boppity"
+
+[workspace]
