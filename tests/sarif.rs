@@ -42,14 +42,14 @@ fn test_sarif_collector() {
     // Verify we have rules
     assert_eq!(run.tool.driver.rules.len(), 1);
     let rule = &run.tool.driver.rules[0];
-    assert_eq!(rule.id, "Advisory(Vulnerability)");
-    assert_eq!(rule.name, "Advisory(Vulnerability)");
+    assert_eq!(rule.id, "a:vulnerability");
+    assert_eq!(rule.name, "a:vulnerability");
     assert!(rule.short_description.text.contains("Security"));
 
     // Verify we have results
     assert_eq!(run.results.len(), 1);
     let result = &run.results[0];
-    assert_eq!(result.rule_id, "Advisory(Vulnerability)");
+    assert_eq!(result.rule_id, "a:vulnerability");
     assert_eq!(result.message.text, "Test vulnerability found");
     assert_eq!(result.level, "error");
 
@@ -120,9 +120,10 @@ fn test_sarif_multiple_diagnostics() {
 fn test_sarif_json_serialization() {
     let mut collector = SarifCollector::default();
 
+    // Use Warning severity instead of Note (which is now filtered)
     collector.add_diagnostic(
         DiagnosticCode::Advisory(cargo_deny::advisories::Code::Notice),
-        Severity::Note,
+        Severity::Warning,
         "Notice".to_string(),
         "test.rs".to_string(),
         1,
@@ -170,4 +171,87 @@ fn test_sarif_empty_diagnostics() {
     assert!(json.contains("\"version\":\"2.1.0\""));
     assert!(json.contains("\"results\":[]"));
     assert!(json.contains("\"rules\":[]"));
+}
+
+#[test]
+fn test_sarif_rule_id_format() {
+    // Test that rule IDs use proper format like "license:rejected" not "License(Rejected)"
+    let mut collector = SarifCollector::default();
+    
+    collector.add_diagnostic(
+        DiagnosticCode::License(cargo_deny::licenses::Code::Rejected),
+        Severity::Error,
+        "License rejected".to_string(),
+        "Cargo.toml".to_string(),
+        10,
+    );
+    
+    let sarif = collector.generate_sarif();
+    let json = serde_json::to_string(&sarif).expect("Should serialize to JSON");
+    
+    // Should use clean format, not Debug format
+    assert!(!json.contains("License(Rejected)"), "Should not use Debug format for rule IDs");
+    assert!(json.contains("\"l:rejected\""), 
+            "Should use short format like 'l:rejected'");
+}
+
+#[test]
+fn test_sarif_excludes_note_severity() {
+    // Test that note-level diagnostics are excluded from SARIF
+    let mut collector = SarifCollector::default();
+    
+    // Add a note (should be excluded)
+    collector.add_diagnostic(
+        DiagnosticCode::Bans(cargo_deny::bans::Code::SkippedByRoot),
+        Severity::Note,
+        "Skipped by root".to_string(),
+        "deny.toml".to_string(),
+        35,
+    );
+    
+    // Add a warning (should be included)
+    collector.add_diagnostic(
+        DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed),
+        Severity::Warning,
+        "Missing license".to_string(),
+        "Cargo.toml".to_string(),
+        20,
+    );
+    
+    let sarif = collector.generate_sarif();
+    
+    // Should only have the warning, not the note
+    assert_eq!(sarif.runs[0].results.len(), 1, "Should exclude note-level diagnostics");
+    assert_eq!(sarif.runs[0].results[0].level, "warning");
+}
+
+#[test]
+fn test_sarif_fingerprint_includes_package_context() {
+    // Test that fingerprints include package information for uniqueness
+    let mut collector = SarifCollector::default();
+    
+    // Simulate adding a diagnostic with package context
+    // Note: This test assumes we'll add a method to include package info
+    collector.add_diagnostic(
+        DiagnosticCode::License(cargo_deny::licenses::Code::Rejected),
+        Severity::Error,
+        "Package 'openssl v0.10.64' uses rejected license".to_string(),
+        "openssl-0.10.64/Cargo.toml".to_string(),
+        15,
+    );
+    
+    let sarif = collector.generate_sarif();
+    let result = &sarif.runs[0].results[0];
+    
+    // Fingerprint should include enough context to be unique per package
+    let fingerprint = result.partial_fingerprints.get("cargo-deny/fingerprint")
+        .expect("Should have fingerprint");
+    
+    // Should not be a simple format that would be identical for all packages
+    assert!(!fingerprint.starts_with("l:rejected:"),
+            "Fingerprint should include package context before rule ID");
+    
+    // Should include some package-specific information extracted from message
+    assert!(fingerprint.contains("openssl") || fingerprint.contains("0.10.64"),
+            "Fingerprint should include package-specific information");
 }

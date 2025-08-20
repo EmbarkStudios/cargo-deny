@@ -44,6 +44,11 @@ impl SarifCollector {
         file_path: String,
         line: u32,
     ) {
+        // Filter out note and help severities - SARIF should only contain actionable issues
+        if matches!(severity, Severity::Note | Severity::Help) {
+            return;
+        }
+        
         // Add to diagnostics
         self.diagnostics.push(DiagnosticData {
             code,
@@ -54,7 +59,7 @@ impl SarifCollector {
         });
 
         // Add to rules if not already present
-        let rule_id = format!("{code:?}");
+        let rule_id = format_rule_id(code);
         self.rules.entry(rule_id).or_insert(RuleData {
             code,
             severity,
@@ -116,11 +121,24 @@ impl SarifCollector {
         // Create results from diagnostics
         let mut results: Vec<SarifResult> = Vec::new();
         for diag in &self.diagnostics {
-            let rule_id = format!("{:?}", diag.code);
+            let rule_id = format_rule_id(diag.code);
             let mut fingerprints = BTreeMap::new();
+            
+            // Create a unique fingerprint including package context when available
+            let fingerprint_value = if let Some(package) = extract_package_from_message(&diag.message) {
+                // Include package identifier for better uniqueness
+                format!("{}:{}:{}:{}", package, rule_id, diag.file_path, diag.line)
+            } else if diag.file_path.contains('/') {
+                // If we have a path with potential package info, use it
+                format!("{}:{}:{}", diag.file_path, rule_id, diag.line)
+            } else {
+                // Fallback to basic format
+                format!("{}:{}:{}", rule_id, diag.file_path, diag.line)
+            };
+            
             fingerprints.insert(
                 "cargo-deny/fingerprint".to_string(),
-                format!("{rule_id}:{}:{}", diag.file_path, diag.line),
+                fingerprint_value,
             );
 
             results.push(SarifResult {
@@ -170,6 +188,34 @@ fn severity_to_sarif_level(severity: Severity) -> String {
     .to_string()
 }
 
+fn format_rule_id(code: DiagnosticCode) -> String {
+    use std::str::FromStr;
+    
+    match code {
+        DiagnosticCode::Advisory(c) => {
+            // Use shorter prefix as Jake suggested
+            let code_str = c.to_string();
+            format!("a:{}", code_str)
+        }
+        DiagnosticCode::License(c) => {
+            let code_str = c.to_string();
+            format!("l:{}", code_str)
+        }
+        DiagnosticCode::Bans(c) => {
+            let code_str = c.to_string();
+            format!("b:{}", code_str)
+        }
+        DiagnosticCode::Source(c) => {
+            let code_str = c.to_string();
+            format!("s:{}", code_str)
+        }
+        DiagnosticCode::General(c) => {
+            let code_str = c.to_string();
+            format!("g:{}", code_str)
+        }
+    }
+}
+
 fn get_rule_description(code: DiagnosticCode) -> &'static str {
     match code {
         DiagnosticCode::Advisory(_) => "Security advisory or vulnerability detected",
@@ -188,6 +234,32 @@ fn get_rule_tags(code: DiagnosticCode) -> Vec<&'static str> {
         DiagnosticCode::Source(_) => vec!["sources", "supply-chain"],
         DiagnosticCode::General(_) => vec!["cargo-deny"],
     }
+}
+
+/// Extract package identifier from diagnostic message if present
+fn extract_package_from_message(message: &str) -> Option<String> {
+    // Look for patterns like:
+    // - "crate 'package_name = version'"
+    // - "crate 'package_name@version'"
+    // - "Package 'package_name'"
+    // - "'package_name v1.2.3'"
+    
+    // Try to find crate name in single quotes
+    if let Some(start) = message.find('\'') {
+        if let Some(end) = message[start + 1..].find('\'') {
+            let crate_info = &message[start + 1..start + 1 + end];
+            // Clean up the crate info to create a stable identifier
+            // Handle formats like "package = 0.1.0" or "package@0.1.0" or "package v0.1.0"
+            let cleaned = crate_info
+                .replace(" = ", "-")
+                .replace('@', "-")
+                .replace(" v", "-")
+                .replace(' ', "-");
+            return Some(cleaned);
+        }
+    }
+    
+    None
 }
 
 fn parse_diagnostic_code(code_str: &str) -> DiagnosticCode {
