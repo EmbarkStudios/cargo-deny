@@ -8,6 +8,7 @@ use cargo_deny::{
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources,
 };
+use codespan_reporting::files::Files as _;
 use log::error;
 use std::time::Instant;
 
@@ -578,29 +579,40 @@ fn print_diagnostics(
 
             // Collect diagnostics for SARIF if needed
             if let Some(collector) = &sarif_collector
-                && diag.diag.code.is_some()
+                && let Some(code_str) = &diag.diag.code
             {
-                // Create a diagnostic code based on the check type
-                let diagnostic_code = match pack.check {
-                    Check::Advisories => {
-                        DiagnosticCode::Advisory(cargo_deny::advisories::Code::Vulnerability)
-                    }
-                    Check::Licenses => {
-                        DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed)
-                    }
-                    Check::Bans => DiagnosticCode::Bans(cargo_deny::bans::Code::Banned),
-                    Check::Sources => {
-                        DiagnosticCode::Source(cargo_deny::sources::Code::SourceNotAllowed)
-                    }
+                // Extract file and line information from the primary label
+                let (file_path, line) = if let Some(label) = diag.diag.labels.first() {
+                    // Try to get the file name and location
+                    let file_name = files
+                        .name(label.file_id)
+                        .ok()
+                        .map(|path| {
+                            // Use file name if available, otherwise use full path
+                            path.file_name()
+                                .unwrap_or(path.as_str())
+                                .to_string()
+                        })
+                        .unwrap_or_else(|| "Cargo.lock".to_string());
+                    
+                    // Try to get the line number from the label's range
+                    let line_num = files
+                        .location(label.file_id, label.range.start as u32)
+                        .map(|loc| loc.line.0 + 1) // codespan uses 0-based lines
+                        .unwrap_or(1);
+                    
+                    (file_name, line_num)
+                } else {
+                    ("Cargo.lock".to_string(), 1)
                 };
 
                 let mut c = collector.lock();
-                c.add_diagnostic(
-                    diagnostic_code,
+                c.add_diagnostic_with_code(
+                    code_str.clone(),
                     diag.diag.severity,
                     diag.diag.message.clone(),
-                    "Cargo.lock".to_string(),
-                    1,
+                    file_path,
+                    line,
                 );
             }
         }

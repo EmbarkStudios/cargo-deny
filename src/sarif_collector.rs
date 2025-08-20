@@ -62,6 +62,19 @@ impl SarifCollector {
         });
     }
 
+    pub fn add_diagnostic_with_code(
+        &mut self,
+        code_str: String,
+        severity: Severity,
+        message: String,
+        file_path: String,
+        line: u32,
+    ) {
+        // Parse the diagnostic code from the string
+        let diagnostic_code = parse_diagnostic_code(&code_str);
+        self.add_diagnostic(diagnostic_code, severity, message, file_path, line);
+    }
+
     pub fn generate_sarif(&self) -> SarifLog {
         let mut sarif = SarifLog::default();
 
@@ -174,5 +187,50 @@ fn get_rule_tags(code: DiagnosticCode) -> Vec<&'static str> {
         DiagnosticCode::Bans(_) => vec!["dependencies", "supply-chain"],
         DiagnosticCode::Source(_) => vec!["sources", "supply-chain"],
         DiagnosticCode::General(_) => vec!["cargo-deny"],
+    }
+}
+
+fn parse_diagnostic_code(code_str: &str) -> DiagnosticCode {
+    use std::str::FromStr;
+    
+    // Try to parse as an advisory code
+    if let Ok(code) = crate::advisories::Code::from_str(code_str) {
+        return DiagnosticCode::Advisory(code);
+    }
+    
+    // Try to parse as a license code
+    if let Ok(code) = crate::licenses::Code::from_str(code_str) {
+        return DiagnosticCode::License(code);
+    }
+    
+    // Try to parse as a bans code
+    if let Ok(code) = crate::bans::Code::from_str(code_str) {
+        return DiagnosticCode::Bans(code);
+    }
+    
+    // Try to parse as a sources code
+    if let Ok(code) = crate::sources::Code::from_str(code_str) {
+        return DiagnosticCode::Source(code);
+    }
+    
+    // Try to parse as a general code
+    if let Ok(code) = crate::diag::general::Code::from_str(code_str) {
+        return DiagnosticCode::General(code);
+    }
+    
+    // If we can't parse the exact code, fall back to a reasonable default
+    // based on the code string content
+    let code_lower = code_str.to_lowercase();
+    if code_lower.starts_with("advisory") || code_lower.contains("vulnerability") 
+        || code_lower.contains("yanked") || code_lower.contains("unmaintained") {
+        DiagnosticCode::Advisory(crate::advisories::Code::Vulnerability)
+    } else if code_lower.starts_with("license") || code_lower.contains("unlicensed") {
+        DiagnosticCode::License(crate::licenses::Code::Unlicensed)
+    } else if code_lower.starts_with("ban") || code_lower.contains("banned") {
+        DiagnosticCode::Bans(crate::bans::Code::Banned)
+    } else if code_lower.starts_with("source") {
+        DiagnosticCode::Source(crate::sources::Code::SourceNotAllowed)
+    } else {
+        DiagnosticCode::General(crate::diag::general::Code::Deprecated)
     }
 }
