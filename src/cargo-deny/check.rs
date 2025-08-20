@@ -334,9 +334,8 @@ pub(crate) fn cmd(
 
     let show_inclusion_graphs = !args.hide_inclusion_graph;
     let serialize_extra = match log_ctx.format {
-        crate::Format::Json => true,
+        crate::Format::Json | crate::Format::Sarif => true,
         crate::Format::Human => false,
-        crate::Format::Sarif => true,
     };
     let audit_compatible_output =
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;
@@ -547,13 +546,15 @@ fn print_diagnostics(
     feature_depth: Option<u32>,
 ) {
     use cargo_deny::diag::Check;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     let dp = crate::common::DiagPrinter::new(log_ctx, krates, feature_depth);
-    
+
     // Create SARIF collector if using SARIF format
     let sarif_collector = if log_ctx.format == crate::Format::Sarif {
-        Some(Arc::new(Mutex::new(cargo_deny::sarif_collector::SarifCollector::new())))
+        Some(Arc::new(parking_lot::Mutex::new(
+            cargo_deny::sarif_collector::SarifCollector::default(),
+        )))
     } else {
         None
     };
@@ -574,37 +575,33 @@ fn print_diagnostics(
                 Severity::Help => check_stats.helps += 1,
                 Severity::Bug => {}
             }
-            
+
             // Collect diagnostics for SARIF if needed
-            if let Some(ref collector) = sarif_collector {
-                // Note: codespan's Diagnostic has a code field that is Option<String>
-                // We need to parse it back to DiagnosticCode
-                if let Some(code_str) = &diag.diag.code {
-                    // Create a diagnostic code based on the check type
-                    let diagnostic_code = match pack.check {
-                        Check::Advisories => {
-                            DiagnosticCode::Advisory(cargo_deny::advisories::Code::Vulnerability)
-                        }
-                        Check::Licenses => {
-                            DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed)
-                        }
-                        Check::Bans => {
-                            DiagnosticCode::Bans(cargo_deny::bans::Code::Banned)
-                        }
-                        Check::Sources => {
-                            DiagnosticCode::Source(cargo_deny::sources::Code::SourceNotAllowed)
-                        }
-                    };
-                    
-                    let mut c = collector.lock().unwrap();
-                    c.add_diagnostic(
-                        diagnostic_code,
-                        diag.diag.severity,
-                        diag.diag.message.clone(),
-                        "Cargo.lock".to_string(),
-                        1,
-                    );
-                }
+            if let Some(collector) = &sarif_collector
+                && diag.diag.code.is_some()
+            {
+                // Create a diagnostic code based on the check type
+                let diagnostic_code = match pack.check {
+                    Check::Advisories => {
+                        DiagnosticCode::Advisory(cargo_deny::advisories::Code::Vulnerability)
+                    }
+                    Check::Licenses => {
+                        DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed)
+                    }
+                    Check::Bans => DiagnosticCode::Bans(cargo_deny::bans::Code::Banned),
+                    Check::Sources => {
+                        DiagnosticCode::Source(cargo_deny::sources::Code::SourceNotAllowed)
+                    }
+                };
+
+                let mut c = collector.lock();
+                c.add_diagnostic(
+                    diagnostic_code,
+                    diag.diag.severity,
+                    diag.diag.message.clone(),
+                    "Cargo.lock".to_string(),
+                    1,
+                );
             }
         }
 
@@ -612,10 +609,10 @@ fn print_diagnostics(
             lock.print_krate_pack(pack, files);
         }
     }
-    
+
     // Output SARIF if using SARIF format
     if let Some(collector) = sarif_collector {
-        let c = collector.lock().unwrap();
+        let c = collector.lock();
         let sarif = c.generate_sarif();
         let json = serde_json::to_string_pretty(&sarif).unwrap();
         // Output to stdout for SARIF format

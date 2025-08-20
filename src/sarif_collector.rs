@@ -25,14 +25,17 @@ struct RuleData {
     description: String,
 }
 
-impl SarifCollector {
-    pub fn new() -> Self {
+#[allow(clippy::derivable_impls)]
+impl Default for SarifCollector {
+    fn default() -> Self {
         Self {
             diagnostics: Vec::new(),
             rules: HashMap::new(),
         }
     }
+}
 
+impl SarifCollector {
     pub fn add_diagnostic(
         &mut self,
         code: DiagnosticCode,
@@ -60,11 +63,11 @@ impl SarifCollector {
     }
 
     pub fn generate_sarif(&self) -> SarifLog {
-        let mut sarif = SarifLog::new();
-        
+        let mut sarif = SarifLog::default();
+
         // Get cargo-deny version
         let version = env!("CARGO_PKG_VERSION");
-        
+
         // Create rules from collected diagnostics
         let mut rules: Vec<Rule> = Vec::new();
         for (rule_id, rule_data) in &self.rules {
@@ -81,11 +84,16 @@ impl SarifCollector {
                     level: severity_to_sarif_level(rule_data.severity),
                 },
                 help: Help {
-                    text: format!("For more information, see cargo-deny documentation"),
-                    markdown: format!("[cargo-deny documentation](https://embarkstudios.github.io/cargo-deny/)"),
+                    text: "For more information, see cargo-deny documentation".to_owned(),
+                    markdown:
+                        "[cargo-deny documentation](https://embarkstudios.github.io/cargo-deny/)"
+                            .to_owned(),
                 },
                 properties: RuleProperties {
-                    tags: get_rule_tags(rule_data.code).into_iter().map(|s| s.to_string()).collect(),
+                    tags: get_rule_tags(rule_data.code)
+                        .into_iter()
+                        .map(|s| s.to_string())
+                        .collect(),
                     precision: "high".to_string(),
                     problem_severity: severity_to_sarif_level(rule_data.severity),
                 },
@@ -99,7 +107,7 @@ impl SarifCollector {
             let mut fingerprints = BTreeMap::new();
             fingerprints.insert(
                 "cargo-deny/fingerprint".to_string(),
-                format!("{}:{}:{}", rule_id, diag.file_path, diag.line),
+                format!("{rule_id}:{}:{}", diag.file_path, diag.line),
             );
 
             results.push(SarifResult {

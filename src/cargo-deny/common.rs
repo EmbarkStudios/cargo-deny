@@ -348,16 +348,11 @@ pub struct Json<'a> {
     grapher: Option<diag::InclusionGrapher<'a>>,
 }
 
-pub struct Sarif<'a> {
-    stream: StdioStream,
-    grapher: Option<diag::InclusionGrapher<'a>>,
-}
-
 #[allow(clippy::large_enum_variant)]
 enum OutputFormat<'a> {
     Human(Human<'a>),
     Json(Json<'a>),
-    Sarif(Sarif<'a>),
+    Sarif,
 }
 
 impl<'a> OutputFormat<'a> {
@@ -370,7 +365,7 @@ impl<'a> OutputFormat<'a> {
                 human.feature_depth,
             ),
             Self::Json(json) => OutputLock::Json(json, max_severity, json.stream.lock()),
-            Self::Sarif(sarif) => OutputLock::Sarif(sarif, max_severity, sarif.stream.lock()),
+            Self::Sarif => OutputLock::Sarif,
         }
     }
 }
@@ -404,7 +399,7 @@ pub enum OutputLock<'a, 'b> {
         Option<u32>,
     ),
     Json(&'a Json<'a>, Severity, StdLock<'b>),
-    Sarif(&'a Sarif<'a>, Severity, StdLock<'b>),
+    Sarif,
 }
 
 impl OutputLock<'_, '_> {
@@ -432,7 +427,7 @@ impl OutputLock<'_, '_> {
                     let _ = w.write(b"\n");
                 }
             }
-            Self::Sarif(..) => {} // SARIF collects diagnostics separately
+            Self::Sarif => {} // SARIF collects diagnostics separately
         }
     }
 
@@ -489,7 +484,7 @@ impl OutputLock<'_, '_> {
                     }
                 }
             }
-            Self::Sarif(..) => {} // SARIF collects diagnostics separately
+            Self::Sarif => {} // SARIF collects diagnostics separately
         }
     }
 }
@@ -539,10 +534,7 @@ impl<'a> DiagPrinter<'a> {
                 max_severity,
             },
             crate::Format::Sarif => Self {
-                which: OutputFormat::Sarif(Sarif {
-                    stream: StdioStream::Err(std::io::stderr()),
-                    grapher: krates.map(diag::InclusionGrapher::new),
-                }),
+                which: OutputFormat::Sarif,
                 max_severity,
             },
         })
