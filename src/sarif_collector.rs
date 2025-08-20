@@ -54,7 +54,7 @@ impl SarifCollector {
         });
 
         // Add to rules if not already present
-        let rule_id = format!("{:?}", code);
+        let rule_id = format!("{code:?}");
         self.rules.entry(rule_id).or_insert(RuleData {
             code,
             severity,
