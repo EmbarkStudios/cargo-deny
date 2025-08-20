@@ -584,23 +584,19 @@ fn print_diagnostics(
                 // Extract file and line information from the primary label
                 let (file_path, line) = if let Some(label) = diag.diag.labels.first() {
                     // Try to get the file name and location
-                    let file_name = files
-                        .name(label.file_id)
-                        .ok()
-                        .map(|path| {
+                    let file_name = files.name(label.file_id).ok().map_or_else(
+                        || "Cargo.lock".to_owned(),
+                        |path| {
                             // Use file name if available, otherwise use full path
-                            path.file_name()
-                                .unwrap_or(path.as_str())
-                                .to_string()
-                        })
-                        .unwrap_or_else(|| "Cargo.lock".to_string());
-                    
+                            path.file_name().unwrap_or(path.as_str()).to_string()
+                        },
+                    );
+
                     // Try to get the line number from the label's range
                     let line_num = files
                         .location(label.file_id, label.range.start as u32)
-                        .map(|loc| loc.line.0 + 1) // codespan uses 0-based lines
-                        .unwrap_or(1);
-                    
+                        .map_or(1, |loc| loc.line.0 + 1); // codespan uses 0-based lines
+
                     (file_name, line_num)
                 } else {
                     ("Cargo.lock".to_string(), 1)
