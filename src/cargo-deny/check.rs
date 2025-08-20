@@ -617,7 +617,10 @@ fn print_diagnostics(
         let json = serde_json::to_string_pretty(&sarif).unwrap();
         // Output to stdout for SARIF format
         use std::io::Write;
-        let _ = std::io::stdout().write_all(json.as_bytes());
-        let _ = std::io::stdout().write_all(b"\n");
+        {
+            let mut lock = std::io::stdout();
+            let _ = lock.write_all(json.as_bytes());
+            let _ = lock.write_all(b"\n");
+        }
     }
 }
