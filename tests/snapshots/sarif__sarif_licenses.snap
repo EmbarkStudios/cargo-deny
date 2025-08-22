@@ -1,0 +1,182 @@
+---
+source: tests/sarif.rs
+expression: s
+---
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 131,
+                  "message": "a deprecated license identifier was used",
+                  "snippet": "GPL-2.0",
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "error parsing SPDX license expression"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "l:parse-error",
+            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/examples/04_gnu_licenses#gnu-licenses@0.1.0"
+          },
+          "ruleId": "l:parse-error"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 51,
+                  "byteOffset": 120,
+                  "snippet": "Apache-2.0/GPL-2.0+ AND LGPL-3.0-only or gnu gpl v3",
+                  "startLine": 4
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 10,
+                  "byteOffset": 120,
+                  "message": "rejected: license is not explicitly allowed",
+                  "snippet": "Apache-2.0",
+                  "startLine": 4
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 131,
+                  "message": "accepted: license is explicitly allowed",
+                  "snippet": "GPL-2.0",
+                  "startLine": 4
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 13,
+                  "byteOffset": 144,
+                  "message": "rejected: license is not explicitly allowed",
+                  "snippet": "LGPL-3.0-only",
+                  "startLine": 4
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 10,
+                  "byteOffset": 161,
+                  "message": "rejected: license is not explicitly allowed",
+                  "snippet": "gnu gpl v3",
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "failed to satisfy license requirements"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "l:rejected",
+            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/examples/04_gnu_licenses#gnu-licenses@0.1.0"
+          },
+          "ruleId": "l:rejected"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "cargo-deny",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[licenses check](https://embarkstudios.github.io/cargo-deny/checks/licenses/index.html)\n[rejected diagnostic](https://embarkstudios.github.io/cargo-deny/checks/licenses/diags.html#rejected)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "l:rejected",
+              "name": "l:rejected",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "license",
+                  "compliance"
+                ]
+              },
+              "shortDescription": {
+                "text": "A license was not explicitly accepted"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[licenses check](https://embarkstudios.github.io/cargo-deny/checks/licenses/index.html)\n[parse-error diagnostic](https://embarkstudios.github.io/cargo-deny/checks/licenses/diags.html#parse-error)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "l:parse-error",
+              "name": "l:parse-error",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "warning",
+                "tags": [
+                  "license",
+                  "compliance"
+                ]
+              },
+              "shortDescription": {
+                "text": "Failed to parse an SPDX expression"
+              }
+            }
+          ],
+          "semanticVersion": "0.18.4",
+          "version": "0.18.4"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

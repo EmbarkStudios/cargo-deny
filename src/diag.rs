@@ -114,6 +114,39 @@ impl Files {
         })
     }
 
+    pub fn sarif_location(
+        &self,
+        label: &crate::diag::Label,
+    ) -> Result<crate::sarif::model::Location, FilesErr> {
+        let start_line = self.line_index(label.file_id, label.range.start)?;
+        let file = &self.files[label.file_id];
+
+        // For now ignore cargo.lock locations, currently they are only the synthesized
+        // cargo.lock, which doesn't exist on disk and might be confusing
+        if file.name.file_name() == Some("Cargo.lock") {
+            return Err(FilesErr::FileMissing);
+        }
+
+        use crate::sarif::model;
+
+        Ok(model::Location {
+            physical_location: model::PhysicalLocation {
+                artifact_location: model::ArtifactLocation {
+                    // These paths are machine specific, which _usually_ won't matter in most
+                    // CI systems since the paths won't change
+                    uri: format!("file://{}", file.name),
+                },
+                region: model::Region {
+                    start_line,
+                    byte_offset: label.range.start,
+                    byte_length: label.range.end - label.range.start,
+                    snippet: file.source.get(label.range.clone()).map(String::from),
+                    message: (!label.message.is_empty()).then(|| label.message.clone()),
+                },
+            },
+        })
+    }
+
     #[inline]
     pub fn source(&self, id: FileId) -> &str {
         &self.files[id].source
@@ -190,17 +223,49 @@ pub struct GraphNode {
     pub feature: Option<String>,
 }
 
+/// Additional metadata for a diagnostic
+#[derive(Clone)]
+pub enum Extra {
+    Advisory(rustsec::advisory::Advisory),
+}
+
+impl Extra {
+    #[inline]
+    pub fn key(&self) -> &'static str {
+        match self {
+            Self::Advisory(_) => "advisory",
+        }
+    }
+}
+
+impl serde::Serialize for Extra {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Advisory(adv) => adv.metadata.serialize(serializer),
+        }
+    }
+}
+
 pub struct Diag {
     pub diag: Diagnostic,
+    pub code: Option<DiagnosticCode>,
     pub graph_nodes: smallvec::SmallVec<[GraphNode; 2]>,
-    pub extra: Option<(&'static str, serde_json::Value)>,
+    pub extra: Option<Extra>,
     pub with_features: bool,
 }
 
 impl Diag {
-    pub(crate) fn new(diag: Diagnostic) -> Self {
+    pub(crate) fn new(diag: Diagnostic, code: Option<DiagnosticCode>) -> Self {
         Self {
-            diag,
+            diag: if let Some(code) = code {
+                diag.with_code(code)
+            } else {
+                diag
+            },
+            code,
             graph_nodes: smallvec::SmallVec::new(),
             extra: None,
             with_features: false,
@@ -208,9 +273,9 @@ impl Diag {
     }
 }
 
-impl From<Diagnostic> for Diag {
-    fn from(d: Diagnostic) -> Self {
-        Diag::new(d)
+impl From<(Diagnostic, Option<DiagnosticCode>)> for Diag {
+    fn from(d: (Diagnostic, Option<DiagnosticCode>)) -> Self {
+        Diag::new(d.0, d.1)
     }
 }
 
@@ -323,7 +388,7 @@ struct NodePrint {
     edge: Option<krates::EdgeId>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticCode {
     Advisory(crate::advisories::Code),
     Bans(crate::bans::Code),
@@ -351,6 +416,30 @@ impl DiagnosticCode {
             Self::License(code) => code.into(),
             Self::Source(code) => code.into(),
             Self::General(code) => code.into(),
+        }
+    }
+
+    #[inline]
+    pub fn qualified_str(self) -> String {
+        let (prefix, code): (_, &'static str) = match self {
+            Self::Advisory(code) => ('a', code.into()),
+            Self::Bans(code) => ('b', code.into()),
+            Self::License(code) => ('l', code.into()),
+            Self::Source(code) => ('s', code.into()),
+            Self::General(code) => ('g', code.into()),
+        };
+
+        format!("{prefix}:{code}")
+    }
+
+    #[inline]
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Advisory(code) => code.description(),
+            Self::Bans(code) => code.description(),
+            Self::License(code) => code.description(),
+            Self::Source(code) => code.description(),
+            Self::General(code) => code.description(),
         }
     }
 }

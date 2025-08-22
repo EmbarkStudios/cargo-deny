@@ -1,0 +1,112 @@
+---
+source: tests/sarif.rs
+expression: s
+---
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "detected 'git' source not explicitly allowed"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "s:source-not-allowed",
+            "cargo-deny/krate": "git+https://github.com/dtolnay/anyhow?branch=master#anyhow@1.0.68"
+          },
+          "ruleId": "s:source-not-allowed"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_sources.toml"
+                },
+                "region": {
+                  "byteLength": 9,
+                  "byteOffset": 134,
+                  "message": "no crate source fell under this organization",
+                  "snippet": "bizzlepop",
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "allowed 'github.com' organization  was not encountered"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "s:unmatched-organization",
+            "cargo-deny/loc": "file://sarif::sarif_sources.toml:134..143"
+          },
+          "ruleId": "s:unmatched-organization"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "cargo-deny",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[sources check](https://embarkstudios.github.io/cargo-deny/checks/sources/index.html)\n[source-not-allowed diagnostic](https://embarkstudios.github.io/cargo-deny/checks/sources/diags.html#source-not-allowed)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "s:source-not-allowed",
+              "name": "s:source-not-allowed",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "sources",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "A crate's source was not explicitly allowed"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[sources check](https://embarkstudios.github.io/cargo-deny/checks/sources/index.html)\n[unmatched-organization diagnostic](https://embarkstudios.github.io/cargo-deny/checks/sources/diags.html#unmatched-organization)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "s:unmatched-organization",
+              "name": "s:unmatched-organization",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "warning",
+                "tags": [
+                  "sources",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "An allowed git source organization was not used by any crate in the graph"
+              }
+            }
+          ],
+          "semanticVersion": "0.18.4",
+          "version": "0.18.4"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

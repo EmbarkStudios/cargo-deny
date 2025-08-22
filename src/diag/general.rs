@@ -16,10 +16,21 @@ use std::fmt;
     Debug,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Code {
     Deprecated,
+}
+
+impl Code {
+    #[inline]
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Deprecated => "A deprecated field was detected",
+        }
+    }
 }
 
 impl From<Code> for String {

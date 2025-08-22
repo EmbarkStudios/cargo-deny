@@ -1,257 +1,203 @@
-use cargo_deny::{
-    diag::{DiagnosticCode, Severity},
-    sarif::SarifLog,
-    sarif_collector::SarifCollector,
-};
+use cargo_deny::{Krates, test_utils as tu};
 
-#[test]
-fn test_sarif_structure() {
-    let sarif = SarifLog::default();
+fn gather_sarif<VC, R>(ctx: tu::GatherCtx<'_, VC>, runner: R) -> serde_json::Value
+where
+    VC: Send,
+    R: FnOnce(cargo_deny::CheckCtx<'_, VC>, cargo_deny::diag::PackChannel) + Send,
+{
+    let (tx, rx) = crossbeam::channel::unbounded();
 
-    assert_eq!(
-        sarif.schema,
-        "https://json.schemastore.org/sarif-2.1.0.json"
+    let (_, sarif) = rayon::join(
+        || {
+            let cctx = cargo_deny::CheckCtx {
+                krates: ctx.krates,
+                krate_spans: &ctx.spans,
+                cfg: ctx.valid_cfg,
+                serialize_extra: true,
+                colorize: false,
+                log_level: log::LevelFilter::Info,
+                files: &ctx.files,
+            };
+            runner(cctx, tx);
+        },
+        || {
+            let mut sarif = cargo_deny::sarif::SarifCollector::default();
+
+            let default = if std::env::var_os("CI").is_some() {
+                60
+            } else {
+                30
+            };
+
+            let timeout = std::env::var("CARGO_DENY_TEST_TIMEOUT_SECS")
+                .ok()
+                .and_then(|ts| ts.parse().ok())
+                .unwrap_or(default);
+            let timeout = std::time::Duration::from_secs(timeout);
+
+            let trx = crossbeam::channel::after(timeout);
+            loop {
+                crossbeam::select! {
+                    recv(rx) -> msg => {
+                        if let Ok(pack) = msg {
+                            sarif.add_diagnostics(pack, &ctx.files);
+                        } else {
+                            // Yay, the sender was dropped (i.e. check was finished)
+                            break;
+                        }
+                    }
+                    recv(trx) -> _ => {
+                        anyhow::bail!("Timed out after {timeout:?}");
+                    }
+                }
+            }
+
+            Ok(sarif.generate_sarif())
+        },
     );
-    assert_eq!(sarif.version, "2.1.0");
-    assert!(sarif.runs.is_empty());
+
+    serde_json::to_value(&sarif.expect("failed to gather Sarif results"))
+        .expect("failed to serialize Sarif results")
 }
 
 #[test]
-fn test_sarif_collector() {
-    let mut collector = SarifCollector::default();
+fn sarif_advisories() {
+    use cargo_deny::advisories;
 
-    // Add a test diagnostic
-    collector.add_diagnostic(
-        DiagnosticCode::Advisory(cargo_deny::advisories::Code::Vulnerability),
-        Severity::Error,
-        "Test vulnerability found".to_string(),
-        "test.rs".to_string(),
-        42,
-    );
-
-    let sarif = collector.generate_sarif();
-
-    // Verify structure
-    assert_eq!(sarif.version, "2.1.0");
-    assert_eq!(sarif.runs.len(), 1);
-
-    let run = &sarif.runs[0];
-    assert_eq!(run.tool.driver.name, "cargo-deny");
-    assert_eq!(run.tool.driver.version, env!("CARGO_PKG_VERSION"));
-
-    // Verify we have rules
-    assert_eq!(run.tool.driver.rules.len(), 1);
-    let rule = &run.tool.driver.rules[0];
-    assert_eq!(rule.id, "a:vulnerability");
-    assert_eq!(rule.name, "a:vulnerability");
-    assert!(rule.short_description.text.contains("Security"));
-
-    // Verify we have results
-    assert_eq!(run.results.len(), 1);
-    let result = &run.results[0];
-    assert_eq!(result.rule_id, "a:vulnerability");
-    assert_eq!(result.message.text, "Test vulnerability found");
-    assert_eq!(result.level, "error");
-
-    // Verify location
-    assert_eq!(result.locations.len(), 1);
-    let location = &result.locations[0];
-    assert_eq!(location.physical_location.artifact_location.uri, "test.rs");
-    assert_eq!(location.physical_location.region.start_line, 42);
-}
-
-#[test]
-fn test_sarif_multiple_diagnostics() {
-    let mut collector = SarifCollector::default();
-
-    // Add multiple diagnostics of different types
-    collector.add_diagnostic(
-        DiagnosticCode::Advisory(cargo_deny::advisories::Code::Vulnerability),
-        Severity::Error,
-        "Vulnerability 1".to_string(),
-        "lib.rs".to_string(),
-        10,
-    );
-
-    collector.add_diagnostic(
-        DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed),
-        Severity::Warning,
-        "Missing license".to_string(),
-        "main.rs".to_string(),
-        20,
-    );
-
-    collector.add_diagnostic(
-        DiagnosticCode::Bans(cargo_deny::bans::Code::Banned),
-        Severity::Error,
-        "Banned crate".to_string(),
-        "Cargo.toml".to_string(),
-        30,
-    );
-
-    let sarif = collector.generate_sarif();
-
-    // Should have 3 different rules
-    assert_eq!(sarif.runs[0].tool.driver.rules.len(), 3);
-
-    // Should have 3 results
-    assert_eq!(sarif.runs[0].results.len(), 3);
-
-    // Verify each result has correct severity
-    let results = &sarif.runs[0].results;
+    let mut cargo = std::process::Command::new("cargo");
+    cargo.args([
+        "fetch",
+        "--manifest-path",
+        "examples/06_advisories/Cargo.toml",
+    ]);
     assert!(
-        results
-            .iter()
-            .any(|r| r.message.text == "Vulnerability 1" && r.level == "error")
+        cargo.status().expect("failed to run cargo fetch").success(),
+        "failed to fetch crates"
     );
-    assert!(
-        results
-            .iter()
-            .any(|r| r.message.text == "Missing license" && r.level == "warning")
-    );
-    assert!(
-        results
-            .iter()
-            .any(|r| r.message.text == "Banned crate" && r.level == "error")
-    );
+
+    let md: krates::cm::Metadata = serde_json::from_str(
+        &std::fs::read_to_string("tests/test_data/advisories/06_advisories.json").unwrap(),
+    )
+    .unwrap();
+
+    let krates: Krates = krates::Builder::new()
+        .build_with_metadata(md, krates::NoneFilter)
+        .unwrap();
+
+    let db = {
+        advisories::DbSet::load(
+            "tests/advisory-db".into(),
+            vec![],
+            advisories::Fetch::Disallow(time::Duration::days(10000)),
+        )
+        .unwrap()
+    };
+
+    let cfg = tu::Config::new("");
+
+    let ctx = tu::setup::<advisories::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
+    let s = gather_sarif(ctx, |ctx, sink| {
+        advisories::check(
+            ctx,
+            &db,
+            Option::<advisories::NoneReporter>::None,
+            None,
+            sink,
+        )
+    });
+
+    insta::assert_json_snapshot!(s);
 }
 
 #[test]
-fn test_sarif_json_serialization() {
-    let mut collector = SarifCollector::default();
+fn sarif_licenses() {
+    use cargo_deny::licenses;
 
-    // Use Warning severity instead of Note (which is now filtered)
-    collector.add_diagnostic(
-        DiagnosticCode::Advisory(cargo_deny::advisories::Code::Notice),
-        Severity::Warning,
-        "Notice".to_string(),
-        "test.rs".to_string(),
-        1,
-    );
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("examples/04_gnu_licenses/Cargo.toml");
 
-    let sarif = collector.generate_sarif();
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
 
-    // Should be serializable to JSON
-    let json = serde_json::to_string(&sarif).expect("Should serialize to JSON");
-    assert!(json.contains("\"$schema\""));
-    assert!(json.contains("\"version\":\"2.1.0\""));
-    assert!(json.contains("cargo-deny"));
+    let cfg = tu::Config::new("allow = ['GPL-2.0-or-later']");
+    let mut ctx = tu::setup::<licenses::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
+    let gatherer = licenses::Gatherer::default()
+        .with_store(std::sync::Arc::new(
+            licenses::LicenseStore::from_cache().unwrap(),
+        ))
+        .with_confidence_threshold(0.8);
 
-    // Should be deserializable back
-    let parsed: SarifLog = serde_json::from_str(&json).expect("Should deserialize from JSON");
-    assert_eq!(parsed.version, sarif.version);
-    assert_eq!(parsed.runs.len(), sarif.runs.len());
+    let summary = gatherer.gather(ctx.krates, &mut ctx.files, Some(&ctx.valid_cfg));
+
+    let s = gather_sarif(ctx, |ctx, sink| licenses::check(ctx, summary, sink.into()));
+
+    insta::assert_json_snapshot!(s);
 }
 
 #[test]
-fn test_sarif_empty_diagnostics() {
-    // Edge case: no diagnostics collected
-    let collector = SarifCollector::default();
-    let sarif = collector.generate_sarif();
+fn sarif_bans() {
+    use cargo_deny::bans;
 
-    // Should still produce valid SARIF structure
-    assert_eq!(
-        sarif.schema,
-        "https://json.schemastore.org/sarif-2.1.0.json"
+    let mut cmd = krates::Cmd::new();
+    cmd.features(["zlib", "ssh"].into_iter().map(String::from))
+        .lock_opts(krates::LockOptions {
+            locked: true,
+            frozen: false,
+            offline: false,
+        })
+        .manifest_path("tests/test_data/features-galore/Cargo.toml");
+
+    let krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let cfg = tu::Config::new(
+        "
+multiple-versions = 'deny'
+deny = ['vcpkg']
+features = [
+    { name = 'features-galore', deny = ['simple'] },
+    { name = 'libssh2-sys', deny = ['zlib-ng-compat'] },
+    { name = 'features-galore', allow = ['ssh'] },
+]
+",
     );
-    assert_eq!(sarif.version, "2.1.0");
-    assert_eq!(sarif.runs.len(), 1);
+    let ctx = tu::setup::<bans::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
 
-    let run = &sarif.runs[0];
-    assert_eq!(run.tool.driver.name, "cargo-deny");
-    assert_eq!(run.tool.driver.version, env!("CARGO_PKG_VERSION"));
+    let s = gather_sarif(ctx, |ctx, sink| bans::check(ctx, None, sink));
 
-    // Should have no rules and no results
-    assert!(run.tool.driver.rules.is_empty());
-    assert!(run.results.is_empty());
-
-    // Should be serializable to valid JSON
-    let json = serde_json::to_string(&sarif).expect("Should serialize to JSON");
-    assert!(json.contains("\"$schema\""));
-    assert!(json.contains("\"version\":\"2.1.0\""));
-    assert!(json.contains("\"results\":[]"));
-    assert!(json.contains("\"rules\":[]"));
+    insta::assert_json_snapshot!(s);
 }
 
 #[test]
-fn test_sarif_rule_id_format() {
-    // Test that rule IDs use proper format like "license:rejected" not "License(Rejected)"
-    let mut collector = SarifCollector::default();
-    
-    collector.add_diagnostic(
-        DiagnosticCode::License(cargo_deny::licenses::Code::Rejected),
-        Severity::Error,
-        "License rejected".to_string(),
-        "Cargo.toml".to_string(),
-        10,
-    );
-    
-    let sarif = collector.generate_sarif();
-    let json = serde_json::to_string(&sarif).expect("Should serialize to JSON");
-    
-    // Should use clean format, not Debug format
-    assert!(!json.contains("License(Rejected)"), "Should not use Debug format for rule IDs");
-    assert!(json.contains("\"l:rejected\""), 
-            "Should use short format like 'l:rejected'");
-}
+fn sarif_sources() {
+    use cargo_deny::sources;
 
-#[test]
-fn test_sarif_excludes_note_severity() {
-    // Test that note-level diagnostics are excluded from SARIF
-    let mut collector = SarifCollector::default();
-    
-    // Add a note (should be excluded)
-    collector.add_diagnostic(
-        DiagnosticCode::Bans(cargo_deny::bans::Code::SkippedByRoot),
-        Severity::Note,
-        "Skipped by root".to_string(),
-        "deny.toml".to_string(),
-        35,
-    );
-    
-    // Add a warning (should be included)
-    collector.add_diagnostic(
-        DiagnosticCode::License(cargo_deny::licenses::Code::Unlicensed),
-        Severity::Warning,
-        "Missing license".to_string(),
-        "Cargo.toml".to_string(),
-        20,
-    );
-    
-    let sarif = collector.generate_sarif();
-    
-    // Should only have the warning, not the note
-    assert_eq!(sarif.runs[0].results.len(), 1, "Should exclude note-level diagnostics");
-    assert_eq!(sarif.runs[0].results[0].level, "warning");
-}
+    let mut cmd = krates::Cmd::new();
+    cmd.lock_opts(krates::LockOptions {
+        locked: true,
+        frozen: false,
+        offline: false,
+    })
+    .manifest_path("tests/test_data/sources/Cargo.toml");
 
-#[test]
-fn test_sarif_fingerprint_includes_package_context() {
-    // Test that fingerprints include package information for uniqueness
-    let mut collector = SarifCollector::default();
-    
-    // Simulate adding a diagnostic with package context
-    // Note: This test assumes we'll add a method to include package info
-    collector.add_diagnostic(
-        DiagnosticCode::License(cargo_deny::licenses::Code::Rejected),
-        Severity::Error,
-        "Package 'openssl v0.10.64' uses rejected license".to_string(),
-        "openssl-0.10.64/Cargo.toml".to_string(),
-        15,
+    let krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let cfg = tu::Config::new(
+        "unknown-git = 'deny'
+allow-git = [
+    'https://bitbucket.org/marshallpierce/line-wrap-rs',
+]
+[allow-org]
+github = ['EmbarkStudios', 'bizzlepop']
+",
     );
-    
-    let sarif = collector.generate_sarif();
-    let result = &sarif.runs[0].results[0];
-    
-    // Fingerprint should include enough context to be unique per package
-    let fingerprint = result.partial_fingerprints.get("cargo-deny/fingerprint")
-        .expect("Should have fingerprint");
-    
-    // Should not be a simple format that would be identical for all packages
-    assert!(!fingerprint.starts_with("l:rejected:"),
-            "Fingerprint should include package context before rule ID");
-    
-    // Should include some package-specific information extracted from message
-    assert!(fingerprint.contains("openssl") || fingerprint.contains("0.10.64"),
-            "Fingerprint should include package-specific information");
+    let ctx = tu::setup::<sources::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
+
+    let s = gather_sarif(ctx, |ctx, sink| sources::check(ctx, sink));
+
+    insta::assert_json_snapshot!(s);
 }

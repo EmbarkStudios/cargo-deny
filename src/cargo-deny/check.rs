@@ -8,7 +8,6 @@ use cargo_deny::{
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources,
 };
-use codespan_reporting::files::Files as _;
 use log::error;
 use std::time::Instant;
 
@@ -547,81 +546,15 @@ fn print_diagnostics(
     feature_depth: Option<u32>,
 ) {
     use cargo_deny::diag::Check;
-    use std::sync::Arc;
 
-    let dp = crate::common::DiagPrinter::new(log_ctx, krates, feature_depth);
+    if log_ctx.format == crate::Format::Sarif {
+        let mut sc = cargo_deny::sarif::SarifCollector::default();
 
-    // Create SARIF collector if using SARIF format
-    let sarif_collector = if log_ctx.format == crate::Format::Sarif {
-        Some(Arc::new(parking_lot::Mutex::new(
-            cargo_deny::sarif_collector::SarifCollector::default(),
-        )))
-    } else {
-        None
-    };
-
-    for pack in rx {
-        let check_stats = match pack.check {
-            Check::Advisories => stats.advisories.as_mut().unwrap(),
-            Check::Bans => stats.bans.as_mut().unwrap(),
-            Check::Licenses => stats.licenses.as_mut().unwrap(),
-            Check::Sources => stats.sources.as_mut().unwrap(),
-        };
-
-        for diag in pack.iter() {
-            match diag.diag.severity {
-                Severity::Error => check_stats.errors += 1,
-                Severity::Warning => check_stats.warnings += 1,
-                Severity::Note => check_stats.notes += 1,
-                Severity::Help => check_stats.helps += 1,
-                Severity::Bug => {}
-            }
-
-            // Collect diagnostics for SARIF if needed
-            if let Some(collector) = &sarif_collector
-                && let Some(code_str) = &diag.diag.code
-            {
-                // Extract file and line information from the primary label
-                let (file_path, line) = if let Some(label) = diag.diag.labels.first() {
-                    // Try to get the file name and location
-                    let file_name = files.name(label.file_id).ok().map_or_else(
-                        || "Cargo.lock".to_owned(),
-                        |path| {
-                            // Use file name if available, otherwise use full path
-                            path.file_name().unwrap_or(path.as_str()).to_string()
-                        },
-                    );
-
-                    // Try to get the line number from the label's range
-                    let line_num = files
-                        .location(label.file_id, label.range.start as u32)
-                        .map_or(1, |loc| loc.line.0 + 1); // codespan uses 0-based lines
-
-                    (file_name, line_num)
-                } else {
-                    ("Cargo.lock".to_string(), 1)
-                };
-
-                let mut c = collector.lock();
-                c.add_diagnostic_with_code(
-                    code_str.clone(),
-                    diag.diag.severity,
-                    diag.diag.message.clone(),
-                    file_path,
-                    line,
-                );
-            }
+        for pack in rx {
+            sc.add_diagnostics(pack, files);
         }
 
-        if let Some(mut lock) = dp.as_ref().map(|dp| dp.lock()) {
-            lock.print_krate_pack(pack, files);
-        }
-    }
-
-    // Output SARIF if using SARIF format
-    if let Some(collector) = sarif_collector {
-        let c = collector.lock();
-        let sarif = c.generate_sarif();
+        let sarif = sc.generate_sarif();
         let json = serde_json::to_string_pretty(&sarif).unwrap();
         // Output to stdout for SARIF format
         use std::io::Write;
@@ -630,5 +563,29 @@ fn print_diagnostics(
             let _ = lock.write_all(json.as_bytes());
             let _ = lock.write_all(b"\n");
         }
-    }
+    } else {
+        let dp = crate::common::DiagPrinter::new(log_ctx, krates, feature_depth);
+        for pack in rx {
+            let check_stats = match pack.check {
+                Check::Advisories => stats.advisories.as_mut().unwrap(),
+                Check::Bans => stats.bans.as_mut().unwrap(),
+                Check::Licenses => stats.licenses.as_mut().unwrap(),
+                Check::Sources => stats.sources.as_mut().unwrap(),
+            };
+
+            for diag in pack.iter() {
+                match diag.diag.severity {
+                    Severity::Error => check_stats.errors += 1,
+                    Severity::Warning => check_stats.warnings += 1,
+                    Severity::Note => check_stats.notes += 1,
+                    Severity::Help => check_stats.helps += 1,
+                    Severity::Bug => {}
+                }
+            }
+
+            if let Some(mut lock) = dp.as_ref().map(|dp| dp.lock()) {
+                lock.print_krate_pack(pack, files);
+            }
+        }
+    };
 }

@@ -229,7 +229,7 @@ pub struct GatherCtx<'k, VC> {
     pub krates: &'k crate::Krates,
     pub files: crate::diag::Files,
     pub valid_cfg: VC,
-    spans: crate::diag::KrateSpans<'k>,
+    pub spans: crate::diag::KrateSpans<'k>,
 }
 
 pub fn setup<'k, C, VC>(

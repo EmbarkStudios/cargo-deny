@@ -12,7 +12,6 @@ pub mod diag;
 pub mod licenses;
 pub mod root_cfg;
 pub mod sarif;
-pub mod sarif_collector;
 pub mod sources;
 
 #[doc(hidden)]
