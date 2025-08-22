@@ -1,4 +1,4 @@
-pub mod model;
 mod collector;
+pub mod model;
 
 pub use collector::SarifCollector;
