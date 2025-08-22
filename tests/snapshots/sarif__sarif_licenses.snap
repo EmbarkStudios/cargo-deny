@@ -13,7 +13,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 7,
@@ -30,7 +30,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "l:parse-error",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/examples/04_gnu_licenses#gnu-licenses@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/examples/04_gnu_licenses#gnu-licenses@0.1.0"
           },
           "ruleId": "l:parse-error"
         },
@@ -40,7 +40,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 51,
@@ -53,7 +53,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 10,
@@ -67,7 +67,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 7,
@@ -81,7 +81,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 13,
@@ -95,7 +95,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///home/jake/code/cargo-deny/examples/04_gnu_licenses/Cargo.toml"
+                  "uri": "file://{CWD}/examples/04_gnu_licenses/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 10,
@@ -112,7 +112,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "l:rejected",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/examples/04_gnu_licenses#gnu-licenses@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/examples/04_gnu_licenses#gnu-licenses@0.1.0"
           },
           "ruleId": "l:rejected"
         }

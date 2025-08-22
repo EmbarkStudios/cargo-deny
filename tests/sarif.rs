@@ -56,8 +56,29 @@ where
         },
     );
 
-    serde_json::to_value(sarif.expect("failed to gather Sarif results"))
-        .expect("failed to serialize Sarif results")
+    let mut sl = sarif.expect("failed to gather Sarif results");
+
+    let root = cargo_deny::PathBuf::try_from(std::env::current_dir().unwrap()).unwrap();
+
+    // I can't tell if insta's redaction matchers actually support nested structures
+    // so rather than try and fail, just redact manually
+    for res in &mut sl.runs[0].results {
+        for loc in &mut res.locations {
+            loc.physical_location.artifact_location.uri = loc
+                .physical_location
+                .artifact_location
+                .uri
+                .replace(root.as_str(), "{CWD}");
+        }
+
+        for fp in res.partial_fingerprints.values_mut() {
+            if fp.contains("file://") {
+                *fp = fp.replace(root.as_str(), "{CWD}");
+            }
+        }
+    }
+
+    serde_json::to_value(sl).expect("failed to serialize Sarif results")
 }
 
 #[test]

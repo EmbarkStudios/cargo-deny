@@ -30,7 +30,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "b:feature-banned",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/tests/test_data/features-galore#features-galore@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
           },
           "ruleId": "b:feature-banned"
         },
@@ -57,7 +57,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "b:feature-not-explicitly-allowed",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/tests/test_data/features-galore#features-galore@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
           },
           "ruleId": "b:feature-not-explicitly-allowed"
         },
@@ -84,7 +84,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "b:feature-not-explicitly-allowed",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/tests/test_data/features-galore#features-galore@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
           },
           "ruleId": "b:feature-not-explicitly-allowed"
         },
@@ -111,7 +111,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "b:feature-not-explicitly-allowed",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/tests/test_data/features-galore#features-galore@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
           },
           "ruleId": "b:feature-not-explicitly-allowed"
         },
@@ -138,7 +138,7 @@ expression: s
           },
           "partialFingerprints": {
             "cargo-deny/id": "b:feature-not-explicitly-allowed",
-            "cargo-deny/krate": "path+file:///home/jake/code/cargo-deny/tests/test_data/features-galore#features-galore@0.1.0"
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
           },
           "ruleId": "b:feature-not-explicitly-allowed"
         },
