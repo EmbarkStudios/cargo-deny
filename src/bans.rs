@@ -1312,10 +1312,7 @@ pub fn check_build(
                 let absolute_path = match crate::PathBuf::from_path_buf(entry.into_path()) {
                     Ok(p) => p,
                     Err(path) => {
-                        pack.push(
-                            crate::diag::Diagnostic::warning()
-                                .with_message(format_args!("path {path:?} is not utf-8, skipping")),
-                        );
+                        pack.push(diags::NonUtf8Path { path: &path });
                         continue;
                     }
                 };
@@ -1323,9 +1320,7 @@ pub fn check_build(
                 let path = &absolute_path;
 
                 let Ok(rel_path) = path.strip_prefix(root) else {
-                    pack.push(crate::diag::Diagnostic::error().with_message(format_args!(
-                        "path '{path}' is not relative to crate root '{root}'"
-                    )));
+                    pack.push(diags::NonRootPath { path, root });
                     continue;
                 };
 

@@ -41,6 +41,10 @@ A [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspa
 
 A crate version in [`bans.skip`](cfg.md#the-skip-field-optional) was not encountered.
 
+### `unmatched-skip-root`
+
+A crate version in [`bans.skip-tree`](cfg.md#the-skip-tree-field-optional) was not encountered.
+
 ### `unnecessary-skip`
 
 A crate specified in [`bans.skip`](cfg.md#the-skip-field-optional) was in the graph, but that crate only had one version, making the `skip` entry useless.
@@ -52,6 +56,10 @@ A crate in `bans.deny` was allowed since it was directly depended on by a [`wrap
 ### `unmatched-wrapper`
 
 A crate in `bans.deny` had one or more [`wrappers`](cfg.md#the-wrappers-field-optional) crates, but a crate not in that list had a direct dependency on the banned crate.
+
+### `unused-wrapper`
+
+A crate in `bans.deny` used a [`wrapper`](cfg.md#the-wrappers-field-optional) that was not matched.
 
 ### `skipped-by-root`
 
@@ -67,7 +75,11 @@ A crate which has been denied because it has a build script but is not part of t
 
 ### `exact-features-mismatch`
 
-A crate's features do not exactly match the configured feature set, and [`bans.features.exact`](cfg.md#the-features-exact-field-optional) is `true`.
+A crate's features do not exactly match the configured feature set, and [`bans.features.exact`](cfg.md#the-featuresexact-field-optional) is `true`.
+
+### `feature-not-explicitly-allowed`
+
+A crate's features used a feature not in the [`bans.features.allow`](cfg.md#the-featuresallow-field-optional) set.
 
 ### `feature-banned`
 
@@ -128,3 +140,11 @@ A [path bypass](cfg.md#the-bypassallow-field-optional) did not match a file in t
 ### `unmatched-glob`
 
 A [glob bypass](cfg.md#the-allow-globs-field-optional) did not match any files in the crate.
+
+### `non-root-path`
+
+A path in the package's source was not rooted in the package source.
+
+### `non-utf8-path`
+
+A non-utf8 path was encountered in the package source.

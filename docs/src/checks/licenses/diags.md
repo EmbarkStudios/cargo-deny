@@ -26,3 +26,23 @@ This diagnostic can be silenced by configuring the [`licenses.unused-allowed-lic
 ### `license-exception-not-encountered`
 
 A [`licenses.exception`](cfg.md#the-exceptions-field-optional) was not used as the crate it applied to was not encountered.
+
+### `empty-license-field`
+
+The `license` field of a package was present but empty. This is a bug that used to be allowed by crates.io, and possibly other registry implementations. cargo-deny will attempt to fallback to finding license files in the package's source.
+
+### `gather-failure`
+
+There was an error when trying to find one or more license files in a package's source.
+
+### `no-license-field`
+
+The package did not use the `license` field, cargo-deny will attempt to fallback to finding license files in the package's source.
+
+### `missing-clarification-file`
+
+A file referenced by a [clarification](cfg.md#the-clarify-field-optional) was not found.
+
+### `parse-error`
+
+The SPDX expression for a crate could not be parsed.

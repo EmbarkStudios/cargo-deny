@@ -25,10 +25,26 @@ A crate using a version that has been [yanked](cfg.md#the-yanked-field-optional)
 
 An error occurred trying to read or update the registry index (typically crates.io) so cargo-deny was unable to check the current yanked status for any crate.
 
+### `index-cache-load-failure`
+
+Failed to load the cached index details for a crate.
+
 ### `advisory-not-detected`
 
 An advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) didn't apply to any crate. This could happen if the advisory was [withdrawn](https://docs.rs/rustsec/latest/rustsec/advisory/struct.Metadata.html#structfield.withdrawn), or the version of the crate no longer falls within the range of affected versions the advisory applies to.
 
+### `advisory-ignored`
+
+An advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) was encountered.
+
 ### `unknown-advisory`
 
 An advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) wasn't found in any of the configured advisory databases, usually indicating a typo, as advisories, at the moment, are never deleted from the database, at least the canonical [advisory-db](https://github.com/rustsec/advisory-db).
+
+### `yanked-ignored`
+
+A yanked crate version was ignored via [`advisories.ignore`](cfg.md#the-ignore-field-optional).
+
+### `yanked-not-detected`
+
+A yanked crate version was ignored via [`advisories.ignore`](cfg.md#the-ignore-field-optional), but it was not found in the crate graph.

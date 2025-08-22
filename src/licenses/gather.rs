@@ -1,7 +1,8 @@
 use super::cfg::{FileSource, ValidClarification, ValidConfig};
 use crate::{
     Krate, Path, PathBuf,
-    diag::{Diagnostic, FileId, Files, Label},
+    diag::{Diag, Diagnostic, FileId, Files, Label},
+    licenses::diags,
 };
 use rayon::prelude::*;
 use smallvec::SmallVec;
@@ -379,7 +380,6 @@ pub enum LicenseInfo {
     Unlicensed,
 }
 
-#[derive(Debug)]
 pub struct KrateLicense<'a> {
     pub krate: &'a Krate,
     pub lic_info: LicenseInfo,
@@ -388,7 +388,7 @@ pub struct KrateLicense<'a> {
 
     // Reasons for why the license was determined (or not!) when
     // gathering the license information
-    pub(crate) diags: SmallVec<[Diagnostic; 1]>,
+    pub(crate) diags: SmallVec<[Diag; 1]>,
 }
 
 pub struct Summary<'a> {
@@ -536,7 +536,7 @@ impl Gatherer {
                 // license terms with
                 let mut synth_id = None;
 
-                let mut diags = smallvec::SmallVec::<[Diagnostic; 1]>::new();
+                let mut diags = smallvec::SmallVec::<[Diag; 1]>::new();
 
                 let mut get_span = |key: &'static str| -> (FileId, std::ops::Range<usize>) {
                     if let Some(id) = synth_id {
@@ -714,15 +714,14 @@ impl Gatherer {
                         Self::get_license_span(&lic_rx, &files_lock, &krate.manifest_path)
                 {
                     diags.push(
-                        Diagnostic::warning()
-                            .with_message("license field was present but empty")
-                            .with_label(Label::secondary(id, loc).with_message("empty field")),
+                        diags::EmptyLicenseField {
+                            file_id: id,
+                            span: loc,
+                        }
+                        .into(),
                     );
                 } else {
-                    diags.push(
-                        Diagnostic::warning()
-                            .with_message("license expression was not specified in manifest"),
-                    );
+                    diags.push(diags::NoLicenseField.into());
                 }
 
                 // 3
@@ -764,8 +763,12 @@ impl Gatherer {
                             for fail in failures {
                                 let span =
                                     fail.range.start + fail_offset..fail.range.end + fail_offset;
-                                diags.push(Diagnostic::warning().with_label(
-                                    Label::secondary(fail.file_id, span).with_message(fail.message),
+                                diags.push(diags::diag(
+                                    Diagnostic::warning().with_label(
+                                        Label::secondary(fail.file_id, span)
+                                            .with_message(fail.message),
+                                    ),
+                                    diags::Code::GatherFailure,
                                 ));
                             }
 
@@ -799,12 +802,17 @@ impl Gatherer {
                             };
 
                             diags.extend(lic_file_labels.into_iter().map(|label| {
-                                Diagnostic::warning().with_label(Label {
-                                    style: codespan_reporting::diagnostic::LabelStyle::Secondary,
-                                    file_id: label.file_id,
-                                    range: label.range.start + old_end..label.range.end + old_end,
-                                    message: label.message,
-                                })
+                                diags::diag(
+                                    Diagnostic::warning().with_label(Label {
+                                        style:
+                                            codespan_reporting::diagnostic::LabelStyle::Secondary,
+                                        file_id: label.file_id,
+                                        range: label.range.start + old_end
+                                            ..label.range.end + old_end,
+                                        message: label.message,
+                                    }),
+                                    diags::Code::GatherFailure,
+                                )
                             }));
                         }
                     }
@@ -812,13 +820,14 @@ impl Gatherer {
 
                 // Just get a label for the crate name
                 let (id, nspan) = get_span("name");
-                diags.push(
+                diags.push(diags::diag(
                     Diagnostic::warning()
                         .with_message(
                             "a valid license expression could not be retrieved for the crate",
                         )
                         .with_label(Label::primary(id, nspan)),
-                );
+                    diags::Code::Unlicensed,
+                ));
 
                 // Well, we tried our very best. Actually that's not true, we could scan for license
                 // files not prefixed by LICENSE, and recurse into subdirectories, but honestly

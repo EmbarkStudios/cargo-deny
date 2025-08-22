@@ -11,6 +11,7 @@ pub mod diag;
 /// Configuration and logic for checking crate licenses
 pub mod licenses;
 pub mod root_cfg;
+pub mod sarif;
 pub mod sources;
 
 #[doc(hidden)]

@@ -1,0 +1,390 @@
+---
+source: tests/sarif.rs
+expression: s
+---
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 6,
+                  "byteOffset": 99,
+                  "message": "feature denied here",
+                  "snippet": "simple",
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'simple' for crate 'features-galore = 0.1.0' is explicitly denied"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-banned",
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
+          },
+          "ruleId": "b:feature-banned"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 208,
+                  "message": "allowed features",
+                  "snippet": "['ssh']",
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'default' for crate 'features-galore = 0.1.0' was not explicitly allowed"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-not-explicitly-allowed",
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
+          },
+          "ruleId": "b:feature-not-explicitly-allowed"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 208,
+                  "message": "allowed features",
+                  "snippet": "['ssh']",
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'json' for crate 'features-galore = 0.1.0' was not explicitly allowed"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-not-explicitly-allowed",
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
+          },
+          "ruleId": "b:feature-not-explicitly-allowed"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 208,
+                  "message": "allowed features",
+                  "snippet": "['ssh']",
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'simple' for crate 'features-galore = 0.1.0' was not explicitly allowed"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-not-explicitly-allowed",
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
+          },
+          "ruleId": "b:feature-not-explicitly-allowed"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 7,
+                  "byteOffset": 208,
+                  "message": "allowed features",
+                  "snippet": "['ssh']",
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'zlib' for crate 'features-galore = 0.1.0' was not explicitly allowed"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-not-explicitly-allowed",
+            "cargo-deny/krate": "path+file://{CWD}/tests/test_data/features-galore#features-galore@0.1.0"
+          },
+          "ruleId": "b:feature-not-explicitly-allowed"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 14,
+                  "byteOffset": 148,
+                  "message": "feature denied here",
+                  "snippet": "zlib-ng-compat",
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "feature 'zlib-ng-compat' for crate 'libssh2-sys = 0.2.23' is explicitly denied"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:feature-banned",
+            "cargo-deny/krate": "libssh2-sys@0.2.23"
+          },
+          "ruleId": "b:feature-banned"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://sarif::sarif_bans.toml"
+                },
+                "region": {
+                  "byteLength": 5,
+                  "byteOffset": 37,
+                  "message": "banned here",
+                  "snippet": "vcpkg",
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "crate 'vcpkg = 0.2.15' is explicitly banned"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:banned",
+            "cargo-deny/krate": "vcpkg@0.2.15"
+          },
+          "ruleId": "b:banned"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows-sys'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows-sys@0.36.1",
+            "cargo-deny/krate1": "windows-sys@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows_aarch64_msvc'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows_aarch64_msvc@0.36.1",
+            "cargo-deny/krate1": "windows_aarch64_msvc@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows_i686_gnu'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows_i686_gnu@0.36.1",
+            "cargo-deny/krate1": "windows_i686_gnu@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows_i686_msvc'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows_i686_msvc@0.36.1",
+            "cargo-deny/krate1": "windows_i686_msvc@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows_x86_64_gnu'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows_x86_64_gnu@0.36.1",
+            "cargo-deny/krate1": "windows_x86_64_gnu@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "text": "found 2 duplicate entries for crate 'windows_x86_64_msvc'"
+          },
+          "partialFingerprints": {
+            "cargo-deny/id": "b:duplicate",
+            "cargo-deny/krate": "windows_x86_64_msvc@0.36.1",
+            "cargo-deny/krate1": "windows_x86_64_msvc@0.42.0"
+          },
+          "ruleId": "b:duplicate"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "cargo-deny",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[bans check](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)\n[banned diagnostic](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#banned)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "b:banned",
+              "name": "b:banned",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "dependencies",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "Detected an explicitly banned crate"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[bans check](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)\n[duplicate diagnostic](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#duplicate)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "b:duplicate",
+              "name": "b:duplicate",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "dependencies",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "Detected two or more versions of the same crate"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[bans check](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)\n[feature-not-explicitly-allowed diagnostic](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#feature-not-explicitly-allowed)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "b:feature-not-explicitly-allowed",
+              "name": "b:feature-not-explicitly-allowed",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "dependencies",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "A feature for a crate was not explicitly allowed"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[bans check](https://embarkstudios.github.io/cargo-deny/checks/bans/index.html)\n[feature-banned diagnostic](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#feature-banned)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "b:feature-banned",
+              "name": "b:feature-banned",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "dependencies",
+                  "supply-chain"
+                ]
+              },
+              "shortDescription": {
+                "text": "An explicitly banned feature for a crate was set"
+              }
+            }
+          ],
+          "semanticVersion": "0.18.4",
+          "version": "0.18.4"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

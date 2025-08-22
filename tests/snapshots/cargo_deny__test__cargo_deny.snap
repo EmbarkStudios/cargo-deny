@@ -1,7 +1,6 @@
 ---
 source: src/cargo-deny/main.rs
 expression: help_text
-snapshot_kind: text
 ---
 Cargo plugin to help you manage large dependency graphs
 
@@ -35,7 +34,7 @@ Options:
           Specify the format of cargo-deny's output
           
           [default: human]
-          [possible values: human, json]
+          [possible values: human, json, sarif]
 
   -c, --color <COLOR>
           [env: CARGO_TERM_COLOR]

@@ -122,14 +122,9 @@ pub fn check<R, S>(
             }
         }
 
-        let diag = ctx.diag_for_advisory(
-            krate,
-            &advisory.metadata,
-            Some(&advisory.versions),
-            |index| {
-                ignore_hits.as_mut_bitslice().set(index, true);
-            },
-        );
+        let diag = ctx.diag_for_advisory(krate, advisory, |index| {
+            ignore_hits.as_mut_bitslice().set(index, true);
+        });
 
         sink.push(diag);
     }

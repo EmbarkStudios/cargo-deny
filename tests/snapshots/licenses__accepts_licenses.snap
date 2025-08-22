@@ -232,6 +232,7 @@ expression: diags
   },
   {
     "fields": {
+      "code": "empty-license-field",
       "graphs": [
         {
           "Krate": {
@@ -255,6 +256,7 @@ expression: diags
   },
   {
     "fields": {
+      "code": "unlicensed",
       "graphs": [
         {
           "Krate": {

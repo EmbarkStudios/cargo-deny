@@ -65,6 +65,10 @@ pub(crate) fn print_stats(
             let _ = el.write_all(&to_print);
             let _ = el.write(b"\n");
         }
+        Format::Sarif => {
+            // For SARIF, statistics are embedded in the SARIF output itself
+            // No separate stats output is needed
+        }
     }
 
     stats_to_exit_code(stats)
