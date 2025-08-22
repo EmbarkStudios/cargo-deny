@@ -1083,6 +1083,7 @@ impl<'u> From<UnusedWorkspaceDependencies<'u>> for Pack {
 }
 
 pub(crate) struct NonUtf8Path<'p> {
+    #[allow(clippy::disallowed_types)]
     pub(crate) path: &'p std::path::Path,
 }
 

@@ -116,7 +116,7 @@ impl SarifCollector {
                                 md.push_str("|\n");
                             }
 
-                            md.push_str("\n");
+                            md.push('\n');
                         }
 
                         if !affected.arch.is_empty() {

@@ -56,7 +56,7 @@ where
         },
     );
 
-    serde_json::to_value(&sarif.expect("failed to gather Sarif results"))
+    serde_json::to_value(sarif.expect("failed to gather Sarif results"))
         .expect("failed to serialize Sarif results")
 }
 
@@ -103,7 +103,7 @@ fn sarif_advisories() {
             Option::<advisories::NoneReporter>::None,
             None,
             sink,
-        )
+        );
     });
 
     insta::assert_json_snapshot!(s);
@@ -197,7 +197,7 @@ github = ['EmbarkStudios', 'bizzlepop']
     );
     let ctx = tu::setup::<sources::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
 
-    let s = gather_sarif(ctx, |ctx, sink| sources::check(ctx, sink));
+    let s = gather_sarif(ctx, sources::check);
 
     insta::assert_json_snapshot!(s);
 }
