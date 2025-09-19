@@ -1,0 +1,434 @@
+---
+source: tests/sarif.rs
+expression: s
+---
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2019-0001](https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210)\nUncontrolled recursion leads to abort in HTML serialization\n## Description\nAffected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.\n\n## Patched\n- `>=2.1.0`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`ammonia::Document::to_string`|`<2.1.0`|\n|`ammonia::Document::write_to`|`<2.1.0`|\n|`ammonia::clean`|`<2.1.0`|\n\n",
+            "text": "Uncontrolled recursion leads to abort in HTML serialization"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2019-0001",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "ammonia@0.7.0"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2021-0074](https://github.com/rust-ammonia/ammonia/pull/142)\nIncorrect handling of embedded SVG and MathML leads to mutation XSS\n## Description\nAffected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs\n\n## Patched\n- `>=3.1.0`\n- `>=2.1.3, <3.0.0`\n\n",
+            "text": "Incorrect handling of embedded SVG and MathML leads to mutation XSS"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2021-0074",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "ammonia@0.7.0"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2019-0001](https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210)\nUncontrolled recursion leads to abort in HTML serialization\n## Description\nAffected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.\n\n## Patched\n- `>=2.1.0`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`ammonia::Document::to_string`|`<2.1.0`|\n|`ammonia::Document::write_to`|`<2.1.0`|\n|`ammonia::clean`|`<2.1.0`|\n\n",
+            "text": "Uncontrolled recursion leads to abort in HTML serialization"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2019-0001",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "ammonia@1.2.0"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2021-0074](https://github.com/rust-ammonia/ammonia/pull/142)\nIncorrect handling of embedded SVG and MathML leads to mutation XSS\n## Description\nAffected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs\n\n## Patched\n- `>=3.1.0`\n- `>=2.1.3, <3.0.0`\n\n",
+            "text": "Incorrect handling of embedded SVG and MathML leads to mutation XSS"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2021-0074",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "ammonia@1.2.0"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2019-0036](https://github.com/rust-lang-nursery/failure/issues/336)\nType confusion if __private_get_type_id__ is overridden\n## Description\nSafe Rust code can implement malfunctioning `__private_get_type_id__` and cause\ntype confusion when downcasting, which is an undefined behavior.\n\nUsers who derive `Fail` trait are not affected.\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`failure::Fail::__private_get_type_id__`|`>=0.1.0`|\n\n",
+            "text": "Type confusion if __private_get_type_id__ is overridden"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2019-0036",
+            "cargo-deny/id": "a:unsound",
+            "cargo-deny/krate": "failure@0.1.8"
+          },
+          "ruleId": "a:unsound"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2020-0036](https://github.com/rust-lang-nursery/failure/pull/347)\nfailure is officially deprecated/unmaintained\n## Description\nThe `failure` crate is officially end-of-life: it has been marked as deprecated\nby the former maintainer, who has announced that there will be no updates or\nmaintenance work on it going forward.\n\nThe following are some suggested actively developed alternatives to switch to:\n\n- [`anyhow`](https://crates.io/crates/anyhow)\n- [`eyre`](https://crates.io/crates/eyre)\n- [`fehler`](https://crates.io/crates/fehler)\n- [`snafu`](https://crates.io/crates/snafu)\n- [`thiserror`](https://crates.io/crates/thiserror)\n\n",
+            "text": "failure is officially deprecated/unmaintained"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2020-0036",
+            "cargo-deny/id": "a:unmaintained",
+            "cargo-deny/krate": "failure@0.1.8"
+          },
+          "ruleId": "a:unmaintained"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2024-0421](https://bugzilla.mozilla.org/show_bug.cgi?id=1887898)\n`idna` accepts Punycode labels that do not produce any non-ASCII when decoded\n## Description\n`idna` 0.5.0 and earlier accepts Punycode labels that do not produce any non-ASCII output, which means that either ASCII labels or the empty root label can be masked such that they appear unequal without IDNA processing or when processed with a different implementation and equal when processed with `idna` 0.5.0 or earlier.\n\nConcretely, `example.org` and `xn--example-.org` become equal after processing by `idna` 0.5.0 or earlier. Also, `example.org.xn--` and `example.org.` become equal after processing by `idna` 0.5.0 or earlier.\n\nIn applications using `idna` (but not in `idna` itself) this may be able to lead to privilege escalation when host name comparison is part of a privilege check and the behavior is combined with a client that resolves domains with such labels instead of treating them as errors that preclude DNS resolution / URL fetching and with the attacker managing to introduce a DNS entry (and TLS certificate) for an `xn--`-masked name that turns into the name of the target when processed by `idna` 0.5.0 or earlier.\n\n## Remedy\n\nUpgrade to `idna` 1.0.3 or later, if depending on `idna` directly, or to `url` 2.5.4 or later, if depending on `idna` via `url`. (This issue was fixed in `idna` 1.0.0, but versions earlier than 1.0.3 are not recommended for other reasons.)\n\nWhen upgrading, please take a moment to read about [alternative Unicode back ends for `idna`](https://docs.rs/crate/idna_adapter/latest).\n\nIf you are using Rust earlier than 1.81 in combination with SQLx 0.8.2 or earlier, please also read an [issue](https://github.com/servo/rust-url/issues/992) about combining them with `url` 2.5.4 and `idna` 1.0.3.\n\n## Additional information\n\nThis issue resulted from `idna` 0.5.0 and earlier implementing the UTS 46 specification literally on this point and the specification having this bug. The specification bug has been fixed in [revision 33 of UTS 46](https://www.unicode.org/reports/tr46/tr46-33.html#Modifications).\n\n## Acknowledgements\n\nThanks to kageshiron for recognizing the security implications of this behavior.\n\n## Patched\n- `>=1.0.0`\n\n",
+            "text": "`idna` accepts Punycode labels that do not produce any non-ASCII when decoded"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0421",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "idna@0.1.5"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2024-0421](https://bugzilla.mozilla.org/show_bug.cgi?id=1887898)\n`idna` accepts Punycode labels that do not produce any non-ASCII when decoded\n## Description\n`idna` 0.5.0 and earlier accepts Punycode labels that do not produce any non-ASCII output, which means that either ASCII labels or the empty root label can be masked such that they appear unequal without IDNA processing or when processed with a different implementation and equal when processed with `idna` 0.5.0 or earlier.\n\nConcretely, `example.org` and `xn--example-.org` become equal after processing by `idna` 0.5.0 or earlier. Also, `example.org.xn--` and `example.org.` become equal after processing by `idna` 0.5.0 or earlier.\n\nIn applications using `idna` (but not in `idna` itself) this may be able to lead to privilege escalation when host name comparison is part of a privilege check and the behavior is combined with a client that resolves domains with such labels instead of treating them as errors that preclude DNS resolution / URL fetching and with the attacker managing to introduce a DNS entry (and TLS certificate) for an `xn--`-masked name that turns into the name of the target when processed by `idna` 0.5.0 or earlier.\n\n## Remedy\n\nUpgrade to `idna` 1.0.3 or later, if depending on `idna` directly, or to `url` 2.5.4 or later, if depending on `idna` via `url`. (This issue was fixed in `idna` 1.0.0, but versions earlier than 1.0.3 are not recommended for other reasons.)\n\nWhen upgrading, please take a moment to read about [alternative Unicode back ends for `idna`](https://docs.rs/crate/idna_adapter/latest).\n\nIf you are using Rust earlier than 1.81 in combination with SQLx 0.8.2 or earlier, please also read an [issue](https://github.com/servo/rust-url/issues/992) about combining them with `url` 2.5.4 and `idna` 1.0.3.\n\n## Additional information\n\nThis issue resulted from `idna` 0.5.0 and earlier implementing the UTS 46 specification literally on this point and the specification having this bug. The specification bug has been fixed in [revision 33 of UTS 46](https://www.unicode.org/reports/tr46/tr46-33.html#Modifications).\n\n## Acknowledgements\n\nThanks to kageshiron for recognizing the security implications of this behavior.\n\n## Patched\n- `>=1.0.0`\n\n",
+            "text": "`idna` accepts Punycode labels that do not produce any non-ASCII when decoded"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0421",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "idna@0.2.3"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2024-0421](https://bugzilla.mozilla.org/show_bug.cgi?id=1887898)\n`idna` accepts Punycode labels that do not produce any non-ASCII when decoded\n## Description\n`idna` 0.5.0 and earlier accepts Punycode labels that do not produce any non-ASCII output, which means that either ASCII labels or the empty root label can be masked such that they appear unequal without IDNA processing or when processed with a different implementation and equal when processed with `idna` 0.5.0 or earlier.\n\nConcretely, `example.org` and `xn--example-.org` become equal after processing by `idna` 0.5.0 or earlier. Also, `example.org.xn--` and `example.org.` become equal after processing by `idna` 0.5.0 or earlier.\n\nIn applications using `idna` (but not in `idna` itself) this may be able to lead to privilege escalation when host name comparison is part of a privilege check and the behavior is combined with a client that resolves domains with such labels instead of treating them as errors that preclude DNS resolution / URL fetching and with the attacker managing to introduce a DNS entry (and TLS certificate) for an `xn--`-masked name that turns into the name of the target when processed by `idna` 0.5.0 or earlier.\n\n## Remedy\n\nUpgrade to `idna` 1.0.3 or later, if depending on `idna` directly, or to `url` 2.5.4 or later, if depending on `idna` via `url`. (This issue was fixed in `idna` 1.0.0, but versions earlier than 1.0.3 are not recommended for other reasons.)\n\nWhen upgrading, please take a moment to read about [alternative Unicode back ends for `idna`](https://docs.rs/crate/idna_adapter/latest).\n\nIf you are using Rust earlier than 1.81 in combination with SQLx 0.8.2 or earlier, please also read an [issue](https://github.com/servo/rust-url/issues/992) about combining them with `url` 2.5.4 and `idna` 1.0.3.\n\n## Additional information\n\nThis issue resulted from `idna` 0.5.0 and earlier implementing the UTS 46 specification literally on this point and the specification having this bug. The specification bug has been fixed in [revision 33 of UTS 46](https://www.unicode.org/reports/tr46/tr46-33.html#Modifications).\n\n## Acknowledgements\n\nThanks to kageshiron for recognizing the security implications of this behavior.\n\n## Patched\n- `>=1.0.0`\n\n",
+            "text": "`idna` accepts Punycode labels that do not produce any non-ASCII when decoded"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0421",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "idna@0.3.0"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# RUSTSEC-2024-0384\n`instant` is unmaintained\n## Description\nThis crate is no longer maintained, and the author recommends using the maintained [`web-time`] crate instead.\n\n[`web-time`]: https://crates.io/crates/web-time\n\n",
+            "text": "`instant` is unmaintained"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0384",
+            "cargo-deny/id": "a:unmaintained",
+            "cargo-deny/krate": "instant@0.1.10"
+          },
+          "ruleId": "a:unmaintained"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2016-0004](https://github.com/dcuddeback/libusb-rs/issues/33)\nlibusb is unmaintained; use rusb instead\n## Description\nThe `libusb` crate has not seen a release since September 2016, and its author\nis unresponsive.\n\nThe `rusb` crate is a maintained fork:\n\nhttps://github.com/a1ien/rusb\n\n## Unaffected\n- `>0.3.0`\n\n",
+            "text": "libusb is unmaintained; use rusb instead"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2016-0004",
+            "cargo-deny/id": "a:unmaintained",
+            "cargo-deny/krate": "libusb@0.3.0"
+          },
+          "ruleId": "a:unmaintained"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2024-0019](https://github.com/tokio-rs/mio/security/advisories/GHSA-r8w9-5wcg-vfj7)\nTokens for named pipes may be delivered after deregistration\n## Description\n## Impact\n\nWhen using named pipes on Windows, mio will under some circumstances return invalid tokens that correspond to named pipes that have already been deregistered from the mio registry. The impact of this vulnerability depends on how mio is used. For some applications, invalid tokens may be ignored or cause a warning or a crash. On the other hand, for applications that store pointers in the tokens, this vulnerability may result in a use-after-free.\n\nFor users of Tokio, this vulnerability is serious and can result in a use-after-free in Tokio.\n\nThe vulnerability is Windows-specific, and can only happen if you are using named pipes. Other IO resources are not affected.\n\n## Affected versions\n\nThis vulnerability has been fixed in mio v0.8.11.\n\nAll versions of mio between v0.7.2 and v0.8.10 are vulnerable.\n\nTokio is vulnerable when you are using a vulnerable version of mio AND you are using at least Tokio v1.30.0. Versions of Tokio prior to v1.30.0 will ignore invalid tokens, so they are not vulnerable.\n\n## Workarounds\n\nVulnerable libraries that use mio can work around this issue by detecting and ignoring invalid tokens.\n\n## Technical details\n\nWhen an IO resource registered with mio has a readiness event, mio delivers that readiness event to the user using a user-specified token. Mio guarantees that when an IO resource is [deregistered](https://docs.rs/mio/latest/mio/struct.Registry.html#method.deregister), then it will never return the token for that IO resource again. However, for named pipes on windows, mio may sometimes deliver the token for a named pipe even though the named pipe has been previously deregistered.\n\nThis vulnerability was originally reported in the Tokio issue tracker: [tokio-rs/tokio#6369](https://github.com/tokio-rs/tokio/issues/6369)  \nThis vulnerability was fixed in: [tokio-rs/mio#1760](https://github.com/tokio-rs/mio/pull/1760)\n\nThank you to [@rofoun](https://github.com/rofoun) and [@radekvit](https://github.com/radekvit) for discovering and reporting this issue.\n\n## Unaffected\n- `<0.7.2`\n\n## Patched\n- `>=0.8.11`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`mio::windows::NamedPipe::new`|`>=0.7.2, <=0.8.10`|\n\n### Operating Systems\n- windows\n\n",
+            "text": "Tokens for named pipes may be delivered after deregistration"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0019",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "mio@0.7.14"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0022](https://github.com/sfackler/rust-openssl/pull/1854)\n`openssl` `X509NameBuilder::build` returned object is not thread safe\n## Description\nOpenSSL has a `modified` bit that it can set on on `X509_NAME` objects. If this\nbit is set then the object is not thread-safe even when it appears the code is\nnot modifying the value.\n\nThanks to David Benjamin (Google) for reporting this issue.\n\n## Patched\n- `>=0.10.48`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::x509::X509NameBuilder::build`|`<0.10.48, >=0.9.7`|\n\n",
+            "text": "`openssl` `X509NameBuilder::build` returned object is not thread safe"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0022",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0023](https://github.com/sfackler/rust-openssl/pull/1854)\n`openssl` `SubjectAlternativeName` and `ExtendedKeyUsage::other` allow arbitrary file read\n## Description\n`SubjectAlternativeName` and `ExtendedKeyUsage` arguments were parsed using the OpenSSL\nfunction `X509V3_EXT_nconf`. This function parses all input using an OpenSSL mini-language\nwhich can perform arbitrary file reads.\n\nThanks to David Benjamin (Google) for reporting this issue.\n\n## Patched\n- `>=0.10.48`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::x509::extension::ExtendedKeyUsage::other`|`<0.10.48, >=0.9.7`|\n|`openssl::x509::extension::SubjectAlternativeName::new`|`<0.10.48, >=0.9.7`|\n\n",
+            "text": "`openssl` `SubjectAlternativeName` and `ExtendedKeyUsage::other` allow arbitrary file read"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0023",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0024](https://github.com/sfackler/rust-openssl/pull/1854)\n`openssl` `X509Extension::new` and `X509Extension::new_nid` null pointer dereference\n## Description\nThese functions would crash when the context argument was None with certain extension types.\n\nThanks to David Benjamin (Google) for reporting this issue.\n\n## Patched\n- `>=0.10.48`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::x509::X509Extension::new`|`<0.10.48, >=0.9.7`|\n|`openssl::x509::X509Extension::new_nid`|`<0.10.48, >=0.9.7`|\n\n",
+            "text": "`openssl` `X509Extension::new` and `X509Extension::new_nid` null pointer dereference"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0024",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0044](https://github.com/sfackler/rust-openssl/issues/1965)\n`openssl` `X509VerifyParamRef::set_host` buffer over-read\n## Description\nWhen this function was passed an empty string, `openssl` would attempt to call `strlen` on it, reading arbitrary memory until it reached a NUL byte.\n\n## Patched\n- `>=0.10.55`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::x509::verify::X509VerifyParamRef::set_host`|`<0.10.55, >=0.10.0`|\n\n",
+            "text": "`openssl` `X509VerifyParamRef::set_host` buffer over-read"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0044",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0072](https://github.com/sfackler/rust-openssl/issues/2096)\n`openssl` `X509StoreRef::objects` is unsound\n## Description\nThis function returned a shared reference into an OpenSSL datastructure but did not account for interior mutability. OpenSSL may modify the data behind this reference, meaning accesses can race and the reference is unsound.\n\nUse of this function should be replaced with `X509StoreRef::all_certificates`.\n\n## Patched\n- `>=0.10.60`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::x509::store::X509StoreRef::objects`|`<0.10.60, >=0.10.29`|\n\n",
+            "text": "`openssl` `X509StoreRef::objects` is unsound"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0072",
+            "cargo-deny/id": "a:unsound",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:unsound"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2024-0357](https://github.com/sfackler/rust-openssl/pull/2266)\n`MemBio::get_buf` has undefined behavior with empty buffers\n## Description\nPreviously, `MemBio::get_buf` called `slice::from_raw_parts` with a null-pointer, which violates the functions invariants, leading to undefined behavior. In debug builds this would produce an assertion failure. This is now fixed.\n\n## Patched\n- `>=0.10.66`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::bio::MemBio::get_buf`|`<0.10.66, >=0.8.0`|\n\n",
+            "text": "`MemBio::get_buf` has undefined behavior with empty buffers"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2024-0357",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2025-0004](https://github.com/sfackler/rust-openssl/security/advisories/GHSA-rpmj-rpgj-qmpm)\nssl::select_next_proto use after free\n## Description\nIn `openssl` versions before `0.10.70`, `ssl::select_next_proto` can return a slice pointing into the `server` argument's buffer but with a lifetime bound to the `client` argument. In situations where the `server` buffer's lifetime is shorter than the `client` buffer's, this can cause a use after free. This could cause the server to crash or to return arbitrary memory contents to the client.\n\n`openssl` 0.10.70 fixes the signature of `ssl::select_next_proto` to properly constrain the output buffer's lifetime to that of both input buffers.\n\nIn standard usage of `ssl::select_next_proto` in the callback passed to `SslContextBuilder::set_alpn_select_callback`, code is only affected if the `server` buffer is constructed *within* the callback. For example:\n\nNot vulnerable - the server buffer has a `'static` lifetime:\n```rust\nbuilder.set_alpn_select_callback(|_, client_protos| {\n    ssl::select_next_proto(b\"\\x02h2\", client_protos).ok_or_else(AlpnError::NOACK)\n});\n```\n\nNot vulnerable - the server buffer outlives the handshake:\n```rust\nlet server_protos = b\"\\x02h2\".to_vec();\nbuilder.set_alpn_select_callback(|_, client_protos| {\n    ssl::select_next_proto(&server_protos, client_protos).ok_or_else(AlpnError::NOACK)\n});\n```\n\nVulnerable - the server buffer is freed when the callback returns:\n```rust\nbuilder.set_alpn_select_callback(|_, client_protos| {\n    let server_protos = b\"\\x02h2\".to_vec();\n    ssl::select_next_proto(&server_protos, client_protos).ok_or_else(AlpnError::NOACK)\n});\n```\n\n## Patched\n- `>=0.10.70`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`openssl::ssl::select_next_proto`|`>=0.10.0, <0.10.70`|\n\n",
+            "text": "ssl::select_next_proto use after free"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2025-0004",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "openssl@0.10.35"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2022-0013](https://groups.google.com/g/rustlang-security-announcements/c/NcNNL1Jq7Yw)\nRegexes with large repetitions on empty sub-expressions take a very long time to parse\n## Description\nThe Rust Security Response WG was notified that the `regex` crate did not\nproperly limit the complexity of the regular expressions (regex) it parses. An\nattacker could use this security issue to perform a denial of service, by\nsending a specially crafted regex to a service accepting untrusted regexes. No\nknown vulnerability is present when parsing untrusted input with trusted\nregexes.\n\nThis issue has been assigned CVE-2022-24713. The severity of this vulnerability\nis \"high\" when the `regex` crate is used to parse untrusted regexes. Other uses\nof the `regex` crate are not affected by this vulnerability.\n\n## Overview\n\nThe `regex` crate features built-in mitigations to prevent denial of service\nattacks caused by untrusted regexes, or untrusted input matched by trusted\nregexes. Those (tunable) mitigations already provide sane defaults to prevent\nattacks. This guarantee is documented and it's considered part of the crate's\nAPI.\n\nUnfortunately a bug was discovered in the mitigations designed to prevent\nuntrusted regexes to take an arbitrary amount of time during parsing, and it's\npossible to craft regexes that bypass such mitigations. This makes it possible\nto perform denial of service attacks by sending specially crafted regexes to\nservices accepting user-controlled, untrusted regexes.\n\n## Affected versions\n\nAll versions of the `regex` crate before or equal to 1.5.4 are affected by this\nissue. The fix is include starting from  `regex` 1.5.5.\n\n## Mitigations\n\nWe recommend everyone accepting user-controlled regexes to upgrade immediately\nto the latest version of the `regex` crate.\n\nUnfortunately there is no fixed set of problematic regexes, as there are\npractically infinite regexes that could be crafted to exploit this\nvulnerability. Because of this, we do not recommend denying known problematic\nregexes.\n\n## Acknowledgements\n\nWe want to thank Addison Crump for responsibly disclosing this to us according\nto the [Rust security policy][1], and for helping review the fix.\n\nWe also want to thank Andrew Gallant for developing the fix, and Pietro Albini\nfor coordinating the disclosure and writing this advisory.\n\n[1]: https://www.rust-lang.org/policies/security\n\n## Patched\n- `>=1.5.5`\n\n",
+            "text": "Regexes with large repetitions on empty sub-expressions take a very long time to parse"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2022-0013",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "regex@1.5.4"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0018](https://github.com/XAMPPRocky/remove_dir_all/commit/7247a8b6ee59fc99bbb69ca6b3ca4bfd8c809ead)\nRace Condition Enabling Link Following and Time-of-check Time-of-use (TOCTOU)\n## Description\nThe remove_dir_all crate is a Rust library that offers additional features over the Rust\nstandard library fs::remove_dir_all function.\n\nIt was possible to trick a privileged process doing a recursive delete in an\nattacker controlled directory into deleting privileged files, on all operating systems.\n\nFor instance, consider deleting a tree called 'etc' in a parent directory\ncalled 'p'. Between calling `remove_dir_all(\"a\")` and remove_dir_all(\"a\")\nactually starting its work, the attacker can move 'p' to 'p-prime', and\nreplace 'p' with a symlink to '/'. Then the privileged process deletes 'p/etc'\nwhich is actually /etc, and now your system is broken. There are some\nmitigations for this exact scenario, such as CWD relative file lookup, but\nthey are not guaranteed - any code using absolute paths will not have that\nprotection in place.\n\nThe same attack could be performed at any point in the directory tree being\ndeleted: if 'a' contains a child directory called 'etc', attacking the\ndeletion by replacing 'a' with a link is possible.\n\nThe new code in this release mitigates the attack within the directory tree\nbeing deleted by using file-handle relative operations: to open 'a/etc', the\npath 'etc' relative to 'a' is opened, where 'a' is represented by a file\ndescriptor (Unix) or handle (Windows). With the exception of the entry points\ninto the directory deletion logic, this is robust against manipulation of the\ndirectory hierarchy, and remove_dir_all will only delete files and directories\ncontained in the tree it is deleting.\n\nThe entry path however is a challenge - as described above, there are some\npotential mitigations, but since using them must be done by the calling code,\nit is hard to be confident about the security properties of the path based\ninterface.\n\nThe new extension trait `RemoveDir` provides an interface where it is much\nharder to get it wrong.\n\n`somedir.remove_dir_contents(\"name-of-child\")`.\n\nCallers can then make their own security evaluation about how to securely get\na directory handle. That is still not particularly obvious, and we're going to\nfollow up with a helper of some sort (probably in the `fs_at` crate). Once\nthat is available, the path based entry points will get deprecated.\n\nIn the interim, processes that might run with elevated privileges should\nfigure out how to securely identify the directory they are going to delete, to\navoid the initial race. Pragmatically, other processes should be fine with the\npath based entry points : this is the same interface `std::fs::remove_dir_all`\noffers, and an unprivileged process running in an attacker controlled\ndirectory can't do anything that the attacker can't already do.\n\n## Patched\n- `>=0.8.0`\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`remove_dir_all::ensure_empty_dir`|`<0.8.0`|\n|`remove_dir_all::remove_dir_all`|`<0.8.0`|\n|`remove_dir_all::remove_dir_contents`|`<0.8.0`|\n\n",
+            "text": "Race Condition Enabling Link Following and Time-of-check Time-of-use (TOCTOU)"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0018",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "remove_dir_all@0.5.3"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# RUSTSEC-2022-0004\nStack overflow in rustc_serialize when parsing deeply nested JSON\n## Description\nWhen parsing JSON using `json::Json::from_str`, there is no limit to the depth of the stack, therefore deeply nested objects can cause a stack overflow, which aborts the process.\n\nExample code that triggers the vulnerability is\n\n```rust\nfn main() {\n    let _ = rustc_serialize::json::Json::from_str(&\"[0,[\".repeat(10000));\n}\n```\n\n[serde](https://crates.io/crates/serde) is recommended as a replacement to rustc_serialize.\n\n## Affected\n| Functions | Versions |\n|---|---|\n|`rustc_serialize::json::Json::from_str`|`*`|\n\n",
+            "text": "Stack overflow in rustc_serialize when parsing deeply nested JSON"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2022-0004",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "rustc-serialize@0.3.24"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0001](https://github.com/tokio-rs/tokio/security/advisories/GHSA-7rrj-xr53-82p7)\nreject_remote_clients Configuration corruption\n## Description\nOn Windows, configuring a named pipe server with [pipe_mode] will force [ServerOptions]::[reject_remote_clients] as `false`.\n\nThis drops any intended explicit configuration for the [reject_remote_clients] that may have been set as `true` previously.\n\nThe default setting of [reject_remote_clients] is normally `true` meaning the default is also overridden as `false`.\n\n## Workarounds\n\nEnsure that [pipe_mode] is set first after initializing a [ServerOptions]. For example:\n\n```rust\nlet mut opts = ServerOptions::new();\nopts.pipe_mode(PipeMode::Message);\nopts.reject_remote_clients(true);\n```\n\n[ServerOptions]: https://docs.rs/tokio/latest/tokio/net/windows/named_pipe/struct.ServerOptions.html\n[pipe_mode]: https://docs.rs/tokio/latest/tokio/net/windows/named_pipe/struct.ServerOptions.html#method.pipe_mode\n[reject_remote_clients]: https://docs.rs/tokio/latest/tokio/net/windows/named_pipe/struct.ServerOptions.html#method.reject_remote_clients\n\n## Unaffected\n- `<1.7.0`\n\n## Patched\n- `>=1.18.4, <1.19.0`\n- `>=1.20.3, <1.21.0`\n- `>=1.23.1`\n\n## Affected\n### Operating Systems\n- windows\n\n",
+            "text": "reject_remote_clients Configuration corruption"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0001",
+            "cargo-deny/id": "a:vulnerability",
+            "cargo-deny/krate": "tokio@1.16.1"
+          },
+          "ruleId": "a:vulnerability"
+        },
+        {
+          "level": "error",
+          "locations": [],
+          "message": {
+            "markdown": "# [RUSTSEC-2023-0005](https://github.com/tokio-rs/tokio/issues/5372)\n`tokio::io::ReadHalf<T>::unsplit` is Unsound\n## Description\n`tokio::io::ReadHalf<T>::unsplit` can violate the `Pin` contract\n\nThe soundness issue is described in the [tokio/issues#5372](https://github.com/tokio-rs/tokio/issues/5372)\n\nSpecific set of conditions needed to trigger an issue (a !Unpin type in ReadHalf)\nis unusual, combined with the difficulty of making any arbitrary use-after-free\nexploitable in Rust without doing a lot of careful alignment of data types in\nthe surrounding code.\n\nThe `tokio` feature `io-util` is also required to be enabled to trigger this\nsoundness issue.\n\nThanks to zachs18 reporting the issue to Tokio team responsibly and taiki-e\nand carllerche appropriately responding and fixing the soundness bug.\n\nTokio before 0.2.0 used `futures` 0.1 that did not have `Pin`, so it is not\naffected by this issue.\n\n## Unaffected\n- `<0.2.0`\n\n## Patched\n- `>=1.18.5, <1.19.0`\n- `>=1.20.4, <1.21.0`\n- `>=1.24.2`\n\n",
+            "text": "`tokio::io::ReadHalf<T>::unsplit` is Unsound"
+          },
+          "partialFingerprints": {
+            "cargo-deny/advisory-id": "RUSTSEC-2023-0005",
+            "cargo-deny/id": "a:unsound",
+            "cargo-deny/krate": "tokio@1.16.1"
+          },
+          "ruleId": "a:unsound"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "cargo-deny",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[advisories check](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)\n[vulnerability diagnostic](https://embarkstudios.github.io/cargo-deny/checks/advisories/diags.html#vulnerability)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "a:vulnerability",
+              "name": "a:vulnerability",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "security",
+                  "vulnerability"
+                ]
+              },
+              "shortDescription": {
+                "text": "A vulnerability advisory was detected"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[advisories check](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)\n[unmaintained diagnostic](https://embarkstudios.github.io/cargo-deny/checks/advisories/diags.html#unmaintained)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "a:unmaintained",
+              "name": "a:unmaintained",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "security",
+                  "vulnerability"
+                ]
+              },
+              "shortDescription": {
+                "text": "An unmaintained advisory was detected"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": ""
+              },
+              "help": {
+                "markdown": "[advisories check](https://embarkstudios.github.io/cargo-deny/checks/advisories/index.html)\n[unsound diagnostic](https://embarkstudios.github.io/cargo-deny/checks/advisories/diags.html#unsound)",
+                "text": "For more information, see cargo-deny documentation"
+              },
+              "id": "a:unsound",
+              "name": "a:unsound",
+              "properties": {
+                "precision": "high",
+                "problem.severity": "error",
+                "tags": [
+                  "security",
+                  "vulnerability"
+                ]
+              },
+              "shortDescription": {
+                "text": "An unsound advisory was detected"
+              }
+            }
+          ],
+          "semanticVersion": "0.18.4",
+          "version": "0.18.4"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

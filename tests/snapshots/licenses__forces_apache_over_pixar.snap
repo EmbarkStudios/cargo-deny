@@ -5,6 +5,7 @@ expression: diags
 [
   {
     "fields": {
+      "code": "no-license-field",
       "graphs": [
         {
           "Krate": {

@@ -18,6 +18,8 @@ use crate::{
     Debug,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Code {
@@ -55,12 +57,96 @@ pub enum Code {
     WorkspaceDuplicate,
     UnresolvedWorkspaceDependency,
     UnusedWorkspaceDependency,
+    NonUtf8Path,
+    NonRootPath,
+}
+
+impl Code {
+    #[inline]
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Banned => "Detected an explicitly banned crate",
+            Self::Allowed => "Detected an explicitly allowed crate",
+            Self::NotAllowed => "Detected a crate not explicitly allowed",
+            Self::Duplicate => "Detected two or more versions of the same crate",
+            Self::Skipped => "A crate version was skipped when checking for multiple versions",
+            Self::Wildcard => "A dependency was declared with a wildcard version",
+            Self::UnmatchedSkip => "A skip entry didn't match any crates in the graph",
+            Self::UnnecessarySkip => "A skip entry applied to a crate that only had one version",
+            Self::AllowedByWrapper => "A banned crate was allowed by a wrapper crate",
+            Self::UnmatchedWrapper => {
+                "A wrapper was declared for a crate that was not a direct parent"
+            }
+            Self::SkippedByRoot => {
+                "A crate version was skipped by a tree skip when checking for multiple versions"
+            }
+            Self::UnmatchedSkipRoot => "A tree skip didn't match any crates in the graph",
+            Self::BuildScriptNotAllowed => {
+                "A crate has code that executes at build time but was not allowed to"
+            }
+            Self::ExactFeaturesMismatch => {
+                "The feature set of a crate did not exactly match the features configured for it"
+            }
+            Self::FeatureNotExplicitlyAllowed => "A feature for a crate was not explicitly allowed",
+            Self::FeatureBanned => "An explicitly banned feature for a crate was set",
+            Self::UnknownFeature => {
+                "Attempted to allow or ban a feature for a crate which doesn't exist"
+            }
+            Self::DefaultFeatureEnabled => "Default features were enabled for a crate",
+            Self::PathBypassed => {
+                "A path was explicitly allowed when checking build time execution"
+            }
+            Self::PathBypassedByGlob => {
+                "A path was explicitly allowed by a glob when checking build time execution"
+            }
+            Self::ChecksumMatch => "A path bypass checksum matched",
+            Self::ChecksumMismatch => "A path bypass checksum did not match the file on disk",
+            Self::DeniedByExtension => {
+                "A file in a crate executed at build time was denied due to its extension"
+            }
+            Self::DetectedExecutable => {
+                "An executable was detected in a crate which executes at build time"
+            }
+            Self::DetectedExecutableScript => {
+                "An executable script was detected in a crate which executes at build time"
+            }
+            Self::UnableToCheckPath => "A failure occurred trying to inspect a file on disk",
+            Self::FeaturesEnabled => {
+                "Features which enable code during build time execution were enabled"
+            }
+            Self::UnmatchedBypass => {
+                "A bypass was declared for a crate which does not execute at build time"
+            }
+            Self::UnmatchedPathBypass => "A path bypass did not match a path in a crate's source",
+            Self::UnmatchedGlob => "A glob bypass did not match any paths in a crate's source",
+            Self::UnusedWrapper => "A wrapper was declared for a crate not in the graph",
+            Self::WorkspaceDuplicate => {
+                "A workspace directly depended on more than one version of the same crate"
+            }
+            Self::UnresolvedWorkspaceDependency => "Failed to resolve a workspace dependency",
+            Self::UnusedWorkspaceDependency => "A workspace dependency was declared but never used",
+            Self::NonUtf8Path => {
+                "A non-utf8 path was detected in a crate that executes at build time"
+            }
+            Self::NonRootPath => "A path was not rooted in the crate source",
+        }
+    }
 }
 
 impl From<Code> for String {
     fn from(c: Code) -> Self {
         c.to_string()
     }
+}
+
+#[inline]
+fn dcode(code: Code) -> Option<crate::diag::DiagnosticCode> {
+    Some(crate::diag::DiagnosticCode::Bans(code))
+}
+
+#[inline]
+fn diag(diag: Diagnostic, code: Code) -> Diag {
+    Diag::new(diag, dcode(code))
 }
 
 impl SpecAndReason {
@@ -95,11 +181,12 @@ pub(crate) struct ExplicitlyBanned<'a> {
 
 impl<'a> From<ExplicitlyBanned<'a>> for Diag {
     fn from(eb: ExplicitlyBanned<'a>) -> Self {
-        Diagnostic::new(Severity::Error)
-            .with_message(format_args!("crate '{}' is explicitly banned", eb.krate))
-            .with_code(Code::Banned)
-            .with_labels(eb.ban_cfg.to_labels(Some("banned here")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Error)
+                .with_message(format_args!("crate '{}' is explicitly banned", eb.krate))
+                .with_labels(eb.ban_cfg.to_labels(Some("banned here"))),
+            Code::Banned,
+        )
     }
 }
 
@@ -110,11 +197,12 @@ pub(crate) struct ExplicitlyAllowed<'a> {
 
 impl<'a> From<ExplicitlyAllowed<'a>> for Diag {
     fn from(ea: ExplicitlyAllowed<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message(format_args!("crate '{}' is explicitly allowed", ea.krate))
-            .with_code(Code::Allowed)
-            .with_labels(ea.allow_cfg.to_labels(Some("allowed here")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message(format_args!("crate '{}' is explicitly allowed", ea.krate))
+                .with_labels(ea.allow_cfg.to_labels(Some("allowed here"))),
+            Code::Allowed,
+        )
     }
 }
 
@@ -124,13 +212,13 @@ pub(crate) struct NotAllowed<'a> {
 
 impl<'a> From<NotAllowed<'a>> for Diag {
     fn from(ib: NotAllowed<'a>) -> Self {
-        Diagnostic::new(Severity::Error)
-            .with_message(format_args!(
+        diag(
+            Diagnostic::new(Severity::Error).with_message(format_args!(
                 "crate '{}' is not explicitly allowed",
                 ib.krate
-            ))
-            .with_code(Code::NotAllowed)
-            .into()
+            )),
+            Code::NotAllowed,
+        )
     }
 }
 
@@ -143,16 +231,17 @@ pub(crate) struct Duplicates<'a> {
 
 impl<'a> From<Duplicates<'a>> for Diag {
     fn from(dup: Duplicates<'a>) -> Self {
-        Diagnostic::new(dup.severity)
-            .with_message(format_args!(
-                "found {} duplicate entries for crate '{}'",
-                dup.num_dupes, dup.krate_name,
-            ))
-            .with_code(Code::Duplicate)
-            .with_labels(vec![
-                dup.krates_coord.into_label().with_message("lock entries"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(dup.severity)
+                .with_message(format_args!(
+                    "found {} duplicate entries for crate '{}'",
+                    dup.num_dupes, dup.krate_name,
+                ))
+                .with_labels(vec![
+                    dup.krates_coord.into_label().with_message("lock entries"),
+                ]),
+            Code::Duplicate,
+        )
     }
 }
 
@@ -163,14 +252,15 @@ pub(crate) struct Skipped<'a> {
 
 impl<'a> From<Skipped<'a>> for Diag {
     fn from(sk: Skipped<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message(format_args!(
-                "crate '{}' skipped when checking for duplicates",
-                sk.krate
-            ))
-            .with_code(Code::Skipped)
-            .with_labels(sk.skip_cfg.to_labels(Some("skipped here")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message(format_args!(
+                    "crate '{}' skipped when checking for duplicates",
+                    sk.krate
+                ))
+                .with_labels(sk.skip_cfg.to_labels(Some("skipped here"))),
+            Code::Skipped,
+        )
     }
 }
 
@@ -184,7 +274,7 @@ pub(crate) struct Wildcards<'a> {
 impl<'a> From<Wildcards<'a>> for Pack {
     fn from(wc: Wildcards<'a>) -> Self {
         let labels = wc.labels;
-        let diag = Diag::new(
+        let diag = diag(
             Diagnostic::new(wc.severity)
                 .with_message(format_args!(
                     "found {} wildcard dependenc{} for crate '{}'{}",
@@ -197,8 +287,8 @@ impl<'a> From<Wildcards<'a>> for Pack {
                         ""
                     },
                 ))
-                .with_code(Code::Wildcard)
                 .with_labels(labels),
+                Code::Wildcard
         );
 
         let mut pack = Pack::with_kid(Check::Bans, wc.krate.id.clone());
@@ -214,14 +304,15 @@ pub(crate) struct UnmatchedSkip<'a> {
 
 impl<'a> From<UnmatchedSkip<'a>> for Diag {
     fn from(us: UnmatchedSkip<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message(format_args!(
-                "skipped crate '{}' was not encountered",
-                us.skip_cfg.spec,
-            ))
-            .with_code(Code::UnmatchedSkip)
-            .with_labels(us.skip_cfg.to_labels(Some("unmatched skip configuration")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message(format_args!(
+                    "skipped crate '{}' was not encountered",
+                    us.skip_cfg.spec,
+                ))
+                .with_labels(us.skip_cfg.to_labels(Some("unmatched skip configuration"))),
+            Code::UnmatchedSkip,
+        )
     }
 }
 
@@ -231,17 +322,18 @@ pub(crate) struct UnnecessarySkip<'a> {
 
 impl<'a> From<UnnecessarySkip<'a>> for Diag {
     fn from(us: UnnecessarySkip<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message(format_args!(
-                "skip '{}' applied to a crate with only one version",
-                us.skip_cfg.spec,
-            ))
-            .with_code(Code::UnnecessarySkip)
-            .with_labels(
-                us.skip_cfg
-                    .to_labels(Some("unnecessary skip configuration")),
-            )
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message(format_args!(
+                    "skip '{}' applied to a crate with only one version",
+                    us.skip_cfg.spec,
+                ))
+                .with_labels(
+                    us.skip_cfg
+                        .to_labels(Some("unnecessary skip configuration")),
+                ),
+            Code::UnnecessarySkip,
+        )
     }
 }
 
@@ -251,15 +343,16 @@ pub(crate) struct UnusedWrapper {
 
 impl From<UnusedWrapper> for Diag {
     fn from(us: UnusedWrapper) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("wrapper for banned crate was not encountered")
-            .with_code(Code::UnusedWrapper)
-            .with_labels(vec![
-                us.wrapper_cfg
-                    .into_label()
-                    .with_message("unmatched wrapper"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("wrapper for banned crate was not encountered")
+                .with_labels(vec![
+                    us.wrapper_cfg
+                        .into_label()
+                        .with_message("unmatched wrapper"),
+                ]),
+            Code::UnusedWrapper,
+        )
     }
 }
 
@@ -272,19 +365,20 @@ pub(crate) struct BannedAllowedByWrapper<'a> {
 
 impl<'a> From<BannedAllowedByWrapper<'a>> for Diag {
     fn from(baw: BannedAllowedByWrapper<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message(format_args!(
-                "banned crate '{}' allowed by wrapper '{}'",
-                baw.banned_krate, baw.wrapper_krate
-            ))
-            .with_code(Code::AllowedByWrapper)
-            .with_labels(vec![
-                baw.ban_cfg.into_label().with_message("banned here"),
-                baw.ban_exception_cfg
-                    .into_label()
-                    .with_message("allowed wrapper"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message(format_args!(
+                    "banned crate '{}' allowed by wrapper '{}'",
+                    baw.banned_krate, baw.wrapper_krate
+                ))
+                .with_labels(vec![
+                    baw.ban_cfg.into_label().with_message("banned here"),
+                    baw.ban_exception_cfg
+                        .into_label()
+                        .with_message("allowed wrapper"),
+                ]),
+            Code::AllowedByWrapper,
+        )
     }
 }
 
@@ -296,14 +390,15 @@ pub(crate) struct BannedUnmatchedWrapper<'a> {
 
 impl<'a> From<BannedUnmatchedWrapper<'a>> for Diag {
     fn from(buw: BannedUnmatchedWrapper<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message(format_args!(
-                "direct parent '{}' of banned crate '{}' was not marked as a wrapper",
-                buw.parent_krate, buw.banned_krate
-            ))
-            .with_code(Code::UnmatchedWrapper)
-            .with_labels(buw.ban_cfg.to_labels(Some("banned here")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message(format_args!(
+                    "direct parent '{}' of banned crate '{}' was not marked as a wrapper",
+                    buw.parent_krate, buw.banned_krate
+                ))
+                .with_labels(buw.ban_cfg.to_labels(Some("banned here"))),
+            Code::UnmatchedWrapper,
+        )
     }
 }
 
@@ -314,14 +409,15 @@ pub(crate) struct SkippedByRoot<'a> {
 
 impl<'a> From<SkippedByRoot<'a>> for Diag {
     fn from(sbr: SkippedByRoot<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message(format_args!(
-                "skipping crate '{}' due to root skip",
-                sbr.krate
-            ))
-            .with_code(Code::SkippedByRoot)
-            .with_labels(sbr.skip_root_cfg.to_labels(Some("matched skip root")))
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message(format_args!(
+                    "skipping crate '{}' due to root skip",
+                    sbr.krate
+                ))
+                .with_labels(sbr.skip_root_cfg.to_labels(Some("matched skip root"))),
+            Code::SkippedByRoot,
+        )
     }
 }
 
@@ -331,15 +427,16 @@ pub(crate) struct UnmatchedSkipRoot {
 
 impl From<UnmatchedSkipRoot> for Diag {
     fn from(usr: UnmatchedSkipRoot) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("skip tree root was not found in the dependency graph")
-            .with_code(Code::UnmatchedSkipRoot)
-            .with_labels(vec![
-                usr.skip_root_cfg
-                    .into_label()
-                    .with_message("no crate matched these criteria"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("skip tree root was not found in the dependency graph")
+                .with_labels(vec![
+                    usr.skip_root_cfg
+                        .into_label()
+                        .with_message("no crate matched these criteria"),
+                ]),
+            Code::UnmatchedSkipRoot,
+        )
     }
 }
 
@@ -349,13 +446,13 @@ pub(crate) struct BuildScriptNotAllowed<'a> {
 
 impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
     fn from(bs: BuildScriptNotAllowed<'a>) -> Self {
-        Diagnostic::new(Severity::Error)
-            .with_message(format_args!(
+        diag(
+            Diagnostic::new(Severity::Error).with_message(format_args!(
                 "crate '{}' has a build script but is not allowed to have one",
                 bs.krate
-            ))
-            .with_code(Code::BuildScriptNotAllowed)
-            .into()
+            )),
+            Code::BuildScriptNotAllowed,
+        )
     }
 }
 
@@ -411,6 +508,7 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::ExactFeaturesMismatch),
             graph_nodes: graph_nodes.into(),
             extra: None,
             with_features: true,
@@ -438,6 +536,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::FeatureNotExplicitlyAllowed),
             graph_nodes: std::iter::once(GraphNode {
                 kid: fna.krate.id.clone(),
                 feature: None,
@@ -469,6 +568,7 @@ impl From<FeatureBanned<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::FeatureBanned),
             graph_nodes: std::iter::once(GraphNode {
                 kid: fed.krate.id.clone(),
                 feature: Some(fed.feature.value.clone()),
@@ -500,6 +600,7 @@ impl From<UnknownFeature<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::UnknownFeature),
             graph_nodes: std::iter::once(GraphNode {
                 kid: uf.krate.id.clone(),
                 feature: None,
@@ -531,6 +632,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::DefaultFeatureEnabled),
             graph_nodes: std::iter::once(GraphNode {
                 kid: dfe.krate.id.clone(),
                 feature: Some("default".to_owned()),
@@ -585,6 +687,7 @@ impl From<ExplicitPathAllowance<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::PathBypassed),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -622,6 +725,7 @@ impl From<GlobAllowance<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::PathBypassedByGlob),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -649,6 +753,7 @@ impl From<ChecksumMatch<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::ChecksumMatch),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -684,6 +789,7 @@ impl From<ChecksumMismatch<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::ChecksumMismatch),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -708,6 +814,7 @@ impl From<DeniedByExtension<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::DeniedByExtension),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -754,6 +861,7 @@ impl From<DetectedExecutable<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(code),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -783,6 +891,7 @@ impl From<UnableToCheckPath<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::UnableToCheckPath),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -813,6 +922,7 @@ impl From<FeaturesEnabled<'_>> for Diag {
 
         Diag {
             diag,
+            code: dcode(Code::FeaturesEnabled),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
             extra: None,
@@ -828,14 +938,15 @@ pub(crate) struct UnmatchedBypass<'a> {
 
 impl<'a> From<UnmatchedBypass<'a>> for Diag {
     fn from(ubc: UnmatchedBypass<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("crate build bypass was not encountered")
-            .with_code(Code::UnmatchedBypass)
-            .with_labels(vec![
-                Label::primary(ubc.file_id, ubc.unmatched.spec.name.span)
-                    .with_message("unmatched bypass"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("crate build bypass was not encountered")
+                .with_labels(vec![
+                    Label::primary(ubc.file_id, ubc.unmatched.spec.name.span)
+                        .with_message("unmatched bypass"),
+                ]),
+            Code::UnmatchedBypass,
+        )
     }
 }
 
@@ -846,11 +957,12 @@ pub(crate) struct UnmatchedPathBypass<'a> {
 
 impl<'a> From<UnmatchedPathBypass<'a>> for Diag {
     fn from(ua: UnmatchedPathBypass<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("allowed path was not encountered")
-            .with_code(Code::UnmatchedPathBypass)
-            .with_labels(vec![Label::primary(ua.file_id, ua.unmatched.path.span)])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("allowed path was not encountered")
+                .with_labels(vec![Label::primary(ua.file_id, ua.unmatched.path.span)]),
+            Code::UnmatchedPathBypass,
+        )
     }
 }
 
@@ -861,11 +973,12 @@ pub(crate) struct UnmatchedGlob<'a> {
 
 impl<'a> From<UnmatchedGlob<'a>> for Diag {
     fn from(ug: UnmatchedGlob<'a>) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message("glob was not encountered")
-            .with_code(Code::UnmatchedGlob)
-            .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span)])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("glob was not encountered")
+                .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span)]),
+            Code::UnmatchedGlob,
+        )
     }
 }
 
@@ -879,20 +992,21 @@ pub(crate) struct WorkspaceDuplicate<'k> {
 
 impl<'k> From<WorkspaceDuplicate<'k>> for Diag {
     fn from(wd: WorkspaceDuplicate<'k>) -> Self {
-        Diagnostic::new(wd.severity.into())
-            .with_message(format_args!(
-                "crate {} is used {} times in the workspace, {}",
-                wd.duplicate,
-                wd.total_uses,
-                if wd.has_workspace_declaration {
-                    "but not all declarations use the shared workspace dependency"
-                } else {
-                    "and there is no shared workspace dependency for it"
-                }
-            ))
-            .with_code(Code::WorkspaceDuplicate)
-            .with_labels(wd.labels)
-            .into()
+        diag(
+            Diagnostic::new(wd.severity.into())
+                .with_message(format_args!(
+                    "crate {} is used {} times in the workspace, {}",
+                    wd.duplicate,
+                    wd.total_uses,
+                    if wd.has_workspace_declaration {
+                        "but not all declarations use the shared workspace dependency"
+                    } else {
+                        "and there is no shared workspace dependency for it"
+                    }
+                ))
+                .with_labels(wd.labels),
+            Code::WorkspaceDuplicate,
+        )
     }
 }
 
@@ -904,18 +1018,19 @@ pub(crate) struct UnresolveWorkspaceDependency<'m, 'k> {
 #[allow(clippy::fallible_impl_from)]
 impl<'m, 'k> From<UnresolveWorkspaceDependency<'m, 'k>> for Diag {
     fn from(uwd: UnresolveWorkspaceDependency<'m, 'k>) -> Self {
-        Diagnostic::bug()
-            .with_code(Code::UnresolvedWorkspaceDependency)
-            .with_message("failed to resolve a workspace dependency")
-            .with_labels(vec![
-                Label::primary(
-                    uwd.manifest.id,
-                    uwd.dep.workspace.as_ref().map(|ws| ws.span).unwrap(),
-                )
-                .with_message("usage of workspace dependency"),
-                Label::secondary(uwd.manifest.id, uwd.dep.value_span),
-            ])
-            .into()
+        diag(
+            Diagnostic::bug()
+                .with_message("failed to resolve a workspace dependency")
+                .with_labels(vec![
+                    Label::primary(
+                        uwd.manifest.id,
+                        uwd.dep.workspace.as_ref().map(|ws| ws.span).unwrap(),
+                    )
+                    .with_message("usage of workspace dependency"),
+                    Label::secondary(uwd.manifest.id, uwd.dep.value_span),
+                ]),
+            Code::UnresolvedWorkspaceDependency,
+        )
     }
 }
 
@@ -955,14 +1070,46 @@ impl<'u> From<UnusedWorkspaceDependencies<'u>> for Pack {
                 );
             }
 
-            pack.push(
+            pack.push(diag(
                 Diagnostic::new(uwd.level.into())
-                    .with_code(Code::UnusedWorkspaceDependency)
                     .with_message("workspace dependency is declared, but unused")
                     .with_labels(labels),
-            );
+                Code::UnusedWorkspaceDependency,
+            ));
         }
 
         pack
+    }
+}
+
+pub(crate) struct NonUtf8Path<'p> {
+    #[allow(clippy::disallowed_types)]
+    pub(crate) path: &'p std::path::Path,
+}
+
+impl<'p> From<NonUtf8Path<'p>> for Diag {
+    fn from(value: NonUtf8Path<'p>) -> Self {
+        diag(
+            Diagnostic::warning()
+                .with_message(format_args!("path {:?} is not utf-8, skipping", value.path)),
+            Code::NonUtf8Path,
+        )
+    }
+}
+
+pub(crate) struct NonRootPath<'p> {
+    pub(crate) path: &'p crate::Path,
+    pub(crate) root: &'p crate::Path,
+}
+
+impl<'p> From<NonRootPath<'p>> for Diag {
+    fn from(value: NonRootPath<'p>) -> Self {
+        diag(
+            Diagnostic::error().with_message(format_args!(
+                "path '{}' is not relative to crate root '{}'",
+                value.path, value.root
+            )),
+            Code::NonRootPath,
+        )
     }
 }

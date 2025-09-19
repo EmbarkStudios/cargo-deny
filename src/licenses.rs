@@ -31,11 +31,12 @@ struct Hits {
 
 fn evaluate_expression(
     ctx: &crate::CheckCtx<'_, cfg::ValidConfig>,
-    krate_lic_nfo: &KrateLicense<'_>,
+    krate: &crate::Krate,
+    mut notes: Vec<String>,
     expr: &spdx::Expression,
     nfo: &LicenseExprInfo,
     hits: &mut Hits,
-) -> Diagnostic {
+) -> crate::diag::Diag {
     // TODO: If an expression with the same hash is encountered
     // just use the same result as a memoized one
     #[derive(Debug)]
@@ -68,7 +69,7 @@ fn evaluate_expression(
     let exception_ind = cfg
         .exceptions
         .iter()
-        .position(|exc| crate::match_krate(krate_lic_nfo.krate, &exc.spec));
+        .position(|exc| crate::match_krate(krate, &exc.spec));
 
     let eval_res = expr.evaluate_with_failures(|req| {
         // 1. Exceptions are additional per-crate licenses that aren't blanket
@@ -145,8 +146,6 @@ fn evaluate_expression(
     };
     labels.push(lab);
 
-    let mut notes = krate_lic_nfo.notes.clone();
-
     for ((reason, accepted), failed_req) in reasons.into_iter().zip(expr.requirements()) {
         if accepted && ctx.log_level < log::LevelFilter::Info {
             continue;
@@ -219,15 +218,19 @@ fn evaluate_expression(
         );
     }
 
-    Diagnostic::new(severity)
-        .with_message(message)
-        .with_code(if severity != Severity::Error {
-            diags::Code::Accepted
-        } else {
-            diags::Code::Rejected
-        })
-        .with_labels(labels)
-        .with_notes(notes)
+    crate::diag::Diag::new(
+        Diagnostic::new(severity)
+            .with_message(message)
+            .with_labels(labels)
+            .with_notes(notes),
+        Some(crate::diag::DiagnosticCode::License(
+            if severity != Severity::Error {
+                diags::Code::Accepted
+            } else {
+                diags::Code::Rejected
+            },
+        )),
+    )
 }
 
 pub fn check(
@@ -269,23 +272,26 @@ pub fn check(
             continue;
         }
 
-        for diag in krate_lic_nfo.diags.iter().cloned() {
+        let KrateLicense {
+            krate,
+            lic_info,
+            notes,
+            diags,
+        } = krate_lic_nfo;
+
+        for diag in diags {
             pack.push(diag);
         }
 
-        match &krate_lic_nfo.lic_info {
+        match lic_info {
             LicenseInfo::SpdxExpression { expr, nfo } => {
                 pack.push(evaluate_expression(
-                    &ctx,
-                    &krate_lic_nfo,
-                    expr,
-                    nfo,
-                    &mut hits,
+                    &ctx, krate, notes, &expr, &nfo, &mut hits,
                 ));
             }
             LicenseInfo::Unlicensed => {
                 pack.push(diags::Unlicensed {
-                    krate: krate_lic_nfo.krate,
+                    krate,
                     severity: Severity::Error,
                 });
             }

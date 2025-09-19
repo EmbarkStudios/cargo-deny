@@ -290,8 +290,11 @@ pub fn diag_to_json(
         fields.insert("graphs".to_owned(), serde_json::Value::Array(graphs));
     }
 
-    if let Some((key, val)) = diag.extra {
-        fields.insert(key.to_owned(), val);
+    if let Some(extra) = diag.extra {
+        let key = extra.key();
+        if let Ok(val) = serde_json::to_value(extra) {
+            fields.insert(key.into(), val);
+        }
     }
 
     to_print

@@ -13,6 +13,8 @@ use crate::{
     Debug,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Code {
@@ -24,10 +26,33 @@ pub enum Code {
     UnmatchedOrganization,
 }
 
+impl Code {
+    #[inline]
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::GitSourceUnderspecified => {
+                "A git source is using a looser specifier than was allowed"
+            }
+            Self::AllowedSource => "A crate's source was explicitly allowed",
+            Self::AllowedByOrganization => "A git source belonged to an allowed organization/owner",
+            Self::SourceNotAllowed => "A crate's source was not explicitly allowed",
+            Self::UnmatchedSource => "An allowed source was not used by any crate in the graph",
+            Self::UnmatchedOrganization => {
+                "An allowed git source organization was not used by any crate in the graph"
+            }
+        }
+    }
+}
+
 impl From<Code> for String {
     fn from(c: Code) -> Self {
         c.to_string()
     }
+}
+
+#[inline]
+fn diag(diag: Diagnostic, code: Code) -> Diag {
+    Diag::new(diag, Some(crate::diag::DiagnosticCode::Source(code)))
 }
 
 pub(crate) struct BelowMinimumRequiredSpec<'a> {
@@ -39,19 +64,20 @@ pub(crate) struct BelowMinimumRequiredSpec<'a> {
 
 impl<'a> From<BelowMinimumRequiredSpec<'a>> for Diag {
     fn from(bmrs: BelowMinimumRequiredSpec<'a>) -> Self {
-        Diagnostic::new(Severity::Error)
-            .with_message(format_args!(
-                "'git' source is underspecified, expected '{}', but found '{}'",
-                bmrs.min_spec, bmrs.actual_spec,
-            ))
-            .with_code(Code::GitSourceUnderspecified)
-            .with_labels(vec![
-                bmrs.src_label.clone(),
-                bmrs.min_spec_cfg
-                    .into_label()
-                    .with_message("minimum spec defined here"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Error)
+                .with_message(format_args!(
+                    "'git' source is underspecified, expected '{}', but found '{}'",
+                    bmrs.min_spec, bmrs.actual_spec,
+                ))
+                .with_labels(vec![
+                    bmrs.src_label.clone(),
+                    bmrs.min_spec_cfg
+                        .into_label()
+                        .with_message("minimum spec defined here"),
+                ]),
+            Code::GitSourceUnderspecified,
+        )
     }
 }
 
@@ -63,17 +89,18 @@ pub(crate) struct ExplicitlyAllowedSource<'a> {
 
 impl<'a> From<ExplicitlyAllowedSource<'a>> for Diag {
     fn from(eas: ExplicitlyAllowedSource<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message(format_args!(
-                "'{}' source explicitly allowed",
-                eas.type_name
-            ))
-            .with_code(Code::AllowedSource)
-            .with_labels(vec![
-                eas.src_label.clone(),
-                eas.allow_cfg.into_label().with_message("source allowance"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message(format_args!(
+                    "'{}' source explicitly allowed",
+                    eas.type_name
+                ))
+                .with_labels(vec![
+                    eas.src_label.clone(),
+                    eas.allow_cfg.into_label().with_message("source allowance"),
+                ]),
+            Code::AllowedSource,
+        )
     }
 }
 
@@ -84,16 +111,17 @@ pub(crate) struct SourceAllowedByOrg<'a> {
 
 impl<'a> From<SourceAllowedByOrg<'a>> for Diag {
     fn from(sabo: SourceAllowedByOrg<'a>) -> Self {
-        Diagnostic::new(Severity::Note)
-            .with_message("source allowed by organization allowance")
-            .with_code(Code::AllowedByOrganization)
-            .with_labels(vec![
-                sabo.src_label.clone(),
-                sabo.org_cfg
-                    .into_label()
-                    .with_message("organization allowance"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Note)
+                .with_message("source allowed by organization allowance")
+                .with_labels(vec![
+                    sabo.src_label.clone(),
+                    sabo.org_cfg
+                        .into_label()
+                        .with_message("organization allowance"),
+                ]),
+            Code::AllowedByOrganization,
+        )
     }
 }
 
@@ -105,14 +133,15 @@ pub(crate) struct SourceNotExplicitlyAllowed<'a> {
 
 impl<'a> From<SourceNotExplicitlyAllowed<'a>> for Diag {
     fn from(snea: SourceNotExplicitlyAllowed<'a>) -> Self {
-        Diagnostic::new(snea.lint_level.into())
-            .with_message(format_args!(
-                "detected '{}' source not explicitly allowed",
-                snea.type_name,
-            ))
-            .with_code(Code::SourceNotAllowed)
-            .with_labels(vec![snea.src_label.clone()])
-            .into()
+        diag(
+            Diagnostic::new(snea.lint_level.into())
+                .with_message(format_args!(
+                    "detected '{}' source not explicitly allowed",
+                    snea.type_name,
+                ))
+                .with_labels(vec![snea.src_label.clone()]),
+            Code::SourceNotAllowed,
+        )
     }
 }
 
@@ -123,15 +152,16 @@ pub(crate) struct UnmatchedAllowSource {
 
 impl From<UnmatchedAllowSource> for Diag {
     fn from(uas: UnmatchedAllowSource) -> Self {
-        Diagnostic::new(uas.severity)
-            .with_message("allowed source was not encountered")
-            .with_code(Code::UnmatchedSource)
-            .with_labels(vec![
-                uas.allow_src_cfg
-                    .into_label()
-                    .with_message("no crate source matched these criteria"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(uas.severity)
+                .with_message("allowed source was not encountered")
+                .with_labels(vec![
+                    uas.allow_src_cfg
+                        .into_label()
+                        .with_message("no crate source matched these criteria"),
+                ]),
+            Code::UnmatchedSource,
+        )
     }
 }
 
@@ -142,17 +172,18 @@ pub(crate) struct UnmatchedAllowOrg {
 
 impl From<UnmatchedAllowOrg> for Diag {
     fn from(uao: UnmatchedAllowOrg) -> Self {
-        Diagnostic::new(Severity::Warning)
-            .with_message(format_args!(
-                "allowed '{}' organization  was not encountered",
-                uao.org_type
-            ))
-            .with_code(Code::UnmatchedOrganization)
-            .with_labels(vec![
-                uao.allow_org_cfg
-                    .into_label()
-                    .with_message("no crate source fell under this organization"),
-            ])
-            .into()
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message(format_args!(
+                    "allowed '{}' organization  was not encountered",
+                    uao.org_type
+                ))
+                .with_labels(vec![
+                    uao.allow_org_cfg
+                        .into_label()
+                        .with_message("no crate source fell under this organization"),
+                ]),
+            Code::UnmatchedOrganization,
+        )
     }
 }
