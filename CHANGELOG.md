@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.5] - 2025-09-22
 ### Changed
 - [PR#789](https://github.com/EmbarkStudios/cargo-deny/pull/789) changed it so that release binaries are now built with LTO.
 - [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) and [PR#794](https://github.com/EmbarkStudios/cargo-deny/pull/794) updated various crates.
@@ -732,7 +733,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...HEAD
+[0.18.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...0.18.5
 [0.18.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.1...0.18.2
