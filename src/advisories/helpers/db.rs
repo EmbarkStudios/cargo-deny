@@ -370,8 +370,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
 fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
     anyhow::ensure!(
         url.scheme() == "https" || url.scheme() == "ssh",
-        "expected '{}' to be an `https` or `ssh` url",
-        url
+        "expected '{url}' to be an `https` or `ssh` url",
     );
 
     // Ensure the parent directory chain is created, gix might? do it for us

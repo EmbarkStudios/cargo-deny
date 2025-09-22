@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#789](https://github.com/EmbarkStudios/cargo-deny/pull/789) changed it so that release binaries are now built with LTO.
+- [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) and [PR#794](https://github.com/EmbarkStudios/cargo-deny/pull/794) updated various crates.
+
+### Added
+- [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) added [SARIF](https://sarifweb.azurewebsites.net/) as an output format, usable via `--format sarif`. The current output for this format is experimental and may change in future updates.
+
 ## [0.18.4] - 2025-08-14
 ### Added
 - [PR#779](https://github.com/EmbarkStudios/cargo-deny/pull/779) added the `--metadata-path` argument to use a cargo metadata JSON file instead of calling cargo metadata, resolving [#777](https://github.com/EmbarkStudios/cargo-deny/issues/777).
