@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Changed
 - [PR#789](https://github.com/EmbarkStudios/cargo-deny/pull/789) changed it so that release binaries are now built with LTO.
-- [PR#791](https://github.com/EmbarkStudios/cargo-deny/pull/791) and [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) updated various crates.
+- [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) and [PR#794](https://github.com/EmbarkStudios/cargo-deny/pull/794) updated various crates.
 
 ### Added
 - [PR#790](https://github.com/EmbarkStudios/cargo-deny/pull/790) added [SARIF](https://sarifweb.azurewebsites.net/) as an output format, usable via `--format sarif`. The current output for this format is experimental and may change in future updates.
