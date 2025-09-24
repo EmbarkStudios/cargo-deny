@@ -199,6 +199,7 @@ pub fn check(
         denied,
         denied_multiple_versions,
         allowed,
+        allow_workspace,
         features,
         workspace_default_features,
         external_default_features,
@@ -379,6 +380,25 @@ pub fn check(
             })
             .collect(),
     );
+
+    // Collect workspace members if allow_workspace is enabled
+    let workspace_members: std::collections::HashSet<Kid> = if allow_workspace {
+        let members: std::collections::HashSet<Kid> = ctx.krates
+            .workspace_members()
+            .filter_map(|node| {
+                if let krates::Node::Krate { id, .. } = node {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+
+        members
+    } else {
+        std::collections::HashSet::new()
+    };
 
     let report_duplicates = |multi_detector: &mut MultiDetector<'_>, sink: &mut diag::ErrorSink| {
         if multi_detector.dupes.len() != 1 {
@@ -599,11 +619,19 @@ pub fn check(
 
                 // Check if the crate has been explicitly banned
                 if let Some(matches) = denied_ids.matches(krate) {
+                    let is_workspace_member = workspace_members.contains(&krate.id);
+
                     for rm in matches {
                         let ban_cfg = CfgCoord {
                             file: file_id,
                             span: rm.specr.spec.name.span,
                         };
+
+                        // If allow_workspace is enabled and this is a workspace member,
+                        // skip the ban (workspace members take precedence over explicit bans)
+                        if is_workspace_member && allow_workspace {
+                            continue;
+                        }
 
                         // The crate is banned, but it might be allowed if it's
                         // wrapped by one or more particular crates
@@ -663,6 +691,8 @@ pub fn check(
                 if !allowed.0.is_empty() {
                     // Since only allowing specific crates is pretty draconian,
                     // also emit which allow filters actually passed each crate
+                    let is_workspace_member = workspace_members.contains(&krate.id);
+
                     match allowed.matches(krate) {
                         Some(matches) => {
                             for rm in matches {
@@ -673,7 +703,13 @@ pub fn check(
                             }
                         }
                         None => {
-                            pack.push(diags::NotAllowed { krate });
+                            // If allow_workspace is enabled and this is a workspace member,
+                            // automatically allow it without requiring explicit configuration
+                            if is_workspace_member && allow_workspace {
+                                // Workspace member is automatically allowed, no diagnostic needed
+                            } else {
+                                pack.push(diags::NotAllowed { krate });
+                            }
                         }
                     }
                 }

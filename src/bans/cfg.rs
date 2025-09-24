@@ -369,6 +369,8 @@ pub struct Config {
     pub deny: Vec<CrateBan>,
     /// If specified, means only the listed crates are allowed
     pub allow: Vec<CrateAllow>,
+    /// If true, automatically allow all workspace members even when using deny-by-default
+    pub allow_workspace: bool,
     /// Allows specifying features that are or are not allowed on crates
     pub features: Vec<CrateFeatures>,
     /// The default lint level for default features for external, non-workspace
@@ -407,6 +409,7 @@ impl Default for Config {
             highlight: GraphHighlight::All,
             deny: Vec::new(),
             allow: Vec::new(),
+            allow_workspace: false,
             features: Vec::new(),
             external_default_features: None,
             workspace_default_features: None,
@@ -431,6 +434,7 @@ impl<'de> Deserialize<'de> for Config {
         let highlight = th.optional("highlight").unwrap_or_default();
         let deny = th.optional("deny").unwrap_or_default();
         let allow = th.optional("allow").unwrap_or_default();
+        let allow_workspace = th.optional("allow-workspace").unwrap_or_default();
         let features = th.optional("features").unwrap_or_default();
         let external_default_features = th.optional("external-default-features");
         let workspace_default_features = th.optional("workspace-default-features");
@@ -452,6 +456,7 @@ impl<'de> Deserialize<'de> for Config {
             highlight,
             deny,
             allow,
+            allow_workspace,
             features,
             external_default_features,
             workspace_default_features,
@@ -769,6 +774,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             denied,
             denied_multiple_versions,
             allowed,
+            allow_workspace: self.allow_workspace,
             features,
             external_default_features: self.external_default_features,
             workspace_default_features: self.workspace_default_features,
@@ -942,6 +948,7 @@ pub struct ValidConfig {
     pub(crate) denied: Vec<ValidKrateBan>,
     pub(crate) denied_multiple_versions: Vec<PackageSpec>,
     pub(crate) allowed: Vec<SpecAndReason>,
+    pub allow_workspace: bool,
     pub(crate) features: Vec<ValidKrateFeatures>,
     pub external_default_features: Option<Spanned<LintLevel>>,
     pub workspace_default_features: Option<Spanned<LintLevel>>,

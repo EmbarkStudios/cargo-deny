@@ -1,0 +1,5 @@
+[workspace]
+members = ["app", "lib"]
+
+[workspace.dependencies]
+serde = "1.0"

@@ -354,3 +354,68 @@ skip = [
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Tests the allow-workspace feature that automatically allows workspace members
+/// even when using deny-by-default policy
+#[test]
+fn allow_workspace_members() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("workspace_allow"),
+        r#"
+# Deny all external dependencies by default
+deny = [{ name = "*" }]
+
+# Allow specific external dependencies
+allow = [{ name = "serde" }]
+
+# Automatically allow workspace members
+allow-workspace = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Tests that allow-workspace=false (default) still blocks workspace members
+/// when using deny-by-default policy
+#[test]
+fn deny_workspace_members_by_default() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("workspace_allow"),
+        r#"
+# Deny all external dependencies by default
+deny = [{ name = "*" }]
+
+# Allow specific external dependencies
+allow = [{ name = "serde" }]
+
+# allow-workspace defaults to false, so workspace members should be blocked
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Tests that workspace members take precedence over explicit bans
+/// when allow-workspace=true
+#[test]
+fn workspace_members_override_explicit_bans() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("workspace_allow"),
+        r#"
+# Explicitly ban workspace members
+deny = [
+    { name = "test-app" },
+    { name = "test-lib" }
+]
+
+# But allow them via workspace setting (should take precedence)
+allow-workspace = true
+"#,
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
