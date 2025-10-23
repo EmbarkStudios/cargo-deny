@@ -102,8 +102,8 @@ expression: s
               }
             }
           ],
-          "semanticVersion": "0.18.4",
-          "version": "0.18.4"
+          "semanticVersion": "9.9.9",
+          "version": "9.9.9"
         }
       }
     }
