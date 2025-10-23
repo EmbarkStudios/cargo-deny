@@ -35,6 +35,7 @@ pub struct Tool {
 
 pub struct Driver {
     pub rules: Vec<Rule>,
+    pub version: Option<semver::Version>,
 }
 
 impl Serialize for Driver {
@@ -44,8 +45,13 @@ impl Serialize for Driver {
     {
         let mut m = serializer.serialize_map(Some(4))?;
         m.serialize_entry("name", "cargo-deny")?;
-        m.serialize_entry("version", env!("CARGO_PKG_VERSION"))?;
-        m.serialize_entry("semanticVersion", env!("CARGO_PKG_VERSION"))?;
+        if let Some(v) = &self.version {
+            m.serialize_entry("version", &v)?;
+            m.serialize_entry("semanticVersion", &v)?;
+        } else {
+            m.serialize_entry("version", env!("CARGO_PKG_VERSION"))?;
+            m.serialize_entry("semanticVersion", env!("CARGO_PKG_VERSION"))?;
+        }
         m.serialize_entry("rules", &self.rules)?;
         m.end()
     }
