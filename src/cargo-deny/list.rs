@@ -14,6 +14,7 @@ pub enum Layout {
 pub enum OutputFormat {
     Human,
     Json,
+    Markdown,
     Tsv,
 }
 
@@ -304,6 +305,60 @@ pub fn cmd(
             }
             Layout::Crate => serde_json::to_writer(std::io::stdout(), &crate_layout.crates)?,
         },
+        OutputFormat::Markdown => {
+            let mut output = String::with_capacity(4 * 1024);
+            match args.layout {
+                Layout::License => {
+                    // Column headers
+                    {
+                        writeln!(output, "| License | Crates |")?;
+                        writeln!(output, "| ------- | ------ |")?;
+                    }
+
+                    for (license, krates) in license_layout.licenses {
+                        write!(output, "| **{license}** ({}) | ", krates.len())?;
+                        for (i, krate_id) in krates.iter().enumerate() {
+                            if i != 0 {
+                                write!(output, ", ")?;
+                            }
+
+                            let (name, version) = krate_id.parts();
+                            write!(output, "`{name}@{version}`")?;
+                        }
+
+                        writeln!(output, " |")?;
+                    }
+                }
+                Layout::Crate => {
+                    // Column headers
+                    {
+                        writeln!(output, "| Crate | Licenses |")?;
+                        writeln!(output, "| ----- | -------- |")?;
+                    }
+
+                    for (id, krate) in crate_layout.crates {
+                        let (name, version) = id.parts();
+
+                        write!(
+                            output,
+                            "| **{name}**@_{version}_ ({}) | ",
+                            krate.licenses.len()
+                        )?;
+                        for (i, license) in krate.licenses.iter().enumerate() {
+                            if i != 0 {
+                                write!(output, ", ")?;
+                            }
+
+                            write!(output, "`{license}`")?;
+                        }
+
+                        writeln!(output, " |")?;
+                    }
+                }
+            }
+
+            std::io::Write::write_all(&mut std::io::stdout(), output.as_bytes())?;
+        }
         OutputFormat::Tsv => {
             // We ignore the layout specification and always just do a grid of crate rows x license/exception columns
             let mut output = String::with_capacity(4 * 1024);
