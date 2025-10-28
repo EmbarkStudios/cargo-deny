@@ -78,6 +78,10 @@ where
         }
     }
 
+    // Use a single version in tests so we don't have to bump snapshots every time
+    // we bump versions
+    sl.runs[0].tool.driver.version = Some(semver::Version::new(9, 9, 9));
+
     serde_json::to_value(sl).expect("failed to serialize Sarif results")
 }
 

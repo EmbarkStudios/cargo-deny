@@ -331,7 +331,7 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
         .context("unable to checkout, repository is bare")?;
     let root_tree = repo
         .head()?
-        .try_peel_to_id_in_place()?
+        .try_peel_to_id()?
         .context("unable to peel HEAD")?
         .object()
         .context("HEAD commit not downloaded from remote")?

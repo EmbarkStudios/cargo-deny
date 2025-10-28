@@ -268,7 +268,10 @@ impl SarifCollector {
         SarifLog {
             runs: vec![Run {
                 tool: Tool {
-                    driver: Driver { rules },
+                    driver: Driver {
+                        rules,
+                        version: None,
+                    },
                 },
                 results,
             }],

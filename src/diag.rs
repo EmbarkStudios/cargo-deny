@@ -732,7 +732,8 @@ lines
         }
 
         for diag in diags {
-            codespan_reporting::term::emit(&mut term, &config, &files, &diag).unwrap();
+            codespan_reporting::term::emit_to_write_style(&mut term, &config, &files, &diag)
+                .unwrap();
         }
 
         insta::assert_snapshot!(String::from_utf8(term.into_inner()).unwrap());

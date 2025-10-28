@@ -410,7 +410,7 @@ impl OutputLock<'_, '_> {
                     return;
                 }
 
-                let _ = term::emit(l, &cfg.config, files, &diag);
+                let _ = term::emit_to_write_style(l, &cfg.config, files, &diag);
             }
             Self::Json(_cfg, max, w) => {
                 if diag.severity < *max {
@@ -464,7 +464,7 @@ impl OutputLock<'_, '_> {
                         }
                     }
 
-                    let _ = term::emit(l, &cfg.config, files, &diag.diag);
+                    let _ = term::emit_to_write_style(l, &cfg.config, files, &diag.diag);
                 }
             }
             Self::Json(cfg, max, w) => {
