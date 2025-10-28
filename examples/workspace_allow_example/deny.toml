@@ -1,0 +1,16 @@
+# Example configuration demonstrating the allow-workspace feature
+# This enables a "deny external dependencies by default, but allow workspace crates" policy
+
+[bans]
+# Deny all external dependencies by default
+deny = [{ name = "*" }]
+
+# Automatically allow workspace members even when using deny-by-default
+allow-workspace = true
+
+# Explicitly allow blessed external dependencies
+allow = [
+    { name = "serde", version = "1.0" },
+    { name = "tokio", version = "1.0" },
+    { name = "clap", version = "4.0" },
+]

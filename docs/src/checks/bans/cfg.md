@@ -128,6 +128,22 @@ allow = ["package-spec"]
 
 Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
+### The `allow-workspace` field (optional)
+
+```ini
+allow-workspace = false
+```
+
+If `true`, automatically allows all workspace members even when using a deny-by-default policy (i.e., when `deny = [{ name = "*" }]` is specified). This is useful for organizations that want to implement strict dependency allowlists for external crates while automatically allowing their own workspace crates without having to explicitly list them in the `allow` configuration.
+
+When `allow-workspace = true`:
+- All workspace members are automatically treated as if they were in the `allow` list
+- Workspace members take precedence over explicit `deny` entries
+- External dependencies still require explicit allowlisting
+- Works for both single-crate and multi-crate workspaces
+
+**Default**: `false`
+
 #### The `allow.reason` field (optional)
 
 ```ini
