@@ -45,6 +45,10 @@ allow = [
 
 If `true`, licenses are checked even for `dev-dependencies`. By default this is false as `dev-dependencies` are not used by downstream crates, nor part of binary artifacts.
 
+### The `include-build` field (optional)
+
+If `true`, licenses are checked for `build-dependencies`. By default this is true because build-dependencies can influence build artifacts and are often relevant to licensing. Set this to `false` if you wish to exclude `build-dependencies` from license checks.
+
 ### The `version` field (optional)
 
 ```ini
