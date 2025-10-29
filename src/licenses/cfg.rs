@@ -386,6 +386,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             allowed,
             ignore_sources,
             include_dev: self.include_dev,
+            include_build: self.include_build,
         }
     }
 }
