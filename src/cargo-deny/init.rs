@@ -12,10 +12,11 @@ pub struct Args {
 const CONTENTS: &[u8] = include_bytes!("../../deny.template.toml");
 
 pub fn cmd(args: Args, ctx: crate::common::KrateContext) -> Result<(), Error> {
-    let cfg_path = args.config.unwrap_or_else(|| PathBuf::from("deny.toml"));
-    let cfg_path = ctx
-        .get_config_path(Some(cfg_path))
-        .context("unable to get full path to config")?;
+    let cfg_path = {
+        let cfg_path = args.config.unwrap_or_else(|| PathBuf::from("deny.toml"));
+        ctx.get_config_path(Some(&cfg_path))?
+            .context("unable to get full path to config")?
+    };
 
     // make sure the file does not exist yet
     ensure!(

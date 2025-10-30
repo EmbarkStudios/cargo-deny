@@ -1,5 +1,6 @@
+use anyhow::Context;
 use cargo_deny::{
-    PathBuf,
+    Path, PathBuf,
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
 };
@@ -10,6 +11,17 @@ pub use cfg::ValidConfig;
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
     LicenseStore::from_cache()
+}
+
+pub(crate) fn current_dir_utf8() -> anyhow::Result<PathBuf> {
+    let current_dir =
+        std::env::current_dir().context("could not access current working directory")?;
+
+    let current_dir = PathBuf::from_path_buf(current_dir)
+        .map_err(|pb| anyhow::anyhow!("path '{}' is not utf-8", pb.display()))
+        .context("could not access current working directory")?;
+
+    Ok(current_dir)
 }
 
 pub struct KrateContext {
@@ -28,41 +40,51 @@ pub struct KrateContext {
 }
 
 impl KrateContext {
-    pub fn get_config_path(&self, config_path: Option<PathBuf>) -> Option<PathBuf> {
-        if let Some(cp) = config_path {
-            if cp.is_absolute() {
-                Some(cp)
-            } else {
-                Some(self.manifest_path.parent().unwrap().join(cp))
-            }
+    pub fn get_config_path(&self, config_path: Option<&Path>) -> anyhow::Result<Option<PathBuf>> {
+        if let Some(config_path) = config_path {
+            let current_dir = current_dir_utf8()?;
+            Self::resolve_config_path(&current_dir, config_path).map(Some)
         } else {
-            let mut p = self.manifest_path.parent();
+            Ok(Self::default_config_path(&self.manifest_path))
+        }
+    }
 
-            while let Some(parent) = p {
-                let mut config_path = parent.join("deny.toml");
+    fn resolve_config_path(current_dir: &Path, config_path: &Path) -> anyhow::Result<PathBuf> {
+        if config_path.is_absolute() {
+            Ok(config_path.to_owned())
+        } else {
+            Ok(current_dir.join(config_path))
+        }
+    }
 
-                if config_path.exists() {
-                    return Some(config_path);
-                }
+    fn default_config_path(manifest_path: &Path) -> Option<PathBuf> {
+        let mut p = manifest_path.parent();
 
-                config_path.pop();
-                config_path.push(".deny.toml");
+        while let Some(parent) = p {
+            let mut config_path = parent.join("deny.toml");
 
-                if config_path.exists() {
-                    return Some(config_path);
-                }
-
-                config_path.pop();
-                config_path.push(".cargo/deny.toml");
-                if config_path.exists() {
-                    return Some(config_path);
-                }
-
-                p = parent.parent();
+            if config_path.exists() {
+                return Some(config_path);
             }
 
-            None
+            config_path.pop();
+            config_path.push(".deny.toml");
+
+            if config_path.exists() {
+                return Some(config_path);
+            }
+
+            config_path.pop();
+            config_path.push(".cargo/deny.toml");
+
+            if config_path.exists() {
+                return Some(config_path);
+            }
+
+            p = parent.parent();
         }
+
+        None
     }
 
     pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
@@ -543,5 +565,51 @@ impl<'a> DiagPrinter<'a> {
     #[inline]
     pub fn lock(&'a self) -> OutputLock<'a, 'a> {
         self.which.lock(self.max_severity)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[inline]
+    fn temp_dir() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn test_resolve_config_path() {
+        let temp_dir = temp_dir();
+
+        let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+
+        let expected = current_dir.join("deny.toml");
+
+        let abs_path = current_dir.join("deny.toml");
+        let actual = KrateContext::resolve_config_path(&current_dir, &abs_path).unwrap();
+        assert_eq!(actual, abs_path);
+
+        let rel_path = Path::new("./deny.toml");
+        let actual = KrateContext::resolve_config_path(&current_dir, rel_path).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_default_config_path() {
+        let temp_dir = temp_dir();
+
+        let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        std::fs::File::create(current_dir.join("Cargo.toml")).unwrap();
+        let manifest_path = current_dir.join("Cargo.toml");
+
+        let actual = KrateContext::default_config_path(&manifest_path);
+        let expected = None;
+        assert_eq!(actual, expected);
+
+        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+        let actual = KrateContext::default_config_path(&manifest_path);
+        let expected = Some(current_dir.join("deny.toml"));
+        assert_eq!(actual, expected);
     }
 }
