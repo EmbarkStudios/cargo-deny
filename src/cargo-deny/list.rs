@@ -54,7 +54,7 @@ pub fn cmd(
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
 
-    let cfg_path = krate_ctx.get_config_path(args.config.clone());
+    let cfg_path = krate_ctx.get_config_path(args.config.as_deref())?;
 
     let mut files = Files::new();
     let ValidConfig { graph, .. } = ValidConfig::load(
