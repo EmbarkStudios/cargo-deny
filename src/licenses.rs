@@ -319,6 +319,7 @@ pub fn check(
             }
 
             pack.push(diags::UnmatchedLicenseException {
+                severity: ctx.cfg.unused_license_exception.into(),
                 license_exc_cfg: CfgCoord {
                     file: exc.file_id,
                     span: exc.spec.name.span,
