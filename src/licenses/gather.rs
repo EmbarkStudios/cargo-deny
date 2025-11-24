@@ -721,7 +721,7 @@ impl Gatherer {
                         .into(),
                     );
                 } else {
-                    diags.push(diags::NoLicenseField.into());
+                    diags.push(diags::NoLicenseField(krate).into());
                 }
 
                 // 3

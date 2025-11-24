@@ -198,12 +198,15 @@ impl From<EmptyLicenseField> for Diag {
     }
 }
 
-pub(crate) struct NoLicenseField;
+pub(crate) struct NoLicenseField<'k>(pub(crate) &'k Krate);
 
-impl From<NoLicenseField> for Diag {
-    fn from(_value: NoLicenseField) -> Self {
+impl From<NoLicenseField<'_>> for Diag {
+    fn from(value: NoLicenseField<'_>) -> Self {
         diag(
-            Diagnostic::warning().with_message("license expression was not specified in manifest"),
+            Diagnostic::warning().with_message(format!(
+                "license expression was not specified in manifest for crate '{}'",
+                value.0
+            )),
             Code::NoLicenseField,
         )
     }
