@@ -213,8 +213,12 @@ ignore-sources = ["https://sekretz.com/super/secret-index"]
 
 ### The `unused-allowed-license` field (optional)
 
-Determines what happens when one of the licenses that appears in the `allow` list is not encountered in the dependency graph.
+Determines what happens when one of the licenses that appears in the [`allow`](#the-allow-field-optional) list is not encountered in the dependency graph.
 
 - `warn` (default) - A warning is emitted for each license that appears in `license.allow` but which is not used in any crate.
 - `allow` - Unused licenses in the `licenses.allow` list are ignored.
 - `deny` - An unused license in the `licenses.allow` list triggers an error, and cause the license check to fail.
+
+### The `unused-license-exception` field (optional)
+
+Same as [`unused-allowed-license`](#the-unused-allowed-license-field-optional) but for [`exceptions`](#the-exceptions-field-optional).
