@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.6] - 2025-11-24
 ### Fixed
 - [PR#805](https://github.com/EmbarkStudios/cargo-deny/pull/805) updated `rustsec` to 0.31, resolving [#804](https://github.com/EmbarkStudios/cargo-deny/issues/804).
 - [PR#810](https://github.com/EmbarkStudios/cargo-deny/pull/810) resolved [#809](https://github.com/EmbarkStudios/cargo-deny/issues/809) by printing the crate name and version when its manifest does not contain a `license` expression.
@@ -743,7 +744,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...HEAD
+[0.18.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...0.18.6
 [0.18.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...0.18.5
 [0.18.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.2...0.18.3
