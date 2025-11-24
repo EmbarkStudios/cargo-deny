@@ -122,13 +122,14 @@ impl From<UnmatchedLicenseAllowance> for Diag {
 }
 
 pub(crate) struct UnmatchedLicenseException {
+    pub(crate) severity: Severity,
     pub(crate) license_exc_cfg: CfgCoord,
 }
 
 impl From<UnmatchedLicenseException> for Diag {
     fn from(ule: UnmatchedLicenseException) -> Self {
         diag(
-            Diagnostic::new(Severity::Warning)
+            Diagnostic::new(ule.severity)
                 .with_message("license exception was not encountered")
                 .with_labels(vec![
                     ule.license_exc_cfg

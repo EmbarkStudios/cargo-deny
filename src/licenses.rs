@@ -305,6 +305,8 @@ pub fn check(
     {
         let mut pack = Pack::new(Check::Licenses);
 
+        let severity = ctx.cfg.unused_license_exception.into();
+
         // Print out warnings for exceptions that pertain to crates that
         // weren't actually encountered
         for exc in hits
@@ -319,6 +321,7 @@ pub fn check(
             }
 
             pack.push(diags::UnmatchedLicenseException {
+                severity,
                 license_exc_cfg: CfgCoord {
                     file: exc.file_id,
                     span: exc.spec.name.span,
