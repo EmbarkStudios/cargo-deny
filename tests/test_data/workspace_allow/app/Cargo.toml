@@ -1,0 +1,10 @@
+[package]
+name = "test-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+test-lib = { path = "../lib" }
+serde.workspace = true
+# This should be denied since it's not in the allowlist
+rand = "0.8"
