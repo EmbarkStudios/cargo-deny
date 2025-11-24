@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#805](https://github.com/EmbarkStudios/cargo-deny/pull/805) updated `rustsec` to 0.31, resolving [#804](https://github.com/EmbarkStudios/cargo-deny/issues/804).
+
+### Added
+- [PR#807](https://github.com/EmbarkStudios/cargo-deny/pull/807) added the `unused-license-exception` option to configure the lint level, resolving [#806](https://github.com/EmbarkStudios/cargo-deny/issues/806).
+
+### Changed
+- [PR#808](https://github.com/EmbarkStudios/cargo-deny/pull/808) updated `gix` to 0.75.
+
 ## [0.18.5] - 2025-09-22
 ### Changed
 - [PR#789](https://github.com/EmbarkStudios/cargo-deny/pull/789) changed it so that release binaries are now built with LTO.
