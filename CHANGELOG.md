@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#802](https://github.com/EmbarkStudios/cargo-deny/pull/802) made relative paths passed to `--config` be resolved relative to the current working directory (rather than the resolved manifest path's directory).
+### Fixed
+- [PR#802](https://github.com/EmbarkStudios/cargo-deny/pull/802) fixed path handling of paths passed to `--config` ([#748](https://github.com/EmbarkStudios/krates/issues/748)).
+
+
 ## [0.18.5] - 2025-09-22
 ### Changed
 - [PR#789](https://github.com/EmbarkStudios/cargo-deny/pull/789) changed it so that release binaries are now built with LTO.
