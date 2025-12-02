@@ -8,8 +8,6 @@ use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::{fmt, sync::Arc};
 
-const LICENSE_CACHE: &[u8] = include_bytes!("../../resources/spdx_cache.bin.zstd");
-
 #[inline]
 fn iter_clarifications<'a>(
     all: &'a [ValidClarification],
@@ -201,7 +199,7 @@ impl LicensePack {
     fn get_expression(
         &self,
         file: FileId,
-        strategy: &askalono::ScanStrategy<'_>,
+        scanner: &spdx::detection::scan::Scanner<'_>,
         confidence: f32,
     ) -> Result<GatheredExpr, (String, Vec<Label>)> {
         use std::fmt::Write;
@@ -238,83 +236,72 @@ impl LicensePack {
                 PackFileData::Good(data) => {
                     write!(synth_toml, "hash = 0x{:08x}, ", data.hash).unwrap();
 
-                    let text = askalono::TextData::new(&data.content);
-                    match strategy.scan(&text) {
-                        Ok(lic_match) => {
-                            if let Some(mut identified) = lic_match.license {
-                                // See https://github.com/EmbarkStudios/cargo-deny/issues/625
-                                // but the Pixar license is just a _slightly_ modified Apache-2.0 license, and since
-                                // the apache 2.0 license is so common, and the modification of removing the appendix,
-                                // which causes askalono to think it is pixar instead is probably common enough we need
-                                // to just explicitly handle it. Really this should be fixed in askalono but that library
-                                // is basically abandoned at this point and should be replaced https://github.com/EmbarkStudios/spdx/issues/67
-                                if identified.name == "Pixar" {
-                                    // Very loose, but just check if the title is actually for the pixar license or not
-                                    if !data
-                                        .content
-                                        .trim_start()
-                                        .starts_with("Modified Apache 2.0 License")
-                                    {
-                                        // emit a note about this, just in case
-                                        notes.push(format!("'{}' fuzzy matched to Pixar license, but it is actually a normal Apache-2.0 license", lic_contents.path));
+                    let text = spdx::detection::TextData::new(&data.content);
+                    let lic_match = scanner.scan(&text);
+                    if let Some(mut identified) = lic_match.license {
+                        // See https://github.com/EmbarkStudios/cargo-deny/issues/625
+                        // but the Pixar license is just a _slightly_ modified Apache-2.0 license, and since
+                        // the apache 2.0 license is so common, and the modification of removing the appendix,
+                        // which causes askalono to think it is pixar instead is probably common enough we need
+                        // to just explicitly handle it. Really this should be fixed in askalono but that library
+                        // is basically abandoned at this point and should be replaced https://github.com/EmbarkStudios/spdx/issues/67
+                        if identified.name == "Pixar" {
+                            // Very loose, but just check if the title is actually for the pixar license or not
+                            if !data
+                                .content
+                                .trim_start()
+                                .starts_with("Modified Apache 2.0 License")
+                            {
+                                // emit a note about this, just in case
+                                notes.push(format!("'{}' fuzzy matched to Pixar license, but it is actually a normal Apache-2.0 license", lic_contents.path));
 
-                                        identified.name = "Apache-2.0";
-                                    }
+                                identified.name = "Apache-2.0";
+                            }
+                        }
+
+                        // askalano doesn't report any matches below the confidence threshold
+                        // but we want to see what it thinks the license is if the confidence
+                        // is somewhat ok at least
+                        if lic_match.score >= confidence {
+                            if let Some(id) = spdx::license_id(identified.name) {
+                                if !sources.is_empty() {
+                                    expr.push_str(" AND ");
                                 }
 
-                                // askalano doesn't report any matches below the confidence threshold
-                                // but we want to see what it thinks the license is if the confidence
-                                // is somewhat ok at least
-                                if lic_match.score >= confidence {
-                                    if let Some(id) = spdx::license_id(identified.name) {
-                                        if !sources.is_empty() {
-                                            expr.push_str(" AND ");
-                                        }
-
-                                        expr.push_str(id.name);
-                                        sources.push(lic_contents.path.as_str().to_owned());
-                                    } else {
-                                        write!(synth_toml, "score = {:.2}", lic_match.score)
-                                            .unwrap();
-                                        let start = synth_toml.len();
-                                        write!(synth_toml, ", license = \"{}\"", identified.name)
-                                            .unwrap();
-                                        let end = synth_toml.len();
-
-                                        failures.push(
-                                            Label::secondary(file, start + 13..end - 1)
-                                                .with_message("unknown SPDX identifier"),
-                                        );
-                                    }
-                                } else {
-                                    let start = synth_toml.len();
-                                    write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
-                                    let end = synth_toml.len();
-                                    write!(synth_toml, ", license = \"{}\"", identified.name)
-                                        .unwrap();
-
-                                    failures.push(
-                                        Label::secondary(file, start + 8..end)
-                                            .with_message("low confidence in the license text"),
-                                    );
-                                }
+                                expr.push_str(id.name);
+                                sources.push(lic_contents.path.as_str().to_owned());
                             } else {
-                                // If the license can't be matched with high enough confidence
-                                let start = synth_toml.len();
                                 write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
+                                let start = synth_toml.len();
+                                write!(synth_toml, ", license = \"{}\"", identified.name).unwrap();
                                 let end = synth_toml.len();
 
                                 failures.push(
-                                    Label::secondary(file, start + 8..end)
-                                        .with_message("low confidence in the license text"),
+                                    Label::secondary(file, start + 13..end - 1)
+                                        .with_message("unknown SPDX identifier"),
                                 );
                             }
-                        }
-                        Err(err) => {
-                            panic!(
-                                "askalono's elimination strategy failed (this used to be impossible): {err}"
+                        } else {
+                            let start = synth_toml.len();
+                            write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
+                            let end = synth_toml.len();
+                            write!(synth_toml, ", license = \"{}\"", identified.name).unwrap();
+
+                            failures.push(
+                                Label::secondary(file, start + 8..end)
+                                    .with_message("low confidence in the license text"),
                             );
                         }
+                    } else {
+                        // If the license can't be matched with high enough confidence
+                        let start = synth_toml.len();
+                        write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
+                        let end = synth_toml.len();
+
+                        failures.push(
+                            Label::secondary(file, start + 8..end)
+                                .with_message("low confidence in the license text"),
+                        );
                     }
                 }
                 PackFileData::Bad(err) => {
@@ -407,14 +394,14 @@ impl Summary<'_> {
 
 /// Store used to identify licenses from text files
 pub struct LicenseStore {
-    store: askalono::Store,
+    store: spdx::detection::Store,
 }
 
 impl LicenseStore {
     pub fn from_cache() -> anyhow::Result<Self> {
         use anyhow::Context as _;
         let store =
-            askalono::Store::from_cache(LICENSE_CACHE).context("failed to load license store")?;
+            spdx::detection::Store::load_inline().context("failed to load license store")?;
 
         Ok(Self { store })
     }
@@ -423,7 +410,7 @@ impl LicenseStore {
 impl Default for LicenseStore {
     fn default() -> Self {
         Self {
-            store: askalono::Store::new(),
+            store: spdx::detection::Store::new(),
         }
     }
 }
@@ -484,8 +471,7 @@ impl Gatherer {
 
         let threshold = self.threshold;
 
-        let strategy = askalono::ScanStrategy::new(&summary.store.store)
-            .mode(askalono::ScanMode::Elimination)
+        let strategy = spdx::detection::scan::Scanner::new(&summary.store.store)
             .confidence_threshold(0.5)
             .optimize(false)
             .max_passes(1);
@@ -642,6 +628,7 @@ impl Gatherer {
                         allow_imprecise_license_names: true,
                         allow_postfix_plus_on_gpl: true,
                         allow_deprecated: true,
+                        allow_unknown: false,
                     };
 
                     const STRICT: spdx::ParseMode = spdx::ParseMode {
@@ -656,6 +643,7 @@ impl Gatherer {
                         allow_imprecise_license_names: false,
                         allow_postfix_plus_on_gpl: false,
                         allow_deprecated: false,
+                        allow_unknown: false,
                     };
 
                     let mut error_span = None;
