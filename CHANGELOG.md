@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#812](https://github.com/EmbarkStudios/cargo-deny/pull/812) updated `spdx` to 0.13, allowing cargo-deny to remove the askalono dependency but still support license detection.
+
 ## [0.18.6] - 2025-11-24
 ### Fixed
 - [PR#805](https://github.com/EmbarkStudios/cargo-deny/pull/805) updated `rustsec` to 0.31, resolving [#804](https://github.com/EmbarkStudios/cargo-deny/issues/804).
