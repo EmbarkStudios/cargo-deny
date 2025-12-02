@@ -271,11 +271,9 @@ impl LicensePack {
                                 expr.push_str(id.name);
                                 sources.push(lic_contents.path.as_str().to_owned());
                             } else {
-                                write!(synth_toml, "score = {:.2}", lic_match.score)
-                                    .unwrap();
+                                write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
                                 let start = synth_toml.len();
-                                write!(synth_toml, ", license = \"{}\"", identified.name)
-                                    .unwrap();
+                                write!(synth_toml, ", license = \"{}\"", identified.name).unwrap();
                                 let end = synth_toml.len();
 
                                 failures.push(
@@ -287,8 +285,7 @@ impl LicensePack {
                             let start = synth_toml.len();
                             write!(synth_toml, "score = {:.2}", lic_match.score).unwrap();
                             let end = synth_toml.len();
-                            write!(synth_toml, ", license = \"{}\"", identified.name)
-                                .unwrap();
+                            write!(synth_toml, ", license = \"{}\"", identified.name).unwrap();
 
                             failures.push(
                                 Label::secondary(file, start + 8..end)
@@ -631,6 +628,7 @@ impl Gatherer {
                         allow_imprecise_license_names: true,
                         allow_postfix_plus_on_gpl: true,
                         allow_deprecated: true,
+                        allow_unknown: false,
                     };
 
                     const STRICT: spdx::ParseMode = spdx::ParseMode {
@@ -645,6 +643,7 @@ impl Gatherer {
                         allow_imprecise_license_names: false,
                         allow_postfix_plus_on_gpl: false,
                         allow_deprecated: false,
+                        allow_unknown: false,
                     };
 
                     let mut error_span = None;

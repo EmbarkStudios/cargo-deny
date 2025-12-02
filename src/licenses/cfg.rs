@@ -177,6 +177,7 @@ impl<'de> Deserialize<'de> for Licensee {
                 allow_imprecise_license_names: false,
                 allow_postfix_plus_on_gpl: false,
                 allow_slash_as_or_operator: false,
+                allow_unknown: false,
             },
         ) {
             Ok(licensee) => Ok(Self(Spanned::with_span(licensee, value.span))),
