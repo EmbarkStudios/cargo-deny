@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.7] - 2025-12-02
 ### Changed
 - [PR#812](https://github.com/EmbarkStudios/cargo-deny/pull/812) updated `spdx` to 0.13, allowing cargo-deny to remove the askalono dependency but still support license detection.
 
@@ -747,7 +748,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...HEAD
+[0.18.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...0.18.7
 [0.18.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...0.18.6
 [0.18.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...0.18.5
 [0.18.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.3...0.18.4
