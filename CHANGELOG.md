@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.8] - 2025-12-03
 ### Fixed
 - [PR#814](https://github.com/EmbarkStudios/cargo-deny/pull/814) now allows deprecated license identifiers if they are detected from text, which was broken in 0.18.7. Additionally, when a GNU license (GPL, AGPL, LGPL, GFDL) license is detected, it is always detected as the `-or-later` variant, arbitrarily chosen as it is impossible to distinguish between the variants for a particular license version. This means if the license detected is actually wrong (eg. `GPL-3.0-or-later` is detected when the code is actually licensed under `GPL-3.0-only`), the license should instead be clarified to the correct one. Resolves [#813](https://github.com/EmbarkStudios/cargo-deny/issues/813).
 
@@ -751,7 +752,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.8...HEAD
+[0.18.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...0.18.8
 [0.18.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...0.18.7
 [0.18.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...0.18.6
 [0.18.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.4...0.18.5
