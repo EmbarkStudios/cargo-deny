@@ -268,6 +268,10 @@ impl LicensePack {
                                     expr.push_str(" AND ");
                                 }
 
+                                if id.is_deprecated() {
+                                    notes.push(format!("license '{}' detected in '{}' is deprecated in SPDX license list {}", id.name, lic_contents.path, spdx::identifiers::VERSION));
+                                }
+
                                 expr.push_str(id.name);
                                 sources.push(lic_contents.path.as_str().to_owned());
                             } else {
@@ -326,7 +330,20 @@ impl LicensePack {
                 synthesized_toml: synth_toml,
                 failures,
                 notes,
-                expr: spdx::Expression::parse(&expr).unwrap(),
+                expr: spdx::Expression::parse_mode(
+                    &expr,
+                    spdx::ParseMode {
+                        // We need to allow deprecated licenses because of reality
+                        allow_deprecated: true,
+                        // This should be impossible as we identify only valid licenses
+                        allow_imprecise_license_names: false,
+                        // Impossible
+                        allow_postfix_plus_on_gpl: false,
+                        allow_slash_as_or_operator: false,
+                        allow_unknown: false,
+                    },
+                )
+                .unwrap(),
                 file_sources: sources,
             })
         } else {

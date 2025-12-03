@@ -1,4 +1,2 @@
 [licenses]
-allow = ["MIT", "Apache-2.0"]
-private = { ignore = true }
-exceptions = [{ name = "unicode-ident", allow = ["Unicode-DFS-2016"] }]
+allow = ["MIT"]

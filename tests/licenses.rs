@@ -359,3 +359,34 @@ fn insane_licenses() {
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Checks that license text that _could_ be attributed to a deprecated license id,
+/// is either corrected, or works
+#[test]
+fn deprecated_license_detection() {
+    let cfg = tu::Config::new(
+        "allow = ['MIT', 'AGPL-3.0-or-later', 'MIT-Festival', 'BSD-2-Clause-FreeBSD']",
+    );
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("examples/14_license_detection/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let (ctx, summary) = setup(&krates, func_name!(), cfg);
+
+    let diags = tu::run_gather(ctx, |ctx, tx| {
+        crate::licenses::check(
+            ctx,
+            summary,
+            diag::ErrorSink {
+                overrides: None,
+                channel: tx,
+            },
+        );
+    });
+
+    insta::assert_json_snapshot!(diags);
+}

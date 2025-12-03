@@ -1,0 +1,7 @@
+[licenses]
+allow = [
+    "BSD-2-Clause-FreeBSD",
+    "MIT",
+    "AGPL-3.0-or-later",
+    "MIT-Festival",
+]

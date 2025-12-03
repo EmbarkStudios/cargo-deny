@@ -10,17 +10,13 @@ edition = "2018"
 log = "0.4.8"
 
 # this would also work, because crates.io is allowed by default
-#bitflags = "1.2"
+#spdx = "0.13"
 
 # this will fail as our deny.toml is denying unknown git repos
 # and this URL is not in the allow list
-bitflags = { git = "https://github.com/bitflags/bitflags.git" }
+cfg-expr = { git = "https://github.com/EmbarkStudios/cfg-expr" }
 
-# These will both be allowed by the private config
-cabytcini = { git = "https://tulpa.dev/cadey/cabytcini" }
-gitea-release = { git = "https://tulpa.dev/cadey/gitea-release" }
-
-# This will not be since the base path doesn't match
-mlua_serde = { git = "https://tulpa.dev/lua/mlua_serde" }
+# This is allowed because we explicitly specified it
+spdx = { git = "https://github.com/EmbarkStudios/spdx" }
 
 [workspace]
