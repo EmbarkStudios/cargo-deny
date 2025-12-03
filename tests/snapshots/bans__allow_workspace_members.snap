@@ -1,0 +1,542 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cfg-if",
+            "version": "1.0.3"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "getrandom",
+                "version": "0.2.16"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand_core",
+                    "version": "0.6.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rand",
+                        "version": "0.8.5"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "test-app",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "rand_chacha",
+                        "version": "0.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "rand",
+                            "version": "0.8.5"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'cfg-if = 1.0.3' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "getrandom",
+            "version": "0.2.16"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "rand_core",
+                "version": "0.6.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand",
+                    "version": "0.8.5"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "test-app",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "rand_chacha",
+                    "version": "0.3.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rand",
+                        "version": "0.8.5"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'getrandom = 0.2.16' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "libc",
+            "version": "0.2.176"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "getrandom",
+                "version": "0.2.16"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand_core",
+                    "version": "0.6.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rand",
+                        "version": "0.8.5"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "test-app",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "rand_chacha",
+                        "version": "0.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "rand",
+                            "version": "0.8.5"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "rand",
+                "version": "0.8.5"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "message": "crate 'libc = 0.2.176' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ppv-lite86",
+            "version": "0.2.21"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "rand_chacha",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand",
+                    "version": "0.8.5"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "test-app",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'ppv-lite86 = 0.2.21' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "rand",
+            "version": "0.8.5"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "test-app",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "crate 'rand = 0.8.5' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "rand_chacha",
+            "version": "0.3.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "rand",
+                "version": "0.8.5"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "test-app",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'rand_chacha = 0.3.1' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "rand_core",
+            "version": "0.6.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "rand",
+                "version": "0.8.5"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "test-app",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "rand_chacha",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand",
+                    "version": "0.8.5"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'rand_core = 0.6.4' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "serde",
+            "version": "1.0.226"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "test-app",
+                "version": "0.1.0"
+              }
+            },
+            {
+              "Krate": {
+                "name": "test-lib",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "test-app",
+                    "version": "0.1.0"
+                  },
+                  "repeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 20,
+          "line": 6,
+          "message": "allowed here",
+          "span": "serde"
+        }
+      ],
+      "message": "crate 'serde = 1.0.226' is explicitly allowed",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "serde_core",
+            "version": "1.0.226"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "serde",
+                "version": "1.0.226"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "test-app",
+                    "version": "0.1.0"
+                  }
+                },
+                {
+                  "Krate": {
+                    "name": "test-lib",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "test-app",
+                        "version": "0.1.0"
+                      },
+                      "repeat": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'serde_core = 1.0.226' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wasi",
+            "version": "0.11.1+wasi-snapshot-preview1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "getrandom",
+                "version": "0.2.16"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand_core",
+                    "version": "0.6.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rand",
+                        "version": "0.8.5"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "test-app",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Krate": {
+                        "name": "rand_chacha",
+                        "version": "0.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "rand",
+                            "version": "0.8.5"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'wasi = 0.11.1+wasi-snapshot-preview1' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "not-allowed",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "zerocopy",
+            "version": "0.8.27"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "ppv-lite86",
+                "version": "0.2.21"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "rand_chacha",
+                    "version": "0.3.1"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "rand",
+                        "version": "0.8.5"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "test-app",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'zerocopy = 0.8.27' is not explicitly allowed",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

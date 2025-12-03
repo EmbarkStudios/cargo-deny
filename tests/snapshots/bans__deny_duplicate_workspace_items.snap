@@ -165,12 +165,6 @@ expression: diags
       "labels": [
         {
           "column": 1,
-          "line": 15,
-          "message": "workspace dependency",
-          "span": "spdx"
-        },
-        {
-          "column": 1,
           "line": 7,
           "message": "",
           "span": "spdx"
@@ -188,7 +182,7 @@ expression: diags
           "span": "spdx"
         }
       ],
-      "message": "crate spdx = 0.10.6 is used 3 times in the workspace, but not all declarations use the shared workspace dependency",
+      "message": "crate spdx = 0.10.6 is used 3 times in the workspace, and there is no shared workspace dependency for it",
       "severity": "error"
     },
     "type": "diagnostic"
@@ -414,18 +408,6 @@ expression: diags
       "labels": [
         {
           "column": 1,
-          "line": 17,
-          "message": "workspace dependency",
-          "span": "spdx-old"
-        },
-        {
-          "column": 42,
-          "line": 17,
-          "message": "note the workspace dependency is renamed",
-          "span": "spdx"
-        },
-        {
-          "column": 1,
           "line": 19,
           "message": "",
           "span": "spdx"
@@ -437,7 +419,7 @@ expression: diags
           "span": "spdx"
         }
       ],
-      "message": "crate spdx = 0.9.0 is used 2 times in the workspace, but not all declarations use the shared workspace dependency",
+      "message": "crate spdx = 0.9.0 is used 2 times in the workspace, and there is no shared workspace dependency for it",
       "severity": "error"
     },
     "type": "diagnostic"
@@ -534,6 +516,46 @@ expression: diags
           "line": 36,
           "message": "note the dependency is renamed",
           "span": "tinyvec"
+        }
+      ],
+      "message": "workspace dependency is declared, but unused",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-workspace-dependency",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 1,
+          "line": 15,
+          "message": "unused workspace dependency",
+          "span": "spdx"
+        }
+      ],
+      "message": "workspace dependency is declared, but unused",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "unused-workspace-dependency",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 1,
+          "line": 17,
+          "message": "unused workspace dependency",
+          "span": "spdx-old"
+        },
+        {
+          "column": 42,
+          "line": 17,
+          "message": "note the dependency is renamed",
+          "span": "spdx"
         }
       ],
       "message": "workspace dependency is declared, but unused",
