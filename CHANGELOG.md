@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#814](https://github.com/EmbarkStudios/cargo-deny/pull/814) now allows deprecated license identifiers if they are detected from text, which was broken in 0.18.7. Additionally, when a GNU license (GPL, AGPL, LGPL, GFDL) license is detected, it is always detected as the `-or-later` variant, arbitrarily chosen as it is impossible to distinguish between the variants for a particular license version. This means if the license detected is actually wrong (eg. `GPL-3.0-or-later` is detected when the code is actually licensed under `GPL-3.0-only`), the license should instead be clarified to the correct one. Resolves [#813](https://github.com/EmbarkStudios/cargo-deny/issues/813).
+
 ## [0.18.7] - 2025-12-02
 ### Changed
 - [PR#812](https://github.com/EmbarkStudios/cargo-deny/pull/812) updated `spdx` to 0.13, allowing cargo-deny to remove the askalono dependency but still support license detection.
