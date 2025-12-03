@@ -268,6 +268,10 @@ impl LicensePack {
                                     expr.push_str(" AND ");
                                 }
 
+                                if id.is_deprecated() {
+                                    notes.push(format!("license '{}' detected in '{}' is deprecated in SPDX license list {}", id.name, lic_contents.path, spdx::identifiers::VERSION));
+                                }
+
                                 expr.push_str(id.name);
                                 sources.push(lic_contents.path.as_str().to_owned());
                             } else {

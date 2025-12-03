@@ -1,0 +1,73 @@
+---
+source: tests/licenses.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "no-license-field",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "license_detection",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "message": "license expression was not specified in manifest for crate 'license_detection = 0.1.0'",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "accepted",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "license_detection",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 15,
+          "line": 5,
+          "message": "license expression retrieved via license files: LICENSE, LICENSE-AGPL-3.0, LICENSE-BSD, and LICENSE-MIT",
+          "span": "MIT AND AGPL-3.0-or-later AND BSD-2-Clause-FreeBSD AND MIT-Festival"
+        },
+        {
+          "column": 15,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT"
+        },
+        {
+          "column": 23,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "AGPL-3.0-or-later"
+        },
+        {
+          "column": 45,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "BSD-2-Clause-FreeBSD"
+        },
+        {
+          "column": 70,
+          "line": 5,
+          "message": "accepted: license is explicitly allowed",
+          "span": "MIT-Festival"
+        }
+      ],
+      "message": "license requirements satisfied",
+      "notes": [
+        "license 'BSD-2-Clause-FreeBSD' detected in 'LICENSE-BSD' is deprecated in SPDX license list 3.27.0"
+      ],
+      "severity": "help"
+    },
+    "type": "diagnostic"
+  }
+]
