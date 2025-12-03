@@ -35,9 +35,8 @@ winapi = { version = "0.2.8", default-features = false }
 [target.x86_64-unknown-linux-musl.dependencies]
 nix-xy = { package = "nix", version = "0.16.1" }
 
-[dev-dependencies]
-difference = "2.0.0"
-
+# This is only used when targeting wasm, and includes a transitive dependency on
+# a crate version that has an unsound advisory, but again, we don't care
 [target.'cfg(all(target_arch = "wasm32", target_feature = "atomics"))'.dependencies]
 wasm-bindgen-futures = "0.4.6"
 

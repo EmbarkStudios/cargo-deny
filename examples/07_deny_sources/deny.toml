@@ -1,6 +1,3 @@
-[licenses]
-allow = [ "MIT" ]
-
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
@@ -12,16 +9,11 @@ unknown-git = "deny"
 # ]
 
 allow-git = [
-    # uncomment this to explicitly allow the bitflags repo and not fail
-    #"https://github.com/bitflags/bitflags.git",
+    "https://github.com/EmbarkStudios/spdx",
+    #"https://github.com/EmbarkStudios/cfg-expr",
 ]
 
 # Or we could allow the entire org
-# [sources.allow-org]
-# github = ["bitflags"]
+#[sources.allow-org]
+#github = ["EmbarkStudios"]
 
-private = [
-    # This can be changed to just be the host, to allow the mlua_serde dependency
-    # since that is under a different org/user than the other repos
-    "https://tulpa.dev/cadey/",
-]

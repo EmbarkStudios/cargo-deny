@@ -2,9 +2,9 @@
 # target specific crates that match at least one of them. Any crates that
 # **only** are pulled in for a target that isn't listed will be completely
 # ignored by **all** checks
+[graph]
 targets = [
-    { triple = "x86_64-unknown-linux-gnu" },
-    { triple = "wasm32-unknown-unknown", features = ["atomics"] },
+    "x86_64-unknown-linux-gnu",
 ]
 
 [bans]
@@ -18,7 +18,6 @@ deny = [
 ]
 
 [licenses]
-allow = [ "MIT" ]
 # One of our dependencies is GPL! But it's ok, because it's only for fuchsia,
 # and we don't actually build for fuchsia :)
-copyleft = "deny"
+allow = [ "MIT" ]
