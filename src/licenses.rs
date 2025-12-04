@@ -195,8 +195,8 @@ fn evaluate_expression(
         let end = if let Some(ai) = &failed_req.req.addition {
             failed_req.span.end as usize + 6 /*" WITH "*/ + match ai {
                 spdx::AdditionItem::Spdx(exc) => exc.name.len(),
-                spdx::AdditionItem::Other { doc_ref, add_ref } => {
-                    /*AdditionRef-*/ 12 + add_ref.len() + doc_ref.as_deref().map_or(0, |dr| {
+                spdx::AdditionItem::Other(other) => {
+                    /*AdditionRef-*/ 12 + other.add_ref.len() + other.doc_ref.as_deref().map_or(0, |dr| {
                         /*DocumentRef-:*/ 13 + dr.len()
                     })
                 }
@@ -305,6 +305,8 @@ pub fn check(
     {
         let mut pack = Pack::new(Check::Licenses);
 
+        let severity = ctx.cfg.unused_license_exception.into();
+
         // Print out warnings for exceptions that pertain to crates that
         // weren't actually encountered
         for exc in hits
@@ -319,6 +321,7 @@ pub fn check(
             }
 
             pack.push(diags::UnmatchedLicenseException {
+                severity,
                 license_exc_cfg: CfgCoord {
                     file: exc.file_id,
                     span: exc.spec.name.span,

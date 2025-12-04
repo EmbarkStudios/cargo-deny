@@ -1,2 +1,5 @@
 [licenses]
-allow = ["GPL-3.0", "LGPL-3.0"]
+allow = [
+    "GPL-2.0-or-later",
+    #"GPL-3.0-only",
+]

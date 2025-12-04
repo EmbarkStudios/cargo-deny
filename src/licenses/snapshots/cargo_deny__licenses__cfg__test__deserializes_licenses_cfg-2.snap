@@ -12,6 +12,7 @@ expression: validated
     ]
   },
   "unused_allowed_license": "warn",
+  "unused_license_exception": "warn",
   "confidence_threshold": 0.95,
   "allowed": [
     "Apache-2.0 WITH LLVM-exception",

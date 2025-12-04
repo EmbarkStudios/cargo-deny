@@ -14,7 +14,7 @@ expression: diags
           }
         }
       ],
-      "message": "license expression was not specified in manifest",
+      "message": "license expression was not specified in manifest for crate 'so-annoying = 0.1.0'",
       "severity": "warning"
     },
     "type": "diagnostic"

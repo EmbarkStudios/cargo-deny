@@ -122,13 +122,14 @@ impl From<UnmatchedLicenseAllowance> for Diag {
 }
 
 pub(crate) struct UnmatchedLicenseException {
+    pub(crate) severity: Severity,
     pub(crate) license_exc_cfg: CfgCoord,
 }
 
 impl From<UnmatchedLicenseException> for Diag {
     fn from(ule: UnmatchedLicenseException) -> Self {
         diag(
-            Diagnostic::new(Severity::Warning)
+            Diagnostic::new(ule.severity)
                 .with_message("license exception was not encountered")
                 .with_labels(vec![
                     ule.license_exc_cfg
@@ -197,12 +198,15 @@ impl From<EmptyLicenseField> for Diag {
     }
 }
 
-pub(crate) struct NoLicenseField;
+pub(crate) struct NoLicenseField<'k>(pub(crate) &'k Krate);
 
-impl From<NoLicenseField> for Diag {
-    fn from(_value: NoLicenseField) -> Self {
+impl From<NoLicenseField<'_>> for Diag {
+    fn from(value: NoLicenseField<'_>) -> Self {
         diag(
-            Diagnostic::warning().with_message("license expression was not specified in manifest"),
+            Diagnostic::warning().with_message(format!(
+                "license expression was not specified in manifest for crate '{}'",
+                value.0
+            )),
             Code::NoLicenseField,
         )
     }

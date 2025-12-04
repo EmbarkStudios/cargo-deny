@@ -19,15 +19,16 @@ version = "0.10.1"
 ```ini
 # We restrict the platforms, this primarily gets rid of wasm32, which pulls
 # in additional crates that include more duplicates
+[graph]
 targets = [
-    { triple = "x86_64-unknown-linux-musl" },
-    { triple = "x86_64-pc-windows-msvc" },
-    { triple = "x86_64-apple-darwin" },
+    "x86_64-unknown-linux-musl",
+    "x86_64-pc-windows-msvc",
+    "x86_64-apple-darwin",
 ]
 
 [bans]
 # We want duplicates to be errors rather than warnings
-multiple-versions = "deny"
+multiple-versions = "allow"
 deny = [
     # We never want to use openssl
     { name = "openssl-sys" },
@@ -42,5 +43,4 @@ skip = [
 
 ## Description
 
-This example shows how the `bans` check works. `reqwest` by default uses native-tls, which on linux uses openssl. But we've decided to **deny** openssl, so adding a dependency on it triggers the lint. It also happens to pull in multiple
-versions of a couple of dependencies, so we skip those. To "fix" this check, we would need to disable `reqwest`'s default features, and then enable the `"rustls"` feature, because we still want TLS!
+This example shows how the `bans` check works. `reqwest` by default uses native-tls, which on linux uses openssl. But we've decided to **deny** openssl, so adding a dependency on it triggers the lint. It also happens to pull in multiple versions of a couple of dependencies, so we skip those. To "fix" this check, we would need to disable `reqwest`'s default features, and then enable the `"rustls"` feature, because we still want TLS!

@@ -2,7 +2,7 @@
 name = "cargo-deny"
 description = "Cargo plugin to help you manage large dependency graphs"
 repository = "https://github.com/EmbarkStudios/cargo-deny"
-version = "0.18.5"
+version = "0.18.8"
 authors = [
   "Embark <opensource@embark-studios.com>",
   "Jake Shadle <jake.shadle@embark-studios.com>",
@@ -44,8 +44,6 @@ native-certs = ["reqwest/rustls-tls-native-roots", "tame-index/native-certs"]
 nu-ansi-term = "0.50"
 # Easy errors
 anyhow = "1.0"
-# Used for detecting the license type of a file
-askalono = { version = "0.5", default-features = false }
 # Used to track various things during check runs
 bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
@@ -94,7 +92,7 @@ reqwest = { version = "0.12", default-features = false, features = ["http2"] }
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Used for interacting with advisory databases
-rustsec = { version = "0.30", default-features = false }
+rustsec = { version = "0.31", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -103,11 +101,11 @@ serde_json = "1.0"
 # Avoid some heap allocations when we likely won't need them
 smallvec = "1.14"
 # Used for parsing and checking SPDX license expressions
-spdx = "0.12"
+spdx = { version = "0.13", features = ["detection-parallel", "detection-inline-cache"] }
 # Lazy
 strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.24", default-features = false, features = [
+tame-index = { version = "0.25", default-features = false, features = [
   "git",
   "local",
   "sparse",
@@ -128,7 +126,7 @@ walkdir = "2.3"
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.74"
+version = "0.75"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -141,8 +139,8 @@ features = [
 # Folder copying
 fs_extra = "1.3"
 # Snapshot testing
-insta = { version = "1.43", features = ["json"] }
-tame-index = { version = "0.24", features = ["local-builder"] }
+insta = { version = "1.44", features = ["json"] }
+tame-index = { version = "0.25", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.6", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk

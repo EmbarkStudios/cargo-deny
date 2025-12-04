@@ -1,7 +1,6 @@
 # 02_deny_license
 
-This example shows how to explicitly deny certain licenses that will be checked against
-the license requirements of every crate in your dependency graph.
+This example shows how the license check will fail when all required licenses have not been explicitly allowed.
 
 ## Requirement
 
@@ -13,13 +12,9 @@ license = "MIT AND Apache-2.0"
 
 ```ini
 [licenses]
-allow = [ "MIT" ]
-deny = [ "Apache-2.0" ]
+allow = ["MIT"]
 ```
 
 ## Description
 
-Just as we can allow specific licenses, we can deny specific ones via `[licenses.deny]`. Note that the license requirement
-has changed to use the operator `AND` instead of `OR` which means that the user is required to license the crate under
-both of the licenses, so even though we still allow `MIT`, our denial of `Apache-2.0` causes the expression to fail and
-cargo-deny to emit an error that we did not accede to the license requirements of the crate.
+Due to the license requirements of the crate being both `MIT` **AND** `Apache-2.0`, we would need to accept both licenses, but since we only accept `MIT`, the license check fails because `Apache-2.0` is required if we want to use the crate, but we didn't specify that. This is the mechanism that allows you to only specify licenses you want to allow, and the license check will fail when a crate changes its licensing terms to something that does not match your acceptance list.
