@@ -46,5 +46,6 @@ expression: validated
     }
   ],
   "ignore_sources": [],
-  "include_dev": false
+  "include_dev": false,
+  "include_build": true
 }

@@ -228,6 +228,9 @@ pub struct Config {
     /// If true, performs license checks for dev-dependencies for workspace
     /// crates as well
     pub include_dev: bool,
+    /// If true, performs license checks for build-dependencies for workspace
+    /// crates as well
+    pub include_build: bool,
     deprecated_spans: Vec<Span>,
 }
 
@@ -242,6 +245,7 @@ impl Default for Config {
             clarify: Vec::new(),
             exceptions: Vec::new(),
             include_dev: false,
+            include_build: true,
             deprecated_spans: Vec::new(),
         }
     }
@@ -275,6 +279,7 @@ impl<'de> Deserialize<'de> for Config {
             .optional("unused-license-exception")
             .unwrap_or(LintLevel::Warn);
         let include_dev = th.optional("include-dev").unwrap_or_default();
+        let include_build = th.optional("include-build").unwrap_or(true);
 
         th.finalize(None)?;
 
@@ -287,6 +292,7 @@ impl<'de> Deserialize<'de> for Config {
             exceptions,
             unused_license_exception,
             include_dev,
+            include_build,
             deprecated_spans: fdeps,
         })
     }
@@ -390,6 +396,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             allowed,
             ignore_sources,
             include_dev: self.include_dev,
+            include_build: self.include_build,
         }
     }
 }
@@ -485,6 +492,7 @@ pub struct ValidConfig {
     pub exceptions: Vec<ValidException>,
     pub ignore_sources: Vec<url::Url>,
     pub include_dev: bool,
+    pub include_build: bool,
 }
 
 #[cfg(test)]
@@ -519,5 +527,24 @@ mod test {
         );
 
         insta::assert_json_snapshot!(validated);
+    }
+
+    #[test]
+    fn include_build_field_deserializes() {
+        let cd = ConfigData::<Licenses>::load_str(
+            "tests/cfg/include-build.toml",
+            "[licenses]\ninclude-build = false\n",
+        );
+
+        let validated = cd.validate_with_diags(
+            |l| l.licenses,
+            |files, diags| {
+                let diags = write_diagnostics(files, diags.into_iter());
+                // There should be no diagnostics for a simple config
+                assert!(diags.is_empty());
+            },
+        );
+
+        assert!(!validated.include_build, "include-build should be false");
     }
 }
