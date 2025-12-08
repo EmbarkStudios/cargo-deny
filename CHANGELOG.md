@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.18.9] - 2025-12-08
 ### Fixed
 - [PR#817](https://github.com/EmbarkStudios/cargo-deny/pull/817) resolved [#816](https://github.com/EmbarkStudios/cargo-deny/issues/816) by making most license integration tests just return success if I or CI am not the one running them.
 
@@ -755,7 +756,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.9...HEAD
+[0.18.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.8...0.18.9
 [0.18.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...0.18.8
 [0.18.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...0.18.7
 [0.18.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.5...0.18.6
