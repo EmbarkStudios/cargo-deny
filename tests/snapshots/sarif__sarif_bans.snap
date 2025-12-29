@@ -198,7 +198,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows-sys'"
           },
@@ -211,7 +224,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows_aarch64_msvc'"
           },
@@ -224,7 +250,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows_i686_gnu'"
           },
@@ -237,7 +276,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows_i686_msvc'"
           },
@@ -250,7 +302,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows_x86_64_gnu'"
           },
@@ -263,7 +328,20 @@ expression: s
         },
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "found 2 duplicate entries for crate 'windows_x86_64_msvc'"
           },

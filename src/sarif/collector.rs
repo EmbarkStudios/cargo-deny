@@ -1,7 +1,7 @@
 use crate::diag::Extra;
 use crate::sarif::model::{
-    DefaultConfiguration, Driver, Help, Location, Message, Result as SarifResult, Rule,
-    RuleProperties, Run, SarifLog, TextContent, Tool,
+    ArtifactLocation, DefaultConfiguration, Driver, Help, Location, Message, PhysicalLocation,
+    Region, Result as SarifResult, Rule, RuleProperties, Run, SarifLog, TextContent, Tool,
 };
 use crate::{
     Kid,
@@ -255,11 +255,34 @@ impl SarifCollector {
                     }
                 }
 
+                // GitHub Code Scanning requires at least one location per result.
+                // If no locations were found (e.g., for dependency advisories that only
+                // reference Cargo.lock which is filtered out), add a fallback location
+                // pointing to Cargo.toml since that's where dependencies are declared.
+                let locations = if diag.locations.is_empty() {
+                    vec![Location {
+                        physical_location: PhysicalLocation {
+                            artifact_location: ArtifactLocation {
+                                uri: "Cargo.toml".to_string(),
+                            },
+                            region: Region {
+                                start_line: 1,
+                                byte_offset: 0,
+                                byte_length: 0,
+                                snippet: None,
+                                message: None,
+                            },
+                        },
+                    }]
+                } else {
+                    diag.locations
+                };
+
                 SarifResult {
                     rule_id,
                     message: diag.message,
                     level: severity_to_sarif_level(diag.severity),
-                    locations: diag.locations,
+                    locations,
                     partial_fingerprints: fingerprints,
                 }
             })

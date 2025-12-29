@@ -9,7 +9,20 @@ expression: s
       "results": [
         {
           "level": "error",
-          "locations": [],
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Cargo.toml"
+                },
+                "region": {
+                  "byteLength": 0,
+                  "byteOffset": 0,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
           "message": {
             "text": "detected 'git' source not explicitly allowed"
           },
