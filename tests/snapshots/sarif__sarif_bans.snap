@@ -202,7 +202,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -228,7 +228,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -254,7 +254,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -280,7 +280,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -306,7 +306,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -332,7 +332,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/features-galore/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,

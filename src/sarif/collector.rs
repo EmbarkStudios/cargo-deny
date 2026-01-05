@@ -14,6 +14,7 @@ use std::fmt::Write as _;
 pub struct SarifCollector {
     diagnostics: Vec<DiagnosticData>,
     rules: BTreeMap<DiagnosticCode, RuleData>,
+    workspace_root: String,
 }
 
 struct DiagnosticData {
@@ -31,17 +32,15 @@ struct RuleData {
     description: &'static str,
 }
 
-#[allow(clippy::derivable_impls)]
-impl Default for SarifCollector {
-    fn default() -> Self {
+impl SarifCollector {
+    pub fn new(workspace_root: impl Into<String>) -> Self {
         Self {
             diagnostics: Vec::new(),
             rules: BTreeMap::new(),
+            workspace_root: workspace_root.into(),
         }
     }
-}
 
-impl SarifCollector {
     pub fn add_diagnostics(&mut self, pack: Pack, files: &crate::diag::Files) {
         for diag in pack {
             let Some(code) = diag.code else {
@@ -258,12 +257,17 @@ impl SarifCollector {
                 // GitHub Code Scanning requires at least one location per result.
                 // If no locations were found (e.g., for dependency advisories that only
                 // reference Cargo.lock which is filtered out), add a fallback location
-                // pointing to Cargo.toml since that's where dependencies are declared.
+                // pointing to the workspace Cargo.toml since that's where dependencies are declared.
                 let locations = if diag.locations.is_empty() {
+                    let fallback_uri = if self.workspace_root.is_empty() {
+                        "Cargo.toml".to_string()
+                    } else {
+                        format!("{}/Cargo.toml", self.workspace_root)
+                    };
                     vec![Location {
                         physical_location: PhysicalLocation {
                             artifact_location: ArtifactLocation {
-                                uri: "Cargo.toml".to_string(),
+                                uri: fallback_uri,
                             },
                             region: Region {
                                 start_line: 1,

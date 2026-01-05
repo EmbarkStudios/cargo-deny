@@ -21,7 +21,8 @@ where
             runner(cctx, tx);
         },
         || {
-            let mut sarif = cargo_deny::sarif::SarifCollector::default();
+            let workspace_root = ctx.krates.workspace_root().as_str();
+            let mut sarif = cargo_deny::sarif::SarifCollector::new(workspace_root);
 
             let default = if std::env::var_os("CI").is_some() {
                 60
@@ -64,11 +65,20 @@ where
     // so rather than try and fail, just redact manually
     for res in &mut sl.runs[0].results {
         for loc in &mut res.locations {
-            loc.physical_location.artifact_location.uri = loc
-                .physical_location
-                .artifact_location
-                .uri
-                .replace(root.as_str(), "{CWD}");
+            let uri = &mut loc.physical_location.artifact_location.uri;
+            // First try standard CWD replacement
+            *uri = uri.replace(root.as_str(), "{CWD}");
+
+            // Handle stale absolute paths from pre-computed test metadata (e.g., sarif_advisories)
+            // by normalizing any remaining absolute path containing known project subdirectories
+            if uri.starts_with('/') {
+                for marker in ["/cargo-deny/examples/", "/cargo-deny/tests/"] {
+                    if let Some(pos) = uri.find(marker) {
+                        *uri = format!("{{CWD}}{}", &uri[pos + "/cargo-deny".len()..]);
+                        break;
+                    }
+                }
+            }
         }
 
         for fp in res.partial_fingerprints.values_mut() {

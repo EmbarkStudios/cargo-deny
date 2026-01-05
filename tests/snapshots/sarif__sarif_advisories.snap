@@ -13,7 +13,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -40,7 +40,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -67,7 +67,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -94,7 +94,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -121,7 +121,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -148,7 +148,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -175,7 +175,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -202,7 +202,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -229,7 +229,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -256,7 +256,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -283,7 +283,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -310,7 +310,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -337,7 +337,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -364,7 +364,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -391,7 +391,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -418,7 +418,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -445,7 +445,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -472,7 +472,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -499,7 +499,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -526,7 +526,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -553,7 +553,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -580,7 +580,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -607,7 +607,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
@@ -634,7 +634,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/examples/06_advisories/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,

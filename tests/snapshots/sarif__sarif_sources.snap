@@ -13,7 +13,7 @@ expression: s
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Cargo.toml"
+                  "uri": "{CWD}/tests/test_data/sources/Cargo.toml"
                 },
                 "region": {
                   "byteLength": 0,
