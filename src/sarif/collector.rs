@@ -266,9 +266,7 @@ impl SarifCollector {
                     };
                     vec![Location {
                         physical_location: PhysicalLocation {
-                            artifact_location: ArtifactLocation {
-                                uri: fallback_uri,
-                            },
+                            artifact_location: ArtifactLocation { uri: fallback_uri },
                             region: Region {
                                 start_line: 1,
                                 byte_offset: 0,

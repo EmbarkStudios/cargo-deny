@@ -548,9 +548,7 @@ fn print_diagnostics(
     use cargo_deny::diag::Check;
 
     if log_ctx.format == crate::Format::Sarif {
-        let workspace_root = krates
-            .map(|k| k.workspace_root().as_str())
-            .unwrap_or("");
+        let workspace_root = krates.map_or("", |k| k.workspace_root().as_str());
         let mut sc = cargo_deny::sarif::SarifCollector::new(workspace_root);
 
         for pack in rx {
