@@ -267,8 +267,8 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
             .receive(&mut progress, should_interrupt)
             .context("failed to fetch")?;
 
-        let remote_head_id = tame_index::utils::git::write_fetch_head(&repo, &outcome, &remote)
-            .context("failed to write FETCH_HEAD")?;
+        let remote_head_id =
+            write_fetch_head(&repo, &outcome, &remote).context("failed to write FETCH_HEAD")?;
 
         use gix::refs::{Target, transaction as tx};
 
@@ -367,11 +367,183 @@ fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Workaround for `#[non_exhaustive]`
+#[inline]
+pub fn unwrap_sha1(oid: gix::ObjectId) -> [u8; 20] {
+    let gix::ObjectId::Sha1(sha1) = oid else {
+        unreachable!()
+    };
+    sha1
+}
+
+/// Writes the `FETCH_HEAD` for the specified fetch outcome to the specified git
+/// repository
+///
+/// This function is narrowly focused on on writing a `FETCH_HEAD` that contains
+/// exactly two pieces of information, the id of the commit pointed to by the
+/// remote `HEAD`, and, if it exists, the same id with the remote branch whose
+/// `HEAD` is the same. This focus gives use two things:
+///     1. `FETCH_HEAD` that can be parsed to the correct remote HEAD by
+/// [`gix`](https://github.com/Byron/gitoxide/commit/eb2b513bd939f6b59891d0a4cf5465b1c1e458b3)
+///     1. A `FETCH_HEAD` that closely (or even exactly) matches that created by
+/// cargo via git or git2 when fetching only `+HEAD:refs/remotes/origin/HEAD`
+///
+/// Calling this function for the fetch outcome of a clone will write `FETCH_HEAD`
+/// just as if a normal fetch had occurred, but note that AFAICT neither git nor
+/// git2 does this, ie. a fresh clone will not have a `FETCH_HEAD` present. I don't
+/// _think_ that has negative implications, but if it does...just don't call this
+/// function on the result of a clone :)
+///
+/// Note that the remote provided should be the same remote used for the fetch
+/// operation. The reason this is not just grabbed from the repo is because
+/// repositories may not have the configured remote, or the remote was modified
+/// (eg. replacing refspecs) before the fetch operation
+pub fn write_fetch_head(
+    repo: &gix::Repository,
+    fetch: &gix::remote::fetch::Outcome,
+    remote: &gix::Remote<'_>,
+) -> anyhow::Result<gix::ObjectId> {
+    use gix::{bstr::ByteSlice, protocol::handshake::Ref};
+    use std::fmt::Write;
+
+    // Find the remote head commit
+    let (head_target_branch, oid) = fetch
+        .ref_map
+        .mappings
+        .iter()
+        .find_map(|mapping| {
+            let gix::remote::fetch::refmap::Source::Ref(rref) = &mapping.remote else {
+                return None;
+            };
+
+            let Ref::Symbolic {
+                full_ref_name,
+                target,
+                object,
+                ..
+            } = rref
+            else {
+                return None;
+            };
+
+            (full_ref_name == "HEAD").then_some((target, object))
+        })
+        .context("unable to find remote HEAD")?;
+
+    let remote_url = {
+        let ru = remote
+            .url(gix::remote::Direction::Fetch)
+            .expect("can't fetch without a fetch url");
+        let s = ru.to_bstring();
+        let v = s.into();
+        String::from_utf8(v).expect("remote url was not utf-8 :-/")
+    };
+
+    /// Encodes a slice of bytes into a hexadecimal string to the specified buffer
+    fn encode_hex<'out, const I: usize, const O: usize>(
+        input: &[u8; I],
+        output: &'out mut [u8; O],
+    ) -> &'out str {
+        assert_eq!(I * 2, O);
+
+        const CHARS: &[u8] = b"0123456789abcdef";
+
+        for (i, &byte) in input.iter().enumerate() {
+            let i = i * 2;
+            output[i] = CHARS[(byte >> 4) as usize];
+            output[i + 1] = CHARS[(byte & 0xf) as usize];
+        }
+
+        // SAFETY: we only emit ASCII hex characters
+        #[allow(unsafe_code)]
+        unsafe {
+            std::str::from_utf8_unchecked(output)
+        }
+    }
+
+    let fetch_head = {
+        let mut hex_id = [0u8; 40];
+        let sha1 = unwrap_sha1(*oid);
+        let commit_id = encode_hex(&sha1, &mut hex_id);
+
+        let mut fetch_head = String::new();
+
+        let remote_name = remote
+            .name()
+            .and_then(|n| {
+                let gix::remote::Name::Symbol(name) = n else {
+                    return None;
+                };
+                Some(name.as_ref())
+            })
+            .unwrap_or("origin");
+
+        // We write the remote HEAD first, but _only_ if it was explicitly requested
+        if remote
+            .refspecs(gix::remote::Direction::Fetch)
+            .iter()
+            .any(|rspec| {
+                let rspec = rspec.to_ref();
+                if !rspec.remote().is_some_and(|r| r.ends_with(b"HEAD")) {
+                    return false;
+                }
+
+                rspec.local().is_some_and(|l| {
+                    l.to_str().ok().and_then(|l| {
+                        l.strip_prefix("refs/remotes/")
+                            .and_then(|l| l.strip_suffix("/HEAD"))
+                    }) == Some(remote_name)
+                })
+            })
+        {
+            writeln!(&mut fetch_head, "{commit_id}\t\t{remote_url}").unwrap();
+        }
+
+        // Attempt to get the branch name, but if it looks suspect just skip this,
+        // it _should_ be fine, or at least, we've already written the only thing
+        // that gix can currently parse
+        if let Some(branch_name) = head_target_branch
+            .to_str()
+            .ok()
+            .and_then(|s| s.strip_prefix("refs/heads/"))
+        {
+            writeln!(
+                &mut fetch_head,
+                "{commit_id}\t\tbranch '{branch_name}' of {remote_url}"
+            )
+            .unwrap();
+        }
+
+        fetch_head
+    };
+
+    // We _could_ also emit other branches/tags like git does, however it's more
+    // complicated than just our limited use case of writing remote HEAD
+    //
+    // 1. Remote branches are always emitted, however in gix those aren't part
+    // of the ref mappings if they haven't been updated since the last fetch
+    // 2. Conversely, tags are _not_ written by git unless they have been changed
+    // added, but gix _does_ always place those in the fetch mappings
+
+    anyhow::ensure!(!fetch_head.is_empty(), "unable to find remote HEAD");
+
+    let fetch_head_path = crate::PathBuf::from_path_buf(repo.path().join("FETCH_HEAD"))
+        .map_err(|_e| anyhow::anyhow!("repo path is not utf-8"))?;
+    std::fs::write(&fetch_head_path, fetch_head)
+        .with_context(|| format!("failed to write fetch head to {fetch_head_path}"))?;
+
+    Ok(*oid)
+}
+
 fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
     anyhow::ensure!(
         url.scheme() == "https" || url.scheme() == "ssh",
         "expected '{url}' to be an `https` or `ssh` url",
     );
+
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
 
     // Ensure the parent directory chain is created, gix might? do it for us
     {
@@ -451,11 +623,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
     let (mut repo, fetch_outcome) = open_or_clone_repo()?;
 
     if let Some(fetch_outcome) = fetch_outcome {
-        tame_index::utils::git::write_fetch_head(
-            &repo,
-            &fetch_outcome,
-            &repo.find_remote("origin").unwrap(),
-        )?;
+        write_fetch_head(&repo, &fetch_outcome, &repo.find_remote("origin").unwrap())?;
     } else {
         // If we didn't open a fresh repo we need to perform a fetch ourselves, and
         // do the work of updating the HEAD to point at the latest remote HEAD, which

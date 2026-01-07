@@ -25,9 +25,9 @@ name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
 [features]
-default = ["reqwest/rustls-tls-webpki-roots", "tame-index/default"]
+default = ["dep:webpki-roots"]
 # Enables the use of OS native certificate store.
-native-certs = ["reqwest/rustls-tls-native-roots", "tame-index/native-certs"]
+native-certs = ["dep:rustls-native-certs"]
 
 #default = ["vendored-openssl", "vendored-libgit2"]
 # Allows the use of a vendored version openssl when compiling libgit, which allows
@@ -86,9 +86,6 @@ parking_lot = "0.12"
 rayon = "1.11"
 # Laziness, but we already pull it in transitively
 regex = "1.11"
-# HTTP client backing gix, we don't use it directly but need it here for configuration
-# due to ...reasons
-reqwest = { version = "0.12", default-features = false, features = ["http2"] }
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Used for interacting with advisory databases
@@ -105,8 +102,7 @@ spdx = { version = "0.13", features = ["detection-parallel", "detection-inline-c
 # Lazy
 strum = { version = "0.27", features = ["derive"] }
 # Index retrieval and querying
-tame-index = { version = "0.25", default-features = false, features = [
-  "git",
+tame-index = { version = "0.26", default-features = false, features = [
   "local",
   "sparse",
 ] }
@@ -124,9 +120,19 @@ url = "2.5"
 # Directory traversal
 walkdir = "2.3"
 
+# HTTP
+# HTTP client backing gix, we don't use it directly but need it here for configuration
+# due to ...reasons
+reqwest = { version = "0.13", default-features = false, features = ["http2", "rustls-no-provider"] }
+# We configure TLS manually for reqwest. The version must be kept in line with the
+# one used by reqwest
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+rustls-native-certs = { version = "0.8", optional = true }
+webpki-roots = { version = "1.0", optional = true }
+
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.75"
+version = "0.77"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -140,7 +146,7 @@ features = [
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.44", features = ["json"] }
-tame-index = { version = "0.25", features = ["local-builder"] }
+tame-index = { version = "0.26", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.6", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk

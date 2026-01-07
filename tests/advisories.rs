@@ -5,6 +5,19 @@ use cargo_deny::{
     test_utils::{self as tu},
 };
 
+fn blocking_client() -> reqwest::blocking::ClientBuilder {
+    let rcs: rustls::RootCertStore = webpki_roots::TLS_SERVER_ROOTS.iter().cloned().collect();
+    let client_config = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_protocol_versions(rustls::DEFAULT_VERSIONS)
+    .unwrap()
+    .with_root_certificates(rcs)
+    .with_no_client_auth();
+
+    reqwest::blocking::Client::builder().tls_backend_preconfigured(client_config)
+}
+
 struct TestCtx {
     dbs: advisories::DbSet,
     krates: Krates,
@@ -601,14 +614,14 @@ fn crates_io_source_replacement() {
     // for crates.io
     let lrd = temp_dir();
     {
-        use tame_index::{external::reqwest, index::local};
+        use tame_index::index::local;
 
         let sparse = tame_index::index::RemoteSparseIndex::new(
             tame_index::SparseIndex::new(tame_index::IndexLocation::new(
                 tame_index::IndexUrl::CratesIoSparse,
             ))
             .unwrap(),
-            reqwest::blocking::Client::new(),
+            blocking_client().build().unwrap(),
         );
 
         // Use a separate even more temporary cargo home for the gathering of the
@@ -658,8 +671,7 @@ fn crates_io_source_replacement() {
             })
             .collect();
 
-        let client =
-            local::builder::Client::build(reqwest::blocking::ClientBuilder::new()).unwrap();
+        let client = local::builder::Client::build(blocking_client()).unwrap();
 
         let lrb = local::LocalRegistryBuilder::create(to_path(&lrd).unwrap().to_owned()).unwrap();
         let config = sparse.index.index_config().unwrap();

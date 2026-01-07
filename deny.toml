@@ -27,7 +27,7 @@ deny = [
     { crate = "windows", reason = "bloated and unnecessary", use-instead = "ideally inline bindings, practically, windows-sys" },
 ]
 skip = [
-    { crate = "core-foundation@0.9.4", reason = "reqwest -> system-configuration uses this old version" },
+    { crate = "signal-hook@0.3.18", reason = "gix directly depends on this old version, but all the other gix-* crates use the newer one" },
     { crate = "getrandom@0.2.16", reason = "ring uses this old version" },
     { crate = "hashbrown@0.15.5", reason = "petgraph uses this old version" },
     { crate = "foldhash@0.1.5", reason = "hashbrown 0.15 uses this old version" },
