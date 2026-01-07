@@ -33,6 +33,8 @@ Failed to load the cached index details for a crate.
 
 An advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) didn't apply to any crate. This could happen if the advisory was [withdrawn](https://docs.rs/rustsec/latest/rustsec/advisory/struct.Metadata.html#structfield.withdrawn), or the version of the crate no longer falls within the range of affected versions the advisory applies to.
 
+This diagnostic can be silenced by configuring the [`advisories.unused-ignored-advisory`](cfg.md#the-unused-ignored-advisory-field-optional) field to "allow".
+
 ### `advisory-ignored`
 
 An advisory in [`advisories.ignore`](cfg.md#the-ignore-field-optional) was encountered.
@@ -48,3 +50,5 @@ A yanked crate version was ignored via [`advisories.ignore`](cfg.md#the-ignore-f
 ### `yanked-not-detected`
 
 A yanked crate version was ignored via [`advisories.ignore`](cfg.md#the-ignore-field-optional), but it was not found in the crate graph.
+
+This diagnostic can be silenced by configuring the [`advisories.unused-ignored-advisory`](cfg.md#the-unused-ignored-advisory-field-optional) field to "allow".

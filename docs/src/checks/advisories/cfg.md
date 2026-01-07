@@ -118,3 +118,11 @@ One final note, there are 2 units available in the format that are not exact, na
 
 - 1 year = 365 days
 - 1 month = 30.43 days
+
+### The `unused-ignored-advisory` field (optional)
+
+Determines what happens when one of the advisories that appears in the `ignore` list is not encountered in the dependency graph.
+
+- `warn` (default) - A warning is emitted for each advisory that appears in `advisories.ignore` but which is not used in any crate.
+- `allow` - Unused advisories in the `advisories.ignore` list are ignored.
+- `deny` - An unused advisory in the `advisories.ignore` list triggers an error, and cause the advisory check to fail.
