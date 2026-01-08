@@ -495,11 +495,36 @@ impl Gatherer {
 
         let files_lock = std::sync::Arc::new(parking_lot::RwLock::new(files));
 
-        // Most users will not care about licenses for dev dependencies
-        let krates = if cfg.is_some_and(|cfg| cfg.include_dev) {
-            krates.krates().collect()
-        } else {
-            krates.krates_filtered(krates::DepKind::Dev)
+        // Determine which dependency kinds to include in license checking.
+        // By default dev-dependencies are excluded (include_dev = false),
+        // while build-dependencies are included (include_build = true).
+        let (include_dev, include_build) = match cfg {
+            Some(cfg) => (cfg.include_dev, cfg.include_build),
+            None => (false, true),
+        };
+
+        let krates = match (include_dev, include_build) {
+            (true, true) => krates.krates().collect(),
+            (true, false) => krates.krates_filtered(krates::DepKind::Build),
+            (false, true) => krates.krates_filtered(krates::DepKind::Dev),
+            (false, false) => {
+                // Exclude crates that are only reachable via dev _or_ build
+                // dependency edges. Compute the intersection of the sets that
+                // remain when dev-only and build-only crates are removed.
+                let filtered_dev = krates.krates_filtered(krates::DepKind::Dev);
+                let filtered_build = krates.krates_filtered(krates::DepKind::Build);
+
+                // Both filtered lists are sorted by id; compute intersection by
+                // comparing ids. We'll build a vector of crates present in both.
+                let mut build_ids: Vec<_> = filtered_build.iter().map(|k| k.id.clone()).collect();
+                // Ensure sorted for binary_search (should already be sorted, but be safe)
+                build_ids.sort();
+
+                filtered_dev
+                    .into_iter()
+                    .filter(|k| build_ids.binary_search(&k.id).is_ok())
+                    .collect()
+            }
         };
 
         let lic_rx = regex::Regex::new(LICENSE_RX).expect("failed to compile regex");
