@@ -13,9 +13,6 @@ all-features = true
 [advisories]
 unmaintained = "workspace"
 ignore = [
-    # gix-date 0.11.0 vulnerability via tame-index 0.25.0 -> gix 0.75.0
-    # Waiting for tame-index to update to gix 0.77+
-    { id = "RUSTSEC-2025-0140", reason = "tame-index 0.25.0 pins gix 0.75.0; no updated version available yet" },
 ]
 
 [bans]
@@ -56,6 +53,4 @@ allow = [
     "Zlib",
 ]
 exceptions = [
-    # Use exceptions for these as they only have a single user
-    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
 ]
