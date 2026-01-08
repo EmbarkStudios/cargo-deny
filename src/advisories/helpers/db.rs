@@ -541,9 +541,7 @@ fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
         "expected '{url}' to be an `https` or `ssh` url",
     );
 
-    rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
+    let _dontcare = rustls::crypto::ring::default_provider().install_default();
 
     // Ensure the parent directory chain is created, gix might? do it for us
     {
