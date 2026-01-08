@@ -171,7 +171,9 @@ pub fn check<R, S>(
         .zip(ctx.cfg.ignore.iter())
         .filter_map(|(hit, ignore)| if !hit { Some(ignore) } else { None })
     {
-        sink.push(ctx.diag_for_advisory_not_encountered(ignore));
+        sink.push(
+            ctx.diag_for_advisory_not_encountered(ignore, ctx.cfg.unused_ignored_advisory.into()),
+        );
     }
 
     for ignore in ignore_yanked_hits
@@ -179,7 +181,10 @@ pub fn check<R, S>(
         .zip(ctx.cfg.ignore_yanked.iter())
         .filter_map(|(hit, ignore)| if !hit { Some(ignore) } else { None })
     {
-        sink.push(ctx.diag_for_ignored_yanked_not_encountered(ignore));
+        sink.push(ctx.diag_for_ignored_yanked_not_encountered(
+            ignore,
+            ctx.cfg.unused_ignored_advisory.into(),
+        ));
     }
 
     if let Some(mut reporter) = audit_compatible_reporter {

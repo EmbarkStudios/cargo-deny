@@ -7,3 +7,4 @@ ignore = [
     { crate = "yanked", reason = "a new version has not been released" },
 ]
 unmaintained = "workspace"
+unused-ignored-advisory = "warn"

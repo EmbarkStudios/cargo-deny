@@ -289,11 +289,15 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
             .into()
     }
 
-    pub(crate) fn diag_for_advisory_not_encountered(&self, not_hit: &IgnoreId) -> Pack {
+    pub(crate) fn diag_for_advisory_not_encountered(
+        &self,
+        not_hit: &IgnoreId,
+        severity: Severity,
+    ) -> Pack {
         (
             Check::Advisories,
             diag(
-                Diagnostic::new(Severity::Warning)
+                Diagnostic::new(severity)
                     .with_message("advisory was not encountered")
                     .with_labels(
                         not_hit.to_labels(self.cfg.file_id, "no crate matched advisory criteria"),
@@ -308,11 +312,12 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
     pub(crate) fn diag_for_ignored_yanked_not_encountered(
         &self,
         not_hit: &crate::bans::SpecAndReason,
+        severity: Severity,
     ) -> Pack {
         (
             Check::Advisories,
             diag(
-                Diagnostic::new(Severity::Warning)
+                Diagnostic::new(severity)
                     .with_message("yanked crate was not encountered")
                     .with_labels(not_hit.to_labels(Some("yanked crate not detected"))),
                 Code::YankedNotDetected,

@@ -91,6 +91,9 @@ pub struct Config {
     /// use the '.' separator instead of ',' which is used by some locales and
     /// supported in the RFC3339 format, but not by this implementation
     pub maximum_db_staleness: Spanned<Duration>,
+    /// Determines the response to advisories in the `ignore`ed list which do not
+    /// exist in the dependency tree.
+    pub unused_ignored_advisory: LintLevel,
     deprecated_spans: Vec<Span>,
 }
 
@@ -107,6 +110,7 @@ impl Default for Config {
             disable_yank_checking: false,
             maximum_db_staleness: Spanned::new(Duration::seconds_f64(NINETY_DAYS)),
             deprecated_spans: Vec::new(),
+            unused_ignored_advisory: LintLevel::Warn,
         }
     }
 }
@@ -286,6 +290,10 @@ impl<'de> Deserialize<'de> for Config {
             None
         };
 
+        let unused_ignored_advisory = th
+            .optional("unused-ignored-advisory")
+            .unwrap_or(LintLevel::Warn);
+
         th.finalize(None)?;
 
         // Use the 90 days default as a fallback
@@ -303,6 +311,7 @@ impl<'de> Deserialize<'de> for Config {
             disable_yank_checking,
             maximum_db_staleness,
             deprecated_spans: fdeps,
+            unused_ignored_advisory,
         })
     }
 }
@@ -411,6 +420,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
             disable_yank_checking: self.disable_yank_checking,
             maximum_db_staleness: self.maximum_db_staleness,
+            unused_ignored_advisory: self.unused_ignored_advisory,
         }
     }
 }
@@ -427,6 +437,7 @@ pub struct ValidConfig {
     pub git_fetch_with_cli: bool,
     pub disable_yank_checking: bool,
     pub maximum_db_staleness: Spanned<Duration>,
+    pub unused_ignored_advisory: LintLevel,
 }
 
 /// We need to implement this ourselves since time doesn't support it

@@ -39,5 +39,6 @@ expression: validated
   "maximum_db_staleness": [
     466560000,
     0
-  ]
+  ],
+  "unused_ignored_advisory": "warn"
 }
