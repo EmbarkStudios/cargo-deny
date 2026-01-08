@@ -222,7 +222,6 @@ dependencies = [
  "reqwest",
  "ring",
  "rustls",
- "rustls-native-certs",
  "rustsec",
  "semver",
  "serde",

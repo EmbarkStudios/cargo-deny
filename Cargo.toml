@@ -24,21 +24,6 @@ maintenance = { status = "actively-developed" }
 name = "cargo-deny"
 path = "src/cargo-deny/main.rs"
 
-[features]
-default = ["dep:webpki-roots"]
-# Enables the use of OS native certificate store.
-native-certs = ["dep:rustls-native-certs"]
-
-#default = ["vendored-openssl", "vendored-libgit2"]
-# Allows the use of a vendored version openssl when compiling libgit, which allows
-# us to compile static executables (eg musl) and avoid system dependencies
-#vendored-openssl = ["cargo?/vendored-openssl", "git2/vendored-openssl"]
-#vendored-libgit2 = ["cargo?/vendored-libgit2", "git2/vendored-libgit2"]
-# Allows embedding cargo as a library so that we can run in minimal (eg container)
-# environments that don't need to have cargo/rust installed on them for cargo-deny
-# to still function
-#standalone = ["cargo"]
-
 [dependencies]
 # Output coloring
 nu-ansi-term = "0.50"
@@ -127,8 +112,6 @@ reqwest = { version = "0.13", default-features = false, features = ["http2", "ru
 # We configure TLS manually for reqwest. The version must be kept in line with the
 # one used by reqwest
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
-rustls-native-certs = { version = "0.8", optional = true }
-webpki-roots = { version = "1.0", optional = true }
 
 # We clone/fetch advisory databases
 [dependencies.gix]
@@ -151,7 +134,7 @@ time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.6", features = ["serde"] }
 # We use this for creating fake crate directories for crawling license files on disk
 tempfile = "3.17"
-# divan = "0.1"
+webpki-roots = "1.0"
 
 # [[bench]]
 # name = "license_data"
