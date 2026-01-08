@@ -91,7 +91,7 @@ fn detects_vulnerabilities() {
             );
         });
 
-    let diag = find_by_code(dbg!(&diags), "RUSTSEC-2019-0001").unwrap();
+    let diag = find_by_code(&diags, "RUSTSEC-2019-0001").unwrap();
 
     insta::assert_json_snapshot!(diag);
 }
