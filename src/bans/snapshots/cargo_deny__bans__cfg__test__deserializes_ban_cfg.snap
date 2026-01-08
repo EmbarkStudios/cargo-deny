@@ -65,6 +65,7 @@ expression: validated
       "inner": null
     }
   ],
+  "allow_workspace": false,
   "features": [
     {
       "spec": {
