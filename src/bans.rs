@@ -383,7 +383,8 @@ pub fn check(
 
     // Collect workspace members if allow_workspace is enabled
     let workspace_members: std::collections::HashSet<Kid> = if allow_workspace {
-        let members: std::collections::HashSet<Kid> = ctx.krates
+        let members: std::collections::HashSet<Kid> = ctx
+            .krates
             .workspace_members()
             .filter_map(|node| {
                 if let krates::Node::Krate { id, .. } = node {
@@ -393,7 +394,6 @@ pub fn check(
                 }
             })
             .collect();
-
 
         members
     } else {
