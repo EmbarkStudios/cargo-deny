@@ -183,7 +183,7 @@ fn detects_unmaintained() {
 fn detects_unsound() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("");
+    let cfg = tu::Config::new("unsound = 'transitive'");
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {

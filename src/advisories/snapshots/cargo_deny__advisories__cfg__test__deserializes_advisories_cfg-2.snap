@@ -15,6 +15,7 @@ expression: validated
     }
   ],
   "unmaintained": "Workspace",
+  "unsound": "Workspace",
   "ignore_yanked": [
     {
       "spec": {

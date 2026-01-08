@@ -77,6 +77,8 @@ pub struct Config {
     ignore: Vec<Spanned<IgnoreId>>,
     /// Whether to error on unmaintained advisories, and for what scope
     pub unmaintained: Spanned<Scope>,
+    /// Whether to error on unsound advisories, and for what scope
+    pub unsound: Spanned<Scope>,
     /// Ignore yanked crates
     pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
     /// Use the git executable to fetch advisory database rather than gitoxide
@@ -104,6 +106,7 @@ impl Default for Config {
             db_urls: Vec::new(),
             ignore: Vec::new(),
             unmaintained: Spanned::new(crate::cfg::Scope::All),
+            unsound: Spanned::new(crate::cfg::Scope::Workspace),
             ignore_yanked: Vec::new(),
             yanked: Spanned::new(LintLevel::Warn),
             git_fetch_with_cli: None,
@@ -152,10 +155,10 @@ impl<'de> Deserialize<'de> for Config {
         let mut fdeps = Vec::new();
 
         let _vulnerability = deprecated::<LintLevel>(&mut th, "vulnerability", &mut fdeps);
-        let _unsound = deprecated::<LintLevel>(&mut th, "unsound", &mut fdeps);
         let _notice = deprecated::<LintLevel>(&mut th, "notice", &mut fdeps);
 
         let unmaintained = th.optional_s::<Scope>("unmaintained");
+        let unsound = th.optional_s::<Scope>("unsound");
 
         let yanked = th
             .optional_s("yanked")
@@ -306,6 +309,7 @@ impl<'de> Deserialize<'de> for Config {
             yanked,
             ignore,
             unmaintained: unmaintained.unwrap_or(Spanned::new(Scope::All)),
+            unsound: unsound.unwrap_or(Spanned::new(Scope::Workspace)),
             ignore_yanked,
             git_fetch_with_cli,
             disable_yank_checking,
@@ -407,6 +411,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             db_urls,
             ignore: ignore.into_iter().map(|s| s.value).collect(),
             unmaintained: self.unmaintained,
+            unsound: self.unsound,
             ignore_yanked: ignore_yanked
                 .into_iter()
                 .map(|s| crate::bans::SpecAndReason {
@@ -432,6 +437,7 @@ pub struct ValidConfig {
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<IgnoreId>,
     pub(crate) unmaintained: Spanned<Scope>,
+    pub(crate) unsound: Spanned<Scope>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub yanked: Spanned<LintLevel>,
     pub git_fetch_with_cli: bool,

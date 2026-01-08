@@ -128,7 +128,7 @@ fn sarif_advisories() {
         .unwrap()
     };
 
-    let cfg = tu::Config::new("");
+    let cfg = tu::Config::new("unsound = 'all'");
 
     let ctx = tu::setup::<advisories::cfg::Config, _>(&krates, cargo_deny::func_name!(), cfg);
     let s = gather_sarif(ctx, |ctx, sink| {

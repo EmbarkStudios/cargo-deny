@@ -12,6 +12,7 @@ all-features = true
 
 [advisories]
 unmaintained = "workspace"
+unsound = "all"
 ignore = [
 ]
 

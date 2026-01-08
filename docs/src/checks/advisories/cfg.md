@@ -74,12 +74,25 @@ In addition, yanked crate versions can be ignored by specifying a [PackageSpec](
 unmaintained = 'workspace'
 ```
 
-Determines if ummaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
+Determines if unmaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
 
 - `all` (default) - Any crate that matches an unmaintained advisory will fail
 - `workspace` - Unmaintained advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
 - `transitive` - Unmaintained advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
 - `none` - Unmaintained advisories are completely ignored.
+
+### The `unsound` field (optional)
+
+```ini
+unsound = 'workspace'
+```
+
+Determines if unsound advisories will result in an error. An unsound error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
+
+- `all` - Any crate that matches an unsound advisory will fail
+- `workspace` (default) - Unsound advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
+- `transitive` - Unsound advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
+- `none` - Unsound advisories are completely ignored.
 
 ### The `git-fetch-with-cli` field (optional)
 
