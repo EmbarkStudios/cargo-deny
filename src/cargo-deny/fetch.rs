@@ -26,7 +26,7 @@ pub fn cmd(
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
-    let cfg_path = krate_ctx.get_config_path(args.config.clone());
+    let cfg_path = krate_ctx.get_config_path(args.config.as_deref())?;
 
     let mut files = Files::new();
     let ValidConfig { advisories, .. } = ValidConfig::load(
