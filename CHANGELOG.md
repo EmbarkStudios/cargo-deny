@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.19.0] - 2026-01-08
 ### Changed
 - [PR#802](https://github.com/EmbarkStudios/cargo-deny/pull/802) made relative paths passed to `--config` be resolved relative to the current working directory (rather than the resolved manifest path's directory).
 - [PR#825](https://github.com/EmbarkStudios/cargo-deny/pull/825) updated `gix`, `reqwest`, and `tame-index` to newer versions. The `reqwest` 0.13 changes means it is no longer possible to choose the source of root certificates for `gix`, so that decision is now left to `rustls-platform-verifier`. The `native-certs` feature has thus been removed, and `cargo-deny` no longer defaults to using `webpki-roots`.
@@ -771,7 +772,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.9...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.0...HEAD
+[0.19.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.9...0.19.0
 [0.18.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.8...0.18.9
 [0.18.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...0.18.8
 [0.18.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.6...0.18.7
