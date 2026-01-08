@@ -95,29 +95,34 @@ pub fn check<R, S>(
     // Emit diagnostics for any advisories found that matched crates in the graph
     'lup: for (krate, advisory) in &report.advisories {
         'block: {
-            if advisory
-                .metadata
-                .informational
-                .as_ref()
-                .is_some_and(|info| info.is_unmaintained())
-            {
-                match ctx.cfg.unmaintained.value {
-                    Scope::All => break 'block,
-                    Scope::None => continue 'lup,
-                    Scope::Workspace | Scope::Transitive => {
-                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                        let dds = ctx.krates.direct_dependents(nid);
+            let Some(scope) = advisory.metadata.informational.as_ref().and_then(|info| {
+                if info.is_unmaintained() {
+                    Some(&ctx.cfg.unmaintained)
+                } else if info.is_unsound() {
+                    Some(&ctx.cfg.unsound)
+                } else {
+                    None
+                }
+            }) else {
+                break 'block;
+            };
 
-                        let transitive = ctx.cfg.unmaintained.value == Scope::Transitive;
-                        if dds
-                            .iter()
-                            .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
-                        {
-                            break 'block;
-                        }
+            match scope.value {
+                Scope::All => break 'block,
+                Scope::None => continue 'lup,
+                Scope::Workspace | Scope::Transitive => {
+                    let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                    let dds = ctx.krates.direct_dependents(nid);
 
-                        continue 'lup;
+                    let transitive = scope.value == Scope::Transitive;
+                    if dds
+                        .iter()
+                        .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
+                    {
+                        break 'block;
                     }
+
+                    continue 'lup;
                 }
             }
         }
