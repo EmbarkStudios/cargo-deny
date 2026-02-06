@@ -12,6 +12,7 @@ expression: downgraded
         "cvss": null,
         "date": "2016-09-10",
         "description": "The `libusb` crate has not seen a release since September 2016, and its author\nis unresponsive.\n\nThe `rusb` crate is a maintained fork:\n\nhttps://github.com/a1ien/rusb",
+        "expect-deleted": false,
         "id": "RUSTSEC-2016-0004",
         "informational": "unmaintained",
         "keywords": [],
@@ -73,6 +74,7 @@ expression: downgraded
         "cvss": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
         "date": "2019-04-27",
         "description": "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+        "expect-deleted": false,
         "id": "RUSTSEC-2019-0001",
         "informational": null,
         "keywords": [

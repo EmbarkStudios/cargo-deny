@@ -12,6 +12,7 @@ expression: unmaintained_advisories(diags)
         "cvss": null,
         "date": "2024-09-01",
         "description": "This crate is no longer maintained, and the author recommends using the maintained [`web-time`] crate instead.\n\n[`web-time`]: https://crates.io/crates/web-time",
+        "expect-deleted": false,
         "id": "RUSTSEC-2024-0384",
         "informational": "unmaintained",
         "keywords": [],
