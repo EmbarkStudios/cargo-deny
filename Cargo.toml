@@ -70,11 +70,11 @@ parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.11"
 # Laziness, but we already pull it in transitively
-regex = "1.11"
+regex = "1.12"
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Used for interacting with advisory databases
-rustsec = { version = "0.31", default-features = false }
+rustsec = { version = "0.32", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be
@@ -115,7 +115,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 # We clone/fetch advisory databases
 [dependencies.gix]
-version = "0.77"
+version = "0.78"
 default-features = false
 features = [
   "blocking-http-transport-reqwest",
@@ -128,7 +128,7 @@ features = [
 # Folder copying
 fs_extra = "1.3"
 # Snapshot testing
-insta = { version = "1.44", features = ["json"] }
+insta = { version = "1.46", features = ["json"] }
 tame-index = { version = "0.26", features = ["local-builder"] }
 time = { version = "0.3", features = ["serde"] }
 toml-span = { version = "0.6", features = ["serde"] }
