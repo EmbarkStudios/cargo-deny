@@ -16,6 +16,7 @@ expression: unsound_diag
       "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
       "date": "2019-11-13",
       "description": "Safe Rust code can implement malfunctioning `__private_get_type_id__` and cause\ntype confusion when downcasting, which is an undefined behavior.\n\nUsers who derive `Fail` trait are not affected.",
+      "expect-deleted": false,
       "id": "RUSTSEC-2019-0036",
       "informational": "unsound",
       "keywords": [

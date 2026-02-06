@@ -1,6 +1,6 @@
 ---
 source: tests/advisories.rs
-expression: unmaintained_diags
+expression: unmaintained_advisories(diags)
 ---
 [
   {
@@ -17,6 +17,7 @@ expression: unmaintained_diags
         "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
         "date": "2020-05-02",
         "description": "The `failure` crate is officially end-of-life: it has been marked as deprecated\nby the former maintainer, who has announced that there will be no updates or\nmaintenance work on it going forward.\n\nThe following are some suggested actively developed alternatives to switch to:\n\n- [`anyhow`](https://crates.io/crates/anyhow)\n- [`eyre`](https://crates.io/crates/eyre)\n- [`fehler`](https://crates.io/crates/fehler)\n- [`snafu`](https://crates.io/crates/snafu)\n- [`thiserror`](https://crates.io/crates/thiserror)",
+        "expect-deleted": false,
         "id": "RUSTSEC-2020-0036",
         "informational": "unmaintained",
         "keywords": [],
@@ -75,6 +76,7 @@ expression: unmaintained_diags
         "cvss": null,
         "date": "2024-09-01",
         "description": "This crate is no longer maintained, and the author recommends using the maintained [`web-time`] crate instead.\n\n[`web-time`]: https://crates.io/crates/web-time",
+        "expect-deleted": false,
         "id": "RUSTSEC-2024-0384",
         "informational": "unmaintained",
         "keywords": [],
@@ -219,6 +221,7 @@ expression: unmaintained_diags
         "cvss": null,
         "date": "2016-09-10",
         "description": "The `libusb` crate has not seen a release since September 2016, and its author\nis unresponsive.\n\nThe `rusb` crate is a maintained fork:\n\nhttps://github.com/a1ien/rusb",
+        "expect-deleted": false,
         "id": "RUSTSEC-2016-0004",
         "informational": "unmaintained",
         "keywords": [],
