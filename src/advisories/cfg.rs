@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Context as _;
 use rustsec::advisory;
-use time::Duration;
+use std::time::Duration;
 use toml_span::{Deserialize, Value, de_helpers::*, value::ValueInner};
 use url::Url;
 
@@ -111,14 +111,14 @@ impl Default for Config {
             yanked: Spanned::new(LintLevel::Warn),
             git_fetch_with_cli: None,
             disable_yank_checking: false,
-            maximum_db_staleness: Spanned::new(Duration::seconds_f64(NINETY_DAYS)),
+            maximum_db_staleness: Spanned::new(Duration::from_secs(NINETY_DAYS)),
             deprecated_spans: Vec::new(),
             unused_ignored_advisory: LintLevel::Warn,
         }
     }
 }
 
-const NINETY_DAYS: f64 = 90. * 24. * 60. * 60. * 60.;
+const NINETY_DAYS: u64 = 90 * 24 * 60 * 60 * 60;
 
 impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, toml_span::DeserError> {
@@ -300,8 +300,8 @@ impl<'de> Deserialize<'de> for Config {
         th.finalize(None)?;
 
         // Use the 90 days default as a fallback
-        let maximum_db_staleness = maximum_db_staleness
-            .unwrap_or_else(|| Spanned::new(Duration::seconds_f64(NINETY_DAYS)));
+        let maximum_db_staleness =
+            maximum_db_staleness.unwrap_or_else(|| Spanned::new(Duration::from_secs(NINETY_DAYS)));
 
         Ok(Self {
             db_path,
@@ -535,7 +535,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
         }
     }
 
-    let mut duration = Duration::new(0, 0);
+    let mut duration = 0.0;
 
     // The format requires that the units are in a specific order, but each
     // unit is optional
@@ -588,8 +588,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
                 .find_map(|(c, uts)| (*c == unitc).then_some(*uts))
                 .unwrap();
 
-            duration += time::Duration::checked_seconds_f64(unit_value * unit_to_seconds)
-                .with_context(|| format!("value '{unit_value}' for '{unitc}' is out of range"))?;
+            duration += unit_value * unit_to_seconds;
         }
 
         last_unitc = unitc;
@@ -599,7 +598,7 @@ fn parse_rfc3339_duration(value: &str) -> anyhow::Result<Duration> {
 
     anyhow::ensure!(supplied_units > 0, "must supply at least one time unit");
 
-    Ok(duration)
+    Ok(Duration::from_secs_f64(duration))
 }
 
 /// We could just hardcode these, but this makes testing easier
@@ -869,7 +868,7 @@ ignore = [
                 Ok(parsed) => {
                     assert_eq!(
                         parsed,
-                        Duration::seconds_f64(*secs),
+                        Duration::from_secs_f64(*secs),
                         "unexpected duration for '{dur}'"
                     );
                 }

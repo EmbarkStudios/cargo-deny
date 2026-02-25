@@ -4,6 +4,7 @@ use cargo_deny::{
     field_eq, func_name,
     test_utils::{self as tu},
 };
+use std::time::Duration;
 
 fn blocking_client() -> reqwest::blocking::ClientBuilder {
     let rcs: rustls::RootCertStore = webpki_roots::TLS_SERVER_ROOTS.iter().cloned().collect();
@@ -17,6 +18,8 @@ fn blocking_client() -> reqwest::blocking::ClientBuilder {
 
     reqwest::blocking::Client::builder().tls_backend_preconfigured(client_config)
 }
+
+const TEN_THOUSAND_DAYS: Duration = Duration::from_secs(10000 * 24 * 60 * 60);
 
 struct TestCtx {
     dbs: advisories::DbSet,
@@ -52,7 +55,7 @@ fn load() -> TestCtx {
         advisories::DbSet::load(
             "tests/advisory-db".into(),
             vec![],
-            advisories::Fetch::Disallow(time::Duration::days(10000)),
+            advisories::Fetch::Disallow(TEN_THOUSAND_DAYS),
         )
         .unwrap()
     };
@@ -441,7 +444,7 @@ fn fails_on_stale_advisory_database() {
         advisories::DbSet::load(
             "tests/advisory-db".into(),
             vec![],
-            advisories::Fetch::Disallow(time::Duration::seconds(0)),
+            advisories::Fetch::Disallow(Duration::from_secs(0)),
         )
         .unwrap_err()
         .to_string()
@@ -477,8 +480,18 @@ fn do_open(td: &tempfile::TempDir, f: Fetch) -> advisories::AdvisoryDb {
 }
 
 fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
-    let repo = gix::open(&adb.path).expect("failed to open repo");
-    assert_eq!(repo.head_commit().unwrap().id.to_hex().to_string(), rev);
+    let mut cmd = std::process::Command::new("git");
+    let output = cmd
+        .arg("-C")
+        .arg(&adb.path)
+        .args(["show", "-s", "--format=%H", "HEAD"])
+        .stdout(std::process::Stdio::piped())
+        .output()
+        .expect("failed to run git");
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("not utf8").trim(),
+        rev
+    );
 
     for (id, date) in ids {
         let adv = adb.db.get(&id.parse().unwrap()).expect("unable to find id");
@@ -486,23 +499,10 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
     }
 
     assert!(
-        (time::OffsetDateTime::now_utc() - adb.fetch_time) < std::time::Duration::from_secs(60)
-    );
-}
-
-/// Validates we can clone an advisory database with gix
-#[test]
-fn clones_with_gix() {
-    let td = temp_dir();
-    let db = do_open(&td, Fetch::Allow);
-
-    validate(
-        &db,
-        EXPECTED_TWO,
-        &[
-            (EXPECTED_ONE_ID, EXPECTED_ONE_DATE),
-            (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
-        ],
+        (jiff::Timestamp::now() - adb.fetch_time)
+            .total(jiff::Unit::Second)
+            .unwrap()
+            < 60.
     );
 }
 
@@ -566,7 +566,7 @@ fn validate_fetch(fetch: Fetch) {
     )
     .expect("failed to write config");
 
-    let db = do_open(&td, Fetch::Disallow(time::Duration::days(10000)));
+    let db = do_open(&td, Fetch::Disallow(TEN_THOUSAND_DAYS));
     validate(&db, EXPECTED_ONE, &[(EXPECTED_ONE_ID, EXPECTED_ONE_DATE)]);
 
     let db = do_open(&td, fetch);

@@ -59,6 +59,7 @@ goblin = { version = "0.10", default-features = false, features = [
 ] }
 # We need to figure out HOME/CARGO_HOME in some cases
 home = "0.5"
+jiff = { version = "0.2", default-features = false, features = ["std"] }
 # Provides graphs on top of cargo_metadata
 krates = { version = "0.20", features = ["targets"] }
 # Log macros
@@ -91,11 +92,6 @@ tame-index = { version = "0.26", default-features = false, features = [
   "local",
   "sparse",
 ] }
-# Timestamp emission
-time = { version = "0.3", default-features = false, features = [
-  "formatting",
-  "macros",
-] }
 # Deserialization of configuration files and crate manifests
 toml-span = { version = "0.6", features = ["reporting"] }
 # Small fast hash crate
@@ -112,17 +108,6 @@ reqwest = { version = "0.13", default-features = false, features = ["http2", "ru
 # We configure TLS manually for reqwest. The version must be kept in line with the
 # one used by reqwest
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
-
-# We clone/fetch advisory databases
-[dependencies.gix]
-version = "0.78"
-default-features = false
-features = [
-  "blocking-http-transport-reqwest",
-  "blocking-network-client",
-  "interrupt",
-  "worktree-mutation",
-]
 
 [dev-dependencies]
 # Folder copying

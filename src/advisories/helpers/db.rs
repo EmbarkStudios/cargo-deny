@@ -2,20 +2,18 @@ use crate::{Krate, Krates, Path, PathBuf};
 use anyhow::Context as _;
 use log::{debug, info};
 pub use rustsec::{Database, advisory::Id};
-use std::fmt;
+use std::{fmt, fs, process::Command};
 use url::Url;
 
 /// The default, official, rustsec advisory database
 const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
-/// Refspec used to fetch updates from remote advisory databases
-const REF_SPEC: &str = "+HEAD:refs/remotes/origin/HEAD";
 
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
 pub enum Fetch {
     Allow,
     AllowWithGitCli,
-    Disallow(time::Duration),
+    Disallow(std::time::Duration),
 }
 
 pub struct AdvisoryDb {
@@ -26,7 +24,7 @@ pub struct AdvisoryDb {
     /// The path to the backing repository
     pub path: PathBuf,
     /// The time of the last fetch of the db
-    pub fetch_time: time::OffsetDateTime,
+    pub fetch_time: jiff::Timestamp,
 }
 
 impl fmt::Debug for AdvisoryDb {
@@ -112,12 +110,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
 
     let fetch_start = std::time::Instant::now();
     match fetch {
-        Fetch::Allow => {
-            debug!("Fetching advisory database from '{db_url}'");
-            fetch_via_gix(db_url, &db_path)
-                .with_context(|| format!("failed to fetch advisory database {db_url}"))?;
-        }
-        Fetch::AllowWithGitCli => {
+        Fetch::Allow | Fetch::AllowWithGitCli => {
             debug!("Fetching advisory database with git cli from '{db_url}'");
 
             fetch_via_cli(db_url.as_str(), &db_path)
@@ -129,9 +122,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     }
 
     // Verify that the repository is actually valid and that it is fresh
-    let repo = gix::open(&db_path).context("failed to open advisory database")?;
-
-    let fetch_time = get_fetch_time(&repo)?;
+    let fetch_time = get_fetch_time(&db_path)?;
 
     // Ensure that the upstream repository hasn't gone stale, ie, they've
     // configured cargo-deny to not fetch the remote database(s), but they've
@@ -139,7 +130,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     if let Fetch::Disallow(max_staleness) = fetch {
         anyhow::ensure!(
             fetch_time
-                > time::OffsetDateTime::now_utc()
+                > jiff::Timestamp::now()
                     .checked_sub(max_staleness)
                     .context("unable to compute oldest allowable update timestamp")?,
             "repository is stale (last update: {fetch_time})"
@@ -165,34 +156,28 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
     })
 }
 
-const DIR: gix::remote::Direction = gix::remote::Direction::Fetch;
-
-fn get_fetch_time(repo: &gix::Repository) -> anyhow::Result<time::OffsetDateTime> {
-    let file_timestamp = |name: &str| -> anyhow::Result<time::OffsetDateTime> {
-        let path = repo.path().join(name);
+fn get_fetch_time(repo: &Path) -> anyhow::Result<jiff::Timestamp> {
+    let path = repo.join(".git");
+    let file_timestamp = |name: &str| -> anyhow::Result<jiff::Timestamp> {
+        let path = path.join(name);
         let attr =
             std::fs::metadata(path).with_context(|| format!("failed to get '{name}' metadata"))?;
-        Ok(attr
-            .modified()
+        attr.modified()
             .with_context(|| format!("failed to get '{name}' modification time"))?
-            .into())
+            .try_into()
+            .with_context(|| format!("failed to convert file timestamp for '{name}'"))
     };
 
-    let commit_timestamp = || -> anyhow::Result<time::OffsetDateTime> {
-        let commit = repo.head_commit().context("failed to get HEAD commit")?;
-        let time = commit.time().context("failed to get HEAD commit time")?;
+    let commit_timestamp = || -> anyhow::Result<jiff::Timestamp> {
+        let mut cmd = Command::new("git");
+        cmd.arg("-C")
+            .arg(repo)
+            .args(["show", "-s", "--format=%cI", "HEAD"]);
 
-        // Copy what gix does, unfortunately it's not public
-        // <https://github.com/Byron/gitoxide/blob/5af2cf368dcd05fe4dffbd675cffe6bafec127e7/gix-date/src/time/format.rs#L83C1-L87>
-
-        let ts = time::OffsetDateTime::from_unix_timestamp(time.seconds)
-            .context("unix timestamp for HEAD was out of range")?
-            .to_offset(
-                time::UtcOffset::from_whole_seconds(time.offset)
-                    .context("timestamp offset for HEAD was out of range")?,
-            );
-
-        Ok(ts)
+        let ts = capture(cmd).context("failed to get HEAD timestamp")?;
+        ts.trim()
+            .parse()
+            .with_context(|| format!("failed to parse ISO-8601 timestamp '{}'", ts.trim()))
     };
 
     let timestamp = match file_timestamp("FETCH_HEAD") {
@@ -211,8 +196,7 @@ fn get_fetch_time(repo: &gix::Repository) -> anyhow::Result<time::OffsetDateTime
             // if something weird has happened
             match commit_timestamp() {
                 Ok(commit_ts) => {
-                    let file_head_ts =
-                        file_timestamp("HEAD").unwrap_or(time::OffsetDateTime::UNIX_EPOCH);
+                    let file_head_ts = file_timestamp("HEAD").unwrap_or_default();
                     std::cmp::max(commit_ts, file_head_ts)
                 }
                 Err(hc_err) => {
@@ -225,422 +209,26 @@ fn get_fetch_time(repo: &gix::Repository) -> anyhow::Result<time::OffsetDateTime
     Ok(timestamp)
 }
 
-/// Perform a fetch + checkout of the latest remote HEAD -> local HEAD
-///
-/// Note this function is a bit involved as, either I'm dumb and can't figure out
-/// how to do it, or else gix has support for updating HEAD and checking it out
-/// when doing a clone, but if you are performing a fetch on an existing repo
-/// ...you have to do that all yourself, which is pretty tedious
-fn fetch_and_checkout(repo: &mut gix::Repository) -> anyhow::Result<()> {
-    let mut progress = gix::progress::Discard;
-    let should_interrupt = &gix::interrupt::IS_INTERRUPTED;
+fn capture(mut cmd: Command) -> anyhow::Result<String> {
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
 
-    {
-        let mut config = repo.config_snapshot_mut();
-        config
-            .set_raw_value(&"committer.name", "cargo-deny")
-            .context("failed to set `committer.name`")?;
-        // Note we _have_ to set the email as well, but luckily gix does not actually
-        // validate if it's a proper email or not :)
-        config
-            .set_raw_value(&"committer.email", "")
-            .context("failed to set `committer.email`")?;
+    let output = cmd
+        .spawn()
+        .context("failed to spawn git")?
+        .wait_with_output()
+        .context("failed to wait on git output")?;
 
-        let repo = config
-            .commit_auto_rollback()
-            .context("failed to set committer")?;
-
-        let mut remote = repo
-            .find_remote("origin")
-            .context("unable to find 'origin' remote")?;
-
-        remote
-            .replace_refspecs(Some(REF_SPEC), DIR)
-            .expect("valid statically known refspec");
-
-        // Perform the actual fetch
-        let outcome = remote
-            .connect(DIR)
-            .context("failed to connect to remote")?
-            .prepare_fetch(&mut progress, Default::default())
-            .context("failed to prepare fetch")?
-            .receive(&mut progress, should_interrupt)
-            .context("failed to fetch")?;
-
-        let remote_head_id =
-            write_fetch_head(&repo, &outcome, &remote).context("failed to write FETCH_HEAD")?;
-
-        use gix::refs::{Target, transaction as tx};
-
-        // In all (hopefully?) cases HEAD is a symbolic reference to
-        // refs/heads/<branch> which is a peeled commit id, if that's the case
-        // we update it to the new commit id, otherwise we just set HEAD
-        // directly
-        use gix::head::Kind;
-        let edit = match repo.head()?.kind {
-            Kind::Symbolic(sref) => {
-                // Update our local HEAD to the remote HEAD
-                if let Target::Symbolic(name) = sref.target {
-                    Some(tx::RefEdit {
-                        change: tx::Change::Update {
-                            log: tx::LogChange {
-                                mode: tx::RefLog::AndReference,
-                                force_create_reflog: false,
-                                message: "".into(),
-                            },
-                            expected: tx::PreviousValue::MustExist,
-                            new: gix::refs::Target::Object(remote_head_id),
-                        },
-                        name,
-                        deref: true,
-                    })
-                } else {
-                    None
-                }
-            }
-            Kind::Unborn(_) | Kind::Detached { .. } => None,
-        };
-
-        let edit = edit.unwrap_or_else(|| tx::RefEdit {
-            change: tx::Change::Update {
-                log: tx::LogChange {
-                    mode: tx::RefLog::AndReference,
-                    force_create_reflog: false,
-                    message: "".into(),
-                },
-                expected: tx::PreviousValue::Any,
-                new: gix::refs::Target::Object(remote_head_id),
-            },
-            name: "HEAD".try_into().unwrap(),
-            deref: true,
-        });
-
-        repo.edit_reference(edit).context("failed to update HEAD")?;
-
-        // Sanity check that the local HEAD points to the same commit
-        // as the remote HEAD
-        anyhow::ensure!(
-            remote_head_id == repo.head_commit()?.id,
-            "failed to update HEAD to remote HEAD"
-        );
-    }
-
-    // Now that we've updated HEAD, do the actual checkout
-    let workdir = repo
-        .workdir()
-        .context("unable to checkout, repository is bare")?;
-    let root_tree = repo
-        .head()?
-        .try_peel_to_id()?
-        .context("unable to peel HEAD")?
-        .object()
-        .context("HEAD commit not downloaded from remote")?
-        .peel_to_tree()
-        .context("unable to peel HEAD to tree")?
-        .id;
-
-    let index = gix::index::State::from_tree(&root_tree, &repo.objects, Default::default())
-        .with_context(|| format!("failed to create index from tree '{root_tree}'"))?;
-    let mut index = gix::index::File::from_state(index, repo.index_path());
-
-    let opts = gix::worktree::state::checkout::Options {
-        destination_is_initially_empty: false,
-        overwrite_existing: true,
-        ..Default::default()
-    };
-
-    gix::worktree::state::checkout(
-        &mut index,
-        workdir,
-        repo.objects.clone().into_arc()?,
-        &progress,
-        &gix::progress::Discard,
-        should_interrupt,
-        opts,
-    )
-    .context("failed to checkout")?;
-
-    index
-        .write(Default::default())
-        .context("failed to write index")?;
-
-    Ok(())
-}
-
-/// Workaround for `#[non_exhaustive]`
-#[inline]
-pub fn unwrap_sha1(oid: gix::ObjectId) -> [u8; 20] {
-    let gix::ObjectId::Sha1(sha1) = oid else {
-        unreachable!()
-    };
-    sha1
-}
-
-/// Writes the `FETCH_HEAD` for the specified fetch outcome to the specified git
-/// repository
-///
-/// This function is narrowly focused on on writing a `FETCH_HEAD` that contains
-/// exactly two pieces of information, the id of the commit pointed to by the
-/// remote `HEAD`, and, if it exists, the same id with the remote branch whose
-/// `HEAD` is the same. This focus gives use two things:
-///     1. `FETCH_HEAD` that can be parsed to the correct remote HEAD by
-/// [`gix`](https://github.com/Byron/gitoxide/commit/eb2b513bd939f6b59891d0a4cf5465b1c1e458b3)
-///     1. A `FETCH_HEAD` that closely (or even exactly) matches that created by
-/// cargo via git or git2 when fetching only `+HEAD:refs/remotes/origin/HEAD`
-///
-/// Calling this function for the fetch outcome of a clone will write `FETCH_HEAD`
-/// just as if a normal fetch had occurred, but note that AFAICT neither git nor
-/// git2 does this, ie. a fresh clone will not have a `FETCH_HEAD` present. I don't
-/// _think_ that has negative implications, but if it does...just don't call this
-/// function on the result of a clone :)
-///
-/// Note that the remote provided should be the same remote used for the fetch
-/// operation. The reason this is not just grabbed from the repo is because
-/// repositories may not have the configured remote, or the remote was modified
-/// (eg. replacing refspecs) before the fetch operation
-pub fn write_fetch_head(
-    repo: &gix::Repository,
-    fetch: &gix::remote::fetch::Outcome,
-    remote: &gix::Remote<'_>,
-) -> anyhow::Result<gix::ObjectId> {
-    use gix::{bstr::ByteSlice, protocol::handshake::Ref};
-    use std::fmt::Write;
-
-    // Find the remote head commit
-    let (head_target_branch, oid) = fetch
-        .ref_map
-        .mappings
-        .iter()
-        .find_map(|mapping| {
-            let gix::remote::fetch::refmap::Source::Ref(rref) = &mapping.remote else {
-                return None;
-            };
-
-            let Ref::Symbolic {
-                full_ref_name,
-                target,
-                object,
-                ..
-            } = rref
-            else {
-                return None;
-            };
-
-            (full_ref_name == "HEAD").then_some((target, object))
-        })
-        .context("unable to find remote HEAD")?;
-
-    let remote_url = {
-        let ru = remote
-            .url(gix::remote::Direction::Fetch)
-            .expect("can't fetch without a fetch url");
-        let s = ru.to_bstring();
-        let v = s.into();
-        String::from_utf8(v).expect("remote url was not utf-8 :-/")
-    };
-
-    /// Encodes a slice of bytes into a hexadecimal string to the specified buffer
-    fn encode_hex<'out, const I: usize, const O: usize>(
-        input: &[u8; I],
-        output: &'out mut [u8; O],
-    ) -> &'out str {
-        assert_eq!(I * 2, O);
-
-        const CHARS: &[u8] = b"0123456789abcdef";
-
-        for (i, &byte) in input.iter().enumerate() {
-            let i = i * 2;
-            output[i] = CHARS[(byte >> 4) as usize];
-            output[i + 1] = CHARS[(byte & 0xf) as usize];
-        }
-
-        // SAFETY: we only emit ASCII hex characters
-        #[allow(unsafe_code)]
-        unsafe {
-            std::str::from_utf8_unchecked(output)
-        }
-    }
-
-    let fetch_head = {
-        let mut hex_id = [0u8; 40];
-        let sha1 = unwrap_sha1(*oid);
-        let commit_id = encode_hex(&sha1, &mut hex_id);
-
-        let mut fetch_head = String::new();
-
-        let remote_name = remote
-            .name()
-            .and_then(|n| {
-                let gix::remote::Name::Symbol(name) = n else {
-                    return None;
-                };
-                Some(name.as_ref())
-            })
-            .unwrap_or("origin");
-
-        // We write the remote HEAD first, but _only_ if it was explicitly requested
-        if remote
-            .refspecs(gix::remote::Direction::Fetch)
-            .iter()
-            .any(|rspec| {
-                let rspec = rspec.to_ref();
-                if !rspec.remote().is_some_and(|r| r.ends_with(b"HEAD")) {
-                    return false;
-                }
-
-                rspec.local().is_some_and(|l| {
-                    l.to_str().ok().and_then(|l| {
-                        l.strip_prefix("refs/remotes/")
-                            .and_then(|l| l.strip_suffix("/HEAD"))
-                    }) == Some(remote_name)
-                })
-            })
-        {
-            writeln!(&mut fetch_head, "{commit_id}\t\t{remote_url}").unwrap();
-        }
-
-        // Attempt to get the branch name, but if it looks suspect just skip this,
-        // it _should_ be fine, or at least, we've already written the only thing
-        // that gix can currently parse
-        if let Some(branch_name) = head_target_branch
-            .to_str()
-            .ok()
-            .and_then(|s| s.strip_prefix("refs/heads/"))
-        {
-            writeln!(
-                &mut fetch_head,
-                "{commit_id}\t\tbranch '{branch_name}' of {remote_url}"
-            )
-            .unwrap();
-        }
-
-        fetch_head
-    };
-
-    // We _could_ also emit other branches/tags like git does, however it's more
-    // complicated than just our limited use case of writing remote HEAD
-    //
-    // 1. Remote branches are always emitted, however in gix those aren't part
-    // of the ref mappings if they haven't been updated since the last fetch
-    // 2. Conversely, tags are _not_ written by git unless they have been changed
-    // added, but gix _does_ always place those in the fetch mappings
-
-    anyhow::ensure!(!fetch_head.is_empty(), "unable to find remote HEAD");
-
-    let fetch_head_path = crate::PathBuf::from_path_buf(repo.path().join("FETCH_HEAD"))
-        .map_err(|_e| anyhow::anyhow!("repo path is not utf-8"))?;
-    std::fs::write(&fetch_head_path, fetch_head)
-        .with_context(|| format!("failed to write fetch head to {fetch_head_path}"))?;
-
-    Ok(*oid)
-}
-
-fn fetch_via_gix(url: &Url, db_path: &Path) -> anyhow::Result<()> {
-    anyhow::ensure!(
-        url.scheme() == "https" || url.scheme() == "ssh",
-        "expected '{url}' to be an `https` or `ssh` url",
-    );
-
-    let _dontcare = rustls::crypto::ring::default_provider().install_default();
-
-    // Ensure the parent directory chain is created, gix might? do it for us
-    {
-        let parent = db_path
-            .parent()
-            .with_context(|| format!("invalid directory: {db_path}"))?;
-
-        if !parent.is_dir() {
-            std::fs::create_dir_all(parent)?;
-        }
-    }
-
-    // Avoid errors in the case the directory exists but is otherwise empty.
-    // See: https://github.com/RustSec/cargo-audit/issues/32
-    // (not sure if this is needed with gix)
-    if db_path.is_dir() && std::fs::read_dir(db_path)?.next().is_none() {
-        std::fs::remove_dir(db_path)?;
-    }
-
-    let open_or_clone_repo = || -> anyhow::Result<_> {
-        let mut mapping = gix::sec::trust::Mapping::default();
-        let open_with_complete_config =
-            gix::open::Options::default().permissions(gix::open::Permissions {
-                config: gix::open::permissions::Config {
-                    // Be sure to get all configuration, some of which is only known by the git binary.
-                    // That way we are sure to see all the systems credential helpers
-                    git_binary: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            });
-
-        mapping.reduced = open_with_complete_config.clone();
-        mapping.full = open_with_complete_config.clone();
-
-        // Attempt to open the repository, if it fails for any reason,
-        // attempt to perform a fresh clone instead
-        let repo = gix::ThreadSafeRepository::discover_opts(
-            db_path,
-            gix::discover::upwards::Options::default().apply_environment(),
-            mapping,
-        )
-        .ok()
-        .map(|repo| repo.to_thread_local())
-        .filter(|repo| {
-            repo.find_remote("origin").is_ok_and(|remote| {
-                remote
-                    .url(DIR)
-                    .is_some_and(|remote_url| remote_url.to_bstring() == url.as_str())
-            })
-        })
-        .or_else(|| gix::open_opts(db_path, open_with_complete_config).ok());
-
-        let res = if let Some(repo) = repo {
-            (repo, None)
-        } else {
-            let mut progress = gix::progress::Discard;
-            let should_interrupt = &gix::interrupt::IS_INTERRUPTED;
-
-            let (mut prep_checkout, out) = gix::prepare_clone(url.as_str(), db_path)
-                .map_err(Box::new)?
-                .with_remote_name("origin")?
-                .configure_remote(|remote| Ok(remote.with_refspecs([REF_SPEC], DIR)?))
-                .fetch_then_checkout(&mut progress, should_interrupt)?;
-
-            let repo = prep_checkout
-                .main_worktree(&mut progress, should_interrupt)
-                .context("failed to checkout")?
-                .0;
-
-            (repo, Some(out))
-        };
-
-        Ok(res)
-    };
-
-    let (mut repo, fetch_outcome) = open_or_clone_repo()?;
-
-    if let Some(fetch_outcome) = fetch_outcome {
-        write_fetch_head(&repo, &fetch_outcome, &repo.find_remote("origin").unwrap())?;
+    if output.status.success() {
+        String::from_utf8(output.stdout)
+            .or_else(|_err| Ok("git command succeeded but gave non-utf8 output".to_owned()))
     } else {
-        // If we didn't open a fresh repo we need to perform a fetch ourselves, and
-        // do the work of updating the HEAD to point at the latest remote HEAD, which
-        // gix doesn't currently do.
-        //
-        // Gix also doesn't write the FETCH_HEAD, which we rely on for staleness
-        // checking, so we write it ourselves to keep identical logic between gix
-        // and git/git2
-        fetch_and_checkout(&mut repo)?;
+        String::from_utf8(output.stderr)
+            .map_err(|_err| anyhow::anyhow!("git command failed and gave non-utf8 output"))
     }
-
-    repo.object_cache_size_if_unset(4 * 1024 * 1024);
-
-    Ok(())
 }
 
 fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
-    use std::{fs, process::Command};
-
     if let Some(parent) = db_path.parent() {
         if !parent.is_dir() {
             fs::create_dir_all(parent).with_context(|| {
@@ -650,25 +238,6 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
     } else {
         anyhow::bail!("invalid directory: {db_path}");
     }
-
-    let capture = |mut cmd: Command| -> anyhow::Result<String> {
-        cmd.stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-
-        let output = cmd
-            .spawn()
-            .context("failed to spawn git")?
-            .wait_with_output()
-            .context("failed to wait on git output")?;
-
-        if output.status.success() {
-            String::from_utf8(output.stdout)
-                .or_else(|_err| Ok("git command succeeded but gave non-utf8 output".to_owned()))
-        } else {
-            String::from_utf8(output.stderr)
-                .map_err(|_err| anyhow::anyhow!("git command failed and gave non-utf8 output"))
-        }
-    };
 
     let run = |args: &[&str]| {
         let mut cmd = Command::new("git");

@@ -123,7 +123,7 @@ fn sarif_advisories() {
         advisories::DbSet::load(
             "tests/advisory-db".into(),
             vec![],
-            advisories::Fetch::Disallow(time::Duration::days(10000)),
+            advisories::Fetch::Disallow(std::time::Duration::from_secs(10000 * 24 * 60 * 60)),
         )
         .unwrap()
     };

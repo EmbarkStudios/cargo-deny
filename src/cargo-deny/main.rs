@@ -156,12 +156,29 @@ fn setup_logger(
     use log::Level::{Debug, Error, Info, Trace, Warn};
     use nu_ansi_term::Color::{Blue, Green, Purple, Red, Yellow};
 
-    let now = time::OffsetDateTime::now_utc();
-
     match format {
         Format::Human => {
-            const HUMAN: &[time::format_description::FormatItem<'static>] =
-                time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+            struct Human(jiff::Zoned);
+
+            impl std::fmt::Display for Human {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(
+                        f,
+                        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                        self.0.year(),
+                        self.0.month(),
+                        self.0.day(),
+                        self.0.hour(),
+                        self.0.minute(),
+                        self.0.second()
+                    )
+                }
+            }
+
+            let now = Human(jiff::Zoned::now());
+
+            // const HUMAN: &[time::format_description::FormatItem<'static>] =
+            //     time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
             if color {
                 fern::Dispatch::new()
@@ -169,7 +186,7 @@ fn setup_logger(
                     .format(move |out, message, record| {
                         out.finish(format_args!(
                             "{date} [{level}] {message}\x1B[0m",
-                            date = now.format(&HUMAN).unwrap(),
+                            date = now,
                             level = match record.level() {
                                 Error => Red.paint("ERROR"),
                                 Warn => Yellow.paint("WARN"),
@@ -188,7 +205,7 @@ fn setup_logger(
                     .format(move |out, message, record| {
                         out.finish(format_args!(
                             "{date} [{level}] {message}",
-                            date = now.format(&HUMAN).unwrap(),
+                            date = now,
                             level = match record.level() {
                                 Error => "ERROR",
                                 Warn => "WARN",
@@ -212,7 +229,7 @@ fn setup_logger(
                         serde_json::json! {{
                             "type": "log",
                             "fields": {
-                                "timestamp": now.format(&time::format_description::well_known::Rfc3339).unwrap(),
+                                "timestamp": jiff::Timestamp::now().to_string(),
                                 "level": match record.level() {
                                     Error => "ERROR",
                                     Warn => "WARN",
@@ -317,20 +334,6 @@ fn real_main() -> Result<(), Error> {
         color: args.color,
         format: args.format,
         log_level: args.log_level,
-    };
-
-    // Allow gix to hook the signal handler so that it can properly release lockfiles
-    // if the user aborts or we crash
-    #[allow(unsafe_code)]
-    // SAFETY: The code in the callback must be async signal safe, but we don't
-    // have any code in there because the callback is not actually invoked since
-    // we send a grace_count of 0, the callback is only invoked if grace_count > 0
-    let _dereg = unsafe {
-        gix::interrupt::init_handler(0, || {
-            //const BUF: &[u8] = b"gix interrupt handler triggered, terminating process...\n";
-            //libc::write(libc::STDERR_FILENO, BUF.as_ptr().cast(), BUF.len());
-        })
-        .context("failed to initialize gix's interrupt handler")?
     };
 
     match args.cmd {
