@@ -34,8 +34,6 @@ bitvec = { version = "1.0", features = ["alloc"] }
 # Much nicer paths
 camino = "1.1"
 cfg-expr = "0.20"
-# Allows us to do eg cargo metadata operations without relying on an external cargo
-#cargo = { version = "0.71", optional = true }
 # Argument parsing, kept aligned with cargo
 clap = { version = "4.5", features = ["derive", "env"] }
 # Used for diagnostic reporting
@@ -86,7 +84,7 @@ smallvec = "1.14"
 # Used for parsing and checking SPDX license expressions
 spdx = { version = "0.13", features = ["detection-parallel", "detection-inline-cache"] }
 # Lazy
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 # Index retrieval and querying
 tame-index = { version = "0.26", default-features = false, features = [
   "local",
