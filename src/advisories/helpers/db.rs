@@ -56,7 +56,7 @@ impl DbSet {
         // other cargo-deny processes from performing mutations
         let lock_path = root.join("db.lock");
         let _lock = tame_index::utils::flock::LockOptions::new(&lock_path)
-            .exclusive(false)
+            .exclusive(true)
             .lock(|path| {
                 log::info!("waiting on advisory db lock '{path}'");
                 Some(std::time::Duration::from_secs(60))
