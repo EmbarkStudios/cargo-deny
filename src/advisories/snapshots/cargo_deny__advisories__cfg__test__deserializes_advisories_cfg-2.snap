@@ -38,7 +38,7 @@ expression: validated
   "git_fetch_with_cli": false,
   "disable_yank_checking": false,
   "maximum_db_staleness": {
-    "secs": 466560000,
+    "secs": 7776000,
     "nanos": 0
   },
   "unused_ignored_advisory": "warn"
