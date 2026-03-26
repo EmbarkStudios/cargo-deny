@@ -106,7 +106,7 @@ impl Metadata<'_> {
             "categories": array(&self.categories),
             "keywords": array(&self.keywords),
             "cvss": self.cvss,
-            "information": self.informational.as_ref().map(|i| {
+            "informational": self.informational.as_ref().map(|i| {
                 match i {
                     Informational::Unmaintained => "unmaintained",
                     Informational::Unsound => "unsound",
@@ -115,7 +115,7 @@ impl Metadata<'_> {
                 }
             }),
             "references": array(&self.references),
-            "source": self.source.as_ref().map_or_else(|| "registry+https://github.com/rust-lang/crates.io-index".to_owned(), |s| s.to_string()),
+            "source": self.source.as_ref().map(|s| s.to_string()),
             "url": self.url,
             "withdrawn": self.withdrawn.map(|d| d.to_string()),
             "license": self.license.0,
@@ -145,7 +145,7 @@ impl Advisory<'_> {
             md.push_str(meta.id);
             md.push_str("](");
             md.push_str(url);
-            md.push(']');
+            md.push(')');
         } else {
             md.push_str(meta.id);
         }
@@ -224,12 +224,12 @@ impl Advisory<'_> {
     }
 
     pub fn to_json(&self) -> crate::diag::SerializedAdvisory {
-        let json = serde_json::json!({
-            "advisory": self.advisory.to_json(),
-            "affected": self.affected.as_ref().map(|aff| aff.to_json()),
-            "versions": self.versions.to_json(),
-        });
+        // let json = serde_json::json!({
+        //     "advisory": self.advisory.to_json(),
+        //     "affected": self.affected.as_ref().map(|aff| aff.to_json()),
+        //     "versions": self.versions.to_json(),
+        // });
 
-        crate::diag::SerializedAdvisory::Json(json)
+        crate::diag::SerializedAdvisory::Json(self.advisory.to_json())
     }
 }

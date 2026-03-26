@@ -1,3 +1,5 @@
+#![allow(clippy::question_mark)]
+
 use crate::{Krate, Krates, Path, PathBuf, advisories::model};
 use anyhow::Context as _;
 use log::{debug, info};
@@ -339,6 +341,14 @@ impl<'db, 'k> Report<'db, 'k> {
                                 return None;
                             }
 
+                            if km.krate.name == "lettre" {
+                                panic!(
+                                    "wtf {} {}",
+                                    km.krate.version,
+                                    entry.advisory.versions.to_json()
+                                );
+                            }
+
                             Some((km.krate, &entry.advisory))
                         })
                 })
@@ -453,8 +463,8 @@ impl DbEntry {
             let mmap =
                 memmap2::Mmap::map(&file).with_context(|| format!("failed to map {path}"))?;
 
-            let advisory = deserialize(std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()))
-                .with_context(|| format!("failed to deserialize {path}"))?;
+            let advisory = parse(std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()))
+                .with_context(|| format!("failed to parse advisory from '{path}'"))?;
 
             (mmap, advisory)
         };
@@ -467,18 +477,178 @@ impl DbEntry {
     }
 }
 
+struct ArrayIter {
+    arr: &'static str,
+    inner: memchr::Memchr<'static>,
+}
+
+impl ArrayIter {
+    /// An iterator over an array of string values that might span lines
+    fn new(toml: &'static str, line: Line, liter: &mut std::iter::Peekable<LineIter>) -> Self {
+        let start = memchr::memchr(b'[', line.s.as_bytes()).expect("no array opener");
+
+        let arr = if let Some(end) = memchr::memchr(b']', line.s.as_bytes()) {
+            &line.s[start + 1..end]
+        } else {
+            let arr_end = 'end: {
+                while let Some(l) = liter.next() {
+                    if let Some(end) = memchr::memchr(b']', l.s.as_bytes()) {
+                        break 'end l.start + end;
+                    }
+                }
+
+                panic!("unclosed '['");
+            };
+
+            &toml[line.start + start..arr_end]
+        };
+
+        Self {
+            arr,
+            inner: memchr::memchr_iter(b'"', arr.as_bytes()),
+        }
+    }
+}
+
+impl Iterator for ArrayIter {
+    type Item = &'static str;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(start) = self.inner.next() else {
+            return None;
+        };
+        let Some(end) = self.inner.next() else {
+            return None;
+        };
+
+        Some(&self.arr[start + 1..end])
+    }
+}
+
+#[derive(Copy, Clone)]
+struct Line {
+    s: &'static str,
+    start: usize,
+}
+
+impl Line {
+    #[inline]
+    fn skip(self) -> bool {
+        self.s.trim().is_empty() || self.s.starts_with('#')
+    }
+
+    #[inline]
+    fn pair(self) -> anyhow::Result<(&'static str, &'static str)> {
+        let split = memchr::memchr(b'=', self.s.as_bytes())
+            .with_context(|| format!("line `{}` did not follow expected format", self.s))?;
+
+        Ok((self.s[..split].trim(), self.s[split + 1..].trim()))
+    }
+}
+
+struct LineIter {
+    start: usize,
+    v: &'static str,
+    inner: memchr::Memchr<'static>,
+}
+
+impl LineIter {
+    #[inline]
+    fn new(v: &'static str) -> Self {
+        Self {
+            start: 0,
+            v,
+            inner: memchr::memchr_iter(b'\n', v.as_bytes()),
+        }
+    }
+}
+
+impl Iterator for LineIter {
+    type Item = Line;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(end) = self.inner.next() else {
+            return None;
+        };
+
+        let s = &self.v[self.start..end];
+        let start = self.start;
+        self.start = end + 1;
+
+        Some(Line { s, start })
+    }
+}
+
+struct StringIter {
+    s: &'static str,
+    inner: memchr::Memchr<'static>,
+}
+
+impl StringIter {
+    #[inline]
+    fn new(s: &'static str) -> Self {
+        Self {
+            s,
+            inner: memchr::memchr_iter(b'"', s.as_bytes()),
+        }
+    }
+}
+
+impl Iterator for StringIter {
+    type Item = &'static str;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(start) = self.inner.next() else {
+            return None;
+        };
+        let Some(end) = self.inner.next() else {
+            return None;
+        };
+
+        Some(&self.s[start + 1..end])
+    }
+}
+
 #[inline]
-fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
-    let s = std::str::from_utf8(b)?;
+fn parse(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
+    let whole = std::str::from_utf8(b)?;
 
     // This should be at the start, but just in case
-    let tstart = s.find("```toml`\n").context("failed to find toml block")?;
-    let toml = &b[tstart..];
-    let s = &s[tstart..];
+    let tstart = whole
+        .find("```toml\n")
+        .context("failed to find toml block")?;
+    let s = &whole[tstart + 8..];
+
+    let tend = s
+        .find("```\n")
+        .context("failed to find end of toml block")?;
+
+    let rest = &s[tend + 4..];
+    let toml = &s[..tend];
+
+    let mut adv = parse_toml(toml)?;
 
     let mut start = 0;
+    for end in memchr::Memchr::new(b'\n', rest.as_bytes()) {
+        let line = &rest[start..end];
+        start = end + 1;
 
-    let mut liter = memchr::memchr_iter(b'\n', toml).peekable();
+        if let Some(title) = line.strip_prefix("# ") {
+            adv.advisory.title = title;
+            break;
+        }
+    }
+
+    adv.advisory.description = rest[start..].trim();
+
+    Ok(adv)
+}
+
+fn parse_toml(toml: &'static str) -> anyhow::Result<model::Advisory<'static>> {
+    let mut liter = LineIter::new(toml).peekable();
 
     let mut md = model::Metadata {
         id: "",
@@ -502,75 +672,37 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
     let mut versions = None;
     let mut affected = None;
 
-    struct ArrayIter {
-        v: &'static str,
-        inner: memchr::Memchr<'static>,
-    }
-
-    impl ArrayIter {
-        fn new(v: &'static str) -> Self {
-            let start = memchr::memchr(b'[', v.as_bytes()).unwrap();
-            let end = memchr::memrchr(b']', v.as_bytes()).unwrap();
-
-            let v = &v[start..end];
-
-            Self {
-                v,
-                inner: memchr::memchr_iter(b'"', v.as_bytes()),
-            }
-        }
-    }
-
-    impl Iterator for ArrayIter {
-        type Item = &'static str;
-
-        #[allow(clippy::question_mark)]
-        fn next(&mut self) -> Option<Self::Item> {
-            let Some(start) = self.inner.next() else {
-                return None;
-            };
-            let Some(end) = self.inner.next() else {
-                return None;
-            };
-
-            Some(&self.v[start..end])
-        }
-    }
-
-    let parse_advisory = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
-                          start: &mut usize,
+    let parse_advisory = |liter: &mut std::iter::Peekable<LineIter>,
                           md: &mut model::Metadata<'static>|
      -> anyhow::Result<()> {
-        while let Some(end) = liter.peek() {
-            let line = &s[*start..*end];
-
-            if line.starts_with('[') || line == "```" {
-                return Ok(());
-            }
-
-            *start = *end + 1;
-            liter.next();
-
-            if line.trim().is_empty() {
+        while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
+            if line.skip() {
                 continue;
             }
 
-            let (field, value) = line
-                .split_once(" = ")
-                .with_context(|| format!("line `{line}` did not follow expected format"))?;
+            let (field, value) = line.pair().with_context(|| format!("TOML {toml}"))?;
 
-            let string = || -> &'static str { &value[1..value.len() - 1] };
+            let string = || -> &'static str {
+                let Some(start) = memchr::memchr(b'"', value.as_bytes()) else {
+                    panic!("expected opening '\"' in `{value}`");
+                };
+                let Some(end) = memchr::memchr(b'"', value[start + 1..].as_bytes()) else {
+                    panic!("expected closing '\"' in `{value}`");
+                };
+
+                &value[start + 1..start + 1 + end]
+            };
 
             match field {
                 "id" => md.id = string(),
                 "package" => md.krate = string(),
                 "aliases" => {
-                    for alias in ArrayIter::new(value) {
+                    for alias in ArrayIter::new(toml, line, liter) {
                         md.aliases.push(alias);
                     }
                 }
                 "related" => {
-                    for id in ArrayIter::new(value) {
+                    for id in ArrayIter::new(toml, line, liter) {
                         md.related.push(id);
                     }
                 }
@@ -586,17 +718,17 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
                     });
                 }
                 "categories" => {
-                    for alias in ArrayIter::new(value) {
+                    for alias in ArrayIter::new(toml, line, liter) {
                         md.categories.push(alias);
                     }
                 }
                 "keywords" => {
-                    for kw in ArrayIter::new(value) {
+                    for kw in ArrayIter::new(toml, line, liter) {
                         md.keywords.push(kw);
                     }
                 }
                 "references" => {
-                    for r in ArrayIter::new(value) {
+                    for r in ArrayIter::new(toml, line, liter) {
                         md.references.push(r);
                     }
                 }
@@ -625,42 +757,29 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
     };
 
     let parse_versions =
-        |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
-         start: &mut usize|
-         -> anyhow::Result<model::Versions> {
+        |liter: &mut std::iter::Peekable<LineIter>| -> anyhow::Result<model::Versions> {
             let mut v = model::Versions {
                 patched: Default::default(),
                 unaffected: Default::default(),
             };
 
-            while let Some(end) = liter.peek() {
-                let line = &s[*start..*end];
-
-                if line.starts_with('[') || line == "```" {
-                    return Ok(v);
-                }
-
-                *start = *end + 1;
-                liter.next();
-
-                if line.trim().is_empty() {
+            while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
+                if line.skip() {
                     continue;
                 }
 
-                let (field, value) = line
-                    .split_once(" = ")
-                    .with_context(|| format!("line `{line}` did not follow expected format"))?;
+                let (field, _value) = line.pair()?;
 
                 match field {
                     "patched" => {
-                        for vr in ArrayIter::new(value) {
+                        for vr in ArrayIter::new(toml, line, liter) {
                             v.patched.push(vr.parse().with_context(|| {
                                 format!("failed to parse patched version '{vr}'")
                             })?);
                         }
                     }
                     "unaffected" => {
-                        for vr in ArrayIter::new(value) {
+                        for vr in ArrayIter::new(toml, line, liter) {
                             v.unaffected.push(vr.parse().with_context(|| {
                                 format!("failed to parse unaffected version '{vr}'")
                             })?);
@@ -673,8 +792,7 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
             Ok(v)
         };
 
-    let parse_affected = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
-                          start: &mut usize,
+    let parse_affected = |liter: &mut std::iter::Peekable<LineIter>,
                           first: &'static str|
      -> anyhow::Result<Option<model::Affected<'static>>> {
         let mut affected = model::Affected {
@@ -683,34 +801,24 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
             arch: Default::default(),
         };
 
-        let parse_function_table = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
-                                    start: &mut usize,
+        let parse_function_table = |liter: &mut std::iter::Peekable<LineIter>,
                                     funcs: &mut std::collections::BTreeMap<
             &'static str,
             Vec<VersionReq>,
         >| {
-            while let Some(end) = liter.peek() {
-                let line = &s[*start..*end];
-
-                if line.starts_with('[') || line == "```" {
-                    return;
-                }
-
-                *start = *end + 1;
-                liter.next();
-
-                if line.trim().is_empty() {
+            while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
+                if line.skip() {
                     continue;
                 }
 
-                let Some((field, _value)) = line.split_once(" = ") else {
+                let Some((field, _value)) = line.s.split_once(" = ") else {
                     continue;
                 };
 
                 let key = field.trim_matches('"');
                 let mut val = Vec::new();
 
-                for vr in ArrayIter::new(line) {
+                for vr in ArrayIter::new(toml, line, liter) {
                     match vr.parse() {
                         Ok(vr) => val.push(vr),
                         Err(error) => {
@@ -726,23 +834,23 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
         };
 
         if first == "[affected]" {
-            while let Some(end) = liter.peek() {
-                let line = &s[*start..*end];
-
-                if line == "```" || line.starts_with('[') {
-                    if line == "[affected.functions]" {
-                        *start = *end + 1;
+            while let Some(line) = liter.peek() {
+                if line.s.starts_with('[') {
+                    if line.s == "[affected.functions]" {
                         liter.next();
 
-                        parse_function_table(liter, start, &mut affected.functions);
+                        parse_function_table(liter, &mut affected.functions);
                     }
 
                     break;
                 }
 
-                let (field, value) = line
-                    .split_once(" = ")
-                    .with_context(|| format!("line `{line}` did not follow expected format"))?;
+                let line = liter.next().unwrap();
+                if line.skip() {
+                    continue;
+                }
+
+                let (field, value) = line.pair()?;
 
                 match field {
                     "functions" => {
@@ -753,13 +861,18 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
                             continue;
                         };
 
-                        let mut map = &value[start..end];
+                        let mut map = value[start + 1..end].trim();
 
                         while let Some((key, value)) = map.split_once(" = ") {
                             let key = key.trim_matches('"');
                             let mut val = Vec::new();
 
-                            for vr in ArrayIter::new(value) {
+                            let vstart = memchr::memchr(b'[', value.as_bytes())
+                                .expect("function did not have a valid version array start");
+                            let vend = memchr::memchr(b']', value.as_bytes())
+                                .expect("function did not have a valid version array end");
+
+                            for vr in StringIter::new(&value[vstart..vend]) {
                                 match vr.parse() {
                                     Ok(vr) => val.push(vr),
                                     Err(error) => {
@@ -772,25 +885,23 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
 
                             affected.functions.insert(key, val);
 
-                            let vend = memchr::memchr(b']', value.as_bytes()).unwrap();
-
                             let Some(start) = memchr::memchr(b'"', &value.as_bytes()[vend..])
                             else {
                                 break;
                             };
 
-                            map = &map[vend + start..];
+                            map = &value[vend + start..];
                         }
                     }
                     "os" => {
-                        for os in ArrayIter::new(value) {
+                        for os in ArrayIter::new(toml, line, liter) {
                             affected
                                 .os
                                 .push(cfg_expr::targets::Os(std::borrow::Cow::Borrowed(os)));
                         }
                     }
                     "arch" => {
-                        for arch in ArrayIter::new(value) {
+                        for arch in ArrayIter::new(toml, line, liter) {
                             affected
                                 .arch
                                 .push(cfg_expr::targets::Arch(std::borrow::Cow::Borrowed(arch)));
@@ -802,7 +913,7 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
                 }
             }
         } else if first == "[affected.functions]" {
-            parse_function_table(liter, start, &mut affected.functions);
+            parse_function_table(liter, &mut affected.functions);
         }
 
         if affected.functions.is_empty() && affected.os.is_empty() && affected.arch.is_empty() {
@@ -812,40 +923,26 @@ fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
         }
     };
 
-    while let Some(end) = liter.next() {
-        let line = &s[start..end];
-        start = end + 1;
-
-        match line {
+    while let Some(line) = liter.next() {
+        match line.s {
             "[advisory]" => {
-                parse_advisory(&mut liter, &mut start, &mut md)?;
+                parse_advisory(&mut liter, &mut md)?;
             }
             "[versions]" => {
-                versions = Some(parse_versions(&mut liter, &mut start)?);
+                versions = Some(parse_versions(&mut liter)?);
             }
-            aff if line.starts_with("[affected") => {
-                affected = parse_affected(&mut liter, &mut start, line)?;
+            aff if line.s.starts_with("[affected") => {
+                affected = parse_affected(&mut liter, aff)?;
             }
             "```" => {
                 break;
             }
+            "" => continue,
             unknown => {
                 log::warn!("unknown toml table '{unknown}'");
             }
         }
     }
-
-    for end in liter {
-        let line = &s[start..end];
-        start = end + 1;
-
-        if let Some(title) = line.strip_prefix("# ") {
-            md.title = title;
-            break;
-        }
-    }
-
-    md.description = s[start..].trim();
 
     Ok(model::Advisory {
         advisory: md,
@@ -891,7 +988,7 @@ impl Database {
                             advisories.insert(entry.advisory.advisory.id, entry);
                         }
                         Err(error) => {
-                            log::error!("failed to load advisory: {error}");
+                            panic!("failed to load advisory: {error:#}");
                         }
                     }
                 }
@@ -907,6 +1004,11 @@ impl Database {
         );
 
         Ok(Self { advisories })
+    }
+
+    #[inline]
+    pub fn get(&self, id: &str) -> Option<&model::Advisory<'static>> {
+        self.advisories.get(id).map(|adv| &adv.advisory)
     }
 }
 
@@ -1052,4 +1154,83 @@ fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
     }
 
     !(check(&versions.patched, version) || check(&versions.unaffected, version))
+}
+
+#[cfg(test)]
+mod test {
+    // #[test]
+    // fn arr_iter() {
+    //     let mut iter = super::ArrayIter::new(r#"[">=0.25.1","=1.2.0"]"#);
+
+    //     assert_eq!(">=0.25.1", iter.next().unwrap());
+    //     assert_eq!("=1.2.0", iter.next().unwrap());
+    //     assert!(iter.next().is_none());
+    // }
+
+    #[test]
+    fn split_arrays() {
+        let toml = r#"[advisory]
+id = "RUSTSEC-2020-0146"
+package = "generic-array"
+date = "2020-04-09"
+url = "https://github.com/fizyk20/generic-array/issues/98"
+categories = ["memory-corruption"]
+keywords = ["soundness"]
+aliases = ["CVE-2020-36465", "GHSA-3358-4f7f-p4j4"]
+cvss = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+
+[versions]
+patched = [
+    ">= 0.8.4, < 0.9.0",
+    ">= 0.9.1, < 0.10.0",
+    ">= 0.10.1, < 0.11.0",
+    ">= 0.11.2, < 0.12.0",
+    ">= 0.12.4, < 0.13.0",
+    ">= 0.13.3",
+]
+unaffected = ["< 0.8.0"]"#;
+
+        super::parse_toml(toml).unwrap();
+    }
+
+    #[test]
+    fn argh() {
+        let toml = r#"[advisory]
+id = "RUSTSEC-2023-0018"
+package = "remove_dir_all"
+date = "2023-02-24"
+url = "https://github.com/XAMPPRocky/remove_dir_all/commit/7247a8b6ee59fc99bbb69ca6b3ca4bfd8c809ead"
+references = ["https://github.com/advisories/GHSA-mc8h-8q98-g5hr"]
+keywords = ["TOCTOU"]
+aliases = ["GHSA-mc8h-8q98-g5hr"]
+
+[affected]
+functions = { "remove_dir_all::remove_dir_all" = ["< 0.8.0"], "remove_dir_all::remove_dir_contents" = ["< 0.8.0"], "remove_dir_all::ensure_empty_dir" = ["< 0.8.0"] }
+
+[versions]
+patched = [">= 0.8.0"]"#;
+
+        let adv = super::parse_toml(toml).unwrap();
+
+        panic!("{:#?}", adv.affected.unwrap().functions);
+    }
+
+    #[test]
+    fn affected() {
+        assert!(!super::is_affected(
+            &super::model::Versions {
+                patched: [
+                    ">= 0.10.0-alpha.4",
+                    "< 0.10.0-alpha.1, >= 0.9.5",
+                    "< 0.9.0, >= 0.8.4",
+                    "< 0.8.0, >= 0.7.1",
+                ]
+                .iter()
+                .map(|s| s.parse().unwrap())
+                .collect(),
+                unaffected: ["< 0.7.0"].iter().map(|s| s.parse().unwrap()).collect(),
+            },
+            &"0.10.0-rc.3".parse().unwrap(),
+        ));
+    }
 }

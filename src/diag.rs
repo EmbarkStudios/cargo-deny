@@ -218,6 +218,7 @@ impl From<crate::LintLevel> for Severity {
     }
 }
 
+#[derive(Debug)]
 pub enum SerializedAdvisory {
     Sarif {
         id: String,

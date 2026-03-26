@@ -516,7 +516,7 @@ impl serde::Serialize for ValidConfig {
                 let mut s = serializer.serialize_seq(Some(self.0.len()))?;
 
                 for url in self.0 {
-                    s.serialize_element(url.as_str());
+                    s.serialize_element(url.as_str())?;
                 }
 
                 s.end()

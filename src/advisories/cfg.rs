@@ -171,22 +171,24 @@ impl<'de> Deserialize<'de> for Config {
                     for mut v in ida {
                         match v.take() {
                             ValueInner::String(s) => {
-                                let Some((kind, _)) = s.split_once('-') else {
-                                    v.set(ValueInner::String(s));
-                                    continue;
+                                if let Some((kind, _)) = s.split_once('-') {
+                                    // We could do matches!(kind, "RUSTSEC" | "CVE" | "GHSA" | "TALOS")`, but that's
+                                    // probably overkill, we can instead just rely on the fact that, at least as of now,
+                                    // all off the official rustsec advisory prefixes are all uppercase ASCII, and uppercase
+                                    // ASCII is not allowed for crate names
+                                    if kind.chars().all(|c| c.is_ascii_uppercase()) {
+                                        u.push(Spanned::with_span(
+                                            IgnoreId {
+                                                id: Spanned::with_span(s.into(), v.span),
+                                                reason: None,
+                                            },
+                                            v.span,
+                                        ));
+                                        continue;
+                                    }
                                 };
 
-                                if matches!(kind, "RUSTSEC" | "CVE" | "GHSA" | "TALOS") {
-                                    u.push(Spanned::with_span(
-                                        IgnoreId {
-                                            id: Spanned::with_span(s.into(), v.span),
-                                            reason: None,
-                                        },
-                                        v.span,
-                                    ));
-                                } else {
-                                    v.set(ValueInner::String(s));
-                                }
+                                v.set(ValueInner::String(s));
                             }
                             ValueInner::Table(tab) => {
                                 if tab.contains_key("id") {
@@ -437,7 +439,7 @@ impl serde::Serialize for ValidConfig {
                 let mut s = serializer.serialize_seq(Some(self.0.len()))?;
 
                 for url in self.0 {
-                    s.serialize_element(url.value.as_str());
+                    s.serialize_element(url.value.as_str())?;
                 }
 
                 s.end()

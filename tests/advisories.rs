@@ -76,7 +76,7 @@ fn detects_vulnerabilities() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
-                SA::No,
+                SA::Json,
                 None,
                 tx,
             );
@@ -109,7 +109,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
-                    SA::No,
+                    SA::Json,
                     None,
                     tx,
                 );
@@ -127,7 +127,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
-                    SA::No,
+                    SA::Json,
                     None,
                     tx,
                 );
@@ -145,7 +145,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
-                    SA::No,
+                    SA::Json,
                     None,
                     tx,
                 );
@@ -163,7 +163,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
-                    SA::No,
+                    SA::Json,
                     None,
                     tx,
                 );
@@ -186,7 +186,7 @@ fn detects_unsound() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
-                SA::No,
+                SA::Json,
                 None,
                 tx,
             );
@@ -217,7 +217,7 @@ ignore = [
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
-                SA::No,
+                SA::Json,
                 None,
                 tx,
             );
@@ -272,7 +272,10 @@ fn detects_yanked() {
         .unwrap();
 
     let indices = advisories::Indices::load(&krates, cargo_home.to_owned().try_into().unwrap());
-    let dbs = advisories::DbSet { dbs: Vec::new() };
+    let dbs = advisories::DbSet {
+        dbs: Vec::new(),
+        lock: None,
+    };
 
     {
         let cfg = tu::Config::new("yanked = 'deny'");
@@ -492,8 +495,8 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
     );
 
     for (id, date) in ids {
-        let adv = adb.db.get(&id.parse().unwrap()).expect("unable to find id");
-        assert_eq!(adv.date().as_str(), *date);
+        let adv = adb.db.get(id).expect("unable to find id");
+        assert_eq!(adv.advisory.date.to_string(), *date);
     }
 
     assert!(
