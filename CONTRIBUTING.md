@@ -55,3 +55,7 @@ Unless otherwise specified, all Embark open source projects are licensed under a
 ## Code of Conduct
 
 Please note that our projects are released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md) to ensure that they are welcoming places for everyone to contribute. By participating in any Embark open source project, you agree to abide by these terms.
+
+## AI
+
+**I can't be bothered to merge what you didn't bother to write.** If a PR is made that is obviously AI I'll probably close without response, unless it's a small change that is easy to review. Of course in that case, why not write it yourself?
