@@ -118,7 +118,7 @@ impl Default for Config {
     }
 }
 
-const NINETY_DAYS: u64 = 90 * 24 * 60 * 60 * 60;
+const NINETY_DAYS: u64 = 90 * 24 * 60 * 60;
 
 impl<'de> Deserialize<'de> for Config {
     fn deserialize(value: &mut Value<'de>) -> Result<Self, toml_span::DeserError> {
