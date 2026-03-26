@@ -1,11 +1,10 @@
-use super::cfg::IgnoreId;
+use super::{
+    cfg::IgnoreId,
+    model::{Advisory, Informational, Metadata},
+};
 use crate::{
     LintLevel,
     diag::{Check, Diagnostic, FileId, Label, Pack, Severity},
-};
-use rustsec::{
-    Advisory,
-    advisory::{Informational, Metadata},
 };
 
 impl IgnoreId {
@@ -86,13 +85,28 @@ fn diag(diag: Diagnostic, code: Code) -> crate::diag::Diag {
     crate::diag::Diag::new(diag, Some(crate::diag::DiagnosticCode::Advisory(code)))
 }
 
-fn get_notes_from_advisory(advisory: &Metadata) -> Vec<String> {
+fn get_notes_from_advisory(advisory: &Metadata<'_>) -> Vec<String> {
     let mut n = vec![format!("ID: {}", advisory.id)];
-    if let Some(url) = advisory.id.url() {
-        n.push(format!("Advisory: {url}"));
+
+    #[inline]
+    fn advisory_url(id: &str) -> Option<String> {
+        let (kind, _) = id.split_once('-')?;
+        let url = match kind {
+            "RUSTSEC" => format!("Advisory: https://rustsec.org/advisories/{id}"),
+            "CVE" => format!("Advisory: https://cve.mitre.org/cgi-bin/cvename.cgi?name={id}"),
+            "GHSA" => format!("Advisory: https://github.com/advisories/{id}"),
+            "TALOS" => format!("Advisory: https://www.talosintelligence.com/reports/{id}"),
+            _ => return None,
+        };
+
+        Some(url)
     }
 
-    n.push(advisory.description.clone());
+    if let Some(url) = advisory_url(advisory.id) {
+        n.push(url);
+    }
+
+    n.push(advisory.description.to_owned());
 
     if let Some(url) = &advisory.url {
         n.push(format!("Announcement: {url}"));
@@ -105,7 +119,8 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
     pub(crate) fn diag_for_advisory<F>(
         &self,
         krate: &crate::Krate,
-        advisory: &Advisory,
+        serialize_advisories: crate::SerializeAdvisory,
+        advisory: &Advisory<'_>,
         mut on_ignore: F,
     ) -> Pack
     where
@@ -119,7 +134,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
             Unsound,
         }
 
-        let md = &advisory.metadata;
+        let md = &advisory.advisory;
 
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
 
@@ -133,7 +148,6 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
                     Informational::Other(other) => {
                         unreachable!("rustsec only returns Informational::Other({other}) advisories if we ask, and there are none at the moment to ask for");
                     }
-                    _ => unreachable!("non_exhaustive enums are the worst"),
                 }
             });
 
@@ -141,43 +155,51 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
             // advisory, but the user might have decided to ignore it
             // for "reasons", but in that case we still emit it to the log
             // so it doesn't just disappear into the aether
-            let lint_level =
-                if let Ok(index) = self.cfg.ignore.binary_search_by(|i| i.id.value.cmp(&md.id)) {
-                    on_ignore(index);
+            let lint_level = if let Ok(index) = self
+                .cfg
+                .ignore
+                .binary_search_by(|i| i.id.value.as_str().cmp(md.id))
+            {
+                on_ignore(index);
 
-                    pack.push(diag(
-                        Diagnostic::note()
-                            .with_message("advisory ignored")
-                            .with_labels(
-                                self.cfg.ignore[index]
-                                    .to_labels(self.cfg.file_id, "advisory ignored here"),
-                            ),
-                        Code::AdvisoryIgnored,
-                    ));
+                pack.push(diag(
+                    Diagnostic::note()
+                        .with_message("advisory ignored")
+                        .with_labels(
+                            self.cfg.ignore[index]
+                                .to_labels(self.cfg.file_id, "advisory ignored here"),
+                        ),
+                    Code::AdvisoryIgnored,
+                ));
 
-                    LintLevel::Allow
-                } else {
-                    LintLevel::Deny
-                };
+                LintLevel::Allow
+            } else {
+                LintLevel::Deny
+            };
 
             (lint_level.into(), adv_ty)
         };
 
         let mut notes = get_notes_from_advisory(md);
 
-        if advisory.versions.patched().is_empty() {
+        if advisory.versions.patched.is_empty() {
             notes.push("Solution: No safe upgrade is available!".to_owned());
         } else {
+            let mut patched = String::with_capacity(
+                advisory.versions.patched.len() * 9 + advisory.versions.patched.len() - 4,
+            );
+
+            for (i, req) in advisory.versions.patched.iter().enumerate() {
+                if i > 0 {
+                    patched.push_str(" OR ");
+                }
+
+                use std::fmt::Write;
+                write!(&mut patched, "{req}").expect("unreachable unless OOM");
+            }
+
             notes.push(format!(
-                "Solution: Upgrade to {} (try `cargo update -p {}`)",
-                advisory
-                    .versions
-                    .patched()
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .as_slice()
-                    .join(" OR "),
+                "Solution: Upgrade to {patched} (try `cargo update -p {}`)",
                 krate.name,
             ));
         }
@@ -191,7 +213,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
 
         let diag = pack.push(diag(
             Diagnostic::new(severity)
-                .with_message(&md.title)
+                .with_message(md.title)
                 .with_labels(vec![
                     Label::primary(
                         self.krate_spans.lock_id,
@@ -203,8 +225,10 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
             code,
         ));
 
-        if self.serialize_extra {
-            diag.extra = Some(crate::diag::Extra::Advisory(advisory.clone()));
+        match serialize_advisories {
+            crate::SerializeAdvisory::No => {}
+            crate::SerializeAdvisory::Json => diag.advisory = Some(advisory.to_json()),
+            crate::SerializeAdvisory::Sarif => diag.advisory = Some(advisory.to_sarif()),
         }
 
         pack

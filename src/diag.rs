@@ -218,42 +218,25 @@ impl From<crate::LintLevel> for Severity {
     }
 }
 
+pub enum SerializedAdvisory {
+    Sarif {
+        id: String,
+        title: String,
+        markdown: String,
+    },
+    Json(serde_json::Value),
+}
+
 pub struct GraphNode {
     pub kid: Kid,
     pub feature: Option<String>,
-}
-
-/// Additional metadata for a diagnostic
-#[derive(Clone)]
-pub enum Extra {
-    Advisory(rustsec::advisory::Advisory),
-}
-
-impl Extra {
-    #[inline]
-    pub fn key(&self) -> &'static str {
-        match self {
-            Self::Advisory(_) => "advisory",
-        }
-    }
-}
-
-impl serde::Serialize for Extra {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            Self::Advisory(adv) => adv.metadata.serialize(serializer),
-        }
-    }
 }
 
 pub struct Diag {
     pub diag: Diagnostic,
     pub code: Option<DiagnosticCode>,
     pub graph_nodes: smallvec::SmallVec<[GraphNode; 2]>,
-    pub extra: Option<Extra>,
+    pub advisory: Option<SerializedAdvisory>,
     pub with_features: bool,
 }
 
@@ -267,7 +250,7 @@ impl Diag {
             },
             code,
             graph_nodes: smallvec::SmallVec::new(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }

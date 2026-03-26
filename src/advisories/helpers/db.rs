@@ -1,7 +1,11 @@
-use crate::{Krate, Krates, Path, PathBuf};
+use crate::{Krate, Krates, Path, PathBuf, advisories::model};
 use anyhow::Context as _;
 use log::{debug, info};
-pub use rustsec::{Database, advisory::Id};
+use rayon::{
+    iter::{ParallelBridge, ParallelIterator},
+    prelude::IntoParallelRefIterator,
+};
+use semver::VersionReq;
 use std::{fmt, fs, process::Command};
 use url::Url;
 
@@ -40,9 +44,9 @@ impl fmt::Debug for AdvisoryDb {
 /// in many different databases.
 ///
 /// [`Database`]: https://docs.rs/rustsec/latest/rustsec/database/struct.Database.html
-#[derive(Debug)]
 pub struct DbSet {
     pub dbs: Vec<AdvisoryDb>,
+    pub lock: Option<tame_index::utils::flock::FileLock>,
 }
 
 impl DbSet {
@@ -55,7 +59,7 @@ impl DbSet {
         // Acquire an exclusive lock, even if we aren't fetching, to prevent
         // other cargo-deny processes from performing mutations
         let lock_path = root.join("db.lock");
-        let _lock = tame_index::utils::flock::LockOptions::new(&lock_path)
+        let lock = tame_index::utils::flock::LockOptions::new(&lock_path)
             .exclusive(false)
             .lock(|path| {
                 log::info!("waiting on advisory db lock '{path}'");
@@ -71,6 +75,7 @@ impl DbSet {
 
         Ok(Self {
             dbs: dbs.into_iter().collect::<Result<Vec<_>, _>>()?,
+            lock: Some(lock),
         })
     }
 
@@ -80,8 +85,16 @@ impl DbSet {
     }
 
     #[inline]
-    pub fn has_advisory(&self, id: &Id) -> bool {
-        self.dbs.iter().any(|adb| adb.db.get(id).is_some())
+    pub fn has_advisory(&self, id: &str) -> bool {
+        self.dbs
+            .iter()
+            .any(|adb| adb.db.advisories.contains_key(id))
+    }
+}
+
+impl fmt::Debug for DbSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DbSet").field("dbs", &self.dbs).finish()
     }
 }
 
@@ -144,7 +157,7 @@ fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Advi
 
     debug!("loading advisory database from {db_path}");
 
-    let res = Database::open(db_path.as_std_path()).context("failed to load advisory database");
+    let res = Database::open(&db_path).context("failed to load advisory database");
 
     debug!("finished loading advisory database from {db_path}");
 
@@ -275,7 +288,7 @@ fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
 }
 
 pub struct Report<'db, 'k> {
-    pub advisories: Vec<(&'k Krate, &'db rustsec::Advisory)>,
+    pub advisories: Vec<(&'k Krate, &'db model::Advisory<'static>)>,
     /// For backwards compatibility with cargo-audit, we optionally serialize the
     /// reports to JSON and output them in addition to the normal cargo-deny
     /// diagnostics
@@ -283,150 +296,114 @@ pub struct Report<'db, 'k> {
 }
 
 impl<'db, 'k> Report<'db, 'k> {
-    pub fn generate(advisory_dbs: &'db DbSet, krates: &'k Krates, serialize_reports: bool) -> Self {
+    pub fn generate(
+        cfg: &crate::advisories::cfg::ValidConfig,
+        advisory_dbs: &'db DbSet,
+        krates: &'k Krates,
+        serialize_reports: bool,
+    ) -> Self {
         let mut serialized_reports = Vec::with_capacity(if serialize_reports {
             advisory_dbs.dbs.len()
         } else {
             0
         });
 
-        // We just use rustsec::Report directly to avoid divergence with cargo-audit,
-        // but since we operate differently we need to do shenanigans
-        let fake_lockfile = serialize_reports.then(|| {
-            // This is really gross, but the only field is private :p
-            let lfi: rustsec::report::LockfileInfo = serde_json::from_value(serde_json::json!({
-                "dependency-count": krates.len()
-            }))
-            .expect("check the definition of rustsec::report::LockfileInfo, it's been changed");
-
-            lfi
-        });
-
         let mut advisories = Vec::new();
-        use rayon::prelude::{ParallelBridge, ParallelIterator};
 
         for advisory_db in advisory_dbs.iter() {
-            // Ugh, db exposes advisories as a slice iter which rayon doesn't have an impl for :(
             let mut db_advisories: Vec<_> = advisory_db
                 .db
-                .iter()
-                .par_bridge()
-                .filter(|advisory| {
-                    if let Some(wdate) = &advisory.metadata.withdrawn {
-                        log::trace!(
-                            "ignoring advisory '{}', withdrawn {wdate}",
-                            advisory.metadata.id
-                        );
-                        return false;
-                    }
-
-                    // TODO: Support Rust std/core advisories at some point, but
-                    // AFAIK rustsec/cargo-audit doesn't support checking for them either
-                    advisory
-                        .metadata
-                        .collection
-                        .is_none_or(|c| c == rustsec::Collection::Crates)
+                .advisories
+                .par_iter()
+                .filter(|(id, entry)| {
+                    let Some(wdate) = &entry.advisory.advisory.withdrawn else {
+                        return true;
+                    };
+                    log::trace!("ignoring advisory '{id}', withdrawn {wdate}");
+                    false
                 })
-                .flat_map(|advisory| {
+                .flat_map(|(_id, entry)| {
                     krates
-                        .krates_by_name(advisory.metadata.package.as_str())
+                        .krates_by_name(entry.advisory.advisory.krate)
                         .par_bridge()
                         .filter_map(move |km| {
                             let ksrc = km.krate.source.as_ref()?;
 
                             // Validate the crate's source is the same as the advisory
-                            if !ksrc.matches_rustsec(advisory.metadata.source.as_ref()) {
+                            if !ksrc.matches_rustsec(entry.advisory.advisory.source.as_ref()) {
                                 return None;
                             }
 
                             // Ensure the crate's version is actually affected
-                            if !advisory.versions.is_vulnerable(&km.krate.version) {
+                            if !is_affected(&entry.advisory.versions, &km.krate.version) {
                                 return None;
                             }
 
-                            Some((km.krate, advisory))
+                            Some((km.krate, &entry.advisory))
                         })
                 })
                 .collect();
 
-            if let Some(lockfile) = fake_lockfile.clone() {
-                let mut warnings = std::collections::BTreeMap::<_, Vec<rustsec::Warning>>::new();
+            if serialize_reports {
+                let mut warnings =
+                    std::collections::BTreeMap::<&'static str, Vec<serde_json::Value>>::new();
                 let mut vulns = Vec::new();
 
-                for (krate, advisory) in &db_advisories {
-                    let package = rustsec::package::Package {
-                        // :(
-                        name: krate.name.parse().unwrap(),
-                        version: krate.version.clone(),
-                        source: krate.source.as_ref().map(|s| s.to_rustsec()),
+                for (krate, adv) in &db_advisories {
+                    let package = serde_json::json!({
+                        "name": krate.name,
+                        "version": krate.version,
+                        "source": krate.source.as_ref().map(|s| s.to_string()),
                         // TODO: Get this info from the lockfile
-                        checksum: None,
-                        dependencies: Vec::new(),
-                        replace: None,
-                    };
+                        "checksum": serde_json::Value::Null,
+                        "dependencies": [],
+                        "replace": serde_json::Value::Null,
+                    });
 
-                    if let Some(kind) = advisory
-                        .metadata
-                        .informational
-                        .as_ref()
-                        .and_then(|i| i.warning_kind())
-                    {
-                        let warning = rustsec::Warning {
-                            kind,
-                            package,
-                            advisory: Some(advisory.metadata.clone()),
-                            versions: Some(advisory.versions.clone()),
-                            affected: advisory.affected.clone(),
+                    if let Some(informational) = &adv.advisory.informational {
+                        let kind = match informational {
+                            model::Informational::Unmaintained => "unmaintained",
+                            model::Informational::Unsound => "unsound",
+                            model::Informational::Notice => "notice",
+                            model::Informational::Other(o) => o,
                         };
 
-                        if let Some(v) = warnings.get_mut(&kind) {
-                            v.push(warning);
-                        } else {
-                            warnings.insert(kind, vec![warning]);
-                        }
+                        warnings.entry(kind).or_default().push(serde_json::json!({
+                            "kind": kind,
+                            "package": package,
+                            "advisory": adv.advisory.to_json(),
+                            "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
+                            "versions": adv.versions.to_json(),
+                        }));
                     } else {
-                        // Note we don't use new here since it takes references and just clones :p
-                        vulns.push(rustsec::Vulnerability {
-                            advisory: advisory.metadata.clone(),
-                            versions: advisory.versions.clone(),
-                            affected: advisory.affected.clone(),
-                            package,
-                        });
+                        vulns.push(serde_json::json!({
+                            "advisory": adv.advisory.to_json(),
+                            "versions": adv.versions.to_json(),
+                            "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
+                            "package": package,
+                        }));
                     }
                 }
 
-                use rustsec::advisory::Informational;
-                let rep = rustsec::Report {
-                    settings: rustsec::report::Settings {
-                        // We already prune packages we don't care about, so don't filter
-                        // any here
-                        target_arch: Vec::new(),
-                        target_os: Vec::new(),
-                        // We handle the severity ourselves
-                        severity: None,
-                        // We handle the ignoring of particular advisory ids ourselves
-                        ignore: Vec::new(),
-                        informational_warnings: vec![
-                            Informational::Notice,
-                            Informational::Unmaintained,
-                            Informational::Unsound,
-                            //Informational::Other("*"),
+                serialized_reports.push(serde_json::json!({
+                    // This is extremely cargo-audit specific, we fill it out a bit lazily
+                    "settings": serde_json::json!({
+                        "target_arch": [],
+                        "target_os": [],
+                        "severity": serde_json::Value::Null,
+                        "ignore": serde_json::Value::Array(cfg.ignore.iter().map(|i| serde_json::Value::String(i.id.value.clone())).collect()),
+                        "informational_warnings": [
+                            "notice",
+                            "unmaintained",
+                            "unsound",
                         ],
+                    }),
+                    "lockfile": {
+                        "dependency-count": krates.len(),
                     },
-                    lockfile,
-                    vulnerabilities: rustsec::report::VulnerabilityInfo::new(vulns),
-                    warnings,
-                };
-
-                match serde_json::to_value(&rep) {
-                    Ok(val) => serialized_reports.push(val),
-                    Err(err) => {
-                        log::error!(
-                            "Failed to serialize report for database '{}': {err}",
-                            advisory_db.url
-                        );
-                    }
-                }
+                    "vulnerabilities": vulns,
+                    "warnings": warnings,
+                }));
             }
 
             advisories.append(&mut db_advisories);
@@ -439,7 +416,7 @@ impl<'db, 'k> Report<'db, 'k> {
             if c != std::cmp::Ordering::Equal {
                 c
             } else {
-                a.1.id().cmp(b.1.id())
+                a.1.advisory.id.cmp(b.1.advisory.id)
             }
         });
 
@@ -448,4 +425,631 @@ impl<'db, 'k> Report<'db, 'k> {
             serialized_reports,
         }
     }
+}
+
+#[allow(dead_code)]
+pub struct DbEntry {
+    mmap: memmap2::Mmap,
+    path: crate::PathBuf,
+    advisory: model::Advisory<'static>,
+}
+
+impl DbEntry {
+    #[inline]
+    fn load(path: crate::PathBuf) -> anyhow::Result<Self> {
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(false)
+            .create(false)
+            .open(&path)
+            .with_context(|| format!("failed to open {path}"))?;
+
+        #[allow(unsafe_code)]
+        // SAFETY: we lock to at least prevent other cargo-deny processes from
+        // mutating the files on disk, though of course other processes could,
+        // though the checkout directory is specific enough that that _shouldn't_
+        // be an issue in normal cases
+        let (mmap, advisory) = unsafe {
+            let mmap =
+                memmap2::Mmap::map(&file).with_context(|| format!("failed to map {path}"))?;
+
+            let advisory = deserialize(std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()))
+                .with_context(|| format!("failed to deserialize {path}"))?;
+
+            (mmap, advisory)
+        };
+
+        Ok(Self {
+            mmap,
+            path,
+            advisory,
+        })
+    }
+}
+
+#[inline]
+fn deserialize(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
+    let s = std::str::from_utf8(b)?;
+
+    // This should be at the start, but just in case
+    let tstart = s.find("```toml`\n").context("failed to find toml block")?;
+    let toml = &b[tstart..];
+    let s = &s[tstart..];
+
+    let mut start = 0;
+
+    let mut liter = memchr::memchr_iter(b'\n', toml).peekable();
+
+    let mut md = model::Metadata {
+        id: "",
+        krate: "",
+        title: "",
+        description: "",
+        date: jiff::civil::Date::constant(0, 1, 1),
+        aliases: Default::default(),
+        related: Default::default(),
+        categories: Default::default(),
+        keywords: Default::default(),
+        cvss: None,
+        informational: None,
+        source: None,
+        references: Default::default(),
+        url: None,
+        withdrawn: None,
+        license: Default::default(),
+        expect_deleted: false,
+    };
+    let mut versions = None;
+    let mut affected = None;
+
+    struct ArrayIter {
+        v: &'static str,
+        inner: memchr::Memchr<'static>,
+    }
+
+    impl ArrayIter {
+        fn new(v: &'static str) -> Self {
+            let start = memchr::memchr(b'[', v.as_bytes()).unwrap();
+            let end = memchr::memrchr(b']', v.as_bytes()).unwrap();
+
+            let v = &v[start..end];
+
+            Self {
+                v,
+                inner: memchr::memchr_iter(b'"', v.as_bytes()),
+            }
+        }
+    }
+
+    impl Iterator for ArrayIter {
+        type Item = &'static str;
+
+        #[allow(clippy::question_mark)]
+        fn next(&mut self) -> Option<Self::Item> {
+            let Some(start) = self.inner.next() else {
+                return None;
+            };
+            let Some(end) = self.inner.next() else {
+                return None;
+            };
+
+            Some(&self.v[start..end])
+        }
+    }
+
+    let parse_advisory = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
+                          start: &mut usize,
+                          md: &mut model::Metadata<'static>|
+     -> anyhow::Result<()> {
+        while let Some(end) = liter.peek() {
+            let line = &s[*start..*end];
+
+            if line.starts_with('[') || line == "```" {
+                return Ok(());
+            }
+
+            *start = *end + 1;
+            liter.next();
+
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            let (field, value) = line
+                .split_once(" = ")
+                .with_context(|| format!("line `{line}` did not follow expected format"))?;
+
+            let string = || -> &'static str { &value[1..value.len() - 1] };
+
+            match field {
+                "id" => md.id = string(),
+                "package" => md.krate = string(),
+                "aliases" => {
+                    for alias in ArrayIter::new(value) {
+                        md.aliases.push(alias);
+                    }
+                }
+                "related" => {
+                    for id in ArrayIter::new(value) {
+                        md.related.push(id);
+                    }
+                }
+                "cvss" => md.cvss = Some(string()),
+                "date" => md.date = string().parse().context("failed to parse `date`")?,
+                "url" => md.url = Some(string()),
+                "informational" => {
+                    md.informational = Some(match string() {
+                        "unmaintained" => model::Informational::Unmaintained,
+                        "unsound" => model::Informational::Unsound,
+                        "notice" => model::Informational::Notice,
+                        other => model::Informational::Other(other),
+                    });
+                }
+                "categories" => {
+                    for alias in ArrayIter::new(value) {
+                        md.categories.push(alias);
+                    }
+                }
+                "keywords" => {
+                    for kw in ArrayIter::new(value) {
+                        md.keywords.push(kw);
+                    }
+                }
+                "references" => {
+                    for r in ArrayIter::new(value) {
+                        md.references.push(r);
+                    }
+                }
+                "withdrawn" => {
+                    md.withdrawn = Some(string().parse().context("failed to parse `withdrawn`")?);
+                }
+                "license" => {
+                    md.license = model::AdvisoryLicense(string());
+                }
+                "source" => {
+                    md.source = Some(
+                        crate::Source::from_metadata(value.to_owned(), None)
+                            .with_context(|| "failed to parse `source` field '{value}'")?,
+                    );
+                }
+                "expect-deleted" => {
+                    md.expect_deleted = value == "true";
+                }
+                unknown => {
+                    log::warn!("unknown advisory field '{unknown}'");
+                }
+            }
+        }
+
+        Ok(())
+    };
+
+    let parse_versions =
+        |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
+         start: &mut usize|
+         -> anyhow::Result<model::Versions> {
+            let mut v = model::Versions {
+                patched: Default::default(),
+                unaffected: Default::default(),
+            };
+
+            while let Some(end) = liter.peek() {
+                let line = &s[*start..*end];
+
+                if line.starts_with('[') || line == "```" {
+                    return Ok(v);
+                }
+
+                *start = *end + 1;
+                liter.next();
+
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                let (field, value) = line
+                    .split_once(" = ")
+                    .with_context(|| format!("line `{line}` did not follow expected format"))?;
+
+                match field {
+                    "patched" => {
+                        for vr in ArrayIter::new(value) {
+                            v.patched.push(vr.parse().with_context(|| {
+                                format!("failed to parse patched version '{vr}'")
+                            })?);
+                        }
+                    }
+                    "unaffected" => {
+                        for vr in ArrayIter::new(value) {
+                            v.unaffected.push(vr.parse().with_context(|| {
+                                format!("failed to parse unaffected version '{vr}'")
+                            })?);
+                        }
+                    }
+                    unknown => anyhow::bail!("unknown versions field '{unknown}'"),
+                }
+            }
+
+            Ok(v)
+        };
+
+    let parse_affected = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
+                          start: &mut usize,
+                          first: &'static str|
+     -> anyhow::Result<Option<model::Affected<'static>>> {
+        let mut affected = model::Affected {
+            functions: Default::default(),
+            os: Default::default(),
+            arch: Default::default(),
+        };
+
+        let parse_function_table = |liter: &mut std::iter::Peekable<memchr::Memchr<'static>>,
+                                    start: &mut usize,
+                                    funcs: &mut std::collections::BTreeMap<
+            &'static str,
+            Vec<VersionReq>,
+        >| {
+            while let Some(end) = liter.peek() {
+                let line = &s[*start..*end];
+
+                if line.starts_with('[') || line == "```" {
+                    return;
+                }
+
+                *start = *end + 1;
+                liter.next();
+
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                let Some((field, _value)) = line.split_once(" = ") else {
+                    continue;
+                };
+
+                let key = field.trim_matches('"');
+                let mut val = Vec::new();
+
+                for vr in ArrayIter::new(line) {
+                    match vr.parse() {
+                        Ok(vr) => val.push(vr),
+                        Err(error) => {
+                            log::error!(
+                                "failed to parse version requirement for function '{key}': {error}"
+                            );
+                        }
+                    }
+                }
+
+                funcs.insert(key, val);
+            }
+        };
+
+        if first == "[affected]" {
+            while let Some(end) = liter.peek() {
+                let line = &s[*start..*end];
+
+                if line == "```" || line.starts_with('[') {
+                    if line == "[affected.functions]" {
+                        *start = *end + 1;
+                        liter.next();
+
+                        parse_function_table(liter, start, &mut affected.functions);
+                    }
+
+                    break;
+                }
+
+                let (field, value) = line
+                    .split_once(" = ")
+                    .with_context(|| format!("line `{line}` did not follow expected format"))?;
+
+                match field {
+                    "functions" => {
+                        let Some(start) = memchr::memchr(b'{', value.as_bytes()) else {
+                            continue;
+                        };
+                        let Some(end) = memchr::memrchr(b'}', value.as_bytes()) else {
+                            continue;
+                        };
+
+                        let mut map = &value[start..end];
+
+                        while let Some((key, value)) = map.split_once(" = ") {
+                            let key = key.trim_matches('"');
+                            let mut val = Vec::new();
+
+                            for vr in ArrayIter::new(value) {
+                                match vr.parse() {
+                                    Ok(vr) => val.push(vr),
+                                    Err(error) => {
+                                        log::error!(
+                                            "failed to parse version requirement for function '{key}': {error}"
+                                        );
+                                    }
+                                }
+                            }
+
+                            affected.functions.insert(key, val);
+
+                            let vend = memchr::memchr(b']', value.as_bytes()).unwrap();
+
+                            let Some(start) = memchr::memchr(b'"', &value.as_bytes()[vend..])
+                            else {
+                                break;
+                            };
+
+                            map = &map[vend + start..];
+                        }
+                    }
+                    "os" => {
+                        for os in ArrayIter::new(value) {
+                            affected
+                                .os
+                                .push(cfg_expr::targets::Os(std::borrow::Cow::Borrowed(os)));
+                        }
+                    }
+                    "arch" => {
+                        for arch in ArrayIter::new(value) {
+                            affected
+                                .arch
+                                .push(cfg_expr::targets::Arch(std::borrow::Cow::Borrowed(arch)));
+                        }
+                    }
+                    unknown => {
+                        log::warn!("unknown `affected` field '{unknown}'");
+                    }
+                }
+            }
+        } else if first == "[affected.functions]" {
+            parse_function_table(liter, start, &mut affected.functions);
+        }
+
+        if affected.functions.is_empty() && affected.os.is_empty() && affected.arch.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(affected))
+        }
+    };
+
+    while let Some(end) = liter.next() {
+        let line = &s[start..end];
+        start = end + 1;
+
+        match line {
+            "[advisory]" => {
+                parse_advisory(&mut liter, &mut start, &mut md)?;
+            }
+            "[versions]" => {
+                versions = Some(parse_versions(&mut liter, &mut start)?);
+            }
+            aff if line.starts_with("[affected") => {
+                affected = parse_affected(&mut liter, &mut start, line)?;
+            }
+            "```" => {
+                break;
+            }
+            unknown => {
+                log::warn!("unknown toml table '{unknown}'");
+            }
+        }
+    }
+
+    for end in liter {
+        let line = &s[start..end];
+        start = end + 1;
+
+        if let Some(title) = line.strip_prefix("# ") {
+            md.title = title;
+            break;
+        }
+    }
+
+    md.description = s[start..].trim();
+
+    Ok(model::Advisory {
+        advisory: md,
+        affected,
+        versions: versions.unwrap_or(model::Versions {
+            patched: Vec::new(),
+            unaffected: Vec::new(),
+        }),
+    })
+}
+
+pub struct Database {
+    pub advisories: std::collections::BTreeMap<&'static str, DbEntry>,
+}
+
+impl Database {
+    pub fn open(path: &Path) -> anyhow::Result<Self> {
+        let root = path.join("crates");
+
+        anyhow::ensure!(root.exists(), "failed to find expected `crates` directory");
+
+        let mut advisories = std::collections::BTreeMap::new();
+
+        for entry in walkdir::WalkDir::new(&root) {
+            match entry {
+                Ok(entry) => {
+                    if !entry.file_type().is_file() {
+                        continue;
+                    }
+
+                    let Ok(path) = crate::PathBuf::from_path_buf(entry.into_path()) else {
+                        // It's incredibly unlikely that a database would have non-utf8 paths
+                        log::debug!("skipping non-utf8 path");
+                        continue;
+                    };
+
+                    if path.extension() != Some("md") {
+                        continue;
+                    }
+
+                    match DbEntry::load(path) {
+                        Ok(entry) => {
+                            advisories.insert(entry.advisory.advisory.id, entry);
+                        }
+                        Err(error) => {
+                            log::error!("failed to load advisory: {error}");
+                        }
+                    }
+                }
+                Err(error) => {
+                    log::warn!("failed to read directory entry: {error}");
+                }
+            }
+        }
+
+        anyhow::ensure!(
+            !advisories.is_empty(),
+            "failed to load any advisories in the database"
+        );
+
+        Ok(Self { advisories })
+    }
+}
+
+/// A much simpler version of the [`Versions::is_vulnerable`](https://github.com/rustsec/rustsec/blob/cf93efe036c112c5b2737857b991d12c15f43951/rustsec/src/advisory/versions.rs#L22)
+/// method
+///
+/// Rustsec does a bunch of error checking, whereas we assume that an advisory can't enter the database if it has malformed
+/// (ie overlapping) version ranges, though this may need to change if someone uses cargo-deny for a non-rustsec db that
+/// they introduce bad advisories into. It also essentially does a negation to conform with <https://github.com/google/osv.dev>
+/// which is not interesting for this crate
+fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
+    if versions.patched.is_empty() && versions.unaffected.is_empty() {
+        return true;
+    }
+
+    fn check(reqs: &[semver::VersionReq], vers: &semver::Version) -> bool {
+        // We can't just blindly use semver's requirement checking here due to https://github.com/dtolnay/semver/issues/172
+        if vers.pre.is_empty() {
+            return reqs.iter().any(|req| req.matches(vers));
+        }
+
+        reqs.iter().any(|req| {
+            // rustsec only allows up to 2 comparators https://github.com/rustsec/rustsec/blob/cf93efe036c112c5b2737857b991d12c15f43951/rustsec/src/osv/unaffected_range.rs#L116-L121
+            req.comparators.iter().all(|comp| {
+                use semver::Op;
+                use std::cmp::Ordering as Or;
+
+                let exact = || {
+                    comp.major == vers.major
+                        && comp.minor.is_none_or(|m| m == vers.minor)
+                        && comp.patch.is_none_or(|p| p == vers.patch)
+                        && comp.pre == vers.pre
+                };
+
+                let greater = || match comp.major.cmp(&vers.major) {
+                    Or::Equal => {
+                        let Some(minor) = comp.minor else {
+                            return false;
+                        };
+
+                        match minor.cmp(&vers.minor) {
+                            Or::Equal => {
+                                let Some(patch) = comp.patch else {
+                                    return false;
+                                };
+
+                                patch != vers.patch
+                            }
+                            Or::Greater => false,
+                            Or::Less => true,
+                        }
+                    }
+                    Or::Greater => false,
+                    Or::Less => true,
+                };
+
+                let lesser = || match comp.major.cmp(&vers.major) {
+                    Or::Equal => {
+                        let Some(minor) = comp.minor else {
+                            return false;
+                        };
+
+                        match minor.cmp(&vers.minor) {
+                            Or::Equal => {
+                                let Some(patch) = comp.patch else {
+                                    return false;
+                                };
+
+                                patch != vers.patch
+                            }
+                            Or::Greater => true,
+                            Or::Less => false,
+                        }
+                    }
+                    Or::Greater => true,
+                    Or::Less => false,
+                };
+
+                match comp.op {
+                    Op::Greater => greater(),
+                    Op::GreaterEq => greater() || exact(),
+                    Op::Less => lesser(),
+                    Op::LessEq => lesser() || exact(),
+                    Op::Exact => exact(),
+                    Op::Caret => {
+                        if comp.major != vers.major {
+                            return false;
+                        }
+
+                        let Some(minor) = comp.minor else {
+                            return true;
+                        };
+
+                        let Some(patch) = comp.patch else {
+                            if comp.major > 0 {
+                                return vers.minor >= minor;
+                            } else {
+                                return vers.minor == minor;
+                            }
+                        };
+
+                        if comp.major > 0 {
+                            if vers.minor != minor {
+                                return vers.minor > minor;
+                            } else if vers.patch != patch {
+                                return vers.patch > patch;
+                            }
+                        } else if minor > 0 {
+                            if vers.minor != minor {
+                                return false;
+                            } else if vers.patch != patch {
+                                return vers.patch > patch;
+                            }
+                        } else if vers.minor != minor || vers.patch != patch {
+                            return false;
+                        }
+
+                        true
+                    }
+                    Op::Tilde => {
+                        if comp.major != vers.major {
+                            return false;
+                        }
+
+                        if let Some(minor) = comp.minor
+                            && minor != vers.minor
+                        {
+                            return false;
+                        }
+
+                        if let Some(patch) = comp.patch
+                            && patch != vers.patch
+                        {
+                            return patch < vers.patch;
+                        }
+
+                        true
+                    }
+                    _ => unreachable!("fucking non-exhaustive"),
+                }
+            })
+        })
+    }
+
+    !(check(&versions.patched, version) || check(&versions.unaffected, version))
 }

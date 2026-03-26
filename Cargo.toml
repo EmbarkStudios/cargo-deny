@@ -64,6 +64,7 @@ krates = { version = "0.20", features = ["targets"] }
 log = "0.4"
 # Faster char searching
 memchr = "2.7"
+memmap2 = "0.9"
 # Nicer sync primitives
 parking_lot = "0.12"
 # Moar brrrr
@@ -72,8 +73,6 @@ rayon = "1.11"
 regex = "1.12"
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
-# Used for interacting with advisory databases
-rustsec = { version = "0.32", default-features = false }
 # Parsing and checking of versions/version requirements
 semver = "1.0"
 # Gee what could it be

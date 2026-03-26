@@ -1,5 +1,5 @@
 use cargo_deny::{
-    Krates,
+    Krates, SerializeAdvisory as SA,
     advisories::{self, cfg},
     field_eq, func_name,
     test_utils::{self as tu},
@@ -76,6 +76,7 @@ fn detects_vulnerabilities() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 None,
                 tx,
             );
@@ -108,6 +109,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     None,
                     tx,
                 );
@@ -125,6 +127,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     None,
                     tx,
                 );
@@ -142,6 +145,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     None,
                     tx,
                 );
@@ -159,6 +163,7 @@ fn detects_unmaintained() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     None,
                     tx,
                 );
@@ -181,6 +186,7 @@ fn detects_unsound() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 None,
                 tx,
             );
@@ -211,6 +217,7 @@ ignore = [
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 None,
                 tx,
             );
@@ -281,6 +288,7 @@ fn detects_yanked() {
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     Some(indices),
                     tx,
                 );
@@ -317,6 +325,7 @@ ignore = [
                     ctx,
                     &dbs,
                     Option::<advisories::NoneReporter>::None,
+                    SA::No,
                     Some(indices),
                     tx,
                 );
@@ -372,6 +381,7 @@ fn warns_on_index_failures() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 Some(indices),
                 tx,
             );
@@ -401,6 +411,7 @@ fn warns_on_ignored_and_withdrawn() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 None,
                 tx,
             );
@@ -743,7 +754,10 @@ fn crates_io_source_replacement() {
 
     let cfg = tu::Config::new("yanked = 'deny'");
 
-    let dbs = advisories::DbSet { dbs: Vec::new() };
+    let dbs = advisories::DbSet {
+        dbs: Vec::new(),
+        lock: None,
+    };
 
     let diags =
         tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
@@ -751,6 +765,7 @@ fn crates_io_source_replacement() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 Some(indices),
                 tx,
             );
@@ -861,6 +876,7 @@ fn crates_io_source_replacement() {
                 ctx,
                 &dbs,
                 Option::<advisories::NoneReporter>::None,
+                SA::No,
                 Some(indices),
                 tx,
             );

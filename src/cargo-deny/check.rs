@@ -333,9 +333,10 @@ pub(crate) fn cmd(
     }
 
     let show_inclusion_graphs = !args.hide_inclusion_graph;
-    let serialize_extra = match log_ctx.format {
-        crate::Format::Json | crate::Format::Sarif => true,
-        crate::Format::Human => false,
+    let serialize_advisory = match log_ctx.format {
+        crate::Format::Json => cargo_deny::SerializeAdvisory::Json,
+        crate::Format::Sarif => cargo_deny::SerializeAdvisory::Sarif,
+        crate::Format::Human => cargo_deny::SerializeAdvisory::No,
     };
     let audit_compatible_output =
         args.audit_compatible_output && log_ctx.format == crate::Format::Json;
@@ -374,7 +375,6 @@ pub(crate) fn cmd(
                 cfg: licenses,
                 krates,
                 krate_spans: &krate_spans,
-                serialize_extra,
                 colorize,
                 log_level,
                 files,
@@ -425,7 +425,6 @@ pub(crate) fn cmd(
                 cfg: bans,
                 krates,
                 krate_spans: &krate_spans,
-                serialize_extra,
                 colorize,
                 log_level,
                 files,
@@ -450,7 +449,6 @@ pub(crate) fn cmd(
                 cfg: sources,
                 krates,
                 krate_spans: &krate_spans,
-                serialize_extra,
                 colorize,
                 log_level,
                 files,
@@ -475,7 +473,6 @@ pub(crate) fn cmd(
                 cfg: advisories,
                 krates,
                 krate_spans: &krate_spans,
-                serialize_extra,
                 colorize,
                 log_level,
                 files,
@@ -526,7 +523,14 @@ pub(crate) fn cmd(
                     None
                 };
 
-                advisories::check(ctx, &dbset, audit_reporter, indices, advisories_sink);
+                advisories::check(
+                    ctx,
+                    &dbset,
+                    audit_reporter,
+                    serialize_advisory,
+                    indices,
+                    advisories_sink,
+                );
 
                 log::info!("advisories checked in {}ms", start.elapsed().as_millis());
             });

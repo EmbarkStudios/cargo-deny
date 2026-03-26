@@ -480,7 +480,6 @@ pub struct ValidException {
 }
 
 #[doc(hidden)]
-#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub private: Private,
@@ -493,6 +492,51 @@ pub struct ValidConfig {
     pub ignore_sources: Vec<url::Url>,
     pub include_dev: bool,
     pub include_build: bool,
+}
+
+#[cfg(test)]
+impl serde::Serialize for ValidConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap as _;
+
+        let mut s = serializer.serialize_map(Some(11))?;
+
+        struct Ignore<'a>(&'a [url::Url]);
+
+        impl serde::Serialize for Ignore<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                use serde::ser::SerializeSeq as _;
+
+                let mut s = serializer.serialize_seq(Some(self.0.len()))?;
+
+                for url in self.0 {
+                    s.serialize_element(url.as_str());
+                }
+
+                s.end()
+            }
+        }
+
+        s.serialize_entry("file_id", &self.file_id)?;
+        s.serialize_entry("private", &self.private)?;
+        s.serialize_entry("unused_allowed_license", &self.unused_allowed_license)?;
+        s.serialize_entry("unused_license_exception", &self.unused_license_exception)?;
+        s.serialize_entry("confidence_threshold", &self.confidence_threshold)?;
+        s.serialize_entry("allowed", &self.allowed)?;
+        s.serialize_entry("clarifications", &self.clarifications)?;
+        s.serialize_entry("exceptions", &self.exceptions)?;
+        s.serialize_entry("ignore_sources", &Ignore(&self.ignore_sources))?;
+        s.serialize_entry("include_dev", &self.include_dev)?;
+        s.serialize_entry("include_build", &self.include_build)?;
+
+        s.end()
+    }
 }
 
 #[cfg(test)]
