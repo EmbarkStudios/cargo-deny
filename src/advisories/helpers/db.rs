@@ -12,7 +12,7 @@ use std::{fmt, fs, process::Command};
 use url::Url;
 
 /// The default, official, rustsec advisory database
-const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
+pub const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
 
 /// Whether the database will be fetched or not
 #[derive(Copy, Clone)]
@@ -31,6 +31,61 @@ pub struct AdvisoryDb {
     pub path: PathBuf,
     /// The time of the last fetch of the db
     pub fetch_time: jiff::Timestamp,
+}
+
+impl AdvisoryDb {
+    pub fn load(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<Self> {
+        let db_url = &url;
+        let db_path = url_to_db_path(root_db_path, db_url)?;
+
+        let fetch_start = std::time::Instant::now();
+        match fetch {
+            Fetch::Allow | Fetch::AllowWithGitCli => {
+                debug!("Fetching advisory database with git cli from '{db_url}'");
+
+                fetch_via_cli(db_url.as_str(), &db_path).with_context(|| {
+                    format!("failed to fetch advisory database {db_url} with cli")
+                })?;
+            }
+            Fetch::Disallow(_) => {
+                debug!("Opening advisory database at '{db_path}'");
+            }
+        }
+
+        // Verify that the repository is actually valid and that it is fresh
+        let fetch_time = get_fetch_time(&db_path)?;
+
+        // Ensure that the upstream repository hasn't gone stale, ie, they've
+        // configured cargo-deny to not fetch the remote database(s), but they've
+        // failed to update the database manually
+        if let Fetch::Disallow(max_staleness) = fetch {
+            anyhow::ensure!(
+                fetch_time
+                    > jiff::Timestamp::now()
+                        .checked_sub(max_staleness)
+                        .context("unable to compute oldest allowable update timestamp")?,
+                "repository is stale (last update: {fetch_time})"
+            );
+        } else {
+            info!(
+                "advisory database {db_url} fetched in {:?}",
+                fetch_start.elapsed()
+            );
+        }
+
+        debug!("loading advisory database from {db_path}");
+
+        let res = Database::open(&db_path).context("failed to load advisory database");
+
+        debug!("finished loading advisory database from {db_path}");
+
+        res.map(|db| Self {
+            url,
+            db,
+            path: db_path,
+            fetch_time,
+        })
+    }
 }
 
 impl fmt::Debug for AdvisoryDb {
@@ -72,7 +127,7 @@ impl DbSet {
         use rayon::prelude::*;
         let mut dbs = Vec::with_capacity(urls.len());
         urls.into_par_iter()
-            .map(|url| load_db(url, root.clone(), fetch))
+            .map(|url| AdvisoryDb::load(url, root.clone(), fetch))
             .collect_into_vec(&mut dbs);
 
         Ok(Self {
@@ -117,58 +172,6 @@ fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
     db_path.push(format!("{name}-{hash:016x}"));
 
     Ok(db_path)
-}
-
-fn load_db(url: Url, root_db_path: PathBuf, fetch: Fetch) -> anyhow::Result<AdvisoryDb> {
-    let db_url = &url;
-    let db_path = url_to_db_path(root_db_path, db_url)?;
-
-    let fetch_start = std::time::Instant::now();
-    match fetch {
-        Fetch::Allow | Fetch::AllowWithGitCli => {
-            debug!("Fetching advisory database with git cli from '{db_url}'");
-
-            fetch_via_cli(db_url.as_str(), &db_path)
-                .with_context(|| format!("failed to fetch advisory database {db_url} with cli"))?;
-        }
-        Fetch::Disallow(_) => {
-            debug!("Opening advisory database at '{db_path}'");
-        }
-    }
-
-    // Verify that the repository is actually valid and that it is fresh
-    let fetch_time = get_fetch_time(&db_path)?;
-
-    // Ensure that the upstream repository hasn't gone stale, ie, they've
-    // configured cargo-deny to not fetch the remote database(s), but they've
-    // failed to update the database manually
-    if let Fetch::Disallow(max_staleness) = fetch {
-        anyhow::ensure!(
-            fetch_time
-                > jiff::Timestamp::now()
-                    .checked_sub(max_staleness)
-                    .context("unable to compute oldest allowable update timestamp")?,
-            "repository is stale (last update: {fetch_time})"
-        );
-    } else {
-        info!(
-            "advisory database {db_url} fetched in {:?}",
-            fetch_start.elapsed()
-        );
-    }
-
-    debug!("loading advisory database from {db_path}");
-
-    let res = Database::open(&db_path).context("failed to load advisory database");
-
-    debug!("finished loading advisory database from {db_path}");
-
-    res.map(|db| AdvisoryDb {
-        url,
-        db,
-        path: db_path,
-        fetch_time,
-    })
 }
 
 fn get_fetch_time(repo: &Path) -> anyhow::Result<jiff::Timestamp> {

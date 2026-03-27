@@ -6,7 +6,7 @@ pub mod model;
 use crate::{LintLevel, diag};
 pub use diags::Code;
 pub use helpers::{
-    db::{AdvisoryDb, DbSet, Fetch, Report},
+    db::{self, AdvisoryDb, DbSet, Fetch, Report},
     index::{Entry, Indices},
 };
 
