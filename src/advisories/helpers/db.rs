@@ -7,7 +7,6 @@ use rayon::{
     iter::{ParallelBridge, ParallelIterator},
     prelude::IntoParallelRefIterator,
 };
-use semver::VersionReq;
 use std::{fmt, fs, process::Command};
 use url::Url;
 
@@ -444,7 +443,7 @@ impl<'db, 'k> Report<'db, 'k> {
 pub struct DbEntry {
     mmap: memmap2::Mmap,
     path: crate::PathBuf,
-    advisory: model::Advisory<'static>,
+    pub advisory: model::Advisory<'static>,
 }
 
 impl DbEntry {
@@ -466,8 +465,9 @@ impl DbEntry {
             let mmap =
                 memmap2::Mmap::map(&file).with_context(|| format!("failed to map {path}"))?;
 
-            let advisory = parse(std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()))
-                .with_context(|| format!("failed to parse advisory from '{path}'"))?;
+            let advisory =
+                super::parse::parse(std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()))
+                    .with_context(|| format!("failed to parse advisory from '{path}'"))?;
 
             (mmap, advisory)
         };
@@ -478,483 +478,6 @@ impl DbEntry {
             advisory,
         })
     }
-}
-
-struct ArrayIter {
-    arr: &'static str,
-    inner: memchr::Memchr<'static>,
-}
-
-impl ArrayIter {
-    /// An iterator over an array of string values that might span lines
-    fn new(toml: &'static str, line: Line, liter: &mut std::iter::Peekable<LineIter>) -> Self {
-        let start = memchr::memchr(b'[', line.s.as_bytes()).expect("no array opener");
-
-        let arr = if let Some(end) = memchr::memchr(b']', line.s.as_bytes()) {
-            &line.s[start + 1..end]
-        } else {
-            let arr_end = 'end: {
-                while let Some(l) = liter.next() {
-                    if let Some(end) = memchr::memchr(b']', l.s.as_bytes()) {
-                        break 'end l.start + end;
-                    }
-                }
-
-                panic!("unclosed '['");
-            };
-
-            &toml[line.start + start..arr_end]
-        };
-
-        Self {
-            arr,
-            inner: memchr::memchr_iter(b'"', arr.as_bytes()),
-        }
-    }
-}
-
-impl Iterator for ArrayIter {
-    type Item = &'static str;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let Some(start) = self.inner.next() else {
-            return None;
-        };
-        let Some(end) = self.inner.next() else {
-            return None;
-        };
-
-        Some(&self.arr[start + 1..end])
-    }
-}
-
-#[derive(Copy, Clone)]
-struct Line {
-    s: &'static str,
-    start: usize,
-}
-
-impl Line {
-    #[inline]
-    fn skip(self) -> bool {
-        self.s.trim().is_empty() || self.s.starts_with('#')
-    }
-
-    #[inline]
-    fn pair(self) -> anyhow::Result<(&'static str, &'static str)> {
-        let split = memchr::memchr(b'=', self.s.as_bytes())
-            .with_context(|| format!("line `{}` did not follow expected format", self.s))?;
-
-        Ok((self.s[..split].trim(), self.s[split + 1..].trim()))
-    }
-}
-
-struct LineIter {
-    start: usize,
-    v: &'static str,
-    inner: memchr::Memchr<'static>,
-}
-
-impl LineIter {
-    #[inline]
-    fn new(v: &'static str) -> Self {
-        Self {
-            start: 0,
-            v,
-            inner: memchr::memchr_iter(b'\n', v.as_bytes()),
-        }
-    }
-}
-
-impl Iterator for LineIter {
-    type Item = Line;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let Some(end) = self.inner.next() else {
-            return None;
-        };
-
-        let s = &self.v[self.start..end];
-        let start = self.start;
-        self.start = end + 1;
-
-        Some(Line { s, start })
-    }
-}
-
-struct StringIter {
-    s: &'static str,
-    inner: memchr::Memchr<'static>,
-}
-
-impl StringIter {
-    #[inline]
-    fn new(s: &'static str) -> Self {
-        Self {
-            s,
-            inner: memchr::memchr_iter(b'"', s.as_bytes()),
-        }
-    }
-}
-
-impl Iterator for StringIter {
-    type Item = &'static str;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let Some(start) = self.inner.next() else {
-            return None;
-        };
-        let Some(end) = self.inner.next() else {
-            return None;
-        };
-
-        Some(&self.s[start + 1..end])
-    }
-}
-
-#[inline]
-fn parse(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>> {
-    let whole = std::str::from_utf8(b)?;
-
-    // This should be at the start, but just in case
-    let tstart = whole
-        .find("```toml\n")
-        .context("failed to find toml block")?;
-    let s = &whole[tstart + 8..];
-
-    let tend = s
-        .find("```\n")
-        .context("failed to find end of toml block")?;
-
-    let rest = &s[tend + 4..];
-    let toml = &s[..tend];
-
-    let mut adv = parse_toml(toml)?;
-
-    let mut start = 0;
-    for end in memchr::Memchr::new(b'\n', rest.as_bytes()) {
-        let line = &rest[start..end];
-        start = end + 1;
-
-        if let Some(title) = line.strip_prefix("# ") {
-            adv.advisory.title = title;
-            break;
-        }
-    }
-
-    adv.advisory.description = rest[start..].trim();
-
-    Ok(adv)
-}
-
-fn parse_toml(toml: &'static str) -> anyhow::Result<model::Advisory<'static>> {
-    let mut liter = LineIter::new(toml).peekable();
-
-    let mut md = model::Metadata {
-        id: "",
-        krate: "",
-        title: "",
-        description: "",
-        date: jiff::civil::Date::constant(0, 1, 1),
-        aliases: Default::default(),
-        related: Default::default(),
-        categories: Default::default(),
-        keywords: Default::default(),
-        cvss: None,
-        informational: None,
-        source: None,
-        references: Default::default(),
-        url: None,
-        withdrawn: None,
-        license: Default::default(),
-        expect_deleted: false,
-    };
-    let mut versions = None;
-    let mut affected = None;
-
-    let parse_advisory = |liter: &mut std::iter::Peekable<LineIter>,
-                          md: &mut model::Metadata<'static>|
-     -> anyhow::Result<()> {
-        while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
-            if line.skip() {
-                continue;
-            }
-
-            let (field, value) = line.pair().with_context(|| format!("TOML {toml}"))?;
-
-            let string = || -> &'static str {
-                let Some(start) = memchr::memchr(b'"', value.as_bytes()) else {
-                    panic!("expected opening '\"' in `{value}`");
-                };
-                let Some(end) = memchr::memchr(b'"', value[start + 1..].as_bytes()) else {
-                    panic!("expected closing '\"' in `{value}`");
-                };
-
-                &value[start + 1..start + 1 + end]
-            };
-
-            match field {
-                "id" => md.id = string(),
-                "package" => md.krate = string(),
-                "aliases" => {
-                    for alias in ArrayIter::new(toml, line, liter) {
-                        md.aliases.push(alias);
-                    }
-                }
-                "related" => {
-                    for id in ArrayIter::new(toml, line, liter) {
-                        md.related.push(id);
-                    }
-                }
-                "cvss" => md.cvss = Some(string()),
-                "date" => md.date = string().parse().context("failed to parse `date`")?,
-                "url" => md.url = Some(string()),
-                "informational" => {
-                    md.informational = Some(match string() {
-                        "unmaintained" => model::Informational::Unmaintained,
-                        "unsound" => model::Informational::Unsound,
-                        "notice" => model::Informational::Notice,
-                        other => model::Informational::Other(other),
-                    });
-                }
-                "categories" => {
-                    for alias in ArrayIter::new(toml, line, liter) {
-                        md.categories.push(alias);
-                    }
-                }
-                "keywords" => {
-                    for kw in ArrayIter::new(toml, line, liter) {
-                        md.keywords.push(kw);
-                    }
-                }
-                "references" => {
-                    for r in ArrayIter::new(toml, line, liter) {
-                        md.references.push(r);
-                    }
-                }
-                "withdrawn" => {
-                    md.withdrawn = Some(string().parse().context("failed to parse `withdrawn`")?);
-                }
-                "license" => {
-                    md.license = model::AdvisoryLicense(string());
-                }
-                "source" => {
-                    md.source = Some(
-                        crate::Source::from_metadata(value.to_owned(), None)
-                            .with_context(|| "failed to parse `source` field '{value}'")?,
-                    );
-                }
-                "expect-deleted" => {
-                    md.expect_deleted = value == "true";
-                }
-                unknown => {
-                    log::warn!("unknown advisory field '{unknown}'");
-                }
-            }
-        }
-
-        Ok(())
-    };
-
-    let parse_versions =
-        |liter: &mut std::iter::Peekable<LineIter>| -> anyhow::Result<model::Versions> {
-            let mut v = model::Versions {
-                patched: Default::default(),
-                unaffected: Default::default(),
-            };
-
-            while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
-                if line.skip() {
-                    continue;
-                }
-
-                let (field, _value) = line.pair()?;
-
-                match field {
-                    "patched" => {
-                        for vr in ArrayIter::new(toml, line, liter) {
-                            v.patched.push(vr.parse().with_context(|| {
-                                format!("failed to parse patched version '{vr}'")
-                            })?);
-                        }
-                    }
-                    "unaffected" => {
-                        for vr in ArrayIter::new(toml, line, liter) {
-                            v.unaffected.push(vr.parse().with_context(|| {
-                                format!("failed to parse unaffected version '{vr}'")
-                            })?);
-                        }
-                    }
-                    unknown => anyhow::bail!("unknown versions field '{unknown}'"),
-                }
-            }
-
-            Ok(v)
-        };
-
-    let parse_affected = |liter: &mut std::iter::Peekable<LineIter>,
-                          first: &'static str|
-     -> anyhow::Result<Option<model::Affected<'static>>> {
-        let mut affected = model::Affected {
-            functions: Default::default(),
-            os: Default::default(),
-            arch: Default::default(),
-        };
-
-        let parse_function_table = |liter: &mut std::iter::Peekable<LineIter>,
-                                    funcs: &mut std::collections::BTreeMap<
-            &'static str,
-            Vec<VersionReq>,
-        >| {
-            while let Some(line) = liter.next_if(|l| !l.s.starts_with('[')) {
-                if line.skip() {
-                    continue;
-                }
-
-                let Some((field, _value)) = line.s.split_once(" = ") else {
-                    continue;
-                };
-
-                let key = field.trim_matches('"');
-                let mut val = Vec::new();
-
-                for vr in ArrayIter::new(toml, line, liter) {
-                    match vr.parse() {
-                        Ok(vr) => val.push(vr),
-                        Err(error) => {
-                            log::error!(
-                                "failed to parse version requirement for function '{key}': {error}"
-                            );
-                        }
-                    }
-                }
-
-                funcs.insert(key, val);
-            }
-        };
-
-        if first == "[affected]" {
-            while let Some(line) = liter.peek() {
-                if line.s.starts_with('[') {
-                    if line.s == "[affected.functions]" {
-                        liter.next();
-
-                        parse_function_table(liter, &mut affected.functions);
-                    }
-
-                    break;
-                }
-
-                let line = liter.next().unwrap();
-                if line.skip() {
-                    continue;
-                }
-
-                let (field, value) = line.pair()?;
-
-                match field {
-                    "functions" => {
-                        let Some(start) = memchr::memchr(b'{', value.as_bytes()) else {
-                            continue;
-                        };
-                        let Some(end) = memchr::memrchr(b'}', value.as_bytes()) else {
-                            continue;
-                        };
-
-                        let mut map = value[start + 1..end].trim();
-
-                        while let Some((key, value)) = map.split_once(" = ") {
-                            let key = key.trim_matches('"');
-                            let mut val = Vec::new();
-
-                            let vstart = memchr::memchr(b'[', value.as_bytes())
-                                .expect("function did not have a valid version array start");
-                            let vend = memchr::memchr(b']', value.as_bytes())
-                                .expect("function did not have a valid version array end");
-
-                            for vr in StringIter::new(&value[vstart..vend]) {
-                                match vr.parse() {
-                                    Ok(vr) => val.push(vr),
-                                    Err(error) => {
-                                        log::error!(
-                                            "failed to parse version requirement for function '{key}': {error}"
-                                        );
-                                    }
-                                }
-                            }
-
-                            affected.functions.insert(key, val);
-
-                            let Some(start) = memchr::memchr(b'"', &value.as_bytes()[vend..])
-                            else {
-                                break;
-                            };
-
-                            map = &value[vend + start..];
-                        }
-                    }
-                    "os" => {
-                        for os in ArrayIter::new(toml, line, liter) {
-                            affected
-                                .os
-                                .push(cfg_expr::targets::Os(std::borrow::Cow::Borrowed(os)));
-                        }
-                    }
-                    "arch" => {
-                        for arch in ArrayIter::new(toml, line, liter) {
-                            affected
-                                .arch
-                                .push(cfg_expr::targets::Arch(std::borrow::Cow::Borrowed(arch)));
-                        }
-                    }
-                    unknown => {
-                        log::warn!("unknown `affected` field '{unknown}'");
-                    }
-                }
-            }
-        } else if first == "[affected.functions]" {
-            parse_function_table(liter, &mut affected.functions);
-        }
-
-        if affected.functions.is_empty() && affected.os.is_empty() && affected.arch.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(affected))
-        }
-    };
-
-    while let Some(line) = liter.next() {
-        match line.s {
-            "[advisory]" => {
-                parse_advisory(&mut liter, &mut md)?;
-            }
-            "[versions]" => {
-                versions = Some(parse_versions(&mut liter)?);
-            }
-            aff if line.s.starts_with("[affected") => {
-                affected = parse_affected(&mut liter, aff)?;
-            }
-            "```" => {
-                break;
-            }
-            "" => continue,
-            unknown => {
-                log::warn!("unknown toml table '{unknown}'");
-            }
-        }
-    }
-
-    Ok(model::Advisory {
-        advisory: md,
-        affected,
-        versions: versions.unwrap_or(model::Versions {
-            patched: Vec::new(),
-            unaffected: Vec::new(),
-        }),
-    })
 }
 
 pub struct Database {
@@ -1022,20 +545,31 @@ impl Database {
 /// (ie overlapping) version ranges, though this may need to change if someone uses cargo-deny for a non-rustsec db that
 /// they introduce bad advisories into. It also essentially does a negation to conform with <https://github.com/google/osv.dev>
 /// which is not interesting for this crate
-fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
+#[inline]
+pub fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
+    find_unaffected_req(versions, version).is_none()
+}
+
+pub fn find_unaffected_req<'v>(
+    versions: &'v model::Versions,
+    version: &semver::Version,
+) -> Option<&'v semver::VersionReq> {
     if versions.patched.is_empty() && versions.unaffected.is_empty() {
-        return true;
+        return None;
     }
 
-    fn check(reqs: &[semver::VersionReq], vers: &semver::Version) -> bool {
+    fn check<'v>(
+        reqs: &'v [semver::VersionReq],
+        vers: &semver::Version,
+    ) -> Option<&'v semver::VersionReq> {
         // We can't just blindly use semver's requirement checking here due to https://github.com/dtolnay/semver/issues/172
         if vers.pre.is_empty() {
-            return reqs.iter().any(|req| req.matches(vers));
+            return reqs.iter().find(|req| req.matches(vers));
         }
 
-        reqs.iter().any(|req| {
+        reqs.iter().find(|req| {
             // rustsec only allows up to 2 comparators https://github.com/rustsec/rustsec/blob/cf93efe036c112c5b2737857b991d12c15f43951/rustsec/src/osv/unaffected_range.rs#L116-L121
-            req.comparators.iter().all(|comp| {
+            fn cmp(comp: &semver::Comparator, vers: &semver::Version) -> bool {
                 use semver::Op;
                 use std::cmp::Ordering as Or;
 
@@ -1058,7 +592,7 @@ fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
                                     return false;
                                 };
 
-                                patch != vers.patch
+                                vers.patch > patch
                             }
                             Or::Greater => false,
                             Or::Less => true,
@@ -1080,7 +614,7 @@ fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
                                     return false;
                                 };
 
-                                patch != vers.patch
+                                vers.patch < patch
                             }
                             Or::Greater => true,
                             Or::Less => false,
@@ -1152,88 +686,67 @@ fn is_affected(versions: &model::Versions, version: &semver::Version) -> bool {
                     }
                     _ => unreachable!("fucking non-exhaustive"),
                 }
-            })
+            }
+
+            let matches = req.comparators.iter().all(|comp| {
+                let c = cmp(comp, vers);
+                // if !c {
+                //     dbg!(comp);
+                // }
+                c
+            });
+
+            matches
         })
     }
 
-    !(check(&versions.patched, version) || check(&versions.unaffected, version))
+    check(&versions.patched, version).or_else(|| check(&versions.unaffected, version))
 }
 
 #[cfg(test)]
 mod test {
-    // #[test]
-    // fn arr_iter() {
-    //     let mut iter = super::ArrayIter::new(r#"[">=0.25.1","=1.2.0"]"#);
-
-    //     assert_eq!(">=0.25.1", iter.next().unwrap());
-    //     assert_eq!("=1.2.0", iter.next().unwrap());
-    //     assert!(iter.next().is_none());
-    // }
-
-    #[test]
-    fn split_arrays() {
-        let toml = r#"[advisory]
-id = "RUSTSEC-2020-0146"
-package = "generic-array"
-date = "2020-04-09"
-url = "https://github.com/fizyk20/generic-array/issues/98"
-categories = ["memory-corruption"]
-keywords = ["soundness"]
-aliases = ["CVE-2020-36465", "GHSA-3358-4f7f-p4j4"]
-cvss = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
-
-[versions]
-patched = [
-    ">= 0.8.4, < 0.9.0",
-    ">= 0.9.1, < 0.10.0",
-    ">= 0.10.1, < 0.11.0",
-    ">= 0.11.2, < 0.12.0",
-    ">= 0.12.4, < 0.13.0",
-    ">= 0.13.3",
-]
-unaffected = ["< 0.8.0"]"#;
-
-        super::parse_toml(toml).unwrap();
+    macro_rules! vr {
+        ($vs:expr) => {
+            $vs.iter().map(|s| s.parse().unwrap()).collect()
+        };
     }
 
-    #[test]
-    fn argh() {
-        let toml = r#"[advisory]
-id = "RUSTSEC-2023-0018"
-package = "remove_dir_all"
-date = "2023-02-24"
-url = "https://github.com/XAMPPRocky/remove_dir_all/commit/7247a8b6ee59fc99bbb69ca6b3ca4bfd8c809ead"
-references = ["https://github.com/advisories/GHSA-mc8h-8q98-g5hr"]
-keywords = ["TOCTOU"]
-aliases = ["GHSA-mc8h-8q98-g5hr"]
+    macro_rules! v {
+        ($vs:expr) => {
+            $vs.iter().map(|s| s.parse::<semver::Version>().unwrap())
+        };
 
-[affected]
-functions = { "remove_dir_all::remove_dir_all" = ["< 0.8.0"], "remove_dir_all::remove_dir_contents" = ["< 0.8.0"], "remove_dir_all::ensure_empty_dir" = ["< 0.8.0"] }
-
-[versions]
-patched = [">= 0.8.0"]"#;
-
-        let adv = super::parse_toml(toml).unwrap();
-
-        panic!("{:#?}", adv.affected.unwrap().functions);
+        (s $vs:literal) => {
+            $vs.parse().unwrap()
+        };
     }
 
     #[test]
     fn affected() {
-        assert!(!super::is_affected(
-            &super::model::Versions {
-                patched: [
-                    ">= 0.10.0-alpha.4",
-                    "< 0.10.0-alpha.1, >= 0.9.5",
-                    "< 0.9.0, >= 0.8.4",
-                    "< 0.8.0, >= 0.7.1",
-                ]
-                .iter()
-                .map(|s| s.parse().unwrap())
-                .collect(),
-                unaffected: ["< 0.7.0"].iter().map(|s| s.parse().unwrap()).collect(),
-            },
-            &"0.10.0-rc.3".parse().unwrap(),
-        ));
+        // RUSTSEC-2023-0074 - zerocopy
+        let vs = super::model::Versions {
+            patched: vr!([
+                ">= 0.2.9, < 0.3.0",
+                ">= 0.3.2, < 0.4.0",
+                ">= 0.4.1, < 0.5.0",
+                ">= 0.5.2, < 0.6.0",
+                ">= 0.6.6, < 0.7.0",
+                ">= 0.7.31"
+            ]),
+            unaffected: vr!(["< 0.2.2"]),
+        };
+
+        assert!(super::is_affected(&vs, &v!(s "0.6.3-alpha")));
+
+        for version in v!([
+            "0.7.0-alpha",
+            "0.7.0-alpha.1",
+            "0.7.0-alpha.2",
+            "0.7.0-alpha.3",
+            "0.7.0-alpha.4",
+            "0.7.0-alpha.5"
+        ]) {
+            assert!(super::is_affected(&vs, &version));
+        }
     }
 }
