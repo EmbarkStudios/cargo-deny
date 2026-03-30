@@ -86,7 +86,8 @@ pub fn check<R, S>(
     let ws_set = if matches!(
         ctx.cfg.unmaintained.value,
         Scope::Workspace | Scope::Transitive
-    ) {
+    ) || matches!(ctx.cfg.unsound.value, Scope::Workspace | Scope::Transitive)
+    {
         ctx.krates
             .workspace_members()
             .filter_map(|wm| {

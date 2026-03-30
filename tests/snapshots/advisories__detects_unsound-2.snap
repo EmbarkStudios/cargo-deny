@@ -1,0 +1,171 @@
+---
+source: tests/advisories.rs
+expression: "advisories_by_kind(diags, \"unsound\")"
+---
+[
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "GHSA-xphf-cx8h-7q9g"
+        ],
+        "categories": [
+          "memory-corruption"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2023-11-23",
+        "description": "This function returned a shared reference into an OpenSSL datastructure but did not account for interior mutability. OpenSSL may modify the data behind this reference, meaning accesses can race and the reference is unsound.\n\nUse of this function should be replaced with `X509StoreRef::all_certificates`.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2023-0072",
+        "informational": "unsound",
+        "keywords": [],
+        "license": "CC0-1.0",
+        "package": "openssl",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "`openssl` `X509StoreRef::objects` is unsound",
+        "url": "https://github.com/sfackler/rust-openssl/issues/2096",
+        "withdrawn": null
+      },
+      "code": "unsound",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "openssl",
+            "version": "0.10.35"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "native-tls",
+                "version": "0.2.7"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "lettre",
+                    "version": "0.10.0-rc.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 93,
+          "message": "unsound advisory detected",
+          "span": "openssl 0.10.35 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "`openssl` `X509StoreRef::objects` is unsound",
+      "notes": [
+        "ID: RUSTSEC-2023-0072",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0072",
+        "This function returned a shared reference into an OpenSSL datastructure but did not account for interior mutability. OpenSSL may modify the data behind this reference, meaning accesses can race and the reference is unsound.\n\nUse of this function should be replaced with `X509StoreRef::all_certificates`.",
+        "Announcement: https://github.com/sfackler/rust-openssl/issues/2096",
+        "Solution: Upgrade to >=0.10.60 (try `cargo update -p openssl`)"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "GHSA-4q83-7cq4-p6wg"
+        ],
+        "categories": [
+          "memory-exposure"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2023-01-11",
+        "description": "`tokio::io::ReadHalf<T>::unsplit` can violate the `Pin` contract\n\nThe soundness issue is described in the [tokio/issues#5372](https://github.com/tokio-rs/tokio/issues/5372)\n\nSpecific set of conditions needed to trigger an issue (a !Unpin type in ReadHalf)\nis unusual, combined with the difficulty of making any arbitrary use-after-free\nexploitable in Rust without doing a lot of careful alignment of data types in\nthe surrounding code.\n\nThe `tokio` feature `io-util` is also required to be enabled to trigger this\nsoundness issue.\n\nThanks to zachs18 reporting the issue to Tokio team responsibly and taiki-e\nand carllerche appropriately responding and fixing the soundness bug.\n\nTokio before 0.2.0 used `futures` 0.1 that did not have `Pin`, so it is not\naffected by this issue.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2023-0005",
+        "informational": "unsound",
+        "keywords": [],
+        "license": "CC0-1.0",
+        "package": "tokio",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "`tokio::io::ReadHalf<T>::unsplit` is Unsound",
+        "url": "https://github.com/tokio-rs/tokio/issues/5372",
+        "withdrawn": null
+      },
+      "code": "unsound",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "tokio",
+            "version": "1.16.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "trust-dns-proto",
+                "version": "0.20.4"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "trust-dns-resolver",
+                    "version": "0.20.4"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Krate": {
+                "name": "trust-dns-resolver",
+                "version": "0.20.4"
+              },
+              "repeat": true
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 171,
+          "message": "unsound advisory detected",
+          "span": "tokio 1.16.1 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "`tokio::io::ReadHalf<T>::unsplit` is Unsound",
+      "notes": [
+        "ID: RUSTSEC-2023-0005",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0005",
+        "`tokio::io::ReadHalf<T>::unsplit` can violate the `Pin` contract\n\nThe soundness issue is described in the [tokio/issues#5372](https://github.com/tokio-rs/tokio/issues/5372)\n\nSpecific set of conditions needed to trigger an issue (a !Unpin type in ReadHalf)\nis unusual, combined with the difficulty of making any arbitrary use-after-free\nexploitable in Rust without doing a lot of careful alignment of data types in\nthe surrounding code.\n\nThe `tokio` feature `io-util` is also required to be enabled to trigger this\nsoundness issue.\n\nThanks to zachs18 reporting the issue to Tokio team responsibly and taiki-e\nand carllerche appropriately responding and fixing the soundness bug.\n\nTokio before 0.2.0 used `futures` 0.1 that did not have `Pin`, so it is not\naffected by this issue.",
+        "Announcement: https://github.com/tokio-rs/tokio/issues/5372",
+        "Solution: Upgrade to >=1.18.5, <1.19.0 OR >=1.20.4, <1.21.0 OR >=1.24.2 (try `cargo update -p tokio`)"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
