@@ -86,7 +86,7 @@ pub struct Metadata<'f> {
 fn array(l: &[&str]) -> serde_json::Value {
     serde_json::Value::Array(
         l.iter()
-            .map(|s| serde_json::Value::String(s.to_string()))
+            .map(|s| serde_json::Value::String((*s).to_string()))
             .collect(),
     )
 }
