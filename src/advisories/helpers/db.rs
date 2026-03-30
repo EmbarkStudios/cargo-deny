@@ -584,10 +584,10 @@ pub fn find_unaffected_req<'v>(
                         .find(|c: char| c.is_ascii_digit())
                         .zip(cs.find(|c: char| c.is_ascii_digit()))
                         && vi == ci
-                        && &vs[..vi] == &cs[..ci]
+                        && vs[..vi] == cs[..ci]
                     {
                         let vn = vs[vi..].chars().fold(0u32, |acc, c| {
-                            if c >= '0' && c <= '9' {
+                            if c.is_ascii_digit() {
                                 acc * 10 + c as u32 - '0' as u32
                             } else {
                                 acc
@@ -595,7 +595,7 @@ pub fn find_unaffected_req<'v>(
                         });
 
                         let cn = cs[ci..].chars().fold(0u32, |acc, c| {
-                            if c >= '0' && c <= '9' {
+                            if c.is_ascii_digit() {
                                 acc * 10 + c as u32 - '0' as u32
                             } else {
                                 acc

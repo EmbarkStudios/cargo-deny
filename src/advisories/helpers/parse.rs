@@ -1,3 +1,5 @@
+#![allow(clippy::question_mark)]
+
 use crate::advisories::model;
 use anyhow::Context as _;
 use semver::VersionReq;
@@ -16,7 +18,7 @@ impl ArrayIter {
             &line.s[start + 1..end]
         } else {
             let arr_end = 'end: {
-                while let Some(l) = liter.next() {
+                for l in liter.by_ref() {
                     if let Some(end) = memchr::memchr(b']', l.s.as_bytes()) {
                         break 'end l.start + end;
                     }
@@ -213,7 +215,7 @@ fn parse_toml(toml: &'static str) -> anyhow::Result<model::Advisory<'static>> {
                 let Some(start) = memchr::memchr(b'"', value.as_bytes()) else {
                     panic!("expected opening '\"' in `{value}`");
                 };
-                let Some(end) = memchr::memchr(b'"', value[start + 1..].as_bytes()) else {
+                let Some(end) = memchr::memchr(b'"', &value.as_bytes()[start + 1..]) else {
                     panic!("expected closing '\"' in `{value}`");
                 };
 
@@ -464,7 +466,7 @@ fn parse_toml(toml: &'static str) -> anyhow::Result<model::Advisory<'static>> {
             "```" => {
                 break;
             }
-            "" => continue,
+            "" => {}
             unknown => {
                 log::warn!("unknown toml table '{unknown}'");
             }

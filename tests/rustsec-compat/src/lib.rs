@@ -115,10 +115,10 @@ fn advisories_match() {
                 Insert => "\x1B[32m+",
                 Equal => " ",
             };
-            eprint!("\x1B[0m{}{}\x1B[0m", sign, change);
+            eprint!("\x1B[0m{sign}{change}\x1B[0m");
         }
 
-        panic!("mismach for {id}");
+        panic!("mismatch for {id}");
     }
 }
 
