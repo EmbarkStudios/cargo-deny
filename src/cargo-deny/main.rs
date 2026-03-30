@@ -340,9 +340,9 @@ fn real_main() -> Result<(), Error> {
         Command::Check(mut cargs) => {
             let show_stats = cargs.show_stats;
 
-            if args.ctx.offline {
+            if args.ctx.offline || args.ctx.frozen {
                 log::info!(
-                    "network access disabled via --offline flag, disabling advisory database fetching"
+                    "network access disabled via --offline (or --frozen) flag, disabling advisory database fetching"
                 );
                 cargs.disable_fetch = true;
             }
