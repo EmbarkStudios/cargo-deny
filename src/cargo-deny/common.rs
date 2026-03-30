@@ -3,6 +3,7 @@ use cargo_deny::{
     Path, PathBuf,
     diag::{self, FileId, Files, Severity},
     licenses::LicenseStore,
+    root_cfg::Target,
 };
 
 mod cfg;
@@ -22,6 +23,21 @@ pub(crate) fn current_dir_utf8() -> anyhow::Result<PathBuf> {
         .context("could not access current working directory")?;
 
     Ok(current_dir)
+}
+
+fn single_target(
+    cmd_targets: &[String],
+    cfg_targets: &[Target],
+    f: impl FnOnce(std::borrow::Cow<'_, str>),
+) {
+    if let Some(targ) = cmd_targets.first().filter(|_| cmd_targets.len() == 1) {
+        f(targ.into())
+    } else if let Some(targ) = cfg_targets
+        .first()
+        .filter(|_| cfg_targets.len() == 1 && cmd_targets.is_empty())
+    {
+        f(targ.filter.value.to_string().into())
+    }
 }
 
 pub struct KrateContext {
@@ -117,22 +133,26 @@ impl KrateContext {
     }
 
     #[inline]
-    pub fn fetch_krates(&self) -> anyhow::Result<()> {
-        fetch(MetadataOptions {
-            no_default_features: false,
-            all_features: false,
-            features: Vec::new(),
-            manifest_path: self.manifest_path.clone(),
-            frozen: self.frozen,
-            locked: self.locked,
-            offline: self.offline,
-        })
+    pub fn fetch_krates(&self, cfg_targets: &[Target]) -> anyhow::Result<()> {
+        fetch(
+            MetadataOptions {
+                no_default_features: false,
+                all_features: false,
+                features: Vec::new(),
+                manifest_path: self.manifest_path.clone(),
+                frozen: self.frozen,
+                locked: self.locked,
+                offline: self.offline,
+            },
+            &self.targets,
+            cfg_targets,
+        )
     }
 
     pub fn gather_krates(
         self,
         metadata: Option<krates::cm::Metadata>,
-        cfg_targets: Vec<cargo_deny::root_cfg::Target>,
+        cfg_targets: Vec<Target>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path);
@@ -142,15 +162,19 @@ impl KrateContext {
         let metadata = if let Some(md) = metadata {
             md
         } else {
-            Self::get_metadata(MetadataOptions {
-                no_default_features: self.no_default_features,
-                all_features: self.all_features,
-                features: self.features,
-                manifest_path: self.manifest_path,
-                frozen: self.frozen,
-                locked: self.locked,
-                offline: self.offline,
-            })?
+            Self::get_metadata(
+                MetadataOptions {
+                    no_default_features: self.no_default_features,
+                    all_features: self.all_features,
+                    features: self.features,
+                    manifest_path: self.manifest_path,
+                    frozen: self.frozen,
+                    locked: self.locked,
+                    offline: self.offline,
+                },
+                &self.targets,
+                &cfg_targets,
+            )?
         };
         log::debug!(
             "gathered crate metadata in {}ms",
@@ -240,7 +264,11 @@ impl KrateContext {
         Ok(graph?)
     }
 
-    fn get_metadata(opts: MetadataOptions) -> Result<krates::cm::Metadata, anyhow::Error> {
+    fn get_metadata(
+        opts: MetadataOptions,
+        targets: &[String],
+        cfg_targets: &[Target],
+    ) -> Result<krates::cm::Metadata, anyhow::Error> {
         let mut mdc = krates::Cmd::new();
 
         if opts.no_default_features {
@@ -259,6 +287,10 @@ impl KrateContext {
                 offline: opts.offline,
             });
 
+        single_target(targets, cfg_targets, |target| {
+            mdc.other_options(["--filter-platform".to_owned(), target.into_owned()]);
+        });
+
         let mdc: krates::cm::MetadataCommand = mdc.into();
         Ok(mdc.exec()?)
     }
@@ -274,7 +306,11 @@ struct MetadataOptions {
     offline: bool,
 }
 
-fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
+fn fetch(
+    opts: MetadataOptions,
+    cmd_targets: &[String],
+    cfg_targets: &[cargo_deny::root_cfg::Target],
+) -> anyhow::Result<()> {
     use anyhow::Context as _;
     let mut cargo =
         std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_ve| "cargo".to_owned()));
@@ -293,6 +329,11 @@ fn fetch(opts: MetadataOptions) -> anyhow::Result<()> {
     if opts.offline {
         cargo.arg("--offline");
     }
+
+    single_target(cmd_targets, cfg_targets, |target| {
+        cargo.arg("--target");
+        cargo.arg(target.into_owned());
+    });
 
     cargo.stderr(std::process::Stdio::piped());
     let output = cargo.output().context("failed to run cargo")?;

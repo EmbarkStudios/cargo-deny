@@ -29,7 +29,9 @@ pub fn cmd(
     let cfg_path = krate_ctx.get_config_path(args.config.as_deref())?;
 
     let mut files = Files::new();
-    let ValidConfig { advisories, .. } = ValidConfig::load(
+    let ValidConfig {
+        advisories, graph, ..
+    } = ValidConfig::load(
         cfg_path,
         krate_ctx.get_local_exceptions_path(),
         &mut files,
@@ -49,7 +51,7 @@ pub fn cmd(
         if fetch_index {
             s.spawn(|_| {
                 log::info!("fetching crates");
-                index = Some(krate_ctx.fetch_krates());
+                index = Some(krate_ctx.fetch_krates(&graph.targets));
                 log::info!("fetched crates");
             });
         }
