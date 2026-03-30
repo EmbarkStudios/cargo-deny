@@ -31,12 +31,12 @@ fn single_target(
     f: impl FnOnce(std::borrow::Cow<'_, str>),
 ) {
     if let Some(targ) = cmd_targets.first().filter(|_| cmd_targets.len() == 1) {
-        f(targ.into())
+        f(targ.into());
     } else if let Some(targ) = cfg_targets
         .first()
         .filter(|_| cfg_targets.len() == 1 && cmd_targets.is_empty())
     {
-        f(targ.filter.value.to_string().into())
+        f(targ.filter.value.to_string().into());
     }
 }
 
