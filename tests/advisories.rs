@@ -63,6 +63,13 @@ fn find_by_code<'a>(diags: &'a [serde_json::Value], code: &str) -> Option<&'a se
     })
 }
 
+fn advisories_by_kind(v: Vec<serde_json::Value>, kind: &str) -> Vec<serde_json::Value> {
+    let kind = Some(kind);
+    v.into_iter()
+        .filter(|diag| diag.pointer("/fields/code").and_then(|code| code.as_str()) == kind)
+        .collect()
+}
+
 /// Validates we emit diagnostics when a vulnerability advisory is detected
 #[test]
 fn detects_vulnerabilities() {
@@ -92,14 +99,6 @@ fn detects_vulnerabilities() {
 fn detects_unmaintained() {
     let TestCtx { dbs, krates } = load();
 
-    fn unmaintained_advisories(v: Vec<serde_json::Value>) -> Vec<serde_json::Value> {
-        v.into_iter()
-            .filter(|diag| {
-                diag.pointer("/fields/code").and_then(|code| code.as_str()) == Some("unmaintained")
-            })
-            .collect()
-    }
-
     {
         let cfg = tu::Config::new("");
 
@@ -115,7 +114,7 @@ fn detects_unmaintained() {
                 );
             });
 
-        insta::assert_json_snapshot!(unmaintained_advisories(diags));
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unmaintained"));
     }
 
     {
@@ -133,7 +132,7 @@ fn detects_unmaintained() {
                 );
             });
 
-        insta::assert_json_snapshot!(unmaintained_advisories(diags));
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unmaintained"));
     }
 
     {
@@ -151,7 +150,7 @@ fn detects_unmaintained() {
                 );
             });
 
-        insta::assert_json_snapshot!(unmaintained_advisories(diags));
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unmaintained"));
     }
 
     {
@@ -169,7 +168,7 @@ fn detects_unmaintained() {
                 );
             });
 
-        insta::assert_json_snapshot!(unmaintained_advisories(diags));
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unmaintained"));
     }
 }
 
@@ -178,22 +177,77 @@ fn detects_unmaintained() {
 fn detects_unsound() {
     let TestCtx { dbs, krates } = load();
 
-    let cfg = tu::Config::new("unsound = 'transitive'");
+    {
+        let cfg = tu::Config::new("");
 
-    let diags =
-        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
-            advisories::check(
-                ctx,
-                &dbs,
-                Option::<advisories::NoneReporter>::None,
-                SA::Json,
-                None,
-                tx,
-            );
-        });
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                );
+            });
 
-    let unsound_diag = find_by_code(&diags, "RUSTSEC-2019-0036").unwrap();
-    insta::assert_json_snapshot!(unsound_diag);
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
+    }
+
+    {
+        let cfg = tu::Config::new("unsound = 'transitive'");
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                );
+            });
+
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
+    }
+
+    {
+        let cfg = tu::Config::new("unsound = 'workspace'");
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                );
+            });
+
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
+    }
+
+    {
+        let cfg = tu::Config::new("unsound = 'none'");
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                );
+            });
+
+        insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
+    }
 }
 
 /// Validates that advisories that are ignored still have diagnostics emitted for
