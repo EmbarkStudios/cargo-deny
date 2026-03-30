@@ -1,0 +1,17 @@
+name: rustsec-compat
+
+# Ideally this would be run whenever a push is made to rustsec/advisory-db but AFAIK there is no way to do that
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  check:
+    name: rustsec-compat
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run:
+            cargo test --release --manifest-path tests/rustsec-compat/Cargo.toml
+

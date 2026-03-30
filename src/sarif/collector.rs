@@ -1,4 +1,3 @@
-use crate::diag::Extra;
 use crate::sarif::model::{
     ArtifactLocation, DefaultConfiguration, Driver, Help, Location, Message, PhysicalLocation,
     Region, Result as SarifResult, Rule, RuleProperties, Run, SarifLog, TextContent, Tool,
@@ -23,7 +22,7 @@ struct DiagnosticData {
     krates: smallvec::SmallVec<[Kid; 2]>,
     message: Message,
     locations: Vec<Location>,
-    extra: Option<diag::Extra>,
+    advisory_id: Option<String>,
 }
 
 struct RuleData {
@@ -59,91 +58,21 @@ impl SarifCollector {
                 .filter_map(|label| files.sarif_location(label).ok())
                 .collect();
 
-            let message = match &diag.extra {
-                None => Message::text(diag.diag.message),
-                Some(diag::Extra::Advisory(advisory)) => {
-                    let mut md = String::new();
-
-                    let meta = &advisory.metadata;
-
-                    md.push_str("# ");
-                    if let Some(url) = &meta.url {
-                        write!(&mut md, "[{}]({url})", meta.id).unwrap();
-                    } else {
-                        md.push_str(meta.id.as_str());
-                    }
-
-                    md.push('\n');
-                    md.push_str(&meta.title);
-                    md.push('\n');
-
-                    md.push_str("## Description\n");
-                    md.push_str(&meta.description);
-                    md.push_str("\n\n");
-
-                    if !advisory.versions.unaffected().is_empty() {
-                        md.push_str("## Unaffected\n");
-                        for un in advisory.versions.unaffected() {
-                            writeln!(&mut md, "- `{un}`").unwrap();
-                        }
-                        md.push('\n');
-                    }
-
-                    if !advisory.versions.patched().is_empty() {
-                        md.push_str("## Patched\n");
-                        for un in advisory.versions.patched() {
-                            writeln!(&mut md, "- `{un}`").unwrap();
-                        }
-                        md.push('\n');
-                    }
-
-                    if let Some(affected) = &advisory.affected {
-                        md.push_str("## Affected\n");
-                        if !affected.functions.is_empty() {
-                            md.push_str("| Functions | Versions |\n|---|---|\n");
-                            for (path, reqs) in &affected.functions {
-                                write!(&mut md, "|`{path}`|").unwrap();
-
-                                for (i, req) in reqs.iter().enumerate() {
-                                    if i > 0 {
-                                        md.push_str(", ");
-                                    }
-
-                                    write!(&mut md, "`{req}`").unwrap();
-                                }
-
-                                md.push_str("|\n");
-                            }
-
-                            md.push('\n');
-                        }
-
-                        if !affected.arch.is_empty() {
-                            md.push_str("### Arches\n");
-                            for arch in &affected.arch {
-                                md.push_str("- ");
-                                md.push_str(arch.as_str());
-                                md.push('\n');
-                            }
-                            md.push('\n');
-                        }
-
-                        if !affected.os.is_empty() {
-                            md.push_str("### Operating Systems\n");
-                            for os in &affected.os {
-                                md.push_str("- ");
-                                md.push_str(os.as_str());
-                                md.push('\n');
-                            }
-                            md.push('\n');
-                        }
-                    }
-
-                    Message {
-                        text: meta.title.clone(),
-                        markdown: Some(md),
-                    }
+            let (message, advisory_id) = match diag.advisory {
+                None | Some(diag::SerializedAdvisory::Json(_)) => {
+                    (Message::text(diag.diag.message), None)
                 }
+                Some(diag::SerializedAdvisory::Sarif {
+                    id,
+                    title,
+                    markdown,
+                }) => (
+                    Message {
+                        text: title,
+                        markdown: Some(markdown),
+                    },
+                    Some(id),
+                ),
             };
 
             // Add to diagnostics
@@ -153,7 +82,7 @@ impl SarifCollector {
                 severity: diag.diag.severity,
                 message,
                 locations,
-                extra: diag.extra,
+                advisory_id,
             });
 
             // Add to rules if not already present
@@ -200,14 +129,8 @@ impl SarifCollector {
                 let rule_id = diag.code.qualified_str();
                 fingerprints.insert("cargo-deny/id".into(), rule_id.clone());
 
-                match diag.extra {
-                    Some(Extra::Advisory(advisory)) => {
-                        fingerprints.insert(
-                            "cargo-deny/advisory-id".into(),
-                            advisory.metadata.id.to_string(),
-                        );
-                    }
-                    None => {}
+                if let Some(id) = diag.advisory_id {
+                    fingerprints.insert("cargo-deny/advisory-id".into(), id);
                 }
 
                 if !diag.krates.is_empty() {

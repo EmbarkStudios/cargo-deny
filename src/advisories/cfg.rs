@@ -5,12 +5,11 @@ use crate::{
     utf8path,
 };
 use anyhow::Context as _;
-use rustsec::advisory;
 use std::time::Duration;
 use toml_span::{Deserialize, Value, de_helpers::*, value::ValueInner};
 use url::Url;
 
-pub(crate) type AdvisoryId = Spanned<advisory::Id>;
+pub(crate) type AdvisoryId = Spanned<String>;
 
 #[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) struct IgnoreId {
@@ -172,21 +171,22 @@ impl<'de> Deserialize<'de> for Config {
                     for mut v in ida {
                         match v.take() {
                             ValueInner::String(s) => {
-                                // Attempt to parse an advisory id first, note we can't
-                                // just immediately use parse as the from_str implementation
-                                // for id will just blindly accept any string
-                                if advisory::IdKind::detect(s.as_ref()) != advisory::IdKind::Other
-                                    && let Ok(id) = s.parse::<advisory::Id>()
-                                {
-                                    u.push(Spanned::with_span(
-                                        IgnoreId {
-                                            id: Spanned::with_span(id, v.span),
-                                            reason: None,
-                                        },
-                                        v.span,
-                                    ));
-                                    continue;
-                                }
+                                if let Some((kind, _)) = s.split_once('-') {
+                                    // We could do matches!(kind, "RUSTSEC" | "CVE" | "GHSA" | "TALOS")`, but that's
+                                    // probably overkill, we can instead just rely on the fact that, at least as of now,
+                                    // all off the official rustsec advisory prefixes are all uppercase ASCII, and uppercase
+                                    // ASCII is not allowed for crate names
+                                    if kind.chars().all(|c| c.is_ascii_uppercase()) {
+                                        u.push(Spanned::with_span(
+                                            IgnoreId {
+                                                id: Spanned::with_span(s.into(), v.span),
+                                                reason: None,
+                                            },
+                                            v.span,
+                                        ));
+                                        continue;
+                                    }
+                                };
 
                                 v.set(ValueInner::String(s));
                             }
@@ -235,38 +235,10 @@ impl<'de> Deserialize<'de> for Config {
         } else {
             (Vec::new(), Vec::new())
         };
-        let st = |th: &mut TableHelper<'_>, fdeps: &mut Vec<Span>| {
-            let (k, mut v) = th.take("severity-threshold")?;
 
-            fdeps.push(k.span);
-            let s = match v.take_string(Some(
-                "https://docs.rs/rustsec/latest/rustsec/advisory/enum.Severity.html",
-            )) {
-                Ok(s) => s,
-                Err(err) => {
-                    th.errors.push(err);
-                    return None;
-                }
-            };
-
-            match s.parse::<advisory::Severity>() {
-                Ok(st) => Some(st),
-                Err(err) => {
-                    th.errors.push(
-                        (
-                            toml_span::ErrorKind::Custom(
-                                format!("failed to parse rustsec::Severity: {err}").into(),
-                            ),
-                            v.span,
-                        )
-                            .into(),
-                    );
-                    None
-                }
-            }
-        };
-
-        let _severity_threshold = st(&mut th, &mut fdeps);
+        if let Some((key, _)) = th.take("severity-threshold") {
+            fdeps.push(key.span);
+        }
         let git_fetch_with_cli = th.optional("git-fetch-with-cli");
         let disable_yank_checking = th.optional("disable-yank-checking").unwrap_or_default();
         let maximum_db_staleness = if let Some((_, mut val)) = th.take("maximum-db-staleness") {
@@ -430,7 +402,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
     }
 }
 
-#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ValidConfig {
     pub file_id: FileId,
     pub db_path: PathBuf,
@@ -444,6 +415,52 @@ pub struct ValidConfig {
     pub disable_yank_checking: bool,
     pub maximum_db_staleness: Spanned<Duration>,
     pub unused_ignored_advisory: LintLevel,
+}
+
+#[cfg(test)]
+impl serde::Serialize for ValidConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap as _;
+
+        let mut s = serializer.serialize_map(Some(12))?;
+
+        struct DbUrls<'a>(&'a [Spanned<Url>]);
+
+        impl serde::Serialize for DbUrls<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                use serde::ser::SerializeSeq as _;
+
+                let mut s = serializer.serialize_seq(Some(self.0.len()))?;
+
+                for url in self.0 {
+                    s.serialize_element(url.value.as_str())?;
+                }
+
+                s.end()
+            }
+        }
+
+        s.serialize_entry("file_id", &self.file_id)?;
+        s.serialize_entry("db_path", &self.db_path)?;
+        s.serialize_entry("db_urls", &DbUrls(&self.db_urls))?;
+        s.serialize_entry("ignore", &self.ignore)?;
+        s.serialize_entry("unmaintained", &self.unmaintained)?;
+        s.serialize_entry("unsound", &self.unsound)?;
+        s.serialize_entry("ignore_yanked", &self.ignore_yanked)?;
+        s.serialize_entry("yanked", &self.yanked)?;
+        s.serialize_entry("git_fetch_with_cli", &self.git_fetch_with_cli)?;
+        s.serialize_entry("disable_yank_checking", &self.disable_yank_checking)?;
+        s.serialize_entry("maximum_db_staleness", &self.maximum_db_staleness)?;
+        s.serialize_entry("unused_ignored_advisory", &self.unused_ignored_advisory)?;
+
+        s.end()
+    }
 }
 
 /// We need to implement this ourselves since time doesn't support it

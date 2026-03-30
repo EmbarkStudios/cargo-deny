@@ -284,7 +284,6 @@ where
                 krates: ctx.krates,
                 krate_spans: &ctx.spans,
                 cfg: ctx.valid_cfg,
-                serialize_extra: true,
                 colorize: false,
                 log_level: log::LevelFilter::Info,
                 files: &ctx.files,

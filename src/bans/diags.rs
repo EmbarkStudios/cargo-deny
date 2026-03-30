@@ -510,7 +510,7 @@ impl From<ExactFeaturesMismatch<'_>> for Diag {
             diag,
             code: dcode(Code::ExactFeaturesMismatch),
             graph_nodes: graph_nodes.into(),
-            extra: None,
+            advisory: None,
             with_features: true,
         }
     }
@@ -542,7 +542,7 @@ impl From<FeatureNotExplicitlyAllowed<'_>> for Diag {
                 feature: None,
             })
             .collect(),
-            extra: None,
+            advisory: None,
             with_features: true,
         }
     }
@@ -574,7 +574,7 @@ impl From<FeatureBanned<'_>> for Diag {
                 feature: Some(fed.feature.value.clone()),
             })
             .collect(),
-            extra: None,
+            advisory: None,
             with_features: true,
         }
     }
@@ -606,7 +606,7 @@ impl From<UnknownFeature<'_>> for Diag {
                 feature: None,
             })
             .collect(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -638,7 +638,7 @@ impl From<DefaultFeatureEnabled<'_>> for Diag {
                 feature: Some("default".to_owned()),
             })
             .collect(),
-            extra: None,
+            advisory: None,
             with_features: true,
         }
     }
@@ -690,7 +690,7 @@ impl From<ExplicitPathAllowance<'_>> for Diag {
             code: dcode(Code::PathBypassed),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -728,7 +728,7 @@ impl From<GlobAllowance<'_>> for Diag {
             code: dcode(Code::PathBypassedByGlob),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -756,7 +756,7 @@ impl From<ChecksumMatch<'_>> for Diag {
             code: dcode(Code::ChecksumMatch),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -792,7 +792,7 @@ impl From<ChecksumMismatch<'_>> for Diag {
             code: dcode(Code::ChecksumMismatch),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -817,7 +817,7 @@ impl From<DeniedByExtension<'_>> for Diag {
             code: dcode(Code::DeniedByExtension),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -864,7 +864,7 @@ impl From<DetectedExecutable<'_>> for Diag {
             code: dcode(code),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -894,7 +894,7 @@ impl From<UnableToCheckPath<'_>> for Diag {
             code: dcode(Code::UnableToCheckPath),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }
@@ -925,7 +925,7 @@ impl From<FeaturesEnabled<'_>> for Diag {
             code: dcode(Code::FeaturesEnabled),
             // Not really helpful to show graphs for these
             graph_nodes: Default::default(),
-            extra: None,
+            advisory: None,
             with_features: false,
         }
     }

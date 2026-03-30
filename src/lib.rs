@@ -135,7 +135,7 @@ impl Source {
     /// This method therefore assumes that the crates sources are laid out in the
     /// canonical cargo structure, though it can be rooted somewhere other than
     /// `CARGO_HOME`
-    fn from_metadata(urls: String, manifest_path: &Path) -> anyhow::Result<Self> {
+    fn from_metadata(urls: String, manifest_path: Option<&Path>) -> anyhow::Result<Self> {
         use anyhow::Context as _;
 
         let (kind, url_str) = urls
@@ -156,9 +156,11 @@ impl Source {
             "registry" => {
                 if url_str == tame_index::CRATES_IO_INDEX {
                     // registry/src/index.crates.io-6f17d22bba15001f/crate-version/Cargo.toml
-                    let is_sparse = manifest_path.ancestors().nth(2).is_some_and(|dir| {
-                        dir.file_name()
-                            .is_some_and(|dir_name| dir_name == crates_io_sparse_dir())
+                    let is_sparse = manifest_path.is_none_or(|mp| {
+                        mp.ancestors().nth(2).is_some_and(|dir| {
+                            dir.file_name()
+                                .is_some_and(|dir_name| dir_name == crates_io_sparse_dir())
+                        })
                     });
                     Ok(Self::crates_io(is_sparse))
                 } else {
@@ -205,34 +207,15 @@ impl Source {
     }
 
     #[inline]
-    pub fn to_rustsec(&self) -> rustsec::package::SourceId {
-        use rustsec::package::SourceId;
-        // TODO: Change this once rustsec supports sparse indices
-        match self {
-            Self::CratesIo(_) => SourceId::default(),
-            Self::Registry(url) => SourceId::for_registry(url).unwrap(),
-            Self::Sparse(sparse) => {
-                // There is currently no way to publicly construct a sparse registry
-                // id other than this method
-                SourceId::from_url(sparse.as_str()).unwrap()
-            }
-            Self::Git { .. } => unreachable!(),
-        }
-    }
-
-    #[inline]
-    pub fn matches_rustsec(&self, sid: Option<&rustsec::package::SourceId>) -> bool {
+    pub fn matches_rustsec(&self, sid: Option<&Self>) -> bool {
         let Some(sid) = sid else {
             return self.is_crates_io();
         };
-        if !sid.is_remote_registry() {
-            return false;
-        }
 
-        let (Self::Registry(url) | Self::Sparse(url)) = self else {
-            return false;
-        };
-        sid.url() == url
+        match (self, sid) {
+            (Self::Registry(a), Self::Registry(b)) | (Self::Sparse(a), Self::Sparse(b)) => a == b,
+            _ => false,
+        }
     }
 }
 
@@ -333,7 +316,7 @@ impl From<cm::Package> for Krate {
         let source = pkg.source.and_then(|src| {
             let url = src.to_string();
 
-            Source::from_metadata(url, &pkg.manifest_path)
+            Source::from_metadata(url, Some(&pkg.manifest_path))
                 .map_err(|err| {
                     log::warn!(
                         "unable to parse source url for {}:{}: {err}",
@@ -460,6 +443,13 @@ pub fn hash(data: &[u8]) -> u32 {
     xx.finish() as u32
 }
 
+#[derive(Clone, Copy)]
+pub enum SerializeAdvisory {
+    Json,
+    Sarif,
+    No,
+}
+
 /// Common context for the various checks. Some checks require additional
 /// information though.
 pub struct CheckCtx<'ctx, T> {
@@ -469,9 +459,6 @@ pub struct CheckCtx<'ctx, T> {
     pub krates: &'ctx Krates,
     /// The spans for each unique crate in a synthesized "lock file"
     pub krate_spans: &'ctx diag::KrateSpans<'ctx>,
-    /// Requests for additional information the check can provide to be
-    /// serialized to the diagnostic
-    pub serialize_extra: bool,
     /// Allows for ANSI colorization of diagnostic content
     pub colorize: bool,
     /// Log level specified by the user, may be used by checks to determine what
@@ -629,11 +616,11 @@ pub fn krates_with_index(
 
 #[cfg(test)]
 mod test {
-    use super::{Krate, PathBuf, Source, Url};
+    use super::{Krate, Path, Source, Url};
 
     #[test]
     fn parses_sources() {
-        let empty_dir = super::Path::new("");
+        let empty_dir = Some(Path::new(""));
         let crates_io_git = Source::from_metadata(
             format!("registry+{}", tame_index::CRATES_IO_INDEX),
             empty_dir,
@@ -643,10 +630,10 @@ mod test {
             Source::from_metadata(tame_index::CRATES_IO_HTTP_INDEX.to_owned(), empty_dir).unwrap();
         let crates_io_sparse_but_git = Source::from_metadata(
             format!("registry+{}", tame_index::CRATES_IO_INDEX),
-            super::Path::new(&format!(
+            Some(Path::new(&format!(
                 "registry/src/{}/cargo-deny-0.69.0/Cargo.toml",
                 super::crates_io_sparse_dir(),
-            )),
+            ))),
         )
         .unwrap();
 
@@ -662,15 +649,12 @@ mod test {
         );
 
         assert!(
-            Source::from_metadata(
-                "registry+https://my-own-my-precious.com/".to_owned(),
-                empty_dir
-            )
-            .unwrap()
-            .is_registry()
+            Source::from_metadata("registry+https://my-own-my-precious.com/".to_owned(), None)
+                .unwrap()
+                .is_registry()
         );
         assert!(
-            Source::from_metadata("sparse+https://my-registry.rs/".to_owned(), empty_dir)
+            Source::from_metadata("sparse+https://my-registry.rs/".to_owned(), None)
                 .unwrap()
                 .is_registry()
         );
@@ -701,7 +685,7 @@ mod test {
             source: Some(
                 Source::from_metadata(
                     "git+ssh://git@repo1.test.org/path/test.git".to_owned(),
-                    &PathBuf::new(),
+                    None,
                 )
                 .unwrap(),
             ),
@@ -718,7 +702,7 @@ mod test {
             source: Some(
                 Source::from_metadata(
                     "git+ssh://git@repo1.test.org/path/test.git".to_owned(),
-                    &PathBuf::new(),
+                    None,
                 )
                 .unwrap(),
             ),

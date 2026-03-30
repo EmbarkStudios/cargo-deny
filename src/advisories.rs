@@ -1,11 +1,12 @@
 pub mod cfg;
 pub(crate) mod diags;
 mod helpers;
+pub mod model;
 
 use crate::{LintLevel, diag};
 pub use diags::Code;
 pub use helpers::{
-    db::{AdvisoryDb, DbSet, Fetch, Id, Report},
+    db::{self, AdvisoryDb, DbSet, Fetch, Report},
     index::{Entry, Indices},
 };
 
@@ -34,6 +35,7 @@ pub fn check<R, S>(
     ctx: crate::CheckCtx<'_, cfg::ValidConfig>,
     advisory_dbs: &DbSet,
     audit_compatible_reporter: Option<R>,
+    serialize_advisories: crate::SerializeAdvisory,
     indices: Option<Indices<'_>>,
     sink: S,
 ) where
@@ -44,7 +46,14 @@ pub fn check<R, S>(
     let emit_audit_compatible_reports = audit_compatible_reporter.is_some();
 
     let (report, yanked) = rayon::join(
-        || Report::generate(advisory_dbs, ctx.krates, emit_audit_compatible_reports),
+        || {
+            Report::generate(
+                &ctx.cfg,
+                advisory_dbs,
+                ctx.krates,
+                emit_audit_compatible_reports,
+            )
+        },
         || {
             if let Some(indices) = indices {
                 let yanked: Vec<_> = ctx
@@ -95,15 +104,17 @@ pub fn check<R, S>(
     // Emit diagnostics for any advisories found that matched crates in the graph
     'lup: for (krate, advisory) in &report.advisories {
         'block: {
-            let Some(scope) = advisory.metadata.informational.as_ref().and_then(|info| {
-                if info.is_unmaintained() {
-                    Some(&ctx.cfg.unmaintained)
-                } else if info.is_unsound() {
-                    Some(&ctx.cfg.unsound)
-                } else {
-                    None
-                }
-            }) else {
+            let Some(scope) =
+                advisory
+                    .advisory
+                    .informational
+                    .as_ref()
+                    .and_then(|info| match info {
+                        model::Informational::Unmaintained => Some(&ctx.cfg.unmaintained),
+                        model::Informational::Unsound => Some(&ctx.cfg.unsound),
+                        _ => None,
+                    })
+            else {
                 break 'block;
             };
 
@@ -127,7 +138,7 @@ pub fn check<R, S>(
             }
         }
 
-        let diag = ctx.diag_for_advisory(krate, advisory, |index| {
+        let diag = ctx.diag_for_advisory(krate, serialize_advisories, advisory, |index| {
             ignore_hits.as_mut_bitslice().set(index, true);
         });
 
