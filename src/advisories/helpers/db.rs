@@ -343,14 +343,6 @@ impl<'db, 'k> Report<'db, 'k> {
                                 return None;
                             }
 
-                            if km.krate.name == "lettre" {
-                                panic!(
-                                    "wtf {} {}",
-                                    km.krate.version,
-                                    entry.advisory.versions.to_json()
-                                );
-                            }
-
                             Some((km.krate, &entry.advisory))
                         })
                 })
