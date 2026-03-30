@@ -567,54 +567,75 @@ pub fn find_unaffected_req<'v>(
             return reqs.iter().find(|req| req.matches(vers));
         }
 
+        use std::cmp::Ordering as Or;
+
+        fn cmp_pre(comp: &semver::Comparator, vers: &semver::Version) -> Or {
+            match (comp.pre.is_empty(), vers.pre.is_empty()) {
+                (true, true) => Or::Equal,
+                (false, true) => Or::Greater,
+                (true, false) => Or::Less,
+                _ => {
+                    // preleases are trash, but, at least currently, all of the vulnerabilities have versions that follow
+                    // the basic <some alphabetic id><some integer> though several don't follow the spec and don't separate
+                    // the components with a '.', so we can't rely on that for splitting.
+                    let vs = vers.pre.as_str();
+                    let cs = comp.pre.as_str();
+                    if let Some((vi, ci)) = vs
+                        .find(|c: char| c.is_ascii_digit())
+                        .zip(cs.find(|c: char| c.is_ascii_digit()))
+                        && vi == ci
+                        && &vs[..vi] == &cs[..ci]
+                    {
+                        let vn = vs[vi..].chars().fold(0u32, |acc, c| {
+                            if c >= '0' && c <= '9' {
+                                acc * 10 + c as u32 - '0' as u32
+                            } else {
+                                acc
+                            }
+                        });
+
+                        let cn = cs[ci..].chars().fold(0u32, |acc, c| {
+                            if c >= '0' && c <= '9' {
+                                acc * 10 + c as u32 - '0' as u32
+                            } else {
+                                acc
+                            }
+                        });
+
+                        vn.cmp(&cn)
+                    } else {
+                        vs.cmp(cs)
+                    }
+                }
+            }
+        }
+
         reqs.iter().find(|req| {
             // rustsec only allows up to 2 comparators https://github.com/rustsec/rustsec/blob/cf93efe036c112c5b2737857b991d12c15f43951/rustsec/src/osv/unaffected_range.rs#L116-L121
             fn cmp(comp: &semver::Comparator, vers: &semver::Version) -> bool {
                 use semver::Op;
-                use std::cmp::Ordering as Or;
 
                 let exact = || {
                     comp.major == vers.major
                         && comp.minor.is_none_or(|m| m == vers.minor)
                         && comp.patch.is_none_or(|p| p == vers.patch)
-                        && comp.pre == vers.pre
+                        && comp.pre.as_str() == vers.pre.as_str()
                 };
 
-                let greater = || match comp.major.cmp(&vers.major) {
+                let greater = || match vers.major.cmp(&comp.major) {
                     Or::Equal => {
                         let Some(minor) = comp.minor else {
                             return false;
                         };
 
-                        match minor.cmp(&vers.minor) {
+                        match vers.minor.cmp(&minor) {
                             Or::Equal => {
                                 let Some(patch) = comp.patch else {
-                                    return false;
+                                    return vers.patch > 0 || cmp_pre(comp, vers) == Or::Greater;
                                 };
 
                                 vers.patch > patch
-                            }
-                            Or::Greater => false,
-                            Or::Less => true,
-                        }
-                    }
-                    Or::Greater => false,
-                    Or::Less => true,
-                };
-
-                let lesser = || match comp.major.cmp(&vers.major) {
-                    Or::Equal => {
-                        let Some(minor) = comp.minor else {
-                            return false;
-                        };
-
-                        match minor.cmp(&vers.minor) {
-                            Or::Equal => {
-                                let Some(patch) = comp.patch else {
-                                    return false;
-                                };
-
-                                vers.patch < patch
+                                    || cmp_pre(comp, vers) == Or::Greater && vers.patch >= patch
                             }
                             Or::Greater => true,
                             Or::Less => false,
@@ -622,6 +643,29 @@ pub fn find_unaffected_req<'v>(
                     }
                     Or::Greater => true,
                     Or::Less => false,
+                };
+
+                let lesser = || match vers.major.cmp(&comp.major) {
+                    Or::Equal => {
+                        let Some(minor) = comp.minor else {
+                            return false;
+                        };
+
+                        match vers.minor.cmp(&minor) {
+                            Or::Equal => {
+                                let Some(patch) = comp.patch else {
+                                    return cmp_pre(comp, vers) == Or::Less;
+                                };
+
+                                vers.patch < patch
+                                    || cmp_pre(comp, vers) == Or::Less && vers.patch <= patch
+                            }
+                            Or::Greater => false,
+                            Or::Less => true,
+                        }
+                    }
+                    Or::Greater => false,
+                    Or::Less => true,
                 };
 
                 match comp.op {
@@ -688,15 +732,7 @@ pub fn find_unaffected_req<'v>(
                 }
             }
 
-            let matches = req.comparators.iter().all(|comp| {
-                let c = cmp(comp, vers);
-                // if !c {
-                //     dbg!(comp);
-                // }
-                c
-            });
-
-            matches
+            req.comparators.iter().all(|comp| cmp(comp, vers))
         })
     }
 
@@ -721,8 +757,9 @@ mod test {
         };
     }
 
+    /// Rustsec considers a prepatch of a version that introduces a vulnerability to not contain that vulnerability
     #[test]
-    fn affected() {
+    fn matches_rustsec() {
         // RUSTSEC-2023-0074 - zerocopy
         let vs = super::model::Versions {
             patched: vr!([
@@ -746,7 +783,57 @@ mod test {
             "0.7.0-alpha.4",
             "0.7.0-alpha.5"
         ]) {
-            assert!(super::is_affected(&vs, &version));
+            assert!(!super::is_affected(&vs, &version));
+        }
+
+        // trust-dns-server - RUSTSEC-2023-0041
+        let vs = super::model::Versions {
+            patched: vr!(["^0.22.1", ">=0.23.0-alpha.3",]),
+            unaffected: Vec::new(),
+        };
+
+        for version in v!(["0.23.0-alpha.4", "0.23.0-alpha.5"]) {
+            assert!(!super::is_affected(&vs, &version));
+        }
+
+        // tokio-rustls - RUSTSEC-2020-0019
+        let vs = super::model::Versions {
+            patched: vr!([">=0.12.3, <0.13.0", ">=0.13.1"]),
+            unaffected: vr!(["<0.12"]),
+        };
+
+        for version in v!([
+            "0.12.0-alpha.1",
+            "0.12.0-alpha.2",
+            "0.12.0-alpha.3",
+            "0.12.0-alpha.4",
+            "0.12.0-alpha.5",
+            "0.12.0-alpha.6",
+            "0.12.0-alpha.7",
+            "0.12.0-alpha.8",
+        ]) {
+            assert!(!super::is_affected(&vs, &version), "{version}");
+        }
+
+        // actix-http - RUSTSEC-2021-0081
+        let vs = super::model::Versions {
+            patched: vr!(["^2.2.1", ">=3.0.0-beta.9"]),
+            unaffected: Vec::new(),
+        };
+
+        for version in v!([
+            "3.0.0-beta.10",
+            "3.0.0-beta.11",
+            "3.0.0-beta.12",
+            "3.0.0-beta.13",
+            "3.0.0-beta.14",
+            "3.0.0-beta.15",
+            "3.0.0-beta.16",
+            "3.0.0-beta.17",
+            "3.0.0-beta.18",
+            "3.0.0-beta.19",
+        ]) {
+            assert!(!super::is_affected(&vs, &version), "{version}");
         }
     }
 }

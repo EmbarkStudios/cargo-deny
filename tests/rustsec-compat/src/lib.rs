@@ -127,8 +127,7 @@ fn advisories_match() {
 fn affected_versions() {
     let ctx = ctx();
 
-    let mut problems = String::new();
-
+    let mut mismatches = 0;
     for adv in ctx.rs.iter() {
         if adv
             .metadata
@@ -152,52 +151,21 @@ fn affected_versions() {
             continue;
         };
 
-        let mut mismatches = 0;
-
-        let mut header = false;
-
-        let emit = |out: &mut String, e: &mut bool| {
-            if *e {
-                return;
-            }
-
-            write!(out, "## {} - {id}\n\n", adv.metadata.package);
-            *e = true;
-        };
-
         for vs in versions {
-            if !vs.pre.is_empty() {
-                match (
-                    adv.versions.is_vulnerable(vs),
-                    db::find_unaffected_req(&cd_adv.advisory.versions, vs),
-                ) {
-                    (false, None) => {
-                        for range in rustsec::osv::ranges_for_advisory(&adv.versions) {}
-                    }
-                    (true, Some(req)) => {}
-                    _ => {}
-                }
-
-                continue;
-            }
-
-            let prefix = match (
+            match (
                 adv.versions.is_vulnerable(vs),
-                db::is_affected(&cd_adv.advisory.versions, vs),
+                db::find_unaffected_req(&cd_adv.advisory.versions, vs),
             ) {
-                (false, true) => "\x1B[31m",
-                (true, false) => "\x1B[32m",
+                (false, None) => eprintln!("\x1B[0m\x1B[31m{vs}\x1B[0m"),
+                (true, Some(req)) => eprintln!("\x1B[0m\x1B[32m{vs} => {req}\x1B[0m"),
                 _ => continue,
             };
 
-            eprintln!("\x1B[0m{prefix}{vs}\x1B[0m");
             mismatches += 1;
-        }
-
-        if mismatches > 0 {
-            panic!("mismatch for {id} - {}", adv.metadata.package.as_str());
         }
     }
 
-    std::fs::write("fuck.md", &problems).unwrap();
+    if mismatches > 0 {
+        panic!("oh no");
+    }
 }

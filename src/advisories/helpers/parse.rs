@@ -483,15 +483,6 @@ fn parse_toml(toml: &'static str) -> anyhow::Result<model::Advisory<'static>> {
 
 #[cfg(test)]
 mod test {
-    // #[test]
-    // fn arr_iter() {
-    //     let mut iter = super::ArrayIter::new(r#"[">=0.25.1","=1.2.0"]"#);
-
-    //     assert_eq!(">=0.25.1", iter.next().unwrap());
-    //     assert_eq!("=1.2.0", iter.next().unwrap());
-    //     assert!(iter.next().is_none());
-    // }
-
     #[test]
     fn split_arrays() {
         let toml = r#"[advisory]
@@ -516,27 +507,5 @@ patched = [
 unaffected = ["< 0.8.0"]"#;
 
         super::parse_toml(toml).unwrap();
-    }
-
-    #[test]
-    fn argh() {
-        let toml = r#"[advisory]
-id = "RUSTSEC-2023-0018"
-package = "remove_dir_all"
-date = "2023-02-24"
-url = "https://github.com/XAMPPRocky/remove_dir_all/commit/7247a8b6ee59fc99bbb69ca6b3ca4bfd8c809ead"
-references = ["https://github.com/advisories/GHSA-mc8h-8q98-g5hr"]
-keywords = ["TOCTOU"]
-aliases = ["GHSA-mc8h-8q98-g5hr"]
-
-[affected]
-functions = { "remove_dir_all::remove_dir_all" = ["< 0.8.0"], "remove_dir_all::remove_dir_contents" = ["< 0.8.0"], "remove_dir_all::ensure_empty_dir" = ["< 0.8.0"] }
-
-[versions]
-patched = [">= 0.8.0"]"#;
-
-        let adv = super::parse_toml(toml).unwrap();
-
-        panic!("{:#?}", adv.affected.unwrap().functions);
     }
 }
