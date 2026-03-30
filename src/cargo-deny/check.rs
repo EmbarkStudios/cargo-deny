@@ -248,7 +248,7 @@ pub(crate) fn cmd(
             // see what parts are actually taking time
             let start = std::time::Instant::now();
             log::info!("fetching crates for {}", krate_ctx.manifest_path);
-            if let Err(err) = krate_ctx.fetch_krates() {
+            if let Err(err) = krate_ctx.fetch_krates(&graph.targets) {
                 log::error!("failed to fetch crates: {err:#}");
             } else {
                 log::info!("fetched crates in {:?}", start.elapsed());
