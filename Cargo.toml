@@ -59,7 +59,7 @@ goblin = { version = "0.10", default-features = false, features = [
 home = "0.5"
 jiff = { version = "0.2", default-features = false, features = ["std"] }
 # Provides graphs on top of cargo_metadata
-krates = { version = "0.20", features = ["targets"] }
+krates = { version = "0.21", features = ["targets"] }
 # Log macros
 log = "0.4"
 # Faster char searching
