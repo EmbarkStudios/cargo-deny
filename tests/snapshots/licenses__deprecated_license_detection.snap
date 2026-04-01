@@ -64,7 +64,7 @@ expression: diags
       ],
       "message": "license requirements satisfied",
       "notes": [
-        "license 'BSD-2-Clause-FreeBSD' detected in 'LICENSE-BSD' is deprecated in SPDX license list 3.27.0"
+        "license 'BSD-2-Clause-FreeBSD' detected in 'LICENSE-BSD' is deprecated in SPDX license list 3.28.0"
       ],
       "severity": "help"
     },
