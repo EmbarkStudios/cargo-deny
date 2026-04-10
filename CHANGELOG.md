@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.19.1] - 2026-04-10
 ### Fixed
 - [PR#833](https://github.com/EmbarkStudios/cargo-deny/pull/833) fixed an issue where the maximum advisory database staleness was over 14 years instead of the intended 90 days.
 - [PR#839](https://github.com/EmbarkStudios/cargo-deny/pull/839) fixed an issue where unsound advisories would appear for transitive dependencies despite requesting them only for workspace dependencies, resolving [#829](https://github.com/EmbarkStudios/cargo-deny/issues/829).
@@ -785,7 +786,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.1...HEAD
+[0.19.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.0...0.19.1
 [0.19.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.9...0.19.0
 [0.18.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.8...0.18.9
 [0.18.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.18.7...0.18.8
