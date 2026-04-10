@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#833](https://github.com/EmbarkStudios/cargo-deny/pull/833) fixed an issue where the maximum advisory database staleness was over 14 years instead of the intended 90 days.
+- [PR#839](https://github.com/EmbarkStudios/cargo-deny/pull/839) fixed an issue where unsound advisories would appear for transitive dependencies despite requesting them only for workspace dependencies, resolving [#829](https://github.com/EmbarkStudios/cargo-deny/issues/829).
+- [PR#840](https://github.com/EmbarkStudios/cargo-deny/pull/840) resolved [#797](https://github.com/EmbarkStudios/cargo-deny/issues/797) by passing `--filter-platform` when collecting cargo metadata if only a single target was requested either in the config or via the command line.
+- [PR#841](https://github.com/EmbarkStudios/cargo-deny/pull/841) fixed an issue where `--frozen` would not disable fetching of the advisory DB, resolving [#759](https://github.com/EmbarkStudios/cargo-deny/issues/759).
+- [PR#842](https://github.com/EmbarkStudios/cargo-deny/pull/842) and [PR#844](https://github.com/EmbarkStudios/cargo-deny/pull/844) updated crates. Notably `krates` was updated to resolve two issues with crates being pruned from the graph used when running checks. Resolving these two issues may mean that updating cargo-deny may highlight issues that were previously hidden.
+  - [EmbarkStudios/krates#106](https://github.com/EmbarkStudios/krates/issues/106) would fail to pull in crates brought in via a feature if that crate had its `lib` target renamed by the package author.
+  - [EmbarkStudios/krates#109](https://github.com/EmbarkStudios/krates/issues/109) would fail to bring in optional dependencies if they were brought in by a weak feature in a crate _also_ brought in by a weak feature.
+
+### Changed
+- [PR#830](https://github.com/EmbarkStudios/cargo-deny/pull/830) removed `gix` in favor of shelling out to `git`. This massively improves build times and eases maintenance as `gix` bumps minor versions quite frequently. If cargo-deny is used in an environment that for some reason allows internet access but doesn't have `git` available, the advisory database would need to be updated before calling cargo-deny.
+- [PR#838](https://github.com/EmbarkStudios/cargo-deny/pull/838) removed `rustsec` in favor of manually implemented advisory parsing and checking, with a nightly cron job that checks that the implementation exactly matches rustsec on the official rustsec advisory db.
+
 ## [0.19.0] - 2026-01-08
 ### Changed
 - [PR#802](https://github.com/EmbarkStudios/cargo-deny/pull/802) made relative paths passed to `--config` be resolved relative to the current working directory (rather than the resolved manifest path's directory).
