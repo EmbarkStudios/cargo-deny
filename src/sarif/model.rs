@@ -134,6 +134,11 @@ pub struct Message {
     pub markdown: Option<String>,
 }
 
+#[derive(Serialize)]
+pub struct ArtifactContent {
+    pub text: String,
+}
+
 impl Message {
     #[inline]
     pub fn text(text: String) -> Self {
@@ -170,9 +175,9 @@ pub struct Region {
     pub byte_offset: usize,
     pub byte_length: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub snippet: Option<String>,
+    pub snippet: Option<ArtifactContent>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
+    pub message: Option<Message>,
 }
 
 /// Convert cargo-deny severity to SARIF level
