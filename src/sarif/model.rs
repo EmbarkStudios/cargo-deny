@@ -127,16 +127,11 @@ pub struct Result {
     pub partial_fingerprints: BTreeMap<String, String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Message {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub markdown: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct ArtifactContent {
-    pub text: String,
 }
 
 impl Message {
@@ -147,6 +142,11 @@ impl Message {
             markdown: None,
         }
     }
+}
+
+#[derive(Serialize, Debug)]
+pub struct ArtifactContent {
+    pub text: String,
 }
 
 #[derive(Serialize)]
