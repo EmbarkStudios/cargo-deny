@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#845](https://github.com/EmbarkStudios/cargo-deny/pull/845) fixed structural issues with SARIF output, resolving [#818](https://github.com/EmbarkStudios/cargo-deny/issues/818). Thanks [@KyleChamberlin](https://github.com/KyleChamberlin)!
+
 ## [0.19.1] - 2026-04-10
 ### Fixed
 - [PR#833](https://github.com/EmbarkStudios/cargo-deny/pull/833) fixed an issue where the maximum advisory database staleness was over 14 years instead of the intended 90 days.
