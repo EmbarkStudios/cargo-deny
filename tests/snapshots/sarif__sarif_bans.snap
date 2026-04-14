@@ -18,8 +18,12 @@ expression: s
                 "region": {
                   "byteLength": 6,
                   "byteOffset": 99,
-                  "message": "feature denied here",
-                  "snippet": "simple",
+                  "message": {
+                    "text": "feature denied here"
+                  },
+                  "snippet": {
+                    "text": "simple"
+                  },
                   "startLine": 4
                 }
               }
@@ -45,8 +49,12 @@ expression: s
                 "region": {
                   "byteLength": 7,
                   "byteOffset": 208,
-                  "message": "allowed features",
-                  "snippet": "['ssh']",
+                  "message": {
+                    "text": "allowed features"
+                  },
+                  "snippet": {
+                    "text": "['ssh']"
+                  },
                   "startLine": 6
                 }
               }
@@ -72,8 +80,12 @@ expression: s
                 "region": {
                   "byteLength": 7,
                   "byteOffset": 208,
-                  "message": "allowed features",
-                  "snippet": "['ssh']",
+                  "message": {
+                    "text": "allowed features"
+                  },
+                  "snippet": {
+                    "text": "['ssh']"
+                  },
                   "startLine": 6
                 }
               }
@@ -99,8 +111,12 @@ expression: s
                 "region": {
                   "byteLength": 7,
                   "byteOffset": 208,
-                  "message": "allowed features",
-                  "snippet": "['ssh']",
+                  "message": {
+                    "text": "allowed features"
+                  },
+                  "snippet": {
+                    "text": "['ssh']"
+                  },
                   "startLine": 6
                 }
               }
@@ -126,8 +142,12 @@ expression: s
                 "region": {
                   "byteLength": 7,
                   "byteOffset": 208,
-                  "message": "allowed features",
-                  "snippet": "['ssh']",
+                  "message": {
+                    "text": "allowed features"
+                  },
+                  "snippet": {
+                    "text": "['ssh']"
+                  },
                   "startLine": 6
                 }
               }
@@ -153,8 +173,12 @@ expression: s
                 "region": {
                   "byteLength": 14,
                   "byteOffset": 148,
-                  "message": "feature denied here",
-                  "snippet": "zlib-ng-compat",
+                  "message": {
+                    "text": "feature denied here"
+                  },
+                  "snippet": {
+                    "text": "zlib-ng-compat"
+                  },
                   "startLine": 5
                 }
               }
@@ -180,8 +204,12 @@ expression: s
                 "region": {
                   "byteLength": 5,
                   "byteOffset": 37,
-                  "message": "banned here",
-                  "snippet": "vcpkg",
+                  "message": {
+                    "text": "banned here"
+                  },
+                  "snippet": {
+                    "text": "vcpkg"
+                  },
                   "startLine": 2
                 }
               }

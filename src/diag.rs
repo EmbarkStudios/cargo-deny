@@ -140,8 +140,13 @@ impl Files {
                     start_line,
                     byte_offset: label.range.start,
                     byte_length: label.range.end - label.range.start,
-                    snippet: file.source.get(label.range.clone()).map(String::from),
-                    message: (!label.message.is_empty()).then(|| label.message.clone()),
+                    snippet: file.source.get(label.range.clone()).map(|text| {
+                        model::ArtifactContent {
+                            text: String::from(text),
+                        }
+                    }),
+                    message: (!label.message.is_empty())
+                        .then(|| model::Message::text(label.message.clone())),
                 },
             },
         })
