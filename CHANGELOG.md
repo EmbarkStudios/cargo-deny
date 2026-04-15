@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#847](https://github.com/EmbarkStudios/cargo-deny/pull/847) and [PR#848](https://github.com/EmbarkStudios/cargo-deny/pull/848) resolved [#846](https://github.com/EmbarkStudios/cargo-deny/issues/846), which was an advisory parsing bug that only affected Windows.
+
 ## [0.19.3] - 2026-04-15
 ### Fixed
 - [PR#847](https://github.com/EmbarkStudios/cargo-deny/pull/847) resolved [#846](https://github.com/EmbarkStudios/cargo-deny/issues/846), which only affected Windows.
