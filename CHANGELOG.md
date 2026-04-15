@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#847](https://github.com/EmbarkStudios/cargo-deny/pull/847) resolved [#846](https://github.com/EmbarkStudios/cargo-deny/issues/846), which only affected Windows.
+
 ## [0.19.2] - 2026-04-14
 ### Fixed
 - [PR#845](https://github.com/EmbarkStudios/cargo-deny/pull/845) fixed structural issues with SARIF output, resolving [#818](https://github.com/EmbarkStudios/cargo-deny/issues/818). Thanks [@KyleChamberlin](https://github.com/KyleChamberlin)!
