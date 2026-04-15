@@ -104,7 +104,7 @@ impl Iterator for LineIter {
         let start = self.start;
         self.start = end + 1;
 
-        Some(Line { s, start })
+        Some(Line { s: s.trim(), start })
     }
 }
 
