@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.19.4] - 2026-04-15
 ### Fixed
 - [PR#847](https://github.com/EmbarkStudios/cargo-deny/pull/847) and [PR#848](https://github.com/EmbarkStudios/cargo-deny/pull/848) resolved [#846](https://github.com/EmbarkStudios/cargo-deny/issues/846), which was an advisory parsing bug that only affected Windows.
 
@@ -797,7 +798,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.4...HEAD
+[0.19.4]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.3...0.19.4
 [0.19.3]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.2...0.19.3
 [0.19.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.1...0.19.2
 [0.19.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.0...0.19.1

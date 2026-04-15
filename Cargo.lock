@@ -149,7 +149,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.19.3"
+version = "0.19.4"
 dependencies = [
  "anyhow",
  "bitvec",
