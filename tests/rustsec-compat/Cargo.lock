@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
 name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -149,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.19.0"
+version = "0.19.2"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -180,7 +186,7 @@ dependencies = [
  "spdx",
  "strum",
  "tame-index",
- "toml-span",
+ "toml-span 0.7.1",
  "twox-hash",
  "url",
  "walkdir",
@@ -549,6 +555,8 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash",
 ]
 
@@ -749,9 +757,9 @@ dependencies = [
 
 [[package]]
 name = "krates"
-version = "0.20.0"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c432bb7d7a968a338f6c7cbd8782f38ffd87a793ff06c3a20257f45e1d003f6d"
+checksum = "cca2a52229bf275e08b7ebfa7d1339668d5f9ec33e27ceb3a762bc9edd437418"
 dependencies = [
  "camino",
  "cfg-expr",
@@ -865,9 +873,9 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "petgraph"
-version = "0.8.3"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
+checksum = "7a98c6720655620a521dcc722d0ad66cd8afd5d86e34a89ef691c50b7b24de06"
 dependencies = [
  "fixedbitset",
  "hashbrown 0.15.5",
@@ -1328,7 +1336,7 @@ dependencies = [
  "sha2",
  "smol_str",
  "thiserror",
- "toml-span",
+ "toml-span 0.6.0",
  "twox-hash",
 ]
 
@@ -1418,6 +1426,15 @@ name = "toml-span"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c6532e5b62b652073bff0e2050ef57e4697a853be118d6c57c32b59fffdeaab"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
+name = "toml-span"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f22ba417d437b5fa5dcba6c27dbd6c14f38845315b724d89fed73b7a426451b7"
 dependencies = [
  "codespan-reporting",
  "smallvec",

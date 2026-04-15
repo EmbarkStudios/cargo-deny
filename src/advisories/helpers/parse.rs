@@ -144,14 +144,10 @@ pub(super) fn parse(b: &'static [u8]) -> anyhow::Result<model::Advisory<'static>
     let whole = std::str::from_utf8(b)?;
 
     // This should be at the start, but just in case
-    let tstart = whole
-        .find("```toml\n")
-        .context("failed to find toml block")?;
-    let s = &whole[tstart + 8..];
+    let tstart = whole.find("```toml").context("failed to find toml block")?;
+    let s = &whole[tstart + 7..];
 
-    let tend = s
-        .find("```\n")
-        .context("failed to find end of toml block")?;
+    let tend = s.find("```").context("failed to find end of toml block")?;
 
     let rest = &s[tend + 4..];
     let toml = &s[..tend];
