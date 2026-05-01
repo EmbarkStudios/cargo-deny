@@ -386,6 +386,9 @@ pub struct Config {
     pub skip_tree: Vec<TreeSkip>,
     /// How to handle wildcard dependencies
     pub wildcards: LintLevel,
+    /// How to handle dependencies resolved to a prerelease version
+    /// (e.g. `1.0.0-alpha.1`).
+    pub prereleases: LintLevel,
     /// Wildcard dependencies defined using path attributes will be treated as
     /// if they were [`LintLevel::Allow`] for private crates, but other wildcard
     /// dependencies will be treated as [`LintLevel::Deny`].
@@ -416,6 +419,7 @@ impl Default for Config {
             skip: Vec::new(),
             skip_tree: Vec::new(),
             wildcards: LintLevel::Allow,
+            prereleases: LintLevel::Allow,
             allow_wildcard_paths: false,
             allow_build_scripts: None,
             build: None,
@@ -441,6 +445,7 @@ impl<'de> Deserialize<'de> for Config {
         let skip = th.optional("skip").unwrap_or_default();
         let skip_tree = th.optional("skip-tree").unwrap_or_default();
         let wildcards = th.optional("wildcards").unwrap_or(LintLevel::Allow);
+        let prereleases = th.optional("prereleases").unwrap_or(LintLevel::Allow);
         let allow_wildcard_paths = th.optional("allow-wildcard-paths").unwrap_or_default();
         let allow_build_scripts = th.optional("allow-build-scripts");
         let build = th.optional("build");
@@ -463,6 +468,7 @@ impl<'de> Deserialize<'de> for Config {
             skip,
             skip_tree,
             wildcards,
+            prereleases,
             allow_wildcard_paths,
             allow_build_scripts,
             build,
@@ -780,6 +786,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             workspace_default_features: self.workspace_default_features,
             skipped,
             wildcards: self.wildcards,
+            prereleases: self.prereleases,
             allow_wildcard_paths: self.allow_wildcard_paths,
             tree_skipped: self.skip_tree,
             build,
@@ -955,6 +962,7 @@ pub struct ValidConfig {
     pub(crate) skipped: Vec<SpecAndReason>,
     pub(crate) tree_skipped: Vec<ValidTreeSkip>,
     pub wildcards: LintLevel,
+    pub prereleases: LintLevel,
     pub allow_wildcard_paths: bool,
     pub build: Option<ValidBuildConfig>,
 }
