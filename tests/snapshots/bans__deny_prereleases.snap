@@ -1,0 +1,30 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "prerelease",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "prereleases-test-dep",
+            "version": "0.1.0-alpha.1"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "prereleases-test-crate",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "crate 'prereleases-test-dep' resolved to prerelease version '0.1.0-alpha.1'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

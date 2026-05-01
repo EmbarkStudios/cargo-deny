@@ -28,6 +28,14 @@ Determines what happens when a dependency is specified with the `*` (wildcard) v
 * `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
 * `allow` - Ignores all wildcard version specifications.
 
+### The `prereleases` field (optional)
+
+Determines what happens when a dependency in the dependency graph is resolved to a prerelease version (e.g. `1.0.0-alpha.1`).  This catches both direct dependencies declared with prerelease version requirements and transitive dependencies whose resolved versions carry a non-empty semver prerelease component.
+
+* `deny` - Will emit an error for each crate resolved to a prerelease version and fail the check.
+* `warn` - Prints a warning for each crate resolved to a prerelease version, but does not fail the check.
+* `allow` (default) - Ignores prerelease versions.
+
 ### The `allow-wildcard-paths` field (optional)
 
 If specified, alters how the `wildcard` field behaves:
