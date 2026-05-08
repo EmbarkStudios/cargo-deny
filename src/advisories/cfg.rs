@@ -1015,7 +1015,7 @@ expansions = [
 
         let mut output = String::new();
 
-        for (mut expansion, expander) in exp.into_iter().zip(expanders.into_iter()) {
+        for (mut expansion, expander) in exp.into_iter().zip(expanders) {
             let expansion = toml_span::Spanned::<String>::deserialize(&mut expansion)
                 .unwrap()
                 .map();
