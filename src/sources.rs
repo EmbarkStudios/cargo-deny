@@ -151,7 +151,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
     for src in source_hits
         .into_iter()
-        .zip(ctx.cfg.allowed_sources.into_iter())
+        .zip(ctx.cfg.allowed_sources)
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
         // If someone in is in a situation that they want to disallow crates
@@ -171,7 +171,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
 
     for (org_type, orgs) in org_hits
         .into_iter()
-        .zip(ctx.cfg.allowed_orgs.into_iter())
+        .zip(ctx.cfg.allowed_orgs)
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
         pack.push(diags::UnmatchedAllowOrg {

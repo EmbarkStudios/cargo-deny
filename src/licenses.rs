@@ -312,7 +312,7 @@ pub fn check(
         for exc in hits
             .exceptions
             .into_iter()
-            .zip(ctx.cfg.exceptions.into_iter())
+            .zip(ctx.cfg.exceptions)
             .filter_map(|(hit, exc)| if !hit { Some(exc) } else { None })
         {
             // Don't print warnings for exception overrides
@@ -342,7 +342,7 @@ pub fn check(
         for allowed in hits
             .allowed
             .into_iter()
-            .zip(ctx.cfg.allowed.into_iter())
+            .zip(ctx.cfg.allowed)
             .filter_map(|(hit, allowed)| if !hit { Some(allowed) } else { None })
         {
             pack.push(diags::UnmatchedLicenseAllowance {

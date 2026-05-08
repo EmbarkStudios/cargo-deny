@@ -1105,7 +1105,7 @@ pub fn check(
             .bypasses
             .into_inner()
             .into_iter()
-            .zip(bcc.build_config.bypass.into_iter())
+            .zip(bcc.build_config.bypass)
             .filter_map(|(hit, ve)| if !hit { Some(ve) } else { None })
         {
             pack.push(diags::UnmatchedBypass {
@@ -1136,7 +1136,7 @@ pub fn check(
 
     let mut pack = Pack::new(Check::Bans);
 
-    for (hit, skip) in skip_hit.into_iter().zip(skipped.0.into_iter()) {
+    for (hit, skip) in skip_hit.into_iter().zip(skipped.0) {
         if !hit {
             pack.push(diags::UnmatchedSkip { skip_cfg: &skip });
         } else if multi_detector

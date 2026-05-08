@@ -67,8 +67,7 @@ fn get_file_source(root: &Path, path: PathBuf) -> PackFile {
             }
         };
 
-        let mut s =
-            String::with_capacity(file.metadata().map(|m| m.len() as usize + 1).unwrap_or(0));
+        let mut s = String::with_capacity(file.metadata().map_or(0, |m| m.len() as usize + 1));
 
         let mut br = std::io::BufReader::new(file);
         let mut min = 0;
