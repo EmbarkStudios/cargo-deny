@@ -974,7 +974,10 @@ fn ignores_placeholders_and_duplicates() {
 
             macro_rules! w {
                 ($c:expr) => {
-                    f.write_all($c.as_bytes()).unwrap();
+                    #[allow(clippy::string_lit_as_bytes)]
+                    {
+                        f.write_all($c.as_bytes()).unwrap();
+                    }
                 };
             }
 
@@ -997,12 +1000,12 @@ fn ignores_placeholders_and_duplicates() {
 
         p.push(PLACEHOLDER);
         p.set_extension("md");
-        write(&p, PLACEHOLDER, name);
+        write(p, PLACEHOLDER, name);
 
         p.pop();
         p.push(DUPLICATE);
         p.set_extension("md");
-        write(&p, DUPLICATE, name);
+        write(p, DUPLICATE, name);
 
         p.pop();
         p.pop();
@@ -1018,5 +1021,10 @@ fn ignores_placeholders_and_duplicates() {
 
     let db = cargo_deny::advisories::db::Database::open(&td).unwrap();
 
-    assert!(db.advisories.get(DUPLICATE).is_some());
+    let adv = db.advisories.get(DUPLICATE).unwrap();
+    assert_eq!(
+        adv.advisory.advisory.url,
+        Some("https://github.com/RustSec/advisory-db")
+    );
+    assert_eq!(adv.advisory.advisory.id, DUPLICATE);
 }
