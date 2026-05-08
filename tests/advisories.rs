@@ -958,3 +958,65 @@ fn crates_io_source_replacement() {
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Ensures that advisory DB loading ignores advisories with a placeholder ID as well as duplicates
+#[test]
+fn ignores_placeholders_and_duplicates() {
+    let td = tempfile::tempdir().unwrap();
+    let mut td = cargo_deny::Path::from_path(td.path()).unwrap().to_owned();
+
+    const DUPLICATE: &str = "RUSTSEC-1234-5678";
+
+    fn make_fake(p: &mut cargo_deny::PathBuf, name: &str) {
+        fn write(p: &cargo_deny::Path, id: &str, name: &str) {
+            use std::io::Write;
+            let mut f = std::fs::File::create_new(p).unwrap();
+
+            macro_rules! w {
+                ($c:expr) => {
+                    f.write_all($c.as_bytes()).unwrap();
+                };
+            }
+
+            w!("```toml\n[advisory]\nid = \"");
+            w!(id);
+            w!("\"\npackage = \"");
+            w!(name);
+            w!("\"\ndate = \"1234-12-25\"\n");
+            w!("url = \"https://github.com/RustSec/advisory-db\"\n");
+            w!("[versions]\n");
+            w!(r#"patched = [">= 0.103.13, < 0.104.0-alpha.1", ">= 0.104.0-alpha.7"]"#);
+            w!("\n```\n\n# Much title, very descript\n\n");
+            w!("blah blah blah\nblah\n\n- blah1\n- blah2\n");
+        }
+
+        p.push(name);
+        std::fs::create_dir_all(&p).unwrap();
+
+        const PLACEHOLDER: &str = "RUSTSEC-0000-0000";
+
+        p.push(PLACEHOLDER);
+        p.set_extension("md");
+        write(&p, PLACEHOLDER, name);
+
+        p.pop();
+        p.push(DUPLICATE);
+        p.set_extension("md");
+        write(&p, DUPLICATE, name);
+
+        p.pop();
+        p.pop();
+    }
+
+    td.push("crates");
+
+    make_fake(&mut td, "fake0");
+    make_fake(&mut td, "fake_1");
+    make_fake(&mut td, "fake-2");
+
+    td.pop();
+
+    let db = cargo_deny::advisories::db::Database::open(&td).unwrap();
+
+    assert!(db.advisories.get(DUPLICATE).is_some());
+}
