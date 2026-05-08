@@ -501,36 +501,28 @@ impl Database {
                         continue;
                     }
 
-                    match DbEntry::load(path) {
-                        Ok(entry) => {
-                            // Ignore advisories with the placeholder identifier, just as rustsec does
-                            // TODO: would need to be updated if other databses used their own placeholder
-                            if entry.advisory.advisory.id == "RUSTSEC-0000-0000" {
-                                log::debug!(
-                                    "ignoring advisory with placeholder id '{}'",
-                                    entry.path
-                                );
-                                continue;
-                            }
+                    let entry = DbEntry::load(path)?;
+                    // Ignore advisories with the placeholder identifier, just as rustsec does
+                    // TODO: would need to be updated if other databases used their own placeholder
+                    if entry.advisory.advisory.id == "RUSTSEC-0000-0000" {
+                        log::debug!("ignoring advisory with placeholder id '{}'", entry.path);
+                        continue;
+                    }
 
-                            if let Some(existing) = advisories.get(entry.advisory.advisory.id) {
-                                log::warn!(
-                                    "ignoring advisory from '{}' with id '{}', an advisory with that id was already loaded from '{}'",
-                                    entry.path,
-                                    entry.advisory.advisory.id,
-                                    existing.path
-                                );
-                            } else {
-                                assert!(
-                                    advisories
-                                        .insert(entry.advisory.advisory.id.to_owned(), entry)
-                                        .is_none()
-                                );
-                            }
-                        }
-                        Err(error) => {
-                            panic!("failed to load advisory: {error:#}");
-                        }
+                    if let Some(existing) = advisories.get(entry.advisory.advisory.id) {
+                        log::warn!(
+                            "ignoring advisory from '{}' with id '{}', an advisory with that id was already loaded from '{}'",
+                            entry.path,
+                            entry.advisory.advisory.id,
+                            existing.path
+                        );
+                    } else {
+                        assert!(
+                            advisories
+                                .insert(entry.advisory.advisory.id.to_owned(), entry)
+                                .is_none(),
+                            "we just inserted over an existing entry even though we just checked for it"
+                        );
                     }
                 }
                 Err(error) => {
