@@ -231,6 +231,13 @@ fn capture(mut cmd: Command) -> anyhow::Result<String> {
         .stderr(std::process::Stdio::piped());
 
     let output = cmd
+        // We need to clear the environment to avoid things like pre-commit hooks influencing where the advisory db
+        // is located https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_ALTERNATE_OBJECT_DIRECTORIES")
         .spawn()
         .context("failed to spawn git")?
         .wait_with_output()
