@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#860](https://github.com/EmbarkStudios/cargo-deny/pull/860) updated crates, resolving [krates#111](https://github.com/EmbarkStudios/krates/issues/111).
+
 ## [0.19.6] - 2026-05-11
 ### Fixed
 - [PR#854](https://github.com/EmbarkStudios/cargo-deny/pull/857) resolved [#854](https://github.com/EmbarkStudios/cargo-deny/issues/854) by removing environment variables that affect repo paths before cloning or fetching the advisory database.
