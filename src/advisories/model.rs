@@ -224,12 +224,6 @@ impl Advisory<'_> {
     }
 
     pub fn to_json(&self) -> crate::diag::SerializedAdvisory {
-        // let json = serde_json::json!({
-        //     "advisory": self.advisory.to_json(),
-        //     "affected": self.affected.as_ref().map(|aff| aff.to_json()),
-        //     "versions": self.versions.to_json(),
-        // });
-
         crate::diag::SerializedAdvisory::Json(self.advisory.to_json())
     }
 }

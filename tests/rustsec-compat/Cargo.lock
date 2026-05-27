@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-deny"
-version = "0.19.2"
+version = "0.19.7"
 dependencies = [
  "anyhow",
  "bitvec",
