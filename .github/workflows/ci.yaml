@@ -77,6 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run:
             cargo test --release --manifest-path tests/rustsec-compat/Cargo.toml
 
