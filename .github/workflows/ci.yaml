@@ -245,6 +245,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-24.04
-    needs: [typos, lint, test, self, publish-check, doc-book, msrv]
+    needs: [typos, lint, test, self, publish-check, doc-book, msrv, rustsec-compat]
     steps:
       - run: echo "All test jobs passed"
