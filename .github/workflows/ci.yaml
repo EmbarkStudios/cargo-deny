@@ -17,7 +17,7 @@ jobs:
     name: Typos
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # Typos check should be pinned to the very specific version
       # to prevent sudden dictionary updates from making our CI fail
       - uses: crate-ci/typos@v1.19.0
@@ -26,7 +26,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: "clippy, rustfmt"
@@ -45,7 +45,7 @@ jobs:
     name: MSRV check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.88.0
@@ -61,7 +61,7 @@ jobs:
         os: [ubuntu-24.04, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
@@ -70,6 +70,16 @@ jobs:
       - name: cargo test build
         run: cargo build --tests
       - run: cargo test
+
+  rustsec-compat:
+    name: Rustsec compat
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run:
+            cargo test --release --manifest-path tests/rustsec-compat/Cargo.toml
 
   self:
     name: Check Users
@@ -82,7 +92,7 @@ jobs:
     env:
       TARGET: x86_64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target }}
@@ -110,7 +120,7 @@ jobs:
     name: Build the book
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - env:
           version: "0.4.32"
         run: |
@@ -127,7 +137,7 @@ jobs:
     name: Publish Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
@@ -162,7 +172,7 @@ jobs:
             bin: cargo-deny
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -217,7 +227,7 @@ jobs:
     runs-on: ubuntu-24.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download book
         uses: actions/download-artifact@v4
         with:
@@ -237,6 +247,6 @@ jobs:
 
   test_success:
     runs-on: ubuntu-24.04
-    needs: [typos, lint, test, self, publish-check, doc-book, msrv]
+    needs: [typos, lint, test, self, publish-check, doc-book, msrv, rustsec-compat]
     steps:
       - run: echo "All test jobs passed"

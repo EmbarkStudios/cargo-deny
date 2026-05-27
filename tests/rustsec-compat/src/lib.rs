@@ -1,15 +1,15 @@
 use cargo_deny::advisories::db;
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
-struct Ctx {
-    rs: rustsec::database::Database,
-    cd: db::AdvisoryDb,
-    krates: std::collections::BTreeMap<String, Option<Vec<semver::Version>>>,
+pub struct Ctx {
+    pub rs: rustsec::database::Database,
+    pub cd: db::AdvisoryDb,
+    pub krates: std::collections::BTreeMap<String, Option<Vec<semver::Version>>>,
 }
 
-static CTX: std::sync::OnceLock<Ctx> = std::sync::OnceLock::new();
+pub static CTX: std::sync::OnceLock<Ctx> = std::sync::OnceLock::new();
 
-fn ctx() -> &'static Ctx {
+pub fn ctx() -> &'static Ctx {
     CTX.get_or_init(|| {
         let td = cargo_deny::PathBuf::from_path_buf(std::env::temp_dir()).unwrap();
         let cd = db::AdvisoryDb::load(
