@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.19.8] - 2026-05-28
 ### Fixed
 - [PR#864](https://github.com/EmbarkStudios/cargo-deny/pull/864) fixed matching of `^` and `~` with on prerelease versions for when checking if a crate is affected by an advisory. As of the time of the PR, this literally affected none of published versions of any crate with an advisory, but this just ensures such a case will be handled in the future.
 
@@ -813,7 +814,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.7...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.8...HEAD
+[0.19.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.7...0.19.8
 [0.19.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.6...0.19.7
 [0.19.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.5...0.19.6
 [0.19.5]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.4...0.19.5
