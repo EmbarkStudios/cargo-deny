@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#864](https://github.com/EmbarkStudios/cargo-deny/pull/864) fixed matching of `^` and `~` with on prerelease versions for when checking if a crate is affected by an advisory. As of the time of the PR, this literally affected none of published versions of any crate with an advisory, but this just ensures such a case will be handled in the future.
+
 ## [0.19.7] - 2026-05-22
 ### Changed
 - [PR#860](https://github.com/EmbarkStudios/cargo-deny/pull/860) updated crates, resolving [krates#111](https://github.com/EmbarkStudios/krates/issues/111).
