@@ -721,7 +721,7 @@ pub fn find_unaffected_req<'v>(
                             return false;
                         }
 
-                        true
+                        cmp_pre(comp, vers) != Or::Less
                     }
                     Op::Tilde => {
                         if comp.major != vers.major {
@@ -740,7 +740,7 @@ pub fn find_unaffected_req<'v>(
                             return patch < vers.patch;
                         }
 
-                        true
+                        cmp_pre(comp, vers) != Or::Less
                     }
                     _ => unreachable!("fucking non-exhaustive"),
                 }
@@ -849,5 +849,45 @@ mod test {
         ]) {
             assert!(!super::is_affected(&vs, &version), "{version}");
         }
+
+        for version in v!([
+            "2.0.0-alpha.1",
+            "2.0.0-alpha.2",
+            "2.0.0-alpha.3",
+            "2.0.0-alpha.4",
+            "2.0.0-beta.1",
+            "2.0.0-beta.2",
+            "2.0.0-beta.3",
+            "2.0.0-beta.4",
+            // This version doesn't actually exist it is here to ensure that pre-releases are not considered as patched
+            // even if they match the major, minor, and patch versions
+            "2.2.1-alpha.1",
+            "3.0.0-beta.8",
+        ]) {
+            assert!(super::is_affected(&vs, &version), "{version}");
+        }
+
+        // Note there is no case of patched or unaffected versions using `~` in the official rustsec advisory DB, so the
+        // following checks are just based on rustsec's own unit tests
+        fn assert_tilde(
+            vs: Vec<semver::VersionReq>,
+            versions: impl Iterator<Item = semver::Version>,
+        ) {
+            let vs = super::model::Versions {
+                patched: vs,
+                unaffected: Vec::new(),
+            };
+
+            for version in versions {
+                assert!(!super::is_affected(&vs, &version), "{version}");
+            }
+        }
+
+        assert_tilde(vr!(["~1.2.3"]), v!(["1.2.3", "1.2.999"]));
+        assert_tilde(vr!(["~1.2"]), v!(["1.2.0", "1.2.3", "1.2.999"]));
+        assert_tilde(
+            vr!(["~1"]),
+            v!(["1.0.0", "1.2.0", "1.2.3", "1.2.999", "1.3.0", "1.99.999"]),
+        );
     }
 }
