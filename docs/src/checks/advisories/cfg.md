@@ -2,6 +2,22 @@
 
 Contains all of the configuration for `cargo deny check advisories`
 
+> *NOTE:* Omitting the `[advisories]` section entierly will still run the check with default options. Please see more details below.
+
+## Default Config Reference
+
+```ini
+[advisories]
+db-urls = ["https://github.com/RustSec/advisory-db"]
+db-path = "~/.cargo/advisory-dbs" # Or wherever $CARGO_HOME/advisory-dbs resolves to
+yanked = "warn"
+unmaintained = "all"
+unsound = "workspace"
+git-fetch-with-cli = false
+maximum-db-staleness = "P90D" # Only checked when advisory database fetching has been disabled
+unused-ignored-advisory = "warn"
+```
+
 ## Example Config
 
 ```ini
