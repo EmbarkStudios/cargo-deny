@@ -6,7 +6,7 @@ Contains all of the configuration for `cargo deny check advisories`
 
 ## Default Config Reference
 
-```ini
+```toml
 [advisories]
 db-urls = ["https://github.com/RustSec/advisory-db"]
 db-path = "~/.cargo/advisory-dbs" # Or wherever $CARGO_HOME/advisory-dbs resolves to
