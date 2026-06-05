@@ -2,8 +2,6 @@
 
 Contains all of the configuration for `cargo deny check advisories`
 
-> *NOTE:* Omitting the `[advisories]` section entirely will still run the check with default options. Please see more details below.
-
 ## Default Config Reference
 
 ```toml
@@ -17,6 +15,8 @@ git-fetch-with-cli = false
 maximum-db-staleness = "P90D" # Only checked when advisory database fetching has been disabled
 unused-ignored-advisory = "warn"
 ```
+
+All of the fields below are optional. If the `[advisories]` section is omitted entirely, the advisory check still runs using the default value documented for each field — for example, the [RustSec Advisory DB](https://github.com/RustSec/advisory-db) is fetched and checked by default.
 
 ## Example Config
 
@@ -69,6 +69,13 @@ Determines what happens when a crate with a version that has been yanked from it
 - `warn` (default) - Prints a warning with the crate name and version that was yanked, but does not fail the check.
 - `allow` - Prints a note about the yanked crate, but does not fail the check.
 
+### The `disable-yank-checking` field (optional)
+
+Controls whether the local registry indices are checked for yanked crates (see the [`yanked`](#the-yanked-field-optional) field).
+
+- `false` (default) - The local registry indices are checked for yanked crates.
+- `true` - Yank checking is disabled; the local registry indices are not checked for yanked crates.
+
 ### The `ignore` field (optional)
 
 ```ini
@@ -83,6 +90,8 @@ ignore = [
 Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.
 
 In addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-spec) with an optional `reason`.
+
+Default: empty (no advisories or yanked crates are ignored).
 
 ### The `unmaintained` field (optional)
 
