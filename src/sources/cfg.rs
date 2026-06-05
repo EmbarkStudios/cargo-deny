@@ -8,9 +8,9 @@ use toml_span::{DeserError, Deserialize, de_helpers::TableHelper, value::Value};
 
 #[derive(Default)]
 pub struct Orgs {
-    /// The list of Github organizations that crates can be sourced from.
+    /// The list of GitHub organizations that crates can be sourced from.
     github: Vec<Spanned<String>>,
-    /// The list of Gitlab organizations that crates can be sourced from.
+    /// The list of GitLab organizations that crates can be sourced from.
     gitlab: Vec<Spanned<String>>,
     /// The list of Bitbucket organizations that crates can be sourced from.
     bitbucket: Vec<Spanned<String>>,
@@ -92,9 +92,12 @@ pub struct Config {
     /// The minimum specification required for git sources. Defaults to allowing
     /// any.
     pub required_git_spec: Option<Spanned<GitSpec>>,
-    /// Determines the response to sources in th `allow`ed list which do not
+    /// Determines the response to sources in the `allow`-ed list which do not
     /// exist in the dependency tree.
     pub unused_allowed_source: LintLevel,
+    /// Determines the response to orgs in the `allow`-ed list which do not
+    /// exist in the dependency tree.
+    pub unused_allowed_orgs: LintLevel,
 }
 
 impl<'de> Deserialize<'de> for Config {
@@ -112,6 +115,9 @@ impl<'de> Deserialize<'de> for Config {
         let unused_allowed_source = th
             .optional("unused-allowed-source")
             .unwrap_or(LintLevel::Warn);
+        let unused_allowed_orgs = th
+            .optional("unused-allowed-orgs")
+            .unwrap_or(LintLevel::Warn);
 
         th.finalize(None)?;
 
@@ -124,6 +130,7 @@ impl<'de> Deserialize<'de> for Config {
             private,
             required_git_spec,
             unused_allowed_source,
+            unused_allowed_orgs,
         })
     }
 }
@@ -139,6 +146,7 @@ impl Default for Config {
             private: Vec::new(),
             required_git_spec: None,
             unused_allowed_source: LintLevel::Warn,
+            unused_allowed_orgs: LintLevel::Warn,
         }
     }
 }
@@ -222,6 +230,7 @@ impl cfg::UnvalidatedConfig for Config {
             allowed_orgs,
             required_git_spec: self.required_git_spec,
             unused_allowed_source: self.unused_allowed_source,
+            unused_allowed_orgs: self.unused_allowed_orgs,
         }
     }
 }
@@ -245,6 +254,7 @@ pub struct ValidConfig {
     pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
     pub required_git_spec: Option<Spanned<GitSpec>>,
     pub unused_allowed_source: LintLevel,
+    pub unused_allowed_orgs: LintLevel,
 }
 
 #[cfg(test)]

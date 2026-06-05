@@ -145,7 +145,7 @@ expression: diags
           "span": "amethyst-engine"
         }
       ],
-      "message": "allowed 'gitlab.com' organization  was not encountered",
+      "message": "allowed 'gitlab.com' organization was not encountered",
       "severity": "warning"
     },
     "type": "diagnostic"
