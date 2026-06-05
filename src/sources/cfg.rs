@@ -97,7 +97,7 @@ pub struct Config {
     pub unused_allowed_source: LintLevel,
     /// Determines the response to orgs in the `allow`-ed list which do not
     /// exist in the dependency tree.
-    pub unused_allowed_orgs: LintLevel,
+    pub unused_allowed_org: LintLevel,
 }
 
 impl<'de> Deserialize<'de> for Config {
@@ -115,9 +115,7 @@ impl<'de> Deserialize<'de> for Config {
         let unused_allowed_source = th
             .optional("unused-allowed-source")
             .unwrap_or(LintLevel::Warn);
-        let unused_allowed_orgs = th
-            .optional("unused-allowed-orgs")
-            .unwrap_or(LintLevel::Warn);
+        let unused_allowed_org = th.optional("unused-allowed-org").unwrap_or(LintLevel::Warn);
 
         th.finalize(None)?;
 
@@ -130,7 +128,7 @@ impl<'de> Deserialize<'de> for Config {
             private,
             required_git_spec,
             unused_allowed_source,
-            unused_allowed_orgs,
+            unused_allowed_org,
         })
     }
 }
@@ -146,7 +144,7 @@ impl Default for Config {
             private: Vec::new(),
             required_git_spec: None,
             unused_allowed_source: LintLevel::Warn,
-            unused_allowed_orgs: LintLevel::Warn,
+            unused_allowed_org: LintLevel::Warn,
         }
     }
 }
@@ -230,7 +228,7 @@ impl cfg::UnvalidatedConfig for Config {
             allowed_orgs,
             required_git_spec: self.required_git_spec,
             unused_allowed_source: self.unused_allowed_source,
-            unused_allowed_orgs: self.unused_allowed_orgs,
+            unused_allowed_org: self.unused_allowed_org,
         }
     }
 }
@@ -254,7 +252,7 @@ pub struct ValidConfig {
     pub allowed_orgs: Vec<(OrgType, Spanned<String>)>,
     pub required_git_spec: Option<Spanned<GitSpec>>,
     pub unused_allowed_source: LintLevel,
-    pub unused_allowed_orgs: LintLevel,
+    pub unused_allowed_org: LintLevel,
 }
 
 #[cfg(test)]
