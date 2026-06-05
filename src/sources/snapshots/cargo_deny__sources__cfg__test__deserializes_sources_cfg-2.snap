@@ -46,4 +46,5 @@ ValidConfig {
         Tag,
     ),
     unused_allowed_source: Warn,
+    unused_allowed_org: Warn,
 }

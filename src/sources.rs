@@ -175,6 +175,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         .filter_map(|(hit, src)| if !hit { Some(src) } else { None })
     {
         pack.push(diags::UnmatchedAllowOrg {
+            severity: ctx.cfg.unused_allowed_org.into(),
             allow_org_cfg: CfgCoord {
                 span: orgs.span,
                 file: ctx.cfg.file_id,

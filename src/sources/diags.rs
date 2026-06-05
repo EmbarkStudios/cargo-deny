@@ -166,6 +166,7 @@ impl From<UnmatchedAllowSource> for Diag {
 }
 
 pub(crate) struct UnmatchedAllowOrg {
+    pub(crate) severity: Severity,
     pub(crate) allow_org_cfg: CfgCoord,
     pub(crate) org_type: super::OrgType,
 }
@@ -173,9 +174,9 @@ pub(crate) struct UnmatchedAllowOrg {
 impl From<UnmatchedAllowOrg> for Diag {
     fn from(uao: UnmatchedAllowOrg) -> Self {
         diag(
-            Diagnostic::new(Severity::Warning)
+            Diagnostic::new(uao.severity)
                 .with_message(format_args!(
-                    "allowed '{}' organization  was not encountered",
+                    "allowed '{}' organization was not encountered",
                     uao.org_type
                 ))
                 .with_labels(vec![

@@ -55,7 +55,7 @@ expression: s
             }
           ],
           "message": {
-            "text": "allowed 'github.com' organization  was not encountered"
+            "text": "allowed 'github.com' organization was not encountered"
           },
           "partialFingerprints": {
             "cargo-deny/id": "s:unmatched-organization",
