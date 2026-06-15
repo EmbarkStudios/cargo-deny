@@ -951,10 +951,15 @@ pub fn check(
 
                                     // Wildcards are allowed for path or git dependencies, if the krate
                                     // is private, or it's only a dev-dependency
+                                    //
+                                    // OR
+                                    //
+                                    // The dependency is actually for the same crate, extremely rare but allowed by cargo
                                     if allow_wildcard_paths
                                         && !mdep.krate.is_registry()
                                         && (is_private
                                             || mdep.dep.kind == DependencyKind::Development)
+                                        || mdep.krate.id == krate.id
                                     {
                                         continue;
                                     }
@@ -1019,30 +1024,25 @@ pub fn check(
                     report_duplicates(&mut multi_detector, &mut sink);
                 }
 
-                match &build_check_ctx {
-                    Some(build_ctx) => {
-                        scope.spawn(move |_s| {
-                            if let Some(bcc) = check_build(
-                                ctx.cfg.file_id,
-                                &build_ctx.build_config,
-                                build_ctx.cargo_home.as_deref(),
-                                krate,
-                                ctx.krates,
-                                &mut pack,
-                            ) {
-                                build_ctx.bypasses.lock().set(bcc, true);
-                            }
-
-                            if !pack.is_empty() {
-                                build_ctx.diag_packs.lock().insert(i, pack);
-                            }
-                        });
-                    }
-                    None => {
-                        if !pack.is_empty() {
-                            sink.push(pack);
+                if let Some(build_ctx) = &build_check_ctx {
+                    scope.spawn(move |_s| {
+                        if let Some(bcc) = check_build(
+                            ctx.cfg.file_id,
+                            &build_ctx.build_config,
+                            build_ctx.cargo_home.as_deref(),
+                            krate,
+                            ctx.krates,
+                            &mut pack,
+                        ) {
+                            build_ctx.bypasses.lock().set(bcc, true);
                         }
-                    }
+
+                        if !pack.is_empty() {
+                            build_ctx.diag_packs.lock().insert(i, pack);
+                        }
+                    });
+                } else if !pack.is_empty() {
+                    sink.push(pack);
                 }
             }
         });

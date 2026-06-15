@@ -118,6 +118,18 @@ allow-wildcard-paths = true
     insta::assert_json_snapshot!(diags);
 }
 
+/// Ensures that wildcard paths are allowed for self-referents
+#[test]
+fn allow_path_wildcards_for_self() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("wildcards/self"),
+        r"wildcards = 'deny'",
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Ensures that individual workspace crates can be ignored
 #[test]
 fn ignores_unpublished_crates() {
