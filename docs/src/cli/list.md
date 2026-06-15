@@ -16,6 +16,7 @@ The format of the output
 
 * `human` (default) - Simple format where each crate or license is its own line
 * `json`
+* `markdown`
 * `tsv`
 
 ### [`--color`](../cli/common.md#--color)
