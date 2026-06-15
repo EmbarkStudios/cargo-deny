@@ -2,7 +2,7 @@
 
 Contains all of the configuration for `cargo deny check advisories`
 
-> *NOTE:* Omitting the `[advisories]` section entierly will still run the check with default options. Please see more details below.
+> *NOTE:* Omitting the `[advisories]` section entirely will still run the check with default options. Please see more details below.
 
 ## Default Config Reference
 

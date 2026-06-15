@@ -542,33 +542,6 @@ pub fn check(
         }
     };
 
-    enum Sink<'k> {
-        Build(crossbeam::channel::Sender<(usize, &'k Krate, Pack)>),
-        NoBuild(diag::ErrorSink),
-    }
-
-    impl<'k> Sink<'k> {
-        #[inline]
-        fn push(&mut self, index: usize, krate: &'k Krate, pack: Pack) {
-            match self {
-                Self::Build(tx) => tx.send((index, krate, pack)).unwrap(),
-                Self::NoBuild(sink) => {
-                    if !pack.is_empty() {
-                        sink.push(pack);
-                    }
-                }
-            }
-        }
-    }
-
-    let (mut tx, build_config) = if let Some(bc) = build {
-        let (tx, rx) = crossbeam::channel::unbounded();
-
-        (Sink::Build(tx), Some((bc, rx)))
-    } else {
-        (Sink::NoBuild(sink.clone()), None)
-    };
-
     struct BuildCheckCtx {
         bypasses: parking_lot::Mutex<BitVec>,
         diag_packs: parking_lot::Mutex<std::collections::BTreeMap<usize, Pack>>,
@@ -576,7 +549,7 @@ pub fn check(
         build_config: ValidBuildConfig,
     }
 
-    let build_check_ctx = build_config.map(|(build_config, rx)| {
+    let build_check_ctx = build.map(|build_config| {
         // Make all paths reported in build diagnostics be relative to cargo_home
         let cargo_home = home::cargo_home()
             .map_err(|err| {
@@ -597,21 +570,18 @@ pub fn check(
         let bypasses =
             parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, build_config.bypass.len()));
 
-        (
-            BuildCheckCtx {
-                cargo_home,
-                bypasses,
-                diag_packs: parking_lot::Mutex::new(std::collections::BTreeMap::new()),
-                build_config,
-            },
-            rx,
-        )
+        BuildCheckCtx {
+            cargo_home,
+            bypasses,
+            diag_packs: parking_lot::Mutex::new(std::collections::BTreeMap::new()),
+            build_config,
+        }
     });
 
     let mut ws_duplicate_packs = Vec::new();
 
     rayon::scope(|scope| {
-        scope.spawn(|_| {
+        scope.spawn(|scope| {
             let last = ctx.krates.len() - 1;
 
             for (i, krate) in ctx.krates.krates().enumerate() {
@@ -1049,33 +1019,31 @@ pub fn check(
                     report_duplicates(&mut multi_detector, &mut sink);
                 }
 
-                tx.push(i, krate, pack);
-            }
+                match &build_check_ctx {
+                    Some(build_ctx) => {
+                        scope.spawn(move |_s| {
+                            if let Some(bcc) = check_build(
+                                ctx.cfg.file_id,
+                                &build_ctx.build_config,
+                                build_ctx.cargo_home.as_deref(),
+                                krate,
+                                ctx.krates,
+                                &mut pack,
+                            ) {
+                                build_ctx.bypasses.lock().set(bcc, true);
+                            }
 
-            drop(tx);
-        });
-
-        scope.spawn(|scope| {
-            let Some((build_ctx, rx)) = &build_check_ctx else {
-                return;
-            };
-            while let Ok((index, krate, mut pack)) = rx.recv() {
-                scope.spawn(move |_s| {
-                    if let Some(bcc) = check_build(
-                        ctx.cfg.file_id,
-                        &build_ctx.build_config,
-                        build_ctx.cargo_home.as_deref(),
-                        krate,
-                        ctx.krates,
-                        &mut pack,
-                    ) {
-                        build_ctx.bypasses.lock().set(bcc, true);
+                            if !pack.is_empty() {
+                                build_ctx.diag_packs.lock().insert(i, pack);
+                            }
+                        });
                     }
-
-                    if !pack.is_empty() {
-                        build_ctx.diag_packs.lock().insert(index, pack);
+                    None => {
+                        if !pack.is_empty() {
+                            sink.push(pack);
+                        }
                     }
-                });
+                }
             }
         });
 
@@ -1095,7 +1063,7 @@ pub fn check(
         }
     });
 
-    if let Some((bcc, _)) = build_check_ctx {
+    if let Some(bcc) = build_check_ctx {
         for bp in bcc.diag_packs.into_inner().into_values() {
             sink.push(bp);
         }
