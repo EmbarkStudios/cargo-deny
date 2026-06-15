@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#866](https://github.com/EmbarkStudios/cargo-deny/pull/866) added [`sources.unused-allowed-org`](https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html#the-unused-allowed-org-field-optional)
+
+### Fixed
+- [PR#870](https://github.com/EmbarkStudios/cargo-deny/pull/870) resolved [#868](https://github.com/EmbarkStudios/cargo-deny/issues/868) by spawning scoped threads directly, allowing forward progress even on severely constrained thread pool counts.
+- [PR#871](https://github.com/EmbarkStudios/cargo-deny/pull/871) resolved [#869](https://github.com/EmbarkStudios/cargo-deny/issues/869) by ignoring wildcards on crates that depend on themselves.
+
 ## [0.19.8] - 2026-05-28
 ### Fixed
 - [PR#864](https://github.com/EmbarkStudios/cargo-deny/pull/864) fixed matching of `^` and `~` with on prerelease versions for when checking if a crate is affected by an advisory. As of the time of the PR, this literally affected none of published versions of any crate with an advisory, but this just ensures such a case will be handled in the future.

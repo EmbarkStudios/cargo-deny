@@ -130,3 +130,11 @@ Determines what happens when one of the sources that appears in the `allow` list
 - `warn` (default) - A warning is emitted for each source that appears in `sources.allow` but which is not used in any crate.
 - `allow` - Unused sources in the `sources.allow` list are ignored.
 - `deny` - An unused source in the `sources.allow` list triggers an error, and cause the source check to fail.
+
+### The `unused-allowed-org` field (optional)
+
+Determines what happens when one of the organizations that appears in the `allow-org` list is not encountered in the dependency graph.
+
+- `warn` (default) - A warning is emitted for each organization that appears in `sources.allow-org` but which is not used in any crate.
+- `allow` - Unused organizations in the `sources.allow-org` list are ignored.
+- `deny` - An unused organization in the `sources.allow-org` list triggers an error, and cause the source check to fail.
