@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.19.9] - 2026-06-15
 ### Added
 - [PR#866](https://github.com/EmbarkStudios/cargo-deny/pull/866) added [`sources.unused-allowed-org`](https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html#the-unused-allowed-org-field-optional)
 
@@ -821,7 +822,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.9...HEAD
+[0.19.9]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.8...0.19.9
 [0.19.8]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.7...0.19.8
 [0.19.7]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.6...0.19.7
 [0.19.6]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.5...0.19.6
