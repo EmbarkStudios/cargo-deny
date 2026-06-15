@@ -84,6 +84,27 @@ allow = ['GPL-2.0-or-later', 'GPL-3.0', 'GPL-3.0-or-later']
 
 This also means that if a project declares their license as `GPL-2.0`, the deprecated form, you can't use `GPL-2.0-only`, it only matches `GPL-2.0`.
 
+#### Compound expressions in `allow`
+
+Each entry in `allow` may be a single SPDX licensee (the historical shape) or a compound SPDX expression with `OR` and `AND` operators.  Compound entries match a dependency only when the dependency's license expression is satisfied under **every** licensing choice the compound entry commits to offering.  This is the correct semantics for projects whose own license is itself a compound expression.
+
+For example, a project licensed `GPL-2.0-only OR GPL-3.0-only` cannot accept a dependency licensed `GPL-2.0-only` alone, since incorporating that dependency would force the project to drop the `GPL-3.0-only` option from the compound it commits to its downstream.  Adding the same compound expression to the `allow` list expresses that constraint precisely:
+
+```ini
+allow = [
+    'GPL-2.0-only OR GPL-3.0-only',
+    'MIT',
+]
+```
+
+Under this configuration:
+
+- A dep licensed `GPL-2.0-only OR GPL-3.0-only` is **allowed** (every disjunct of the allow has a satisfying choice in the dep).
+- A dep licensed `GPL-2.0-only` alone is **denied** (the `GPL-3.0-only` disjunct of the allow has no satisfying choice in the dep).
+- A dep licensed `MIT` is **allowed** (matched by the single-licensee entry, as before).
+
+Note that `spdx`'s `Licensee::satisfies` does not currently relate the canonical-form identifiers `GPL-2.0-only` and `GPL-2.0-or-later`, so a dep licensed `GPL-2.0-or-later` is not yet covered by an allow expression that mentions only `GPL-2.0-only` and `GPL-3.0-only`.  Lifting that limitation is upstream `spdx` work.
+
 ### The `exceptions` field (optional)
 
 The license configuration generally applies to the entire crate graph, but this means that allowing any one license applies to all possible crates, even if only 1 crate actually uses that license. The `exceptions` field is meant to allow additional licenses only for particular crates, to make a clear distinction between licenses which you are fine with everywhere, versus ones which you want to be more selective about, and not have implicitly allowed in the future.

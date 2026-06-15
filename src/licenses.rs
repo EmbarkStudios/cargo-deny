@@ -26,7 +26,57 @@ use bitvec::prelude::*;
 
 struct Hits {
     allowed: BitVec<usize, LocalBits>,
+    allowed_expressions: BitVec<usize, LocalBits>,
     exceptions: BitVec<usize, LocalBits>,
+}
+
+/// Returns true iff `allow_expr` covers `dep_expr`.
+///
+/// Coverage means every interpretation of `allow_expr` (every subset of its
+/// requirements that satisfies the expression) also satisfies `dep_expr`.
+/// This is the "for all licensing choices my project commits to offering, the
+/// dependency must remain usable" semantics requested in #827, and is
+/// strictly stronger than "any allow licensee satisfies any dep requirement."
+///
+/// Concretely, allow `GPL-2.0-only OR GPL-3.0-only` covers a dep licensed
+/// `GPL-2.0-only OR GPL-3.0-only` (both disjuncts have a satisfying choice in
+/// the dep), but does **not** cover a dep licensed `GPL-2.0-only` alone (the
+/// `GPL-3.0-only` disjunct of the allow has no satisfying choice in the dep).
+fn compound_allow_covers_dep(allow_expr: &spdx::Expression, dep_expr: &spdx::Expression) -> bool {
+    let allow_reqs: Vec<&spdx::LicenseReq> = allow_expr.requirements().map(|er| &er.req).collect();
+    let n = allow_reqs.len();
+
+    // Bail on absurdly large allow expressions; the enumeration is 2^n so we
+    // cap n to keep the worst case bounded.  16 is comfortably above what any
+    // realistic license expression would reach.
+    if n > 16 {
+        return false;
+    }
+
+    let satisfies_in_world = |granted: &[&spdx::LicenseReq], req: &spdx::LicenseReq| -> bool {
+        granted.iter().any(|g| {
+            let licensee = spdx::Licensee::new(g.license.clone(), g.addition.clone());
+            licensee.satisfies(req)
+        })
+    };
+
+    let total = 1u32 << n;
+    for mask in 0u32..total {
+        let granted: Vec<&spdx::LicenseReq> = (0..n)
+            .filter(|i| mask & (1 << i) != 0)
+            .map(|i| allow_reqs[i])
+            .collect();
+
+        if !allow_expr.evaluate(|req| satisfies_in_world(&granted, req)) {
+            continue;
+        }
+
+        if !dep_expr.evaluate(|req| satisfies_in_world(&granted, req)) {
+            return false;
+        }
+    }
+
+    true
 }
 
 fn evaluate_expression(
@@ -42,6 +92,7 @@ fn evaluate_expression(
     #[derive(Debug)]
     enum Reason {
         ExplicitAllowance,
+        ExplicitAllowanceCompound,
         ExplicitException,
         NotExplicitlyAllowed,
     }
@@ -71,32 +122,50 @@ fn evaluate_expression(
         .iter()
         .position(|exc| crate::match_krate(krate, &exc.spec));
 
-    let eval_res = expr.evaluate_with_failures(|req| {
-        // 1. Exceptions are additional per-crate licenses that aren't blanket
-        // allowed by all crates, note that we check these before denials so you
-        // can allow an exception
-        if let Some(ind) = exception_ind {
-            let exception = &cfg.exceptions[ind];
-            for allow in &exception.allowed {
-                if allow.0.value.satisfies(req) {
-                    // Note that hit the exception
-                    hits.exceptions.as_mut_bitslice().set(ind, true);
-                    allow!(ExplicitException);
+    // Compound allow expressions are checked before the per-requirement
+    // eval, since the matching semantics are over the whole dep expression
+    // rather than a single requirement.  See `compound_allow_covers_dep`.
+    let compound_hit = cfg
+        .allowed_expressions
+        .iter()
+        .enumerate()
+        .find(|(_, allow_expr)| compound_allow_covers_dep(&allow_expr.value, expr));
+
+    if let Some((i, _)) = compound_hit {
+        hits.allowed_expressions.as_mut_bitslice().set(i, true);
+        reasons.push((Reason::ExplicitAllowanceCompound, true));
+    }
+
+    let eval_res = if compound_hit.is_some() {
+        Ok(())
+    } else {
+        expr.evaluate_with_failures(|req| {
+            // 1. Exceptions are additional per-crate licenses that aren't blanket
+            // allowed by all crates, note that we check these before denials so you
+            // can allow an exception
+            if let Some(ind) = exception_ind {
+                let exception = &cfg.exceptions[ind];
+                for allow in &exception.allowed {
+                    if allow.0.value.satisfies(req) {
+                        // Note that hit the exception
+                        hits.exceptions.as_mut_bitslice().set(ind, true);
+                        allow!(ExplicitException);
+                    }
                 }
             }
-        }
 
-        // 2. A license that is specifically allowed will of course mean
-        // that the requirement is met.
-        for (i, allow) in cfg.allowed.iter().enumerate() {
-            if allow.0.value.satisfies(req) {
-                hits.allowed.as_mut_bitslice().set(i, true);
-                allow!(ExplicitAllowance);
+            // 2. A license that is specifically allowed will of course mean
+            // that the requirement is met.
+            for (i, allow) in cfg.allowed.iter().enumerate() {
+                if allow.0.value.satisfies(req) {
+                    hits.allowed.as_mut_bitslice().set(i, true);
+                    allow!(ExplicitAllowance);
+                }
             }
-        }
 
-        deny!(NotExplicitlyAllowed);
-    });
+            deny!(NotExplicitlyAllowed);
+        })
+    };
 
     let (message, severity) = match eval_res {
         Err(_) => ("failed to satisfy license requirements", Severity::Error),
@@ -211,6 +280,9 @@ fn evaluate_expression(
                 if accepted { "accepted" } else { "rejected" },
                 match reason {
                     Reason::ExplicitAllowance => "license is explicitly allowed",
+                    Reason::ExplicitAllowanceCompound => {
+                        "license expression is allowed by a compound allow entry"
+                    }
                     Reason::ExplicitException => "license is explicitly allowed via an exception",
                     Reason::NotExplicitlyAllowed => "license is not explicitly allowed",
                 }
@@ -240,6 +312,7 @@ pub fn check(
 ) {
     let mut hits = Hits {
         allowed: BitVec::repeat(false, ctx.cfg.allowed.len()),
+        allowed_expressions: BitVec::repeat(false, ctx.cfg.allowed_expressions.len()),
         exceptions: BitVec::repeat(false, ctx.cfg.exceptions.len()),
     };
 
@@ -354,8 +427,93 @@ pub fn check(
             });
         }
 
+        for allowed_expr in hits
+            .allowed_expressions
+            .into_iter()
+            .zip(ctx.cfg.allowed_expressions.into_iter())
+            .filter_map(|(hit, allowed)| if !hit { Some(allowed) } else { None })
+        {
+            pack.push(diags::UnmatchedLicenseAllowance {
+                severity: ctx.cfg.unused_allowed_license.into(),
+                allowed_license_cfg: CfgCoord {
+                    file: ctx.cfg.file_id,
+                    span: allowed_expr.span,
+                },
+            });
+        }
+
         if !pack.is_empty() {
             sink.push(pack);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::compound_allow_covers_dep;
+
+    fn parse(s: &str) -> spdx::Expression {
+        spdx::Expression::parse(s).unwrap_or_else(|err| panic!("failed to parse '{s}': {err:?}"))
+    }
+
+    /// The motivating case from #827: a project licensed
+    /// `GPL-2.0-only OR GPL-3.0-only` that allows the same compound
+    /// expression must accept a dep with the same expression but reject a
+    /// dep that constrains the project to only one of the disjuncts.
+    #[test]
+    fn compound_or_covers_same_compound() {
+        let allow = parse("GPL-2.0-only OR GPL-3.0-only");
+        let dep = parse("GPL-2.0-only OR GPL-3.0-only");
+        assert!(compound_allow_covers_dep(&allow, &dep));
+    }
+
+    #[test]
+    fn compound_or_does_not_cover_lone_disjunct() {
+        let allow = parse("GPL-2.0-only OR GPL-3.0-only");
+        let dep_2_only = parse("GPL-2.0-only");
+        let dep_3_only = parse("GPL-3.0-only");
+        assert!(!compound_allow_covers_dep(&allow, &dep_2_only));
+        assert!(!compound_allow_covers_dep(&allow, &dep_3_only));
+    }
+
+    /// `GPL-2.0-or-later` is semantically a superset of `GPL-2.0-only` and
+    /// `GPL-3.0-only`, so a dep licensed `GPL-2.0-or-later` ought to be
+    /// covered.  The `spdx` crate's `Licensee::satisfies` does not relate
+    /// the canonical-form identifiers `GPL-2.0-only` and `GPL-2.0-or-later`
+    /// (it only handles version comparison through the legacy `+` syntax),
+    /// so this case is not currently covered.  See the PR description for
+    /// the limitation; lifting it is upstream spdx work.
+    #[test]
+    fn compound_or_does_not_yet_cover_or_later() {
+        let allow = parse("GPL-2.0-only OR GPL-3.0-only");
+        let dep = parse("GPL-2.0-or-later");
+        assert!(!compound_allow_covers_dep(&allow, &dep));
+    }
+
+    /// A dep that requires both MIT and Apache-2.0 cannot be covered by an
+    /// allow expression that doesn't include both.
+    #[test]
+    fn compound_or_does_not_cover_unrelated_and() {
+        let allow = parse("GPL-2.0-only OR GPL-3.0-only");
+        let dep = parse("MIT AND Apache-2.0");
+        assert!(!compound_allow_covers_dep(&allow, &dep));
+    }
+
+    /// An allow expression with only AND requires the dep to satisfy each
+    /// conjunct under the single granted world.
+    #[test]
+    fn compound_and_covers_dep_satisfied_by_each_conjunct() {
+        let allow = parse("MIT AND Apache-2.0");
+        let dep_either = parse("MIT OR Apache-2.0");
+        // Granted world {MIT, Apache-2.0} satisfies allow.  Under that
+        // world, dep `MIT OR Apache-2.0` is true, so dep is covered.
+        assert!(compound_allow_covers_dep(&allow, &dep_either));
+    }
+
+    #[test]
+    fn compound_single_licensee_covers_same() {
+        let allow = parse("MIT");
+        let dep = parse("MIT");
+        assert!(compound_allow_covers_dep(&allow, &dep));
     }
 }
