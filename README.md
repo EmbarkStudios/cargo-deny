@@ -103,7 +103,7 @@ You can use `cargo-deny` with [pre-commit](https://pre-commit.com). Add it to yo
 
 ```yaml
 - repo: https://github.com/EmbarkStudios/cargo-deny
-  rev: 0.14.16 # choose your preferred tag
+  rev: 0.19.9 # choose your preferred tag
   hooks:
     - id: cargo-deny
       args: ["--all-features", "check"] # optionally modify the arguments for cargo-deny (default arguments shown here)
