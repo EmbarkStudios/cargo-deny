@@ -40,6 +40,28 @@ fn single_target(
     }
 }
 
+pub(crate) enum MetadataTable {
+    Package,
+    Workspace,
+}
+
+impl MetadataTable {
+    fn keys(self) -> [&'static str; 3] {
+        match self {
+            Self::Package => ["package", "metadata", "deny"],
+            Self::Workspace => ["workspace", "metadata", "deny"],
+        }
+    }
+}
+
+pub(crate) enum ConfigSource {
+    File(PathBuf),
+    Metadata {
+        manifest_path: PathBuf,
+        table: MetadataTable,
+    },
+}
+
 pub struct KrateContext {
     pub manifest_path: PathBuf,
     pub workspace: bool,
@@ -101,6 +123,78 @@ impl KrateContext {
         }
 
         None
+    }
+
+    pub fn get_config_source(
+        &self,
+        config_path: Option<&Path>,
+    ) -> anyhow::Result<Option<ConfigSource>> {
+        if let Some(config_path) = config_path {
+            let current_dir = current_dir_utf8()?;
+            return Self::resolve_config_path(&current_dir, config_path)
+                .map(|p| Some(ConfigSource::File(p)));
+        }
+
+        if let Some(p) = Self::default_config_path(&self.manifest_path) {
+            return Ok(Some(ConfigSource::File(p)));
+        }
+
+        if Self::manifest_has_table(&self.manifest_path, MetadataTable::Package.keys())? {
+            return Ok(Some(ConfigSource::Metadata {
+                manifest_path: self.manifest_path.clone(),
+                table: MetadataTable::Package,
+            }));
+        }
+
+        if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)? {
+            if workspace_root != self.manifest_path
+                && Self::manifest_has_table(&workspace_root, MetadataTable::Workspace.keys())?
+            {
+                return Ok(Some(ConfigSource::Metadata {
+                    manifest_path: workspace_root,
+                    table: MetadataTable::Workspace,
+                }));
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn manifest_has_table(manifest_path: &Path, keys: [&str; 3]) -> anyhow::Result<bool> {
+        let text = std::fs::read_to_string(manifest_path)
+            .with_context(|| format!("failed to read {}", manifest_path))?;
+
+        let value = toml_span::parse(&text)
+            .with_context(|| format!("failed to parse {}", manifest_path))?;
+
+        let mut current = &value;
+
+        for key in keys {
+            let table = match current.as_table() {
+                Some(table) => table,
+                None => return Ok(false),
+            };
+
+            current = match table.get(key) {
+                Some(item) => item,
+                None => return Ok(false),
+            };
+        }
+
+        Ok(true)
+    }
+
+    fn find_workspace_root(manifest_path: &Path) -> anyhow::Result<Option<PathBuf>> {
+        let mut mdc = krates::Cmd::new();
+        mdc.manifest_path(manifest_path.to_owned());
+        mdc.other_options(["--no-deps".to_owned()]);
+
+        let mdc: krates::cm::MetadataCommand = mdc.into();
+        let metadata = mdc.exec().context("failed to run cargo metadata")?;
+
+        PathBuf::from_path_buf(metadata.workspace_root.into_std_path_buf())
+            .map(Some)
+            .map_err(|pb| anyhow::anyhow!("workspace root path '{}' is not utf-8", pb.display()))
     }
 
     pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
