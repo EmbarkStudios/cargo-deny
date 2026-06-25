@@ -146,14 +146,20 @@ impl KrateContext {
             }));
         }
 
-        if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)?
-            && workspace_root != self.manifest_path
-            && Self::manifest_has_table(&workspace_root, MetadataTable::Workspace.pointer())?
-        {
-            return Ok(Some(ConfigSource::Metadata {
-                manifest_path: workspace_root,
-                table: MetadataTable::Workspace,
-            }));
+        if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)? {
+            let workspace_manifest = workspace_root.join("Cargo.toml");
+
+            if workspace_manifest != self.manifest_path
+                && Self::manifest_has_table(
+                    &workspace_manifest,
+                    MetadataTable::Workspace.pointer(),
+                )?
+            {
+                return Ok(Some(ConfigSource::Metadata {
+                    manifest_path: workspace_manifest,
+                    table: MetadataTable::Workspace,
+                }));
+            }
         }
 
         Ok(None)
@@ -170,7 +176,6 @@ impl KrateContext {
     fn find_workspace_root(manifest_path: &Path) -> anyhow::Result<Option<PathBuf>> {
         let mut mdc = krates::Cmd::new();
         mdc.manifest_path(manifest_path.to_owned());
-        mdc.other_options(["--no-deps".to_owned()]);
 
         let mdc: krates::cm::MetadataCommand = mdc.into();
         let metadata = mdc.exec().context("failed to run cargo metadata")?;
