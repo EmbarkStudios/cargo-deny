@@ -46,10 +46,10 @@ pub(crate) enum MetadataTable {
 }
 
 impl MetadataTable {
-    fn keys(self) -> [&'static str; 3] {
+    pub(crate) fn pointer(self) -> &'static str {
         match self {
-            Self::Package => ["package", "metadata", "deny"],
-            Self::Workspace => ["workspace", "metadata", "deny"],
+            Self::Package => "/package/metadata/deny",
+            Self::Workspace => "/workspace/metadata/deny",
         }
     }
 }
@@ -139,49 +139,32 @@ impl KrateContext {
             return Ok(Some(ConfigSource::File(p)));
         }
 
-        if Self::manifest_has_table(&self.manifest_path, MetadataTable::Package.keys())? {
+        if Self::manifest_has_table(&self.manifest_path, MetadataTable::Package.pointer())? {
             return Ok(Some(ConfigSource::Metadata {
                 manifest_path: self.manifest_path.clone(),
                 table: MetadataTable::Package,
             }));
         }
 
-        if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)? {
-            if workspace_root != self.manifest_path
-                && Self::manifest_has_table(&workspace_root, MetadataTable::Workspace.keys())?
-            {
-                return Ok(Some(ConfigSource::Metadata {
-                    manifest_path: workspace_root,
-                    table: MetadataTable::Workspace,
-                }));
-            }
+        if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)?
+            && workspace_root != self.manifest_path
+            && Self::manifest_has_table(&workspace_root, MetadataTable::Workspace.pointer())?
+        {
+            return Ok(Some(ConfigSource::Metadata {
+                manifest_path: workspace_root,
+                table: MetadataTable::Workspace,
+            }));
         }
 
         Ok(None)
     }
 
-    fn manifest_has_table(manifest_path: &Path, keys: [&str; 3]) -> anyhow::Result<bool> {
+    fn manifest_has_table(manifest_path: &Path, pointer: &str) -> anyhow::Result<bool> {
         let text = std::fs::read_to_string(manifest_path)
-            .with_context(|| format!("failed to read {}", manifest_path))?;
-
-        let value = toml_span::parse(&text)
-            .with_context(|| format!("failed to parse {}", manifest_path))?;
-
-        let mut current = &value;
-
-        for key in keys {
-            let table = match current.as_table() {
-                Some(table) => table,
-                None => return Ok(false),
-            };
-
-            current = match table.get(key) {
-                Some(item) => item,
-                None => return Ok(false),
-            };
-        }
-
-        Ok(true)
+            .with_context(|| format!("failed to read {manifest_path}"))?;
+        let parsed =
+            toml_span::parse(&text).with_context(|| format!("failed to parse {manifest_path}"))?;
+        Ok(parsed.pointer(pointer).is_some())
     }
 
     fn find_workspace_root(manifest_path: &Path) -> anyhow::Result<Option<PathBuf>> {
