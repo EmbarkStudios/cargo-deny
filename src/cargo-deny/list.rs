@@ -57,7 +57,9 @@ pub fn cmd(
     let cfg_path = krate_ctx.get_config_path(args.config.as_deref())?;
 
     let mut files = Files::new();
-    let ValidConfig { graph, .. } = ValidConfig::load(
+    let ValidConfig {
+        graph, licenses, ..
+    } = ValidConfig::load(
         cfg_path,
         krate_ctx.get_local_exceptions_path(),
         &mut files,
@@ -85,7 +87,9 @@ pub fn cmd(
 
     let mut files = Files::new();
 
-    let summary = gatherer.gather(&krates, &mut files, None);
+    // Honor the [licenses] config (e.g. include-dev/include-build) like `check`
+    // does, instead of falling back to defaults that drop dev dependencies (#874).
+    let summary = gatherer.gather(&krates, &mut files, Some(&licenses));
 
     use std::borrow::Cow;
 
