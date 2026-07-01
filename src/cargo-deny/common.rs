@@ -56,6 +56,23 @@ pub struct KrateContext {
 }
 
 impl KrateContext {
+    /// Apply the `[graph]` config section onto the crate context so that every
+    /// command builds the *same* crate graph. Both `check` and `list` call this,
+    /// which keeps them from drifting apart (see #874, where `list` silently
+    /// ignored graph settings — `exclude-dev`, features, etc. — that `check`
+    /// honored). Command-line arguments take precedence: booleans are OR-ed in,
+    /// and `features` only falls back to the config when none were passed on the
+    /// command line.
+    pub fn apply_graph_config(&mut self, graph: &mut cargo_deny::root_cfg::GraphConfig) {
+        self.all_features |= graph.all_features;
+        self.no_default_features |= graph.no_default_features;
+        self.exclude_dev |= graph.exclude_dev;
+        self.exclude_unpublished |= graph.exclude_unpublished;
+        if self.features.is_empty() {
+            self.features = std::mem::take(&mut graph.features);
+        }
+    }
+
     pub fn get_config_path(&self, config_path: Option<&Path>) -> anyhow::Result<Option<PathBuf>> {
         if let Some(config_path) = config_path {
             let current_dir = current_dir_utf8()?;
@@ -616,6 +633,66 @@ mod tests {
     #[inline]
     fn temp_dir() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
+    }
+
+    fn empty_ctx() -> KrateContext {
+        KrateContext {
+            manifest_path: PathBuf::new(),
+            workspace: false,
+            exclude: Vec::new(),
+            targets: Vec::new(),
+            no_default_features: false,
+            all_features: false,
+            features: Vec::new(),
+            frozen: false,
+            locked: false,
+            offline: false,
+            exclude_dev: false,
+            exclude_unpublished: false,
+        }
+    }
+
+    // Regression guard for #874: `list` was missing the `[graph]` config that
+    // `check` applied. Both now funnel through `apply_graph_config`, so this pins
+    // its precedence rules and keeps the two commands from drifting again.
+    #[test]
+    fn apply_graph_config_precedence() {
+        use cargo_deny::root_cfg::GraphConfig;
+
+        // Config enables settings; a context with nothing set picks them up.
+        let mut ctx = empty_ctx();
+        let mut graph = GraphConfig {
+            all_features: true,
+            no_default_features: true,
+            exclude_dev: true,
+            exclude_unpublished: true,
+            features: vec!["a".to_owned(), "b".to_owned()],
+            ..Default::default()
+        };
+        ctx.apply_graph_config(&mut graph);
+        assert!(ctx.all_features && ctx.no_default_features && ctx.exclude_dev && ctx.exclude_unpublished);
+        assert_eq!(ctx.features, ["a", "b"]);
+        assert!(graph.features.is_empty(), "config features are moved into the context");
+
+        // Command-line features take precedence: config must not overwrite them.
+        let mut cli = empty_ctx();
+        cli.features = vec!["cli".to_owned()];
+        let mut graph = GraphConfig {
+            features: vec!["cfg".to_owned()],
+            ..Default::default()
+        };
+        cli.apply_graph_config(&mut graph);
+        assert_eq!(cli.features, ["cli"]);
+
+        // Booleans are OR-ed, never cleared: a context flag survives a false config.
+        let mut on = empty_ctx();
+        on.exclude_dev = true;
+        let mut graph = GraphConfig {
+            exclude_dev: false,
+            ..Default::default()
+        };
+        on.apply_graph_config(&mut graph);
+        assert!(on.exclude_dev);
     }
 
     #[test]

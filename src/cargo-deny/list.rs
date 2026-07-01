@@ -49,7 +49,7 @@ pub struct Args {
 pub fn cmd(
     log_ctx: crate::common::LogContext,
     args: Args,
-    krate_ctx: crate::common::KrateContext,
+    mut krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
     use licenses::LicenseInfo;
     use std::{collections::BTreeMap, fmt::Write};
@@ -58,7 +58,9 @@ pub fn cmd(
 
     let mut files = Files::new();
     let ValidConfig {
-        graph, licenses, ..
+        mut graph,
+        licenses,
+        ..
     } = ValidConfig::load(
         cfg_path,
         krate_ctx.get_local_exceptions_path(),
@@ -72,6 +74,11 @@ pub fn cmd(
     } else {
         None
     };
+
+    // Apply the `[graph]` config (exclude-dev, features, targets, …) exactly as
+    // `check` does, so `list` reports the same crate graph instead of silently
+    // dropping dev dependencies and other graph settings (#874).
+    krate_ctx.apply_graph_config(&mut graph);
 
     let (krates, store) = rayon::join(
         || krate_ctx.gather_krates(metadata, graph.targets, graph.exclude),
