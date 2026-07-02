@@ -54,7 +54,11 @@ impl ValidConfig {
             }
         };
 
-        let id = files.add(&cfg_path, cfg_contents);
+        let id = if let Some(existing_id) = files.id_for_path(&cfg_path) {
+            existing_id
+        } else {
+            files.add(&cfg_path, cfg_contents)
+        };
 
         let print = |files: &Files, diags: Vec<Diagnostic>| {
             if diags.is_empty() {

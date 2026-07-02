@@ -136,7 +136,20 @@ impl KrateContext {
         }
 
         if let Some(p) = Self::default_config_path(&self.manifest_path) {
+            log::debug!("found file-based config at {p}");
             return Ok(Some(ConfigSource::File(p)));
+        }
+
+        log::debug!(
+            "no file-based config found, checking manifest at {}",
+            self.manifest_path
+        );
+        log::debug!("checking package.metadata.deny in {}", self.manifest_path);
+
+        match Self::manifest_has_table(&self.manifest_path, MetadataTable::Package.pointer()) {
+            Ok(true) => log::debug!("found package.metadata.deny"),
+            Ok(false) => log::debug!("no package.metadata.deny found"),
+            Err(e) => log::debug!("error checking package.metadata.deny: {e}"),
         }
 
         if Self::manifest_has_table(&self.manifest_path, MetadataTable::Package.pointer())? {
@@ -146,15 +159,30 @@ impl KrateContext {
             }));
         }
 
+        log::debug!("finding workspace root from {}", self.manifest_path);
+
+        match Self::find_workspace_root(&self.manifest_path) {
+            Ok(Some(ref root)) => log::debug!("workspace root: {root}"),
+            Ok(None) => log::debug!("no workspace root found"),
+            Err(ref e) => log::debug!("error finding workspace root: {e}"),
+        }
+
         if let Some(workspace_root) = Self::find_workspace_root(&self.manifest_path)? {
             let workspace_manifest = workspace_root.join("Cargo.toml");
+            log::debug!("checking workspace.metadata.deny in {workspace_manifest}");
+            log::debug!(
+                "manifest_path == workspace_manifest: {}",
+                workspace_manifest == self.manifest_path
+            );
 
-            if workspace_manifest != self.manifest_path
-                && Self::manifest_has_table(
-                    &workspace_manifest,
-                    MetadataTable::Workspace.pointer(),
-                )?
+            match Self::manifest_has_table(&workspace_manifest, MetadataTable::Workspace.pointer())
             {
+                Ok(true) => log::debug!("found workspace.metadata.deny"),
+                Ok(false) => log::debug!("no workspace.metadata.deny found"),
+                Err(ref e) => log::debug!("error checking workspace.metadata.deny: {e}"),
+            }
+
+            if Self::manifest_has_table(&workspace_manifest, MetadataTable::Workspace.pointer())? {
                 return Ok(Some(ConfigSource::Metadata {
                     manifest_path: workspace_manifest,
                     table: MetadataTable::Workspace,
@@ -162,6 +190,7 @@ impl KrateContext {
             }
         }
 
+        log::debug!("no config source found, falling back to default");
         Ok(None)
     }
 

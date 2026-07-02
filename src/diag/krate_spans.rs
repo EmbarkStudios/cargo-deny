@@ -399,7 +399,12 @@ impl<'k> KrateSpans<'k> {
             .map(|((krate, lock), res)| {
                 let manifest = match res {
                     Ok(Some((mut manifest, contents))) => {
-                        manifest.id = files.add(krate.manifest_path.clone(), contents);
+                        manifest.id =
+                            if let Some(existing_id) = files.id_for_path(&krate.manifest_path) {
+                                existing_id
+                            } else {
+                                files.add(krate.manifest_path.clone(), contents)
+                            };
                         Some(manifest)
                     }
                     Ok(None) => None,
