@@ -108,6 +108,7 @@ expression: validated
     }
   ],
   "wildcards": "deny",
+  "prereleases": "allow",
   "allow_wildcard_paths": true,
   "build": {
     "allow_build_scripts": [

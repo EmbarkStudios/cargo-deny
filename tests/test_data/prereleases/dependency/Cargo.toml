@@ -1,0 +1,6 @@
+[package]
+name = "prereleases-test-dep"
+version = "0.1.0-alpha.1"
+authors = []
+edition = "2021"
+license = "MIT"

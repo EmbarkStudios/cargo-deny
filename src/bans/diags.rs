@@ -29,6 +29,7 @@ pub enum Code {
     Duplicate,
     Skipped,
     Wildcard,
+    Prerelease,
     UnmatchedSkip,
     UnnecessarySkip,
     AllowedByWrapper,
@@ -71,6 +72,7 @@ impl Code {
             Self::Duplicate => "Detected two or more versions of the same crate",
             Self::Skipped => "A crate version was skipped when checking for multiple versions",
             Self::Wildcard => "A dependency was declared with a wildcard version",
+            Self::Prerelease => "A dependency was resolved to a prerelease version",
             Self::UnmatchedSkip => "A skip entry didn't match any crates in the graph",
             Self::UnnecessarySkip => "A skip entry applied to a crate that only had one version",
             Self::AllowedByWrapper => "A banned crate was allowed by a wrapper crate",
@@ -292,6 +294,28 @@ impl<'a> From<Wildcards<'a>> for Pack {
         );
 
         let mut pack = Pack::with_kid(Check::Bans, wc.krate.id.clone());
+        pack.push(diag);
+
+        pack
+    }
+}
+
+pub(crate) struct Prerelease<'a> {
+    pub(crate) krate: &'a Krate,
+    pub(crate) severity: Severity,
+}
+
+impl<'a> From<Prerelease<'a>> for Pack {
+    fn from(pre: Prerelease<'a>) -> Self {
+        let diag = diag(
+            Diagnostic::new(pre.severity).with_message(format_args!(
+                "crate '{}' resolved to prerelease version '{}'",
+                pre.krate.name, pre.krate.version,
+            )),
+            Code::Prerelease,
+        );
+
+        let mut pack = Pack::with_kid(Check::Bans, pre.krate.id.clone());
         pack.push(diag);
 
         pack
