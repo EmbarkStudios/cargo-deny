@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#875](https://github.com/EmbarkStudios/cargo-deny/pull/875) resolved [#874](https://github.com/EmbarkStudios/cargo-deny/issues/874): `cargo deny list` now builds the same crate graph as `cargo deny check` by applying the `[graph]` config (`exclude-dev`, `features`, `all-features`, `no-default-features`, `exclude-unpublished`) and the `[licenses]` config, via a shared `KrateContext::apply_graph_config`. Previously `list` silently ignored these, so e.g. dev dependencies were dropped even when configured to be included.
+
 ## [0.19.9] - 2026-06-15
 ### Added
 - [PR#866](https://github.com/EmbarkStudios/cargo-deny/pull/866) added [`sources.unused-allowed-org`](https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html#the-unused-allowed-org-field-optional)

@@ -134,7 +134,7 @@ pub(crate) fn cmd(
         bans,
         licenses,
         sources,
-        graph,
+        mut graph,
         output,
     } = ValidConfig::load(
         krate_ctx.get_config_path(args.config.as_deref())?,
@@ -175,15 +175,9 @@ pub(crate) fn cmd(
 
     let feature_depth = args.feature_depth.or(output.feature_depth);
 
-    krate_ctx.all_features |= graph.all_features;
-    krate_ctx.no_default_features |= graph.no_default_features;
-    krate_ctx.exclude_dev |= graph.exclude_dev | args.exclude_dev;
-    krate_ctx.exclude_unpublished |= graph.exclude_unpublished;
-
-    // If not specified on the cmd line, fallback to the feature related config options
-    if krate_ctx.features.is_empty() {
-        krate_ctx.features = graph.features;
-    }
+    krate_ctx.apply_graph_config(&mut graph);
+    // `check` additionally lets its own `--exclude-dev` flag force dev exclusion.
+    krate_ctx.exclude_dev |= args.exclude_dev;
 
     let mut krates = None;
     let mut license_store = None;
