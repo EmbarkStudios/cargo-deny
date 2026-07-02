@@ -1,0 +1,57 @@
+<svg fill="none" viewBox="0 0 850 428" width="850" height="428" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+
+      <style>.term-container {
+  background: #282c34;
+  border-radius: 5px;
+  color: #abb2bf;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-family: Monaco, courier, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 14px 18px;
+  white-space: pre-wrap;
+}
+
+.term-fg1 { font-weight: bold; }
+.term-fg3 { font-style: italic; } /* italic */
+.term-fg4 { text-decoration: underline; } /* underline */
+.term-fg9 { text-decoration: line-through; } /* crossed-out */
+
+.term-fg30 { color: #666; }
+.term-fg31 { color: #e06c75; } /* red */
+.term-fg32 { color: #98c379; } /* green */
+.term-fg33 { color: #e5c07b; } /* yellow */
+.term-fg34 { color: #61afef; } /* blue */
+.term-fg35 { color: #c678dd; } /* magenta */
+.term-fg36 { color: #56b6c2; } /* cyan */
+.term-fgx9 { color: #be5046; } /* bright red */
+
+      </style>
+
+      <div class="term-container">cargo-deny --manifest-path examples&#47;07_deny_sources&#47;Cargo.toml --color always check sources`
+<span class="term-fgx9 term-fg1">error[source-not-allowed]</span><span class="term-fg1">: detected &#39;git&#39; source not explicitly allowed</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;07_deny_sources&#47;Cargo.lock:7:16
+  <span class="term-fg34">│</span>
+<span class="term-fg34">7</span> <span class="term-fg34">│</span> bitflags 1.2.1 <span class="term-fg31">git+https:&#47;&#47;github.com&#47;bitflags&#47;bitflags.git#1e41c2959196b374812450037f55c492d3911465</span>
+  <span class="term-fg34">│</span>                <span class="term-fg31">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span> <span class="term-fg31">source</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> bitflags v1.2.1
+    └── sources v0.1.0
+
+<span class="term-fgx9 term-fg1">error[source-not-allowed]</span><span class="term-fg1">: detected &#39;git&#39; source not explicitly allowed</span>
+   <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;07_deny_sources&#47;Cargo.lock:83:18
+   <span class="term-fg34">│</span>
+<span class="term-fg34">83</span> <span class="term-fg34">│</span> mlua_serde 0.6.0 <span class="term-fg31">git+https:&#47;&#47;tulpa.dev&#47;lua&#47;mlua_serde#28ab03a516dae6e68062e6613442582f6718ae96</span>
+   <span class="term-fg34">│</span>                  <span class="term-fg31">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span> <span class="term-fg31">source</span>
+   <span class="term-fg34">│</span>
+   <span class="term-fg34">=</span> mlua_serde v0.6.0
+     └── sources v0.1.0
+
+sources <span class="term-fg31">FAILED</span></div>
+
+    </div>
+  </foreignObject>
+</svg>

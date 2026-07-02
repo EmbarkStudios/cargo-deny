@@ -1,0 +1,50 @@
+<svg fill="none" viewBox="0 0 800 288" width="800" height="288" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+
+      <style>.term-container {
+  background: #282c34;
+  border-radius: 5px;
+  color: #abb2bf;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-family: Monaco, courier, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 14px 18px;
+  white-space: pre-wrap;
+}
+
+.term-fg1 { font-weight: bold; }
+.term-fg3 { font-style: italic; } /* italic */
+.term-fg4 { text-decoration: underline; } /* underline */
+.term-fg9 { text-decoration: line-through; } /* crossed-out */
+
+.term-fg30 { color: #666; }
+.term-fg31 { color: #e06c75; } /* red */
+.term-fg32 { color: #98c379; } /* green */
+.term-fg33 { color: #e5c07b; } /* yellow */
+.term-fg34 { color: #61afef; } /* blue */
+.term-fg35 { color: #c678dd; } /* magenta */
+.term-fg36 { color: #56b6c2; } /* cyan */
+.term-fgx9 { color: #be5046; } /* bright red */
+
+      </style>
+
+      <div class="term-container">cargo-deny --manifest-path examples&#47;02_deny_license&#47;Cargo.toml --color always check licenses`
+<span class="term-fgx9 term-fg1">error[rejected]</span><span class="term-fg1">: failed to satisfy license requirements</span>
+  <span class="term-fg34">┌─</span> deny-license 0.1.0 (path+file:&#47;&#47;&#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;02_deny_license):4:12
+  <span class="term-fg34">│</span>
+<span class="term-fg34">4</span> <span class="term-fg34">│</span> license = &quot;<span class="term-fg31">MIT</span> AND <span class="term-fg31">Apache-2.0</span>&quot;
+  <span class="term-fg34">│</span>            <span class="term-fg31">^^^</span><span class="term-fg34">-----</span><span class="term-fg31">^^^^^^^^^^</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">│</span>       <span class="term-fg31">│</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">│</span>       <span class="term-fg31">rejected: explicitly denied</span>
+  <span class="term-fg34">│</span>            <span class="term-fg34">license expression retrieved via Cargo.toml `license`</span>
+  <span class="term-fg34">│</span>            <span class="term-fg31">accepted: license is explicitly allowed</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> deny-license v0.1.0
+licenses <span class="term-fg31">FAILED</span></div>
+
+    </div>
+  </foreignObject>
+</svg>
