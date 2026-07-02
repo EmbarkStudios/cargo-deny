@@ -6,6 +6,8 @@ use cargo_deny::{
     {advisories, bans, licenses, sources},
 };
 
+use crate::common::ConfigSource;
+
 pub struct ValidConfig {
     pub advisories: advisories::cfg::ValidConfig,
     pub bans: bans::cfg::ValidConfig,
@@ -17,32 +19,46 @@ pub struct ValidConfig {
 
 impl ValidConfig {
     pub fn load(
-        cfg_path: Option<PathBuf>,
+        cfg_source: Option<ConfigSource>,
         exceptions_cfg_path: Option<PathBuf>,
         files: &mut Files,
         log_ctx: crate::common::LogContext,
     ) -> Result<Self> {
         use cargo_deny::UnvalidatedConfig;
 
-        let (cfg_contents, cfg_path) = match cfg_path {
-            Some(cfg_path) if cfg_path.exists() => (
+        let (cfg_contents, cfg_path, pointer) = match cfg_source {
+            Some(ConfigSource::File(cfg_path)) if cfg_path.exists() => (
                 std::fs::read_to_string(&cfg_path)
                     .with_context(|| format!("failed to read config from {cfg_path}"))?,
                 cfg_path,
+                None,
             ),
-            Some(cfg_path) => {
+            Some(ConfigSource::File(cfg_path)) => {
                 log::warn!(
                     "config path '{cfg_path}' doesn't exist, falling back to default config"
                 );
-                (String::new(), cfg_path)
+                (String::new(), cfg_path, None)
             }
+            Some(ConfigSource::Metadata {
+                manifest_path,
+                table,
+            }) => (
+                std::fs::read_to_string(&manifest_path)
+                    .with_context(|| format!("failed to read manifest from {manifest_path}"))?,
+                manifest_path,
+                Some(table.pointer()),
+            ),
             None => {
                 log::warn!("unable to find a config path, falling back to default config");
-                (String::new(), PathBuf::from("deny.default.toml"))
+                (String::new(), PathBuf::from("deny.default.toml"), None)
             }
         };
 
-        let id = files.add(&cfg_path, cfg_contents);
+        let id = if let Some(existing_id) = files.id_for_path(&cfg_path) {
+            existing_id
+        } else {
+            files.add(&cfg_path, cfg_contents)
+        };
 
         let print = |files: &Files, diags: Vec<Diagnostic>| {
             if diags.is_empty() {
@@ -61,7 +77,16 @@ impl ValidConfig {
             .with_context(|| format!("failed to parse config from '{cfg_path}'"))?;
 
         use cargo_deny::Deserialize;
-        let cfg = match cargo_deny::root_cfg::RootConfig::deserialize(&mut parsed) {
+
+        let target = match pointer {
+            Some(p) => match parsed.pointer_mut(p) {
+                Some(sub) => sub,
+                None => anyhow::bail!("expected table '{p}' not found in '{cfg_path}'"),
+            },
+            None => &mut parsed,
+        };
+
+        let cfg = match cargo_deny::root_cfg::RootConfig::deserialize(target) {
             Ok(c) => c,
             Err(err) => {
                 let diags = err
