@@ -6,6 +6,7 @@ use cargo_deny::{PathBuf, advisories, diag::Files};
 pub enum FetchSource {
     Db,
     Index,
+    StdReplacement,
     All,
 }
 
@@ -40,6 +41,7 @@ pub fn cmd(
 
     let mut index = None;
     let mut dbs = None;
+    let mut replacements = None;
 
     rayon::scope(|s| {
         let fetch_index = args.sources.is_empty()
@@ -80,6 +82,18 @@ pub fn cmd(
                 ));
             });
         }
+
+        let fetch_replacement = args.sources.is_empty()
+            || args
+                .sources
+                .iter()
+                .any(|w| *w == FetchSource::StdReplacement || *w == FetchSource::All);
+
+        if fetch_replacement {
+            s.spawn(|_| {
+                replacements = Some(cargo_deny::bans::replacements::ReplacementCtx::sync());
+            });
+        }
     });
 
     if let Some(index) = index {
@@ -88,6 +102,10 @@ pub fn cmd(
 
     if let Some(dbs) = dbs {
         dbs.context("failed to fetch database")?;
+    }
+
+    if let Some(replacements) = replacements {
+        replacements.context("failed to fetch std-replacement-data")?;
     }
 
     Ok(())

@@ -8,7 +8,7 @@ pub mod advisories;
 pub mod bans;
 pub mod cfg;
 pub mod diag;
-/// Configuration and logic for checking crate licenses
+pub mod git;
 pub mod licenses;
 pub mod root_cfg;
 pub mod sarif;
@@ -255,6 +255,7 @@ pub struct Krate {
     pub features: BTreeMap<String, Vec<String>>,
     pub targets: Vec<cm::Target>,
     pub publish: Option<Vec<String>>,
+    pub rust_version: Option<Version>,
 }
 
 #[cfg(test)]
@@ -275,6 +276,7 @@ impl Default for Krate {
             manifest_path: PathBuf::new(),
             repository: None,
             publish: None,
+            rust_version: None,
         }
     }
 }
@@ -348,6 +350,7 @@ impl From<cm::Package> for Krate {
             // },
             features: pkg.features,
             publish: pkg.publish,
+            rust_version: pkg.rust_version,
         }
     }
 }

@@ -1,6 +1,7 @@
 pub mod cfg;
 mod diags;
 mod graph;
+pub mod replacements;
 
 use self::cfg::{ValidBuildConfig, ValidConfig, ValidTreeSkip};
 use crate::{
@@ -212,6 +213,7 @@ pub fn check(
         wildcards,
         allow_wildcard_paths,
         build,
+        std_replacements,
     } = ctx.cfg;
 
     let mut sink = sink.into();
@@ -578,9 +580,17 @@ pub fn check(
         }
     });
 
+    let mut replacements = None;
+
     let mut ws_duplicate_packs = Vec::new();
 
     rayon::scope(|scope| {
+        if let Some(rctx) = std_replacements.map(replacements::ReplacementCtx::new) {
+            scope.spawn(|_s| {
+                replacements = rctx.process(ctx.krates);
+            });
+        }
+
         scope.spawn(|scope| {
             let last = ctx.krates.len() - 1;
 
@@ -1131,6 +1141,10 @@ pub fn check(
     }
 
     sink.push(pack);
+
+    if let Some(replacements) = replacements {
+        replacements.emit_diagnostics(ctx.krates, &mut sink, file_id, ctx.colorize);
+    }
 }
 
 pub fn check_build(

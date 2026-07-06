@@ -35,6 +35,9 @@ skip-tree = [
     { crate = "windows-sys", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
 ]
 
+[bans.std-replacements]
+scope = "workspace"
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

@@ -277,6 +277,20 @@ pub(crate) fn cmd(
             });
         }
 
+        if check_bans
+            && let Some(stdr) = &bans.std_replacements
+            && !matches!(stdr.scope, cargo_deny::cfg::Scope::None)
+        {
+            s.spawn(|_| {
+                let start = std::time::Instant::now();
+                if let Err(error) = cargo_deny::bans::replacements::ReplacementCtx::sync() {
+                    log::error!("failed to fetch std-replacement-data - {error:#}");
+                } else {
+                    log::debug!("fetched std-replacement-data in {:?}", start.elapsed());
+                }
+            });
+        }
+
         if check_licenses {
             s.spawn(|_| license_store = Some(crate::common::load_license_store()));
         }

@@ -7,7 +7,7 @@ use rayon::{
     iter::{ParallelBridge, ParallelIterator},
     prelude::IntoParallelRefIterator,
 };
-use std::{fmt, fs, process::Command};
+use std::fmt;
 use url::Url;
 
 /// The default, official, rustsec advisory database
@@ -42,9 +42,11 @@ impl AdvisoryDb {
             Fetch::Allow | Fetch::AllowWithGitCli => {
                 debug!("Fetching advisory database with git cli from '{db_url}'");
 
-                fetch_via_cli(db_url.as_str(), &db_path).with_context(|| {
-                    format!("failed to fetch advisory database {db_url} with cli")
-                })?;
+                let res = crate::git::fetch_repo(db_url.as_str(), &db_path, "main").with_context(
+                    || format!("failed to fetch advisory database {db_url} with cli"),
+                )?;
+
+                log::debug!("{res} {db_url}");
             }
             Fetch::Disallow(_) => {
                 debug!("Opening advisory database at '{db_path}'");
@@ -52,7 +54,7 @@ impl AdvisoryDb {
         }
 
         // Verify that the repository is actually valid and that it is fresh
-        let fetch_time = get_fetch_time(&db_path)?;
+        let fetch_time = crate::git::get_fetch_time(&db_path)?;
 
         // Ensure that the upstream repository hasn't gone stale, ie, they've
         // configured cargo-deny to not fetch the remote database(s), but they've
@@ -171,131 +173,6 @@ fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
     db_path.push(format!("{name}-{hash:016x}"));
 
     Ok(db_path)
-}
-
-fn get_fetch_time(repo: &Path) -> anyhow::Result<jiff::Timestamp> {
-    let path = repo.join(".git");
-    let file_timestamp = |name: &str| -> anyhow::Result<jiff::Timestamp> {
-        let path = path.join(name);
-        let attr =
-            std::fs::metadata(path).with_context(|| format!("failed to get '{name}' metadata"))?;
-        attr.modified()
-            .with_context(|| format!("failed to get '{name}' modification time"))?
-            .try_into()
-            .with_context(|| format!("failed to convert file timestamp for '{name}'"))
-    };
-
-    let commit_timestamp = || -> anyhow::Result<jiff::Timestamp> {
-        let mut cmd = Command::new("git");
-        cmd.arg("-C")
-            .arg(repo)
-            .args(["show", "-s", "--format=%cI", "HEAD"]);
-
-        let ts = capture(cmd).context("failed to get HEAD timestamp")?;
-        ts.trim()
-            .parse()
-            .with_context(|| format!("failed to parse ISO-8601 timestamp '{}'", ts.trim()))
-    };
-
-    let timestamp = match file_timestamp("FETCH_HEAD") {
-        Ok(ts) => ts,
-        Err(fh_err) => {
-            // If we can't get the mod time of the FETCH_HEAD file, fallback
-            // to getting the timestamp of the head commit. However, this
-            // is not as good as FETCH_HEAD mod time since a database could
-            // have been fetched within the time window, but the HEAD at that
-            // time was out of the time window
-            //
-            // However, to mitigate this problem, we use the HEAD time if it is
-            // newer than the commit time, as a fresh clone with git will NOT
-            // have the FETCH_HEAD, but the fresh clone will have just written
-            // HEAD and thus can be used as a fallback, but still defer to head
-            // if something weird has happened
-            match commit_timestamp() {
-                Ok(commit_ts) => {
-                    let file_head_ts = file_timestamp("HEAD").unwrap_or_default();
-                    std::cmp::max(commit_ts, file_head_ts)
-                }
-                Err(hc_err) => {
-                    return Err(hc_err).context(fh_err);
-                }
-            }
-        }
-    };
-
-    Ok(timestamp)
-}
-
-fn capture(mut cmd: Command) -> anyhow::Result<String> {
-    cmd.stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    let output = cmd
-        // We need to clear the environment to avoid things like pre-commit hooks influencing where the advisory db
-        // is located https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_INDEX_FILE")
-        .env_remove("GIT_OBJECT_DIRECTORY")
-        .env_remove("GIT_ALTERNATE_OBJECT_DIRECTORIES")
-        .spawn()
-        .context("failed to spawn git")?
-        .wait_with_output()
-        .context("failed to wait on git output")?;
-
-    if output.status.success() {
-        String::from_utf8(output.stdout)
-            .or_else(|_err| Ok("git command succeeded but gave non-utf8 output".to_owned()))
-    } else {
-        String::from_utf8(output.stderr)
-            .map_err(|_err| anyhow::anyhow!("git command failed and gave non-utf8 output"))
-    }
-}
-
-fn fetch_via_cli(url: &str, db_path: &Path) -> anyhow::Result<()> {
-    if let Some(parent) = db_path.parent() {
-        if !parent.is_dir() {
-            fs::create_dir_all(parent).with_context(|| {
-                format!("failed to create advisory database directory {parent}")
-            })?;
-        }
-    } else {
-        anyhow::bail!("invalid directory: {db_path}");
-    }
-
-    let run = |args: &[&str]| {
-        let mut cmd = Command::new("git");
-        cmd.arg("-C").arg(db_path);
-        cmd.args(args);
-
-        capture(cmd)
-    };
-
-    if db_path.exists() {
-        // make sure db_path is clean
-        // We don't fail if we can't reset since it _may_ still be possible to
-        // clone
-        match run(&["reset", "--hard"]) {
-            Ok(_reset) => log::debug!("reset {url}"),
-            Err(err) => log::error!("failed to reset {url}: {err}"),
-        }
-
-        // pull latest changes
-        run(&["fetch"]).context("failed to fetch latest changes")?;
-        log::debug!("fetched {url}");
-
-        // reset to the remote HEAD
-        run(&["reset", "--hard", "FETCH_HEAD"]).context("failed to reset to FETCH_HEAD")?;
-    } else {
-        // clone repository
-        let mut cmd = Command::new("git");
-        cmd.arg("clone").arg(url).arg(db_path);
-
-        capture(cmd).context("failed to clone")?;
-        log::debug!("cloned {url}");
-    }
-
-    Ok(())
 }
 
 pub struct Report<'db, 'k> {
