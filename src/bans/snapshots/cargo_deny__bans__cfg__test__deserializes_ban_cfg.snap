@@ -149,6 +149,7 @@ expression: validated
   "std_replacements": {
     "scope": "Workspace",
     "level": "deny",
-    "rust_version": "1.0.0"
+    "rust_version": "1.0.0",
+    "ignore": []
   }
 }

@@ -10,7 +10,7 @@ Arguments:
   [SOURCES]...
           The sources to fetch
           
-          [possible values: db, index, all]
+          [possible values: db, index, std-replacement, all]
 
 Options:
   -c, --config <CONFIG>
@@ -23,4 +23,3 @@ Options:
 
   -V, --version
           Print version
-

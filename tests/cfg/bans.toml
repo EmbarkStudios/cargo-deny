@@ -55,7 +55,7 @@ allow = [
     { path = "bin/x86_64-linux", checksum = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7" },
 ]
 
-[bans.std-replacement]
+[bans.std-replacements]
 scope = "workspace"
 level = "deny"
 rust-version = "1.0"
