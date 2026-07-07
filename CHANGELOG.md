@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#879](https://github.com/EmbarkStudios/cargo-deny/pull/879) resolves [#873](https://github.com/EmbarkStudios/cargo-deny/issues/873) by adding a new [`bans.std-replacements`](https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html#the-std-replacements-field-optional) lint which checks the graph for crates.io sourced crates that have been partially or fully replaced in `std` and/or `core`.
+
 ## [0.19.9] - 2026-06-15
 ### Added
 - [PR#866](https://github.com/EmbarkStudios/cargo-deny/pull/866) added [`sources.unused-allowed-org`](https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html#the-unused-allowed-org-field-optional)
