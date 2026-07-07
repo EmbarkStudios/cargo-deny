@@ -380,9 +380,10 @@ impl ReplacementCtx {
             .collect::<std::collections::BTreeSet<_>>();
 
         let transitive = self.cfg.scope == Scope::Transitive;
-        let transitive_ignore = self.cfg.ignore_rust_version == Scope::Transitive;
+        let ignore_version = self.cfg.ignore_rust_version == Scope::Transitive;
         let mut hit = bitvec::vec::BitVec::repeat(false, self.cfg.ignore.len());
         let mut replacements = Vec::new();
+        let default_version = self.cfg.rust_version.as_ref();
 
         let mut versions = smallvec::SmallVec::<[u8; 8]>::new();
 
@@ -411,17 +412,20 @@ impl ReplacementCtx {
             }
 
             let satisfies_rust_version = |dd: &crate::Krate, is_workspace: Option<bool>| -> bool {
-                if self.cfg.ignore_rust_version == Scope::All {
-                    return true;
-                }
-
-                let is_workspace = is_workspace.unwrap_or_else(|| ws.contains(&dd.id));
-                if is_workspace ^ transitive_ignore {
-                    return true;
+                match self.cfg.ignore_rust_version {
+                    Scope::All => return true,
+                    Scope::None => {}
+                    Scope::Workspace | Scope::Transitive => {
+                        let is_workspace = is_workspace.unwrap_or_else(|| ws.contains(&dd.id));
+                        if is_workspace ^ ignore_version {
+                            return true;
+                        }
+                    }
                 }
 
                 dd.rust_version
                     .as_ref()
+                    .or(default_version)
                     .is_none_or(|rv| versions.iter().any(|minor| rv.minor >= *minor as _))
             };
 

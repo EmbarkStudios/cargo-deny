@@ -503,5 +503,15 @@ fn std_replacement_downgrades() {
         "[std-replacements]\nlevel = 'allow'\n",
     );
 
-    insta::assert_json_snapshot!(diags);
+    insta::assert_json_snapshot!(format!("{}__defaults", func_name!()), diags);
+
+    // We don't declare a rust-version in the root manifest, so it triggers by default, but by specifying an explicit
+    // version the lint is no longer triggered because of the version the API was replaced in was much later than 1.0 (obviously)
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("std-replacements"),
+        "[std-replacements]\nlevel = 'allow'\nrust-version = '1.0'\n",
+    );
+
+    insta::assert_json_snapshot!(format!("{}__fallback-rust-version", func_name!()), diags);
 }
