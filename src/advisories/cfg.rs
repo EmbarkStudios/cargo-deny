@@ -2,9 +2,7 @@ use crate::{
     LintLevel, PathBuf, Span, Spanned,
     cfg::{PackageSpecOrExtended, Reason, Scope, ValidationContext},
     diag::{Diagnostic, FileId, Label},
-    utf8path,
 };
-use anyhow::Context as _;
 use std::time::Duration;
 use toml_span::{Deserialize, Value, de_helpers::*, value::ValueInner};
 use url::Url;
@@ -341,16 +339,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 }
             }
         } else {
-            fn def_path() -> anyhow::Result<PathBuf> {
-                utf8path(
-                    home::cargo_home()
-                        .context("failed to resolve CARGO_HOME or HOME")?
-                        .join("advisory-dbs"),
-                )
-            }
-
-            match def_path() {
-                Ok(pb) => Some(pb),
+            match crate::cargo_home() {
+                Ok(mut pb) => {
+                    pb.push("advisory-dbs");
+                    Some(pb)
+                }
                 Err(err) => {
                     ctx.diagnostics.push(Diagnostic::error()
                         .with_message(format_args!("unable to obtain default advisory-dbs directory: {err:#}"))
@@ -628,15 +621,11 @@ enum Expand<'v> {
 fn normal_expand(exp: Expand<'_>) -> anyhow::Result<Option<String>> {
     match exp {
         Expand::Home => {
-            let hd =
-                home::home_dir().context("HOME directory could not be obtained from the OS")?;
-            let uhd = utf8path(hd)?;
-            Ok(Some(uhd.into()))
+            let hd = crate::home()?;
+            Ok(Some(hd.into()))
         }
         // We treat this one variable specially
-        Expand::Var("CARGO_HOME") => Ok(Some(
-            utf8path(home::cargo_home().context("unable to determine CARGO_HOME")?)?.into(),
-        )),
+        Expand::Var("CARGO_HOME") => Ok(Some(crate::cargo_home()?.into())),
         Expand::Var(var_name) => match std::env::var(var_name) {
             Ok(vv) => Ok(Some(vv)),
             Err(std::env::VarError::NotPresent) => Ok(None),
@@ -916,7 +905,7 @@ ignore = [
             };
         }
 
-        // These closurs need to be kept aligned with the toml array below
+        // These closures need to be kept aligned with the toml array below
         #[allow(clippy::type_complexity)]
         let expanders: [Option<Box<dyn Fn(Expand<'_>) -> anyhow::Result<Option<String>>>>;
             16] = [
@@ -929,7 +918,7 @@ ignore = [
             })),
             Some(Box::new(|exp| {
                 if let Expand::Home = exp {
-                    utf8path(std::ffi::OsStr::from_bytes(SURPRISE).into())?;
+                    crate::utf8path(std::ffi::OsStr::from_bytes(SURPRISE).into())?;
                     unreachable!();
                 } else {
                     panic!("unexpected request")

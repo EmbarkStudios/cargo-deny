@@ -553,19 +553,11 @@ pub fn check(
 
     let build_check_ctx = build.map(|build_config| {
         // Make all paths reported in build diagnostics be relative to cargo_home
-        let cargo_home = home::cargo_home()
-            .map_err(|err| {
-                log::error!("unable to locate $CARGO_HOME: {err}");
-                err
+        let cargo_home = crate::cargo_home()
+            .inspect_err(|error| {
+                log::error!("{error:#}");
             })
-            .ok()
-            .and_then(|pb| {
-                crate::PathBuf::from_path_buf(pb)
-                    .map_err(|pb| {
-                        log::error!("$CARGO_HOME path '{}' is not utf-8", pb.display());
-                    })
-                    .ok()
-            });
+            .ok();
 
         // Keep track of the individual crate configs so we can emit warnings
         // if they're configured but not actually used

@@ -55,8 +55,6 @@ goblin = { version = "0.10", default-features = false, features = [
   "pe64",
   "te",
 ] }
-# We need to figure out HOME/CARGO_HOME in some cases
-home = "0.5"
 jiff = { version = "0.2", default-features = false, features = ["std"] }
 # Provides graphs on top of cargo_metadata
 krates = { version = "0.21", features = ["targets"] }

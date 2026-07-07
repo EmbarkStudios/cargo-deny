@@ -617,6 +617,38 @@ pub fn krates_with_index(
     Ok(())
 }
 
+use anyhow::Context as _;
+
+#[inline]
+fn not_utf8(p: std::path::PathBuf, id: &str) -> anyhow::Error {
+    anyhow::anyhow!("{id}({p:?}) is not a utf-8 path")
+}
+
+#[inline]
+pub fn home() -> anyhow::Result<PathBuf> {
+    let home = std::env::home_dir().context("$HOME is not available")?;
+    PathBuf::from_path_buf(home).map_err(|p| not_utf8(p, "$HOME"))
+}
+
+pub fn cargo_home() -> anyhow::Result<PathBuf> {
+    let Some(ch) = std::env::var_os("CARGO_HOME").filter(|ch| !ch.is_empty()) else {
+        let mut ch = home()?;
+        ch.push(".cargo");
+        return Ok(ch);
+    };
+
+    let home = PathBuf::from_os_string(ch).map_err(|p| not_utf8(p.into(), "$CARGO_HOME"))?;
+    if home.is_absolute() {
+        return Ok(home);
+    }
+
+    let cwd = std::env::current_dir().context("failed to retrieve current working directory")?;
+    let mut cwd =
+        PathBuf::from_path_buf(cwd).map_err(|p| not_utf8(p, "current working directory"))?;
+    cwd.push(home);
+    Ok(cwd)
+}
+
 #[cfg(test)]
 mod test {
     use super::{Krate, Path, Source, Url};
