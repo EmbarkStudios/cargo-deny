@@ -432,10 +432,21 @@ allow-workspace = true
     insta::assert_json_snapshot!(diags);
 }
 
+fn sync_replacements() {
+    static SYNC_REPLACEMENTS: std::sync::Once = std::sync::Once::new();
+    SYNC_REPLACEMENTS.call_once(|| {
+        if let Err(error) = cargo_deny::bans::replacements::ReplacementCtx::sync() {
+            panic!("failed to sync replacements! - {error:#}");
+        }
+    })
+}
+
 /// Tests that std replacements are correctly shown based on the configured scope
 #[test]
 fn std_replacements_by_scope() {
     use cargo_deny::cfg::Scope;
+
+    sync_replacements();
 
     for scope in [Scope::None, Scope::All, Scope::Transitive, Scope::Workspace] {
         for iscope in [Scope::None, Scope::All, Scope::Transitive, Scope::Workspace] {
@@ -460,6 +471,8 @@ fn std_replacements_by_scope() {
 /// Tests that std replacements can be ignored
 #[test]
 fn std_replacement_ignore() {
+    sync_replacements();
+
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("std-replacements"),
@@ -481,6 +494,8 @@ fn std_replacement_ignore() {
 /// Tests that the std replacements lint can be downgraded from the default
 #[test]
 fn std_replacement_downgrades() {
+    sync_replacements();
+
     let diags = gather_bans(
         func_name!(),
         KrateGather::new("std-replacements"),
