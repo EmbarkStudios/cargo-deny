@@ -280,6 +280,7 @@ pub(crate) fn cmd(
         if check_bans
             && let Some(stdr) = &bans.std_replacements
             && !matches!(stdr.scope, cargo_deny::cfg::Scope::None)
+            && !args.disable_fetch
         {
             s.spawn(|_| {
                 let start = std::time::Instant::now();
