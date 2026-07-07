@@ -66,6 +66,17 @@ pub enum Scope {
     None,
 }
 
+impl Scope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Workspace => "workspace",
+            Self::Transitive => "transitive",
+            Self::None => "none",
+        }
+    }
+}
+
 crate::enum_deser!(Scope);
 
 #[derive(Clone)]

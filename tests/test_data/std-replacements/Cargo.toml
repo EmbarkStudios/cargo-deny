@@ -1,0 +1,15 @@
+[package]
+name = "std-replacements"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+# most of the std::net types were moved into core::net
+no-std-net = "=0.6.0"
+
+[dev-dependencies]
+# transitively depends on cfg-if which is replaced by core::cfg_select!
+crc32fast = "=1.5.0"
+
+[workspace]

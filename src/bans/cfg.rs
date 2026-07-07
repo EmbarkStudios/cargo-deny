@@ -378,6 +378,11 @@ pub struct StdReplacementConfig {
     /// As usual, sometimes it is not possible to "fix" your graph to satisfy your constraints, so we need to allow
     /// configuration to ignore crates that we would otherwise emit diagnostics for
     pub ignore: Vec<SpecAndReason>,
+    /// Whether a crate's `rust-version` is respected when considering a crate placed in std
+    ///
+    /// By default, the `rust-version` of a every crate that depends on a crate replaced in std is taken into account,
+    /// ignoring the replacement if all of the versions in which APIs were stabilized are newer
+    pub ignore_rust_version: crate::cfg::Scope,
 }
 
 #[inline]
@@ -472,6 +477,9 @@ impl<'de> Deserialize<'de> for StdReplacementConfig {
             None
         };
         let ignore = th.optional("ignore").unwrap_or_default();
+        let ignore_rust_version = th
+            .optional("ignore-rust-version")
+            .unwrap_or(crate::cfg::Scope::None);
 
         th.finalize(None)?;
 
@@ -480,6 +488,7 @@ impl<'de> Deserialize<'de> for StdReplacementConfig {
             level,
             rust_version,
             ignore,
+            ignore_rust_version,
         })
     }
 }

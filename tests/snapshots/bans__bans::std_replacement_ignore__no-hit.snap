@@ -1,0 +1,23 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unmatched-replacement-ignore",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 26,
+          "line": 3,
+          "message": "unmatched ignore configuration",
+          "span": "cfg-if"
+        }
+      ],
+      "message": "std replacement ignore 'cfg-if' was not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

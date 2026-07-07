@@ -431,3 +431,61 @@ allow-workspace = true
 
     insta::assert_json_snapshot!(diags);
 }
+
+/// Tests that std replacements are correctly shown based on the configured scope
+#[test]
+fn std_replacements_by_scope() {
+    use cargo_deny::cfg::Scope;
+
+    for scope in [Scope::None, Scope::All, Scope::Transitive, Scope::Workspace] {
+        for iscope in [Scope::None, Scope::All, Scope::Transitive, Scope::Workspace] {
+            let diags = gather_bans(
+                func_name!(),
+                KrateGather::new("std-replacements"),
+                format!(
+                    "[std-replacements]\nscope = '{}'\nignore-rust-version = '{}'\n",
+                    scope.as_str(),
+                    iscope.as_str()
+                ),
+            );
+
+            insta::assert_json_snapshot!(
+                format!("{}__{}__{}", func_name!(), scope.as_str(), iscope.as_str()),
+                diags
+            );
+        }
+    }
+}
+
+/// Tests that std replacements can be ignored
+#[test]
+fn std_replacement_ignore() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("std-replacements"),
+        "[std-replacements]\nscope = 'all'\nignore = ['no-std-net']\n",
+    );
+
+    insta::assert_json_snapshot!(format!("{}__hit", func_name!()), diags);
+
+    // the cfg-if replacement is ignored by default since the crate that depends on it is on an ancient rust-version
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("std-replacements"),
+        "[std-replacements]\nscope = 'all'\nignore = ['no-std-net', 'cfg-if']\n",
+    );
+
+    insta::assert_json_snapshot!(format!("{}__no-hit", func_name!()), diags);
+}
+
+/// Tests that the std replacements lint can be downgraded from the default
+#[test]
+fn std_replacement_downgrades() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("std-replacements"),
+        "[std-replacements]\nlevel = 'allow'\n",
+    );
+
+    insta::assert_json_snapshot!(diags);
+}

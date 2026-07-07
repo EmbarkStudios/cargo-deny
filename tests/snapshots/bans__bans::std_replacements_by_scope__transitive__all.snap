@@ -1,0 +1,42 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "replaced-in-std",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cfg-if",
+            "version": "1.0.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "crc32fast",
+                "version": "1.5.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "dev",
+                    "name": "std-replacements",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'cfg-if = 1.0.4' is partially or fully replaced in std and/or core",
+      "notes": [
+        "## Stable\n### 1.95.0\n```diff\n- [cfg_if::cfg_if!](https://docs.rs/cfg-if/latest/cfg_if/macro.cfg_if.html)\n+ [std::cfg_select!](https://doc.rust-lang.org/std/macro.cfg_select.html)\n```\n\n"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

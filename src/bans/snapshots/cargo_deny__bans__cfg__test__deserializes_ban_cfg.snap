@@ -150,6 +150,7 @@ expression: validated
     "scope": "Workspace",
     "level": "deny",
     "rust_version": "1.0.0",
-    "ignore": []
+    "ignore": [],
+    "ignore_rust_version": "None"
   }
 }

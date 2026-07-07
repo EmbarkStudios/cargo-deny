@@ -368,22 +368,19 @@ impl ReplacementCtx {
             }
         };
 
-        let ws = if matches!(self.cfg.scope, Scope::Workspace | Scope::Transitive) {
-            krates
-                .workspace_members()
-                .filter_map(|wm| {
-                    if let krates::Node::Krate { id, .. } = wm {
-                        Some(id.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<std::collections::BTreeSet<_>>()
-        } else {
-            Default::default()
-        };
+        let ws = krates
+            .workspace_members()
+            .filter_map(|wm| {
+                if let krates::Node::Krate { id, .. } = wm {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<std::collections::BTreeSet<_>>();
 
         let transitive = self.cfg.scope == Scope::Transitive;
+        let transitive_ignore = self.cfg.ignore_rust_version == Scope::Transitive;
         let mut hit = bitvec::vec::BitVec::repeat(false, self.cfg.ignore.len());
         let mut replacements = Vec::new();
 
@@ -413,26 +410,35 @@ impl ReplacementCtx {
                 }
             }
 
+            let satisfies_rust_version = |dd: &crate::Krate, is_workspace: Option<bool>| -> bool {
+                if self.cfg.ignore_rust_version == Scope::All {
+                    return true;
+                }
+
+                let is_workspace = is_workspace.unwrap_or_else(|| ws.contains(&dd.id));
+                if is_workspace ^ transitive_ignore {
+                    return true;
+                }
+
+                dd.rust_version
+                    .as_ref()
+                    .is_none_or(|rv| versions.iter().any(|minor| rv.minor >= *minor as _))
+            };
+
             let nid = krates.nid_for_kid(&krate.id).unwrap();
             let dds = krates.direct_dependents(nid);
 
             match self.cfg.scope {
                 Scope::All => {
-                    if !dds.iter().any(|dd| {
-                        dd.krate
-                            .rust_version
-                            .as_ref()
-                            .is_none_or(|rv| versions.iter().any(|minor| rv.minor >= *minor as _))
-                    }) {
+                    if !dds.iter().any(|dd| satisfies_rust_version(dd.krate, None)) {
                         continue;
                     }
                 }
                 Scope::Transitive | Scope::Workspace => {
                     if !dds.iter().any(|dd| {
-                        ws.contains(&dd.krate.id) ^ transitive
-                            && dd.krate.rust_version.as_ref().is_none_or(|rv| {
-                                versions.iter().any(|minor| rv.minor >= *minor as _)
-                            })
+                        let is_workspace = ws.contains(&dd.krate.id);
+                        is_workspace ^ transitive
+                            && satisfies_rust_version(dd.krate, Some(is_workspace))
                     }) {
                         continue;
                     }

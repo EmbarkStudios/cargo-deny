@@ -1,0 +1,69 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "replaced-in-std",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "cfg-if",
+            "version": "1.0.4"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "crc32fast",
+                "version": "1.5.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "kind": "dev",
+                    "name": "std-replacements",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "message": "crate 'cfg-if = 1.0.4' is partially or fully replaced in std and/or core",
+      "notes": [
+        "## Stable\n### 1.95.0\n```diff\n- [cfg_if::cfg_if!](https://docs.rs/cfg-if/latest/cfg_if/macro.cfg_if.html)\n+ [std::cfg_select!](https://doc.rust-lang.org/std/macro.cfg_select.html)\n```\n\n"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "replaced-in-std",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "no-std-net",
+            "version": "0.6.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "std-replacements",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "message": "crate 'no-std-net = 0.6.0' is partially or fully replaced in std and/or core",
+      "notes": [
+        "## Stable\n### 1.77.0\n```diff\n- [no_std_net::Ipv4Addr](https://docs.rs/no-std-net/latest/no_std_net/struct.Ipv4Addr.html)\n+ [core::net::Ipv4Addr](https://doc.rust-lang.org/core/net/struct.Ipv4Addr.html)\n```\n\n```diff\n- [no_std_net::Ipv6ddr](https://docs.rs/no-std-net/latest/no_std_net/struct.Ipv6Addr.html)\n+ [core::net::Ipv6Addr](https://doc.rust-lang.org/core/net/struct.Ipv6Addr.html)\n```\n\n```diff\n- [no_std_net::SocketAddrV4](https://docs.rs/no-std-net/latest/no_std_net/struct.SocketAddrV4.html)\n+ [core::net::SocketAddrV4](https://doc.rust-lang.org/core/net/struct.SocketAddrV4.html)\n```\n\n```diff\n- [no_std_net::SocketAddrV6](https://docs.rs/no-std-net/latest/no_std_net/struct.SocketAddrV6.html)\n+ [core::net::SocketAddrV6](https://doc.rust-lang.org/core/net/struct.SocketAddrV6.html)\n```\n\n## Unavailable\n  - no-std-net::ToSocketAddrs - https://docs.rs/no-std-net/latest/no_std_net/trait.ToSocketAddrs.html\n"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
