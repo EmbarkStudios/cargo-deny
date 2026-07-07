@@ -12,9 +12,9 @@ Contains all of the configuration for `cargo deny check bans`
 
 Determines what happens when multiple versions of the same crate are encountered.
 
-* `deny` - Will emit an error for each crate with duplicates and fail the check.
-* `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.
-* `allow` - Ignores duplicate versions of the same crate.
+- `deny` - Will emit an error for each crate with duplicates and fail the check.
+- `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.
+- `allow` - Ignores duplicate versions of the same crate.
 
 ### The `multiple-versions-include-dev` field (optional)
 
@@ -24,17 +24,17 @@ If `true`, `dev-dependencies` are included when checking for multiple versions o
 
 Determines what happens when a dependency is specified with the `*` (wildcard) version.
 
-* `deny` - Will emit an error for each crate specified with a wildcard version.
-* `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
-* `allow` - Ignores all wildcard version specifications.
+- `deny` - Will emit an error for each crate specified with a wildcard version.
+- `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
+- `allow` - Ignores all wildcard version specifications.
 
 ### The `allow-wildcard-paths` field (optional)
 
 If specified, alters how the `wildcard` field behaves:
 
-* [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) or [git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) `dependencies` in **private** crates will no longer emit a warning or error.
-* path or git `dev-dependencies` in both public and private crates will no longer emit a warning or error.
-* path or git `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
+- [path](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies) or [git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) `dependencies` in **private** crates will no longer emit a warning or error.
+- path or git `dev-dependencies` in both public and private crates will no longer emit a warning or error.
+- path or git `dependencies` and `build-dependencies` in **public** crates will continue to produce warnings and errors.
 
 Being limited to private crates is due to crates.io not allowing packages to be published with `path` or `git` dependencies except for `dev-dependencies`.
 
@@ -53,9 +53,9 @@ unused = 'deny'
 
 Determines what happens when more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use `workspace = true`
 
-* `deny` (default) - Will emit an error for each dependency declaration that does not use `workspace = true`
-* `warn` - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
-* `allow` - Ignores checking for `workspace = true` for dependencies in workspace crates
+- `deny` (default) - Will emit an error for each dependency declaration that does not use `workspace = true`
+- `warn` - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
+- `allow` - Ignores checking for `workspace = true` for dependencies in workspace crates
 
 #### The `include-path-dependencies` field (optional)
 
@@ -65,17 +65,17 @@ If true, path dependencies will be included in the duplication check, otherwise 
 
 Determines what happens when a dependency in [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) is not used in the workspace.
 
-* `deny` (default) - Will emit an error for each dependency that is not actually used in the workspace.
-* `warn` - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.
-* `allow` - Ignores checking for unused workspace dependencies.
+- `deny` (default) - Will emit an error for each dependency that is not actually used in the workspace.
+- `warn` - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.
+- `allow` - Ignores checking for unused workspace dependencies.
 
 ### The `highlight` field (optional)
 
 When multiple versions of the same crate are encountered and `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
 
-* `lowest-version` - Highlights the path to the lowest duplicate version. Highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+)
-* `simplest-path` - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
-* `all` - Highlights both the `lowest-version` and `simplest-path`. If they are the same, they are only highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+).
+- `lowest-version` - Highlights the path to the lowest duplicate version. Highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+)
+- `simplest-path` - Highlights the path to the duplicate version with the fewest number of total edges to the root of the graph, which will often be the best candidate for removal and/or upgrading. Highlighted in ![blue](https://placehold.it/15/0000FF/000000?text=+).
+- `all` - Highlights both the `lowest-version` and `simplest-path`. If they are the same, they are only highlighted in ![red](https://placehold.it/15/ff0000/000000?text=+).
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
 
@@ -137,6 +137,7 @@ allow-workspace = false
 If `true`, automatically allows all workspace members even when using a deny-by-default policy (i.e., when `deny = [{ name = "*" }]` is specified). This is useful for organizations that want to implement strict dependency allowlists for external crates while automatically allowing their own workspace crates without having to explicitly list them in the `allow` configuration.
 
 When `allow-workspace = true`:
+
 - All workspace members are automatically treated as if they were in the `allow` list
 - Workspace members take precedence over explicit `deny` entries
 - External dependencies still require explicit allowlisting
@@ -239,19 +240,59 @@ Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts o
 
 **NOTE:** `skip-tree` is a very big hammer, and should be used with care.
 
+### The `std-replacements` field (optional)
+
+The `std-replacements` field configures if and how crates.io-sourced crates are checked against [`std-replacement-data`] which contains information on crates that have been either partially or fully implemented in `std` or `core`.
+
+By default if this field is not present, the check is completely skipped.
+
+#### The `std-replacements.scope` field (optional)
+
+The scope for what crates are considered. The scope filters the crates which depend upon a crate listed in the [`std-replacement-data`], not the crate itself.
+
+- `workspace` (default) - Only crates depended upon by 1 or more crates in your workspace are considered.
+- `all` - All crates in the data are considered if present in your graph.
+- `transitive` - Only crates depended upon by crates outside your workspace are considered.
+- `none` - No crates are considered, this is another way to disable the check.
+
+#### The `std-replacements.ignore-rust-version` field (optional)
+
+The scope for when the `rust-version` for a crate is ignored. By default this is `none`, and the `rust-version` is respected, meaning crates that depend on a crate in [`std-replacement-data`] only trigger the lint if at least one of them declares a `rust-version` that is >= to at least one version that the std replacement API was stabilized.
+
+- `none` (default) - The `rust-version` is always taken into account
+- `workspace` - The `rust-version` is ignored for crates that are depended upon by a workspace member
+- `all` - The `rust-version` is never taken into account
+- `transitive` - The `rust-version` is ignored for crates that are depended upon by crates not in the workspace
+
+#### The `std-replacements.rust-version` field (optional)
+
+The `rust-version` to use for crate's which do not specify their own. If not specified the version(s) in the [`std-replacement-data`] are not considered. This does not have to conform to semver and can be a simple `<major>.<minor>`. Note that Rust rarely/never adds functionality in patch releases, and there is only 1 major version, so only the minor version is considered during matching.
+
+#### The `std-replacements.ignore` field (optional)
+
+Ignores crates that would otherwise cause the lint to trigger, via a [PackageSpec](../cfg.md#package-specs).
+
+#### The `std-replacements.level` field (optional)
+
+The lint level for the diagnostic emitted when a crate is in the [`std-replacement-data`] and satisfies all the required conditions.
+
+- `deny` (default)
+- `warn`
+- `allow`
+
 ### The `build` field (optional)
 
-The `build` field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html), or they are a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html). The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of [interpreted shebang scripts](https://en.wikipedia.org/wiki/Shebang_(Unix)).
+The `build` field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html), or they are a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html). The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of [interpreted shebang scripts](<https://en.wikipedia.org/wiki/Shebang_(Unix)>).
 
 While the intention of this configuration is to raise awareness of crates that have or use precompiled binaries or scripts, or otherwise contain file types that you want to be aware of, the compile time crate linting supplied by cargo-deny does **NOT** protect you from actively malicious code.
 
 A quick run down of things that cargo-deny **WILL NOT DETECT**.
 
-* The crate just straight up does bad things like uploading your SSH keys to a remote server using vanilla rust code
-* The crate contains compressed, or otherwise obfuscated executable binaries
-* The build script uses `include!()` for code that is benign in one version, then replaces it with something malicious without triggering a checksum mismatch on the build script contents itself.
-* A build time dependency of a non-malicious crate does any of the above.
-* Tons of other stuff I haven't thought of because I am not a security person
+- The crate just straight up does bad things like uploading your SSH keys to a remote server using vanilla rust code
+- The crate contains compressed, or otherwise obfuscated executable binaries
+- The build script uses `include!()` for code that is benign in one version, then replaces it with something malicious without triggering a checksum mismatch on the build script contents itself.
+- A build time dependency of a non-malicious crate does any of the above.
+- Tons of other stuff I haven't thought of because I am not a security person
 
 So all this is to say, `cargo-deny` (currently) is only really useful for analyzing when crates have native executables, and/or the crate maintainers have either forgotten or purposefully left helper scripts for their CI/release management/etc in the crate source that are not actually ever executed automatically.
 
@@ -263,23 +304,23 @@ Specifies all the crates that are allowed to have a build script. If this option
 
 This controls how native executables are handled. Note this check is done by actually reading the file headers from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
 
-* `deny` (default) - Emits an error when native executables are detected.
-* `warn` - Prints a warning when native executables are detected, but does not fail the check.
-* `allow` - Prints a note when native executables are detected, but does not fail the check.
+- `deny` (default) - Emits an error when native executables are detected.
+- `warn` - Prints a warning when native executables are detected, but does not fail the check.
+- `allow` - Prints a note when native executables are detected, but does not fail the check.
 
 This check currently only handles the major executable formats.
 
-* [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
-* [PE](https://en.wikipedia.org/wiki/Portable_Executable)
-* [Mach-O](https://en.wikipedia.org/wiki/Mach-O)
+- [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
+- [PE](https://en.wikipedia.org/wiki/Portable_Executable)
+- [Mach-O](https://en.wikipedia.org/wiki/Mach-O)
 
 #### The `interpreted` field (optional)
 
 This controls how interpreted scripts are handled. Note this check is done by actually reading the file header from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
 
-* `deny` - Emits an error when interpreted scripts are detected.
-* `warn` - Prints a warning when interpreted scripts are detected, but does not fail the check.
-* `allow` (default) - Prints a note when interpreted scripts are detected, but does not fail the check.
+- `deny` - Emits an error when interpreted scripts are detected.
+- `warn` - Prints a warning when interpreted scripts are detected, but does not fail the check.
+- `allow` (default) - Prints a note when interpreted scripts are detected, but does not fail the check.
 
 #### The `script-extensions` field (optional)
 
@@ -365,3 +406,5 @@ The path, relative to the crate root, of the file to bypass scanning.
 ###### The `checksum` field (optional)
 
 The 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2) checksum of the file. If the checksum does not match, an error is emitted.
+
+[`std-replacement-data`]: https://github.com/rust-lang/std-replacement-data
