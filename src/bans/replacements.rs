@@ -79,7 +79,7 @@ impl ReplacementIter {
     #[allow(unsafe_code)]
     fn read_str(&mut self) -> &'static str {
         let len = self.data[0] as usize;
-        assert!(self.data.len() >= len + 1);
+        assert!(self.data.len() > len);
         // SAFETY: We control the input data, which only has utf-8 strings and has correct lengths etc
         let s = unsafe { std::str::from_utf8_unchecked(&self.data[1..1 + len]) };
 
@@ -172,7 +172,7 @@ struct ReplacementData {
 #[allow(unsafe_code)]
 fn read_str(buf: &[u8]) -> &str {
     let len = buf[0] as usize;
-    assert!(buf.len() >= len + 1);
+    assert!(buf.len() > len);
     // SAFETY: We control the input data, which only has utf-8 strings and has correct lengths etc
     unsafe { std::str::from_utf8_unchecked(&buf[1..1 + len]) }
 }
@@ -193,7 +193,7 @@ impl ReplacementData {
         };
 
         let header = inner.get(0..4).context("missing magic")?;
-        anyhow::ensure!(&header[..3] == &[0xcd, 0xcd, 0xcd], "invalid magic");
+        anyhow::ensure!(header[..3] == [0xcd, 0xcd, 0xcd], "invalid magic");
         anyhow::ensure!(header[3] == 1, "unsupported version");
 
         let entries = unsafe {
@@ -290,7 +290,7 @@ impl Replacements {
         for ignore in self
             .hit
             .into_iter()
-            .zip(self.cfg.ignore.into_iter())
+            .zip(self.cfg.ignore)
             .filter_map(|(hit, ignore)| if !hit { Some(ignore) } else { None })
         {
             sink.push((

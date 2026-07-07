@@ -432,13 +432,14 @@ allow-workspace = true
     insta::assert_json_snapshot!(diags);
 }
 
+#[allow(clippy::disallowed_types)]
 fn sync_replacements() {
     static SYNC_REPLACEMENTS: std::sync::Once = std::sync::Once::new();
     SYNC_REPLACEMENTS.call_once(|| {
         if let Err(error) = cargo_deny::bans::replacements::ReplacementCtx::sync() {
             panic!("failed to sync replacements! - {error:#}");
         }
-    })
+    });
 }
 
 /// Tests that std replacements are correctly shown based on the configured scope

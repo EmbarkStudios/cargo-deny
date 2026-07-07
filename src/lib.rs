@@ -620,6 +620,7 @@ pub fn krates_with_index(
 use anyhow::Context as _;
 
 #[inline]
+#[allow(clippy::disallowed_types)]
 fn not_utf8(p: std::path::PathBuf, id: &str) -> anyhow::Error {
     anyhow::anyhow!("{id}({p:?}) is not a utf-8 path")
 }
