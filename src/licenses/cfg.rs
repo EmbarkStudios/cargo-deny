@@ -205,14 +205,81 @@ impl serde::Serialize for Licensee {
     }
 }
 
+/// An entry in the `allow` list.  May be a single SPDX licensee (the historical
+/// shape) or a compound SPDX expression.  Compound entries match a dependency
+/// only when the dependency's license expression is satisfied under every
+/// world that satisfies the compound entry; in particular, allowing
+/// `GPL-2.0-only OR GPL-3.0-only` does not allow a dependency licensed
+/// `GPL-2.0-only` alone.
+#[derive(Debug)]
+pub enum AllowEntry {
+    Licensee(Licensee),
+    Expression(Box<Spanned<spdx::Expression>>),
+}
+
+impl<'de> Deserialize<'de> for AllowEntry {
+    fn deserialize(value: &mut Value<'de>) -> Result<Self, DeserError> {
+        let val = value.take_string(Some("an SPDX licensee or expression"))?;
+        let parse_mode = spdx::ParseMode {
+            allow_deprecated: true,
+            allow_imprecise_license_names: false,
+            allow_postfix_plus_on_gpl: false,
+            allow_slash_as_or_operator: false,
+            allow_unknown: false,
+        };
+
+        // Try licensee first, since that is the historical shape and the
+        // common case.  Fall back to a compound expression only if the input
+        // contains an SPDX operator, so that genuine licensee parse errors
+        // are surfaced unchanged.
+        spdx::Licensee::parse_mode(&val, parse_mode)
+            .map(|licensee| Self::Licensee(Licensee(Spanned::with_span(licensee, value.span))))
+            .or_else(|licensee_err| {
+                let has_operator = val.contains(" OR ")
+                    || val.contains(" AND ")
+                    || val.contains(" or ")
+                    || val.contains(" and ");
+                if !has_operator {
+                    return Err(licensee_err);
+                }
+                spdx::Expression::parse_mode(&val, parse_mode)
+                    .map(|expr| Self::Expression(Box::new(Spanned::with_span(expr, value.span))))
+            })
+            .map_err(|pe| {
+                let offset = value.span.start;
+                toml_span::Error {
+                    kind: toml_span::ErrorKind::Custom(pe.reason.to_string().into()),
+                    span: (pe.span.start + offset..pe.span.end + offset).into(),
+                    line_info: None,
+                }
+                .into()
+            })
+    }
+}
+
+#[cfg(test)]
+impl serde::Serialize for AllowEntry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Licensee(l) => l.serialize(serializer),
+            Self::Expression(e) => e.as_ref().value.as_ref().serialize(serializer),
+        }
+    }
+}
+
 /// Top level configuration for the license check
 pub struct Config {
     pub private: Private,
     /// The minimum confidence threshold we allow when determining the license
     /// in a text file, on a 0.0 (none) to 1.0 (maximum) scale
     pub confidence_threshold: f32,
-    /// Licenses that will be allowed in a license expression
-    pub allow: Vec<Licensee>,
+    /// Licenses that will be allowed in a license expression.  Each entry
+    /// may be either a single SPDX licensee or a compound expression
+    /// (e.g. `GPL-2.0-only OR GPL-3.0-only`); see [`AllowEntry`].
+    pub allow: Vec<AllowEntry>,
     /// Determines the response to licenses in the `allow`ed list which do not
     /// exist in the dependency tree.
     pub unused_allowed_license: LintLevel,
@@ -327,7 +394,14 @@ impl crate::cfg::UnvalidatedConfig for Config {
             }
         }
 
-        let mut allowed = self.allow;
+        let mut allowed = Vec::with_capacity(self.allow.len());
+        let mut allowed_expressions = Vec::new();
+        for entry in self.allow {
+            match entry {
+                AllowEntry::Licensee(l) => allowed.push(l),
+                AllowEntry::Expression(e) => allowed_expressions.push(*e),
+            }
+        }
         allowed.par_sort();
 
         let mut exceptions = Vec::with_capacity(self.exceptions.len());
@@ -394,6 +468,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             clarifications,
             exceptions,
             allowed,
+            allowed_expressions,
             ignore_sources,
             include_dev: self.include_dev,
             include_build: self.include_build,
@@ -487,6 +562,7 @@ pub struct ValidConfig {
     pub unused_license_exception: LintLevel,
     pub confidence_threshold: f32,
     pub allowed: Vec<Licensee>,
+    pub allowed_expressions: Vec<Spanned<spdx::Expression>>,
     pub clarifications: Vec<ValidClarification>,
     pub exceptions: Vec<ValidException>,
     pub ignore_sources: Vec<url::Url>,
