@@ -30,7 +30,7 @@ Options:
           The format of the output
           
           [default: human]
-          [possible values: human, json, tsv]
+          [possible values: human, json, markdown, tsv]
 
   -l, --layout <LAYOUT>
           The layout for the output, does not apply to TSV
