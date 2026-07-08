@@ -28,7 +28,7 @@ fn setup<'k>(
         .with_store(store())
         .with_confidence_threshold(0.8);
 
-    let summary = gatherer.gather(ctx.krates, &mut ctx.files, Some(&ctx.valid_cfg));
+    let summary = gatherer.gather(ctx.krates, &mut ctx.files, &ctx.valid_cfg);
     (ctx, summary)
 }
 
@@ -44,12 +44,7 @@ macro_rules! me_or_ci_or_success {
     };
 }
 
-#[inline]
-pub fn gather_licenses_with_overrides(
-    name: &str,
-    cfg: impl Into<tu::Config<Config>>,
-    overrides: Option<diag::DiagnosticOverrides>,
-) -> Vec<serde_json::Value> {
+fn krates() -> Krates {
     let mut md: krates::cm::Metadata = serde_json::from_str(
         &std::fs::read_to_string("tests/test_data/features-galore/metadata.json").unwrap(),
     )
@@ -84,10 +79,18 @@ pub fn gather_licenses_with_overrides(
         }
     }
 
-    let krates = krates::Builder::new()
+    krates::Builder::new()
         .build_with_metadata(md, krates::NoneFilter)
-        .unwrap();
+        .unwrap()
+}
 
+#[inline]
+pub fn gather_licenses_with_overrides(
+    name: &str,
+    cfg: impl Into<tu::Config<Config>>,
+    overrides: Option<diag::DiagnosticOverrides>,
+) -> Vec<serde_json::Value> {
+    let krates = krates();
     let (ctx, summary) = setup(&krates, name, cfg.into());
 
     tu::run_gather(ctx, |ctx, tx| {
@@ -409,4 +412,36 @@ fn deprecated_license_detection() {
     });
 
     insta::assert_json_snapshot!(diags);
+}
+
+#[test]
+fn lists_licenses() {
+    me_or_ci_or_success!();
+    let cfg = tu::Config::new(
+        r"
+allow = ['Apache-2.0']
+include-dev = true
+",
+    );
+
+    let name = func_name!();
+    let krates = krates();
+    let (_ctx, summary) = setup(&krates, name, cfg.into());
+
+    let mut out = Vec::with_capacity(1024);
+
+    for format in [
+        licenses::OutputFormat::Human,
+        licenses::OutputFormat::Json,
+        licenses::OutputFormat::Tsv,
+    ] {
+        for layout in [licenses::Layout::Crate, licenses::Layout::License] {
+            licenses::list(&mut out, &summary, format, layout, false).expect("failed to list");
+
+            insta::assert_snapshot!(
+                format!("{name}-{format}-{layout}"),
+                String::from_utf8(std::mem::take(&mut out)).expect("utf-8")
+            );
+        }
+    }
 }

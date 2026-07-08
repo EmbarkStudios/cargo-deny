@@ -318,7 +318,7 @@ pub(crate) fn cmd(
             .with_store(std::sync::Arc::new(store))
             .with_confidence_threshold(licenses.confidence_threshold);
 
-        Some(gatherer.gather(&krates, &mut files, Some(&licenses)))
+        Some(gatherer.gather(&krates, &mut files, &licenses))
     } else {
         None
     };

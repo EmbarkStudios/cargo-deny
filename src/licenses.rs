@@ -359,3 +359,307 @@ pub fn check(
         }
     }
 }
+
+use std::fmt;
+
+#[derive(clap::ValueEnum, Copy, Clone, Debug)]
+pub enum OutputFormat {
+    Human,
+    Json,
+    Tsv,
+}
+
+impl fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Human => f.write_str("human"),
+            Self::Json => f.write_str("json"),
+            Self::Tsv => f.write_str("tsv"),
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Copy, Clone, Debug)]
+pub enum Layout {
+    Crate,
+    License,
+}
+
+impl fmt::Display for Layout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Crate => f.write_str("crate"),
+            Self::License => f.write_str("license"),
+        }
+    }
+}
+
+pub fn list(
+    out: &mut impl std::io::Write,
+    summary: &Summary<'_>,
+    format: OutputFormat,
+    layout: Layout,
+    colorize: bool,
+) -> anyhow::Result<()> {
+    use crate::Kid;
+    use nu_ansi_term::Color;
+    use serde::Serialize;
+    use std::{borrow::Cow, collections::BTreeMap, fmt::Write};
+
+    #[derive(Ord, PartialOrd, PartialEq, Eq)]
+    struct SerKid<'k>(Cow<'k, Kid>);
+
+    impl serde::Serialize for SerKid<'_> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            serializer.serialize_str(&format!(
+                "{} {} {}",
+                self.0.name(),
+                self.0.version(),
+                self.0.source()
+            ))
+        }
+    }
+
+    impl SerKid<'_> {
+        fn parts(&self) -> (&str, &str) {
+            (self.0.name(), self.0.version())
+        }
+    }
+
+    #[derive(Serialize)]
+    struct Crate {
+        licenses: Vec<String>,
+    }
+
+    #[derive(Serialize)]
+    struct LicenseLayout<'k> {
+        licenses: Vec<(String, Vec<SerKid<'k>>)>,
+        unlicensed: Vec<SerKid<'k>>,
+    }
+
+    struct CrateLayout<'k> {
+        crates: BTreeMap<SerKid<'k>, Crate>,
+    }
+
+    impl<'k> CrateLayout<'k> {
+        fn search(&self, id: &SerKid<'k>) -> &Crate {
+            self.crates.get(id).expect("unable to find crate")
+        }
+    }
+
+    fn borrow(kid: &Kid) -> SerKid<'_> {
+        SerKid(Cow::Borrowed(kid))
+    }
+
+    let mut crate_layout = CrateLayout {
+        crates: BTreeMap::new(),
+    };
+
+    let mut license_layout = LicenseLayout {
+        licenses: Vec::with_capacity(20),
+        unlicensed: Vec::new(),
+    };
+
+    {
+        let licenses = &mut license_layout.licenses;
+        let unlicensed = &mut license_layout.unlicensed;
+
+        for krate_lic_nfo in &summary.nfos {
+            let mut cur = Crate {
+                licenses: Vec::with_capacity(2),
+            };
+
+            match &krate_lic_nfo.lic_info {
+                LicenseInfo::SpdxExpression { expr, .. } => {
+                    for req in expr.requirements() {
+                        let s = req.req.to_string();
+
+                        if cur.licenses.contains(&s) {
+                            continue;
+                        }
+
+                        match licenses.binary_search_by(|(r, _)| r.cmp(&s)) {
+                            Ok(i) => licenses[i].1.push(borrow(&krate_lic_nfo.krate.id)),
+                            Err(i) => {
+                                let mut v = Vec::with_capacity(20);
+                                v.push(borrow(&krate_lic_nfo.krate.id));
+                                licenses.insert(i, (s.clone(), v));
+                            }
+                        }
+                        cur.licenses.push(s);
+                    }
+                }
+                LicenseInfo::Unlicensed => {
+                    unlicensed.push(borrow(&krate_lic_nfo.krate.id));
+                }
+            }
+
+            crate_layout
+                .crates
+                .insert(SerKid(Cow::Owned(krate_lic_nfo.krate.id.clone())), cur);
+        }
+    }
+
+    fn write_pid(out: &mut String, pid: &SerKid<'_>) -> anyhow::Result<()> {
+        let (name, version) = pid.parts();
+        Ok(write!(out, "{name}@{version}")?)
+    }
+
+    match format {
+        OutputFormat::Human => {
+            let mut output = String::with_capacity(4 * 1024);
+
+            match layout {
+                Layout::License => {
+                    for (license, krates) in license_layout.licenses {
+                        if colorize {
+                            write!(
+                                output,
+                                "{} ({}): ",
+                                Color::Cyan.paint(&license),
+                                Color::White.bold().paint(krates.len().to_string())
+                            )?;
+                        } else {
+                            write!(output, "{license} ({}): ", krates.len())?;
+                        }
+
+                        for (i, krate_id) in krates.iter().enumerate() {
+                            if i != 0 {
+                                write!(output, ", ")?;
+                            }
+
+                            if colorize {
+                                let krate = crate_layout.search(krate_id);
+                                let color = if krate.licenses.len() > 1 {
+                                    Color::Yellow
+                                } else {
+                                    Color::White
+                                };
+
+                                let (name, version) = krate_id.parts();
+                                write!(output, "{}@{version}", color.paint(name))?;
+                            } else {
+                                write_pid(&mut output, krate_id)?;
+                            }
+                        }
+
+                        writeln!(output)?;
+                    }
+
+                    if !license_layout.unlicensed.is_empty() {
+                        if colorize {
+                            write!(
+                                output,
+                                "{} ({}): ",
+                                Color::Red.paint("Unlicensed"),
+                                Color::White
+                                    .bold()
+                                    .paint(license_layout.unlicensed.len().to_string())
+                            )?;
+                        } else {
+                            write!(output, "Unlicensed ({}): ", license_layout.unlicensed.len())?;
+                        }
+
+                        for (i, krate) in license_layout.unlicensed.iter().enumerate() {
+                            if i != 0 {
+                                write!(output, ", ")?;
+                            }
+
+                            write_pid(&mut output, krate)?;
+                        }
+
+                        writeln!(output)?;
+                    }
+                }
+                Layout::Crate => {
+                    for (id, krate) in crate_layout.crates {
+                        let (name, version) = id.parts();
+
+                        if colorize {
+                            let color = match krate.licenses.len() {
+                                1 => Color::White,
+                                0 => Color::Red,
+                                _ => Color::Yellow,
+                            };
+
+                            write!(
+                                output,
+                                "{}@{version} ({}): ",
+                                color.paint(name),
+                                Color::White.bold().paint(krate.licenses.len().to_string()),
+                            )?;
+                        } else {
+                            write!(output, "{name}@{version} ({}): ", krate.licenses.len(),)?;
+                        }
+
+                        for (i, license) in krate.licenses.iter().enumerate() {
+                            if i != 0 {
+                                write!(output, ", ")?;
+                            }
+
+                            if colorize {
+                                write!(output, "{}", Color::Cyan.paint(license))?;
+                            } else {
+                                write!(output, "{license}")?;
+                            }
+                        }
+
+                        writeln!(output)?;
+                    }
+                }
+            }
+
+            std::io::Write::write_all(out, output.as_bytes())?;
+        }
+        OutputFormat::Json => match layout {
+            Layout::License => {
+                serde_json::to_writer(out, &license_layout)?;
+            }
+            Layout::Crate => serde_json::to_writer(out, &crate_layout.crates)?,
+        },
+        OutputFormat::Tsv => {
+            // We ignore the layout specification and always just do a grid of crate rows x license/exception columns
+            let mut output = String::with_capacity(4 * 1024);
+
+            // Column headers
+            {
+                write!(output, "crate")?;
+
+                for (license, _) in &license_layout.licenses {
+                    write!(output, "\t{license}")?;
+                }
+
+                if !license_layout.unlicensed.is_empty() {
+                    write!(output, "\tUnlicensed")?;
+                }
+
+                writeln!(output)?;
+            }
+
+            for (id, krate) in crate_layout.crates {
+                write_pid(&mut output, &id)?;
+
+                for lic in &license_layout.licenses {
+                    if lic.1.binary_search(&id).is_ok() {
+                        write!(output, "\tX")?;
+                    } else {
+                        write!(output, "\t")?;
+                    }
+                }
+
+                if krate.licenses.is_empty() {
+                    write!(output, "\tX")?;
+                }
+
+                writeln!(output)?;
+            }
+
+            std::io::Write::write_all(out, output.as_bytes())?;
+        }
+    }
+
+    Ok(())
+}

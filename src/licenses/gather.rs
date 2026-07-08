@@ -481,7 +481,7 @@ impl Gatherer {
         self,
         krates: &'k crate::Krates,
         files: &mut Files,
-        cfg: Option<&ValidConfig>,
+        cfg: &ValidConfig,
     ) -> Summary<'k> {
         let mut summary = Summary::new(self.store);
 
@@ -497,12 +497,7 @@ impl Gatherer {
         // Determine which dependency kinds to include in license checking.
         // By default dev-dependencies are excluded (include_dev = false),
         // while build-dependencies are included (include_build = true).
-        let (include_dev, include_build) = match cfg {
-            Some(cfg) => (cfg.include_dev, cfg.include_build),
-            None => (false, true),
-        };
-
-        let krates = match (include_dev, include_build) {
+        let krates = match (cfg.include_dev, cfg.include_build) {
             (true, true) => krates.krates().collect(),
             (true, false) => krates.krates_filtered(krates::DepKind::Build),
             (false, true) => krates.krates_filtered(krates::DepKind::Dev),
@@ -596,19 +591,19 @@ impl Gatherer {
                 let mut license_pack = None;
 
                 // 1
-                if let Some(cfg) = cfg {
-                    for clarification in iter_clarifications(&cfg.clarifications, krate) {
-                        let lp = if let Some(lp) = &mut license_pack {
-                            lp
-                        } else {
-                            license_pack = Some(LicensePack::read(krate));
-                            license_pack.as_mut().unwrap()
-                        };
+                for clarification in iter_clarifications(&cfg.clarifications, krate) {
+                    let lp = if let Some(lp) = &mut license_pack {
+                        lp
+                    } else {
+                        license_pack = Some(LicensePack::read(krate));
+                        license_pack.as_mut().unwrap()
+                    };
 
-                        // Check to see if the clarification provided exactly matches
-                        // the set of detected licenses, if they do, we use the clarification's
-                        // license expression as the license requirements for this crate
-                        let clarifications_match = clarification.license_files.iter().all(|clf| {
+                    // Check to see if the clarification provided exactly matches
+                    // the set of detected licenses, if they do, we use the clarification's
+                    // license expression as the license requirements for this crate
+                    let clarifications_match =
+                        clarification.license_files.iter().all(|clf| {
                             match lp.insert_clarification(clf) {
                                 Ok(_) => true,
                                 Err(reason) => {
@@ -629,21 +624,20 @@ impl Gatherer {
                             }
                         });
 
-                        if clarifications_match {
-                            return KrateLicense {
-                                krate,
-                                lic_info: LicenseInfo::SpdxExpression {
-                                    expr: clarification.expression.clone(),
-                                    nfo: LicenseExprInfo {
-                                        file_id: cfg.file_id,
-                                        offset: clarification.expr_offset,
-                                        source: LicenseExprSource::UserOverride,
-                                    },
+                    if clarifications_match {
+                        return KrateLicense {
+                            krate,
+                            lic_info: LicenseInfo::SpdxExpression {
+                                expr: clarification.expression.clone(),
+                                nfo: LicenseExprInfo {
+                                    file_id: cfg.file_id,
+                                    offset: clarification.expr_offset,
+                                    source: LicenseExprSource::UserOverride,
                                 },
-                                diags,
-                                notes: Vec::new(),
-                            };
-                        }
+                            },
+                            diags,
+                            notes: Vec::new(),
+                        };
                     }
                 }
 

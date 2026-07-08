@@ -163,7 +163,7 @@ fn sarif_licenses() {
         ))
         .with_confidence_threshold(0.8);
 
-    let summary = gatherer.gather(ctx.krates, &mut ctx.files, Some(&ctx.valid_cfg));
+    let summary = gatherer.gather(ctx.krates, &mut ctx.files, &ctx.valid_cfg);
 
     let s = gather_sarif(ctx, |ctx, sink| licenses::check(ctx, summary, sink.into()));
 
