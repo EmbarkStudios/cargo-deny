@@ -1214,14 +1214,17 @@ pub fn check_build(
         .find_map(|(i, ae)| crate::match_krate(krate, &ae.spec).then_some((i, ae)))
         .unzip();
 
+    let build_script_path = krate.targets.iter().find_map(|t| {
+        t.kind
+            .contains(&TargetKind::CustomBuild)
+            .then_some(&t.src_path)
+    });
+
     // If the build script hashes to the same value and required features are not actually
     // set on the crate, we can skip it
     if let Some(kc) = krate_config
         && let Some(bsc) = &kc.build_script
-        && let Some(path) = krate
-            .targets
-            .iter()
-            .find_map(|t| (t.name == "build-script-build").then_some(&t.src_path))
+        && let Some(path) = build_script_path
     {
         let root = &krate.manifest_path.parent().unwrap();
         match validate_file_checksum(path, &bsc.value) {
@@ -1276,7 +1279,17 @@ pub fn check_build(
     }
 
     if !build_script_allowed {
-        pack.push(diags::BuildScriptNotAllowed { krate });
+        let build_script = build_script_path.and_then(|path| {
+            let root = krate.manifest_path.parent().unwrap();
+            checksum_file(path)
+                .ok()
+                .map(|checksum| (diags::HomePath { path, root, home }, checksum))
+        });
+
+        pack.push(diags::BuildScriptNotAllowed {
+            krate,
+            build_script,
+        });
         return kc_index;
     }
 
@@ -1574,11 +1587,7 @@ fn check_is_executable(
     }
 }
 
-/// Validates the buffer matches the expected SHA-256 checksum
-fn validate_checksum(
-    mut stream: impl std::io::Read,
-    expected: &cfg::Checksum,
-) -> anyhow::Result<()> {
+fn checksum_bytes(mut stream: impl std::io::Read) -> anyhow::Result<[u8; 32]> {
     let digest = {
         let mut dc = ring::digest::Context::new(&ring::digest::SHA256);
         let mut chunk = [0; 8 * 1024];
@@ -1592,17 +1601,32 @@ fn validate_checksum(
         dc.finish()
     };
 
-    let digest = digest.as_ref();
-    if digest != expected.0 {
-        let mut hs = [0u8; 64];
-        const CHARS: &[u8] = b"0123456789abcdef";
-        for (i, &byte) in digest.iter().enumerate() {
-            let i = i * 2;
-            hs[i] = CHARS[(byte >> 4) as usize];
-            hs[i + 1] = CHARS[(byte & 0xf) as usize];
-        }
+    let mut bytes = [0; 32];
+    bytes.copy_from_slice(digest.as_ref());
+    Ok(bytes)
+}
 
-        let digest = std::str::from_utf8(&hs).unwrap();
+fn checksum_to_hex(digest: &[u8; 32]) -> String {
+    let mut hs = [0u8; 64];
+    const CHARS: &[u8] = b"0123456789abcdef";
+    for (i, &byte) in digest.iter().enumerate() {
+        let i = i * 2;
+        hs[i] = CHARS[(byte >> 4) as usize];
+        hs[i + 1] = CHARS[(byte & 0xf) as usize];
+    }
+
+    std::str::from_utf8(&hs).unwrap().to_owned()
+}
+
+fn checksum_hex(stream: impl std::io::Read) -> anyhow::Result<String> {
+    checksum_bytes(stream).map(|digest| checksum_to_hex(&digest))
+}
+
+/// Validates the buffer matches the expected SHA-256 checksum
+fn validate_checksum(stream: impl std::io::Read, expected: &cfg::Checksum) -> anyhow::Result<()> {
+    let digest = checksum_bytes(stream)?;
+    if digest != expected.0 {
+        let digest = checksum_to_hex(&digest);
         anyhow::bail!("checksum mismatch, calculated {digest}");
     }
 
@@ -1614,6 +1638,12 @@ fn validate_file_checksum(path: &crate::Path, expected: &cfg::Checksum) -> anyho
     let file = std::fs::File::open(path)?;
     validate_checksum(std::io::BufReader::new(file), expected)?;
     Ok(())
+}
+
+#[inline]
+fn checksum_file(path: &crate::Path) -> anyhow::Result<String> {
+    let file = std::fs::File::open(path)?;
+    checksum_hex(std::io::BufReader::new(file))
 }
 
 fn check_workspace_duplicates(

@@ -1,4 +1,4 @@
-use cargo_deny::{field_eq, func_name, test_utils::*};
+use cargo_deny::{assert_field_eq, field_eq, func_name, test_utils::*};
 
 macro_rules! ci_ignore {
     () => {
@@ -145,6 +145,46 @@ build-script = "00abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef00
     });
 
     insta::assert_json_snapshot!(diags);
+}
+
+/// Verifies build script diagnostics include enough information to write a bypass.
+#[test]
+fn shows_non_default_build_script_checksum() {
+    ci_ignore!();
+
+    let mut diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "non-default-build-script",
+            targets: &["x86_64-unknown-linux-gnu"],
+            ..Default::default()
+        },
+        Config::new(
+            r#"
+[build]
+include-workspace = true
+allow-build-scripts = []
+executables = "allow"
+"#,
+        ),
+    );
+
+    diags.retain(|d| {
+        field_eq!(d, "/fields/graphs/0/Krate/name", "non-default-build-script")
+            && field_eq!(d, "/fields/code", "build-script-not-allowed")
+    });
+
+    assert_eq!(diags.len(), 1);
+    assert_field_eq!(
+        diags[0],
+        "/fields/notes/0",
+        "path = '$crate/builder/main.rs'"
+    );
+    assert_field_eq!(
+        diags[0],
+        "/fields/notes/1",
+        "build-script = \"536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4\""
+    );
 }
 
 /// Verifies that matching build scripts cause the rest of the build check to be

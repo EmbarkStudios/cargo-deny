@@ -451,17 +451,24 @@ impl From<UnmatchedSkipRoot> for Diag {
 
 pub(crate) struct BuildScriptNotAllowed<'a> {
     pub(crate) krate: &'a Krate,
+    pub(crate) build_script: Option<(HomePath<'a>, String)>,
 }
 
 impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
     fn from(bs: BuildScriptNotAllowed<'a>) -> Self {
-        diag(
-            Diagnostic::new(Severity::Error).with_message(format_args!(
-                "crate '{}' has a build script but is not allowed to have one",
-                bs.krate
-            )),
-            Code::BuildScriptNotAllowed,
-        )
+        let mut diagnostic = Diagnostic::new(Severity::Error).with_message(format_args!(
+            "crate '{}' has a build script but is not allowed to have one",
+            bs.krate
+        ));
+
+        if let Some((path, checksum)) = bs.build_script {
+            diagnostic = diagnostic.with_notes(vec![
+                format!("path = '{path}'"),
+                format!("build-script = \"{checksum}\""),
+            ]);
+        }
+
+        diag(diagnostic, Code::BuildScriptNotAllowed)
     }
 }
 
