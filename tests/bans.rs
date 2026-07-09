@@ -442,6 +442,12 @@ fn sync_replacements() {
     });
 }
 
+macro_rules! snapshot_name {
+    ($suffix:literal) => {
+        format!("{}__{}", func_name!().replace("::", "_"), $suffix)
+    };
+}
+
 /// Tests that std replacements are correctly shown based on the configured scope
 #[test]
 fn std_replacements_by_scope() {
@@ -462,7 +468,12 @@ fn std_replacements_by_scope() {
             );
 
             insta::assert_json_snapshot!(
-                format!("{}__{}__{}", func_name!(), scope.as_str(), iscope.as_str()),
+                format!(
+                    "{}__{}__{}",
+                    func_name!().replace("::", "_"),
+                    scope.as_str(),
+                    iscope.as_str()
+                ),
                 diags
             );
         }
@@ -480,7 +491,7 @@ fn std_replacement_ignore() {
         "[std-replacements]\nscope = 'all'\nignore = ['no-std-net']\n",
     );
 
-    insta::assert_json_snapshot!(format!("{}__hit", func_name!()), diags);
+    insta::assert_json_snapshot!(snapshot_name!("hit"), diags);
 
     // the cfg-if replacement is ignored by default since the crate that depends on it is on an ancient rust-version
     let diags = gather_bans(
@@ -489,7 +500,7 @@ fn std_replacement_ignore() {
         "[std-replacements]\nscope = 'all'\nignore = ['no-std-net', 'cfg-if']\n",
     );
 
-    insta::assert_json_snapshot!(format!("{}__no-hit", func_name!()), diags);
+    insta::assert_json_snapshot!(snapshot_name!("no-hit"), diags);
 }
 
 /// Tests that the std replacements lint can be downgraded from the default
@@ -503,7 +514,7 @@ fn std_replacement_downgrades() {
         "[std-replacements]\nlevel = 'allow'\n",
     );
 
-    insta::assert_json_snapshot!(format!("{}__defaults", func_name!()), diags);
+    insta::assert_json_snapshot!(snapshot_name!("defaults"), diags);
 
     // We don't declare a rust-version in the root manifest, so it triggers by default, but by specifying an explicit
     // version the lint is no longer triggered because of the version the API was replaced in was much later than 1.0 (obviously)
@@ -513,5 +524,5 @@ fn std_replacement_downgrades() {
         "[std-replacements]\nlevel = 'allow'\nrust-version = '1.0'\n",
     );
 
-    insta::assert_json_snapshot!(format!("{}__fallback-rust-version", func_name!()), diags);
+    insta::assert_json_snapshot!(snapshot_name!("fallback-rust-version"), diags);
 }
