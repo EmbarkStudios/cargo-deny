@@ -103,8 +103,8 @@ impl GraphHighlight {
     }
 }
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Checksum(pub [u8; 32]);
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
@@ -146,6 +146,22 @@ impl std::str::FromStr for Checksum {
         }
 
         Ok(Self(array))
+    }
+}
+
+impl std::fmt::Display for Checksum {
+    #[allow(unsafe_code)]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut hs = [0u8; 64];
+        const CHARS: &[u8] = b"0123456789abcdef";
+        for (i, &byte) in self.0.iter().enumerate() {
+            let i = i * 2;
+            hs[i] = CHARS[(byte >> 4) as usize];
+            hs[i + 1] = CHARS[(byte & 0xf) as usize];
+        }
+
+        // SAFETY: we only insert hex ascii characters
+        f.write_str(unsafe { std::str::from_utf8_unchecked(&hs) })
     }
 }
 

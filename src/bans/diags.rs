@@ -451,7 +451,7 @@ impl From<UnmatchedSkipRoot> for Diag {
 
 pub(crate) struct BuildScriptNotAllowed<'a> {
     pub(crate) krate: &'a Krate,
-    pub(crate) build_script: Option<(HomePath<'a>, String)>,
+    pub(crate) build_script: Option<(HomePath<'a>, super::cfg::Checksum)>,
 }
 
 impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
@@ -782,18 +782,21 @@ pub(crate) struct ChecksumMismatch<'a> {
     pub(crate) path: HomePath<'a>,
     pub(crate) checksum: &'a Spanned<super::cfg::Checksum>,
     pub(crate) severity: Option<Severity>,
-    pub(crate) error: String,
+    pub(crate) error: Option<String>,
+    pub(crate) calculated: Option<super::cfg::Checksum>,
     pub(crate) file_id: FileId,
 }
 
 impl From<ChecksumMismatch<'_>> for Diag {
     fn from(cm: ChecksumMismatch<'_>) -> Diag {
         let mut notes = vec![format!("path = '{}'", cm.path)];
-        notes.extend(
-            format!("error = {:#}", cm.error)
-                .lines()
-                .map(|l| l.to_owned()),
-        );
+        if let Some(error) = cm.error {
+            notes.extend(format!("error = '{error:#}'").lines().map(|l| l.to_owned()));
+        } else if let Some(calculated) = cm.calculated {
+            notes.push(format!(
+                "error = 'calculated different checksum {calculated}'"
+            ));
+        }
 
         let diag = Diagnostic::new(cm.severity.unwrap_or(Severity::Error))
             .with_message("file did not match the expected checksum")
