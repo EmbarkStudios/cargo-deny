@@ -183,7 +183,7 @@ executables = "allow"
     assert_field_eq!(
         diags[0],
         "/fields/notes/1",
-        "build-script = \"536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4\""
+        "checksum = '536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4'"
     );
 }
 

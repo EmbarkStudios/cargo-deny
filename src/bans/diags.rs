@@ -464,7 +464,7 @@ impl<'a> From<BuildScriptNotAllowed<'a>> for Diag {
         if let Some((path, checksum)) = bs.build_script {
             diagnostic = diagnostic.with_notes(vec![
                 format!("path = '{path}'"),
-                format!("build-script = \"{checksum}\""),
+                format!("checksum = '{checksum}'"),
             ]);
         }
 
