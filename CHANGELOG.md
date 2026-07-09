@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#883](https://github.com/EmbarkStudios/cargo-deny/pull/883) fixed snapshot filenames on Windows which caused the release binary publish to fail.
+
 ## [0.20.0] - 2026-07-09
 ### Changed
 - [PR#881](https://github.com/EmbarkStudios/cargo-deny/pull/881) refactored the CLI, moving some duplicated options/flags into the root and removing several deprecated options/flags/values. See the PR for a full list of changes.
