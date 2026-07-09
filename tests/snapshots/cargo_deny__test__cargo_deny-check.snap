@@ -14,6 +14,8 @@ Arguments:
 
 Options:
   -g, --graph <GRAPH>
+          Path to graph output root directory.
+          
           If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
           
           Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
@@ -22,6 +24,8 @@ Options:
           Hide the inclusion graph when printing out info for a crate.
 
       --audit-compatible-output
+          To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
+          
           Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
 
   -s, --show-stats

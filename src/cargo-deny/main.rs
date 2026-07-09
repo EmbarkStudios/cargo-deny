@@ -115,8 +115,8 @@ impl GraphContext {
     fn fill(cmd: Command) -> Command {
         cmd.args([
             Arg::new("MANIFEST_PATH").long("manifest-path").help("The path of a Cargo.toml to use as the context for the operation.").long_help("The path of a Cargo.toml to use as the context for the operation.\n\nBy default, the Cargo.toml in the current working directory is used.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
-            Arg::new("METADATA_PATH").long("metadata-path").help("Path to cargo metadata json.").long_help("By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to the output of `cargo metadata`.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
-            Arg::new("CONFIG_PATH").long("config").help("Path to the config to use.").long_help("Defaults to <cwd>/deny.toml if not specified.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
+            Arg::new("METADATA_PATH").long("metadata-path").help("Path to cargo metadata json.").long_help("Path to cargo metadata json.\n\nBy default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to the output of `cargo metadata`.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
+            Arg::new("CONFIG_PATH").long("config").help("Path to the config to use.").long_help("Path to the config to use.\n\nDefaults to <cwd>/deny.toml if not specified.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
             Arg::new("workspace").long("workspace").help("If passed, all workspace packages are used as roots for the crate graph.").long_help("If passed, all workspace packages are used as roots for the crate graph.\n\nAutomatically assumed if the manifest path points to a virtual manifest.\n\nNormally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.").action(clap::ArgAction::SetTrue),
             Arg::new("exclude").long("exclude").help("One or more crates to exclude from the crate graph.").long_help("One or more crates to exclude from the crate graph.\n\nNOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.").value_name("CRATE").action(clap::ArgAction::Append),
             Arg::new("target").short('t').long("target").help("One or more platforms to filter crates by.").long_help("One or more platforms to filter crates by.\n\nIf a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.").value_parser(TargetParser).value_name("CFG"),
@@ -335,7 +335,11 @@ fn setup_logger(
 
 fn real_main() -> Result<(), Error> {
     let cmd = Args::command();
-    let mut args = cmd.get_matches();
+    let mut args = cmd.get_matches_from(
+        std::env::args()
+            .enumerate()
+            .filter_map(|(i, a)| if i == 1 && a == "deny" { None } else { Some(a) }),
+    );
 
     let args = Args::parse(&mut args);
 
