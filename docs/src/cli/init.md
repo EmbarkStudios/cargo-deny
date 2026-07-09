@@ -10,10 +10,10 @@ cargo deny init
 
 ## Specify a path
 
-The `init` command can take a path as an argument to use as path of the config instead of the default which is `<cwd>/deny.toml`.
+Using the root `--config` option can be used to change the default path (`<cwd>/deny.toml`) of the config file created.
 
 ```bash
-cargo deny init path/to/config.toml
+cargo deny --config path/to/config.toml init
 ```
 
 ## Template

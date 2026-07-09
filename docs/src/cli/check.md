@@ -4,7 +4,7 @@ The check command is the primary subcommand of cargo-deny as it is what actually
 
 ## Args
 
-### `<which>`
+### `<WHICH>`
 
 The check(s) to perform. By default, **all** checks will be performed, unless one or more checks are specified here.
 
@@ -21,24 +21,6 @@ Set lint allowed
 To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
 
 Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
-
-### `-c, --config <CONFIG>`
-
-Path to the config to use
-
-Defaults to `<cwd>/deny.toml` if not specified
-
-### `-d, --disable-fetch`
-
-Disable fetching of the advisory database
-
-When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
-
-This option is also set if the `--offline` flag is used in the global options.
-
-### `--exclude-dev`
-
-If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks.
 
 ### `-D, --deny <DENY>`
 
@@ -81,7 +63,7 @@ Set lint warnings
 
 ## Exit Codes
 
-As of [0.14.1](https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.14.1), the exit code for the check command is a bitset of the checks that were executed and had 1 or more errors.
+As of [0.14.1](https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.14.1), the exit code for the check command is a bitset of the checks that were executed that had 1 or more errors.
 
 A script or program can use the following values to determine exactly which check(s) failed.
 
