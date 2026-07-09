@@ -2,28 +2,33 @@ use crate::{
     common::ValidConfig,
     stats::{AllStats, Stats},
 };
-use anyhow::Context;
 use cargo_deny::{
     CheckCtx, PathBuf, advisories, bans,
     diag::{DiagnosticCode, DiagnosticOverrides, ErrorSink, Files, Severity},
     licenses, sources,
 };
+use clap::{Arg, Command};
 use log::error;
 use std::time::Instant;
 
-#[derive(clap::ValueEnum, Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum WhichCheck {
     Advisories,
-    Ban,
     Bans,
-    License,
     Licenses,
     Sources,
     All,
 }
 
-#[derive(strum::EnumString, Debug, Copy, Clone, PartialEq, Eq)]
-#[strum(serialize_all = "kebab-case")]
+crate::enum_args!(WhichCheck : WhichParser => {
+    "advisories" => Advisories,
+    "bans" => Bans,
+    "licenses" => Licenses,
+    "sources" => Sources,
+    "all" => All,
+});
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Level {
     Allowed,
     Warnings,
@@ -40,87 +45,134 @@ impl From<Level> for Severity {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CodeOrLevel {
     Code(DiagnosticCode),
     Level(Level),
 }
 
-impl std::str::FromStr for CodeOrLevel {
-    type Err = strum::ParseError;
+#[derive(Clone)]
+struct CodeOrLevelParser;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Attempt to parse level first, since the error
-        // for codes are probably more meaningful for most users
-        s.parse::<Level>()
-            .map(Self::Level)
-            .or_else(|_err| s.parse::<DiagnosticCode>().map(Self::Code))
+impl clap::builder::TypedValueParser for CodeOrLevelParser {
+    type Value = CodeOrLevel;
+
+    fn parse_ref(
+        &self,
+        cmd: &Command,
+        arg: Option<&Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let Some(v) = value.to_str() else {
+            return Err(clap::Error::new(clap::error::ErrorKind::InvalidUtf8).with_cmd(cmd));
+        };
+
+        let level = match v {
+            "allowed" => Level::Allowed,
+            "warnings" => Level::Warnings,
+            "denied" => Level::Denied,
+            _ => {
+                return v
+                    .parse::<DiagnosticCode>()
+                    .map(CodeOrLevel::Code)
+                    .map_err(|_err| crate::clap_err_invalid_value!(v, arg, cmd));
+            }
+        };
+
+        Ok(CodeOrLevel::Level(level))
     }
 }
 
-#[derive(clap::Parser, Debug)]
 pub struct LintLevels {
-    /// Set lint warnings
-    #[arg(long, short = 'W')]
     warn: Vec<CodeOrLevel>,
-    /// Set lint allowed
-    #[arg(long, short = 'A')]
     allow: Vec<CodeOrLevel>,
-    /// Set lint denied
-    #[arg(long, short = 'D')]
     deny: Vec<CodeOrLevel>,
 }
 
-#[derive(clap::Parser, Debug)]
 pub struct Args {
-    /// Path to the config to use
-    ///
-    /// Defaults to <cwd>/deny.toml if not specified
-    #[arg(short, long)]
-    pub config: Option<PathBuf>,
-
-    /// Path to cargo metadata json
-    ///
-    /// By default we use `cargo metadata` to generate
-    /// the metadata json, but you can override that behaviour by
-    /// providing the path to cargo metadata.
-    #[arg(long)]
-    pub metadata_path: Option<PathBuf>,
-
-    /// Path to graph output root directory
-    ///
-    /// If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
-    ///
-    /// Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
-    #[arg(short, long)]
     pub graph: Option<PathBuf>,
-    /// Hides the inclusion graph when printing out info for a crate
-    #[arg(long)]
     pub hide_inclusion_graph: bool,
-    /// Disable fetching of the advisory database
-    ///
-    /// When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
-    #[arg(short, long)]
-    pub disable_fetch: bool,
-    /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
-    #[arg(long)]
-    pub exclude_dev: bool,
-    /// To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
-    ///
-    /// Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
-    #[arg(long)]
     pub audit_compatible_output: bool,
-    /// Show stats for all the checks, regardless of the log-level
-    #[arg(short, long)]
     pub show_stats: bool,
-    #[command(flatten)]
     pub lint_levels: LintLevels,
-    /// Specifies the depth at which feature edges are added in inclusion graphs
-    #[arg(long, conflicts_with = "hide_inclusion_graph")]
     pub feature_depth: Option<u32>,
-    /// The check(s) to perform
-    #[arg(value_enum)]
     pub which: Vec<WhichCheck>,
+}
+
+impl Args {
+    pub fn cmd() -> Command {
+        use clap::builder::TypedValueParser;
+
+        Command::new("check")
+            .about("Checks a project's crate graph")
+            .args([
+                Arg::new("GRAPH").short('g').long("graph").help("Path to graph output root directory.").long_help("If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.\n\nEach file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.").value_parser(crate::PathParser).value_hint(clap::ValueHint::DirPath),
+                Arg::new("hide-inclusion").long("hide-inclusion-graph").help("Hide the inclusion graph when printing out info for a crate.").action(clap::ArgAction::SetTrue),
+                Arg::new("audit-compat").long("audit-compatible-output").help("To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.").long_help("Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.").action(clap::ArgAction::SetTrue),
+                Arg::new("show-stats").short('s').long("show-stats").help("Show stats for all the checks, regardless of the log-level.").action(clap::ArgAction::SetTrue),
+                Arg::new("WARN")
+                    .short('W')
+                    .long("warn")
+                    .help("Set lint warnings.")
+                    .value_parser(CodeOrLevelParser)
+                    .action(clap::ArgAction::Append),
+                Arg::new("ALLOW")
+                    .short('A')
+                    .long("allow")
+                    .help("Set lint allowed.")
+                    .value_parser(CodeOrLevelParser)
+                    .action(clap::ArgAction::Append),
+                Arg::new("DENY")
+                    .short('D')
+                    .long("deny")
+                    .help("Set lint denied.")
+                    .value_parser(CodeOrLevelParser)
+                    .action(clap::ArgAction::Append),
+                Arg::new("FEATURE_DEPTH")
+                    .long("feature-depth")
+                    .help("Specifies the depth at which feature edges are added in inclusion graphs.")
+                    .conflicts_with("hide-inclusion")
+                    .value_parser(
+                        clap::builder::StringValueParser::new().try_map(|s| s.parse::<u32>()),
+                    ),
+                Arg::new("WHICH")
+                    .help("The check(s) to perform.")
+                    .value_parser(WhichParser)
+                    .action(clap::ArgAction::Append),
+            ])
+    }
+
+    pub fn parse(args: &mut clap::ArgMatches) -> Self {
+        let graph = args.remove_one("GRAPH");
+        let hide_inclusion_graph = args.get_flag("hide-inclusion");
+        let audit_compatible_output = args.get_flag("audit-compat");
+        let show_stats = args.get_flag("show-stats");
+        let lint_levels = LintLevels {
+            warn: args
+                .remove_many("WARN")
+                .map_or(Default::default(), |v| v.collect()),
+            allow: args
+                .remove_many("ALLOW")
+                .map_or(Default::default(), |v| v.collect()),
+            deny: args
+                .remove_many("DENY")
+                .map_or(Default::default(), |v| v.collect()),
+        };
+        let feature_depth = args.remove_one("FEATURE_DEPTH");
+        let which = args
+            .remove_many("WHICH")
+            .map_or(Default::default(), |v| v.collect());
+
+        Self {
+            graph,
+            hide_inclusion_graph,
+            audit_compatible_output,
+            show_stats,
+            lint_levels,
+            feature_depth,
+            which,
+        }
+    }
 }
 
 pub(crate) fn cmd(
@@ -137,48 +189,39 @@ pub(crate) fn cmd(
         graph,
         output,
     } = ValidConfig::load(
-        krate_ctx.get_config_path(args.config.as_deref())?,
+        krate_ctx.get_config_path()?,
         krate_ctx.get_local_exceptions_path(),
         &mut files,
         log_ctx,
     )?;
 
-    let metadata = if let Some(metadata_path) = args.metadata_path {
-        let data = std::fs::read_to_string(metadata_path).context("metadata path")?;
-        Some(serde_json::from_str(&data).context("cargo metadata")?)
+    let (check_advisories, check_bans, check_licenses, check_sources) = if args.which.is_empty() {
+        (true, true, true, true)
     } else {
-        None
+        args.which.iter().fold(
+            (false, false, false, false),
+            |(a, b, l, s), which| match which {
+                WhichCheck::Advisories => (true, b, l, s),
+                WhichCheck::Bans => (a, true, l, s),
+                WhichCheck::Licenses => (a, b, true, s),
+                WhichCheck::Sources => (a, b, l, true),
+                WhichCheck::All => (true, true, true, true),
+            },
+        )
     };
-
-    let check_advisories = args.which.is_empty()
-        || args
-            .which
-            .iter()
-            .any(|w| *w == WhichCheck::Advisories || *w == WhichCheck::All);
-
-    let check_bans = args.which.is_empty()
-        || args
-            .which
-            .iter()
-            .any(|w| *w == WhichCheck::Bans || *w == WhichCheck::Ban || *w == WhichCheck::All);
-
-    let check_licenses = args.which.is_empty()
-        || args.which.iter().any(|w| {
-            *w == WhichCheck::Licenses || *w == WhichCheck::License || *w == WhichCheck::All
-        });
-
-    let check_sources = args.which.is_empty()
-        || args
-            .which
-            .iter()
-            .any(|w| *w == WhichCheck::Sources || *w == WhichCheck::All);
 
     let feature_depth = args.feature_depth.or(output.feature_depth);
 
     krate_ctx.all_features |= graph.all_features;
     krate_ctx.no_default_features |= graph.no_default_features;
-    krate_ctx.exclude_dev |= graph.exclude_dev | args.exclude_dev;
+    krate_ctx.exclude_dev |= graph.exclude_dev;
     krate_ctx.exclude_unpublished |= graph.exclude_unpublished;
+
+    // Previously we had a separate check-only flag to disable fetching the advisory database (and std-replacement, but that wasn't released before the arg parsing refactor)
+    // but now we just use this single flag that is used for all subcommands, the fetch subcommand has the ability to fetch
+    // all the remote data that can be used by checks, and typically the kind of user who is disabling fetching of advisory databases
+    // at runtime is someone who was setting this flag to disable all network access already
+    let offline = krate_ctx.offline;
 
     // If not specified on the cmd line, fallback to the feature related config options
     if krate_ctx.features.is_empty() {
@@ -254,7 +297,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            krates = Some(krate_ctx.gather_krates(metadata, graph.targets, graph.exclude));
+            krates = Some(krate_ctx.gather_krates(graph.targets, graph.exclude));
         });
 
         if check_advisories {
@@ -266,7 +309,7 @@ pub(crate) fn cmd(
                         .iter()
                         .map(|us| us.as_ref().clone())
                         .collect(),
-                    if args.disable_fetch {
+                    if offline {
                         advisories::Fetch::Disallow(advisories.maximum_db_staleness.value)
                     } else if advisories.git_fetch_with_cli {
                         advisories::Fetch::AllowWithGitCli
@@ -280,7 +323,7 @@ pub(crate) fn cmd(
         if check_bans
             && let Some(stdr) = &bans.std_replacements
             && !matches!(stdr.scope, cargo_deny::cfg::Scope::None)
-            && !args.disable_fetch
+            && !offline
         {
             s.spawn(|_| {
                 let start = std::time::Instant::now();

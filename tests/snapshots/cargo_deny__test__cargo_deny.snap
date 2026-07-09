@@ -15,28 +15,22 @@ Commands:
 
 Options:
   -L, --log-level <LOG_LEVEL>
-          The log level for messages
+          The log level for messages.
           
-          Only log messages at or above the level will be emitted.
-          
-          Possible values:
-          * off
-          * error
-          * warn
-          * info
-          * debug
-          * trace
-          
+          Only messages at or above the level will be emitted
           
           [default: warn]
+          [possible values: off, error, warn, info, debug, trace]
 
   -f, --format <FORMAT>
-          Specify the format of cargo-deny's output
+          The output format.
           
           [default: human]
           [possible values: human, json, sarif]
 
   -c, --color <COLOR>
+          Controls output coloring.
+          
           [env: CARGO_TERM_COLOR]
           [default: auto]
           [possible values: auto, always, never]
@@ -46,6 +40,12 @@ Options:
           
           By default, the Cargo.toml in the current working directory is used.
 
+      --metadata-path <METADATA_PATH>
+          By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to the output of `cargo metadata`.
+
+      --config <CONFIG_PATH>
+          Defaults to <cwd>/deny.toml if not specified.
+
       --workspace
           If passed, all workspace packages are used as roots for the crate graph.
           
@@ -53,46 +53,45 @@ Options:
           
           Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
 
-      --exclude <EXCLUDE>
-          One or more crates to exclude from the crate graph that is used.
+      --exclude <CRATE>
+          One or more crates to exclude from the crate graph.
           
           NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
 
-  -t, --target <TARGET>
-          One or more platforms to filter crates by
+  -t, --target <CFG>
+          One or more platforms to filter crates by.
           
           If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
 
       --all-features
-          Activate all available features
+          Activate all available features.
 
       --no-default-features
-          Do not activate the `default` feature
+          Do not activate the `default` feature.
 
       --features <FEATURES>
-          Space or comma separated list of features to activate
+          List of features to activate
 
       --frozen
-          Equivalent to specifying both `--locked` and `--offline`
+          Equivalent to specifying both `--locked` and `--offline`.
 
       --offline
           Run without accessing the network.
           
-          If used with the `check` subcommand, this disables advisory database fetching
+          Disables fetching crates, advisory databases, and std-replacement-data
 
       --locked
-          Assert that `Cargo.lock` will remain unchanged
-
-      --allow-git-index
-          If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled only if using a cargo < 1.70.0 without the sparse protocol enabled
+          Assert that `Cargo.lock` will remain unchanged.
 
       --exclude-dev
-          If set, excludes all dev-dependencies, not just ones for non-workspace crates
+          Exclude dev-dependencies for workspace crates.
 
       --exclude-unpublished
-          If set, exclude unpublished workspace members from graph roots.
+          Exclude unpublished workspace members from graph roots.
           
-          Workspace members are considered unpublished if they they are explicitly marked with `publish = false`. Note that the excluded workspace members are still used for the initial dependency resolution by cargo, which might affect the exact version of used dependencies.
+          Workspace members are considered unpublished if they they are explicitly marked with `publish = false`.
+          
+          Note that the excluded workspace members are still used for the initial dependency resolution by cargo, which might affect the exact version of used dependencies.
 
   -h, --help
           Print help (see a summary with '-h')

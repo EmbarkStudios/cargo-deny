@@ -2,7 +2,7 @@
 
 use anyhow::{Context as _, Error};
 use cargo_deny::PathBuf;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Arg, ArgMatches, Command};
 
 mod check;
 mod common;
@@ -11,141 +11,216 @@ mod init;
 mod list;
 mod stats;
 
-#[derive(Subcommand, Debug)]
-enum Command {
-    /// Checks a project's crate graph
-    #[command(name = "check")]
+use crate::common::PathParser;
+
+enum Subcommand {
     Check(check::Args),
-    /// Fetches remote data
-    #[command(name = "fetch")]
     Fetch(fetch::Args),
-    /// Creates a cargo-deny config from a template
-    #[command(name = "init")]
     Init(init::Args),
-    /// Outputs a listing of all licenses and the crates that use them
-    #[command(name = "list")]
     List(list::Args),
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+impl Subcommand {
+    fn fill(cmd: Command) -> Command {
+        cmd.subcommand(check::Args::cmd())
+            .subcommand(fetch::Args::cmd())
+            .subcommand(init::Args::cmd())
+            .subcommand(list::Args::cmd())
+            .subcommand_required(true)
+    }
+}
+
+crate::enum_args!(log::LevelFilter : LevelParser => {
+    "off" => Off,
+    "error" => Error,
+    "warn" => Warn,
+    "info" => Info,
+    "debug" => Debug,
+    "trace" => Trace,
+});
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Format {
     Human,
     Json,
     Sarif,
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug)]
+crate::enum_args!(Format : FormatParser => {
+    "human" => Human,
+    "json" => Json,
+    "sarif" => Sarif,
+});
+
+#[derive(Copy, Clone, Debug)]
 pub enum Color {
     Auto,
     Always,
     Never,
 }
 
-fn parse_level(s: &str) -> Result<log::LevelFilter, Error> {
-    s.parse::<log::LevelFilter>()
-        .with_context(|| format!("failed to parse level '{s}'"))
+crate::enum_args!(Color : ColorParser => {
+    "auto" => Auto,
+    "always" => Always,
+    "never" => Never,
+});
+
+#[derive(Clone)]
+struct TargetParser;
+
+impl clap::builder::TypedValueParser for TargetParser {
+    type Value = &'static str;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let Some(v) = value.to_str() else {
+            return Err(clap_err!(InvalidUtf8, cmd));
+        };
+
+        cfg_expr::targets::get_builtin_target_by_triple(v)
+            .ok_or_else(|| clap_err_invalid_value!(v, arg, cmd))
+            .map(|t| t.triple.0.as_ref())
+    }
+
+    fn possible_values(
+        &self,
+    ) -> Option<Box<dyn Iterator<Item = clap::builder::PossibleValue> + '_>> {
+        // We _could_ list all of the builtin target triples here, but that's maybe a bit much...
+        None
+    }
 }
 
-#[derive(Parser)]
-#[command(rename_all = "kebab-case")]
 pub(crate) struct GraphContext {
-    /// The path of a Cargo.toml to use as the context for the operation.
-    ///
-    /// By default, the Cargo.toml in the current working directory is used.
-    #[arg(long)]
     pub(crate) manifest_path: Option<PathBuf>,
-    /// If passed, all workspace packages are used as roots for the crate graph.
-    ///
-    /// Automatically assumed if the manifest path points to a virtual manifest.
-    ///
-    /// Normally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.
-    #[arg(long)]
+    pub(crate) metadata_path: Option<PathBuf>,
+    pub(crate) config: Option<PathBuf>,
     pub(crate) workspace: bool,
-    /// One or more crates to exclude from the crate graph that is used.
-    ///
-    /// NOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.
-    #[arg(long)]
     pub(crate) exclude: Vec<String>,
-    /// One or more platforms to filter crates by
-    ///
-    /// If a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.
-    #[arg(short, long)]
-    pub(crate) target: Vec<String>,
-    /// Activate all available features
-    #[arg(long)]
+    pub(crate) target: Vec<&'static str>,
     pub(crate) all_features: bool,
-    /// Do not activate the `default` feature
-    #[arg(long)]
     pub(crate) no_default_features: bool,
-    /// Space or comma separated list of features to activate
-    #[arg(long, value_delimiter = ',')]
     pub(crate) features: Vec<String>,
-    /// Equivalent to specifying both `--locked` and `--offline`
-    #[arg(long)]
     pub(crate) frozen: bool,
-    /// Run without accessing the network.
-    ///
-    /// If used with the `check` subcommand, this disables advisory database
-    /// fetching
-    #[arg(long)]
     pub(crate) offline: bool,
-    /// Assert that `Cargo.lock` will remain unchanged
-    #[arg(long)]
     pub(crate) locked: bool,
-    /// If set, the crates.io git index is initialized for use in fetching crate information, otherwise it is enabled
-    /// only if using a cargo < 1.70.0 without the sparse protocol enabled
-    #[arg(long)]
-    pub(crate) allow_git_index: bool,
-    /// If set, excludes all dev-dependencies, not just ones for non-workspace crates
-    #[arg(long)]
     pub(crate) exclude_dev: bool,
-    /// If set, exclude unpublished workspace members from graph roots.
-    ///
-    /// Workspace members are considered unpublished if they they are explicitly marked with `publish = false`.
-    /// Note that the excluded workspace members are still used for the initial dependency resolution by cargo,
-    /// which might affect the exact version of used dependencies.
-    #[arg(long)]
     pub(crate) exclude_unpublished: bool,
 }
 
-/// Lints your project's crate graph
-#[derive(Parser)]
-#[command(author, version, about, long_about = None, rename_all = "kebab-case", max_term_width = 80)]
-struct Opts {
-    /// The log level for messages
-    #[arg(
-        short = 'L',
-        long = "log-level",
-        default_value = "warn",
-        value_parser = parse_level,
-        long_help = "The log level for messages
+impl GraphContext {
+    fn fill(cmd: Command) -> Command {
+        cmd.args([
+            Arg::new("MANIFEST_PATH").long("manifest-path").help("The path of a Cargo.toml to use as the context for the operation.").long_help("The path of a Cargo.toml to use as the context for the operation.\n\nBy default, the Cargo.toml in the current working directory is used.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
+            Arg::new("METADATA_PATH").long("metadata-path").help("Path to cargo metadata json.").long_help("By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to the output of `cargo metadata`.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
+            Arg::new("CONFIG_PATH").long("config").help("Path to the config to use.").long_help("Defaults to <cwd>/deny.toml if not specified.").value_parser(PathParser).value_hint(clap::ValueHint::FilePath),
+            Arg::new("workspace").long("workspace").help("If passed, all workspace packages are used as roots for the crate graph.").long_help("If passed, all workspace packages are used as roots for the crate graph.\n\nAutomatically assumed if the manifest path points to a virtual manifest.\n\nNormally, if you specify a manifest path that is a member of a workspace, that crate will be the sole root of the crate graph, meaning only other workspace members that are dependencies of that workspace crate will be included in the graph. This overrides that behavior to include all workspace members.").action(clap::ArgAction::SetTrue),
+            Arg::new("exclude").long("exclude").help("One or more crates to exclude from the crate graph.").long_help("One or more crates to exclude from the crate graph.\n\nNOTE: Unlike cargo, this does not have to be used with the `--workspace` flag.").value_name("CRATE").action(clap::ArgAction::Append),
+            Arg::new("target").short('t').long("target").help("One or more platforms to filter crates by.").long_help("One or more platforms to filter crates by.\n\nIf a dependency is target specific, it will be ignored if it does not match 1 or more of the specified targets. This option overrides the top-level `targets = []` configuration value.").value_parser(TargetParser).value_name("CFG"),
+            Arg::new("all-features").long("all-features").help("Activate all available features.").action(clap::ArgAction::SetTrue),
+            Arg::new("no-default-features").long("no-default-features").help("Do not activate the `default` feature.").action(clap::ArgAction::SetTrue),
+            Arg::new("FEATURES").long("features").help("List of features to activate").value_delimiter(',').action(clap::ArgAction::Append),
+            Arg::new("frozen").long("frozen").help("Equivalent to specifying both `--locked` and `--offline`.").action(clap::ArgAction::SetTrue),
+            Arg::new("offline").long("offline").help("Run without accessing the network.").long_help("Run without accessing the network.\n\nDisables fetching crates, advisory databases, and std-replacement-data").action(clap::ArgAction::SetTrue),
+            Arg::new("locked").long("locked").help("Assert that `Cargo.lock` will remain unchanged.").action(clap::ArgAction::SetTrue),
+            Arg::new("exclude-dev").long("exclude-dev").help("Exclude dev-dependencies for workspace crates.").action(clap::ArgAction::SetTrue),
+            Arg::new("exclude-unpublished").long("exclude-unpublished").help("Exclude unpublished workspace members from graph roots.").long_help(
+                "Exclude unpublished workspace members from graph roots.\n\nWorkspace members are considered unpublished if they they are explicitly marked with `publish = false`.\n\nNote that the excluded workspace members are still used for the initial dependency resolution by cargo, which might affect the exact version of used dependencies.").action(clap::ArgAction::SetTrue),
+        ])
+    }
 
-Only log messages at or above the level will be emitted.
+    fn parse(args: &mut ArgMatches) -> Self {
+        let manifest_path = args.remove_one("MANIFEST_PATH");
+        let metadata_path = args.remove_one("METADATA_PATH");
+        let config = args.remove_one("CONFIG_PATH");
+        let workspace = args.get_flag("workspace");
+        let exclude = args
+            .remove_many("exclude")
+            .map_or(Default::default(), |v| v.collect());
+        let target = args
+            .remove_many("target")
+            .map_or(Default::default(), |v| v.collect());
+        let all_features = args.get_flag("all-features");
+        let no_default_features = args.get_flag("no-default-features");
+        let features = args
+            .remove_many("FEATURES")
+            .map_or(Default::default(), |v| v.collect());
+        let frozen = args.get_flag("frozen");
+        let offline = frozen || args.get_flag("offline");
+        let locked = frozen || args.get_flag("locked");
+        let exclude_dev = args.get_flag("exclude-dev");
+        let exclude_unpublished = args.get_flag("exclude-unpublished");
 
-Possible values:
-* off
-* error
-* warn
-* info
-* debug
-* trace
-")]
+        Self {
+            manifest_path,
+            metadata_path,
+            config,
+            workspace,
+            exclude,
+            target,
+            all_features,
+            no_default_features,
+            features,
+            frozen,
+            offline,
+            locked,
+            exclude_dev,
+            exclude_unpublished,
+        }
+    }
+}
+
+struct Args {
     log_level: log::LevelFilter,
-    /// Specify the format of cargo-deny's output
-    #[arg(short, long, default_value = "human", value_enum)]
     format: Format,
-    #[arg(
-        short,
-        long,
-        default_value = "auto",
-        value_enum,
-        env = "CARGO_TERM_COLOR"
-    )]
     color: Color,
-    #[clap(flatten)]
     ctx: GraphContext,
-    #[clap(subcommand)]
-    cmd: Command,
+    cmd: Subcommand,
+}
+
+impl Args {
+    fn command() -> Command {
+        let cmd = clap::Command::new("cargo-deny")
+            .version(env!("CARGO_PKG_VERSION"))
+            .author(env!("CARGO_PKG_AUTHORS"))
+            .about(env!("CARGO_PKG_DESCRIPTION"))
+            .help_expected(true)
+            .args([
+                Arg::new("LOG_LEVEL").short('L').long("log-level").default_value("warn").value_parser(LevelParser).help("The log level for messages.").long_help("The log level for messages.\n\nOnly messages at or above the level will be emitted"),
+                Arg::new("FORMAT").short('f').long("format").default_value("human").value_parser(FormatParser).help("The output format."),
+                Arg::new("COLOR").short('c').long("color").default_value("auto").value_parser(ColorParser).env("CARGO_TERM_COLOR").help("Controls output coloring."),
+            ]);
+
+        let cmd = GraphContext::fill(cmd);
+        Subcommand::fill(cmd)
+    }
+
+    fn parse(args: &mut ArgMatches) -> Self {
+        let log_level = *args.get_one("LOG_LEVEL").unwrap();
+        let format = *args.get_one("FORMAT").unwrap();
+        let color = *args.get_one("COLOR").unwrap();
+
+        let ctx = GraphContext::parse(args);
+        let (name, mut args) = args.remove_subcommand().unwrap();
+        let cmd = match name.as_str() {
+            "check" => Subcommand::Check(check::Args::parse(&mut args)),
+            "fetch" => Subcommand::Fetch(fetch::Args::parse(&mut args)),
+            "list" => Subcommand::List(list::Args::parse(&mut args)),
+            "init" => Subcommand::Init(init::Args::parse(&mut args)),
+            _ => unreachable!(),
+        };
+
+        Self {
+            log_level,
+            format,
+            color,
+            ctx,
+            cmd,
+        }
+    }
 }
 
 fn setup_logger(
@@ -176,9 +251,6 @@ fn setup_logger(
             }
 
             let now = Human(jiff::Zoned::now());
-
-            // const HUMAN: &[time::format_description::FormatItem<'static>] =
-            //     time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
             if color {
                 fern::Dispatch::new()
@@ -262,11 +334,10 @@ fn setup_logger(
 }
 
 fn real_main() -> Result<(), Error> {
-    let args = Opts::parse_from({
-        std::env::args()
-            .enumerate()
-            .filter_map(|(i, a)| if i == 1 && a == "deny" { None } else { Some(a) })
-    });
+    let cmd = Args::command();
+    let mut args = cmd.get_matches();
+
+    let args = Args::parse(&mut args);
 
     let log_level = args.log_level;
 
@@ -317,6 +388,8 @@ fn real_main() -> Result<(), Error> {
 
     let krate_ctx = common::KrateContext {
         manifest_path,
+        metadata_path: args.ctx.metadata_path,
+        config_path: args.ctx.config,
         workspace: args.ctx.workspace,
         exclude: args.ctx.exclude,
         targets: args.ctx.target,
@@ -337,16 +410,8 @@ fn real_main() -> Result<(), Error> {
     };
 
     match args.cmd {
-        Command::Check(mut cargs) => {
+        Subcommand::Check(cargs) => {
             let show_stats = cargs.show_stats;
-
-            if args.ctx.offline || args.ctx.frozen {
-                log::info!(
-                    "network access disabled via --offline (or --frozen) flag, disabling advisory database fetching"
-                );
-                cargs.disable_fetch = true;
-            }
-
             let stats = check::cmd(log_ctx, cargs, krate_ctx)?;
 
             if let Some(exit_code) =
@@ -357,9 +422,9 @@ fn real_main() -> Result<(), Error> {
 
             Ok(())
         }
-        Command::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
-        Command::Init(iargs) => init::cmd(iargs, krate_ctx),
-        Command::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
+        Subcommand::Fetch(fargs) => fetch::cmd(log_ctx, fargs, krate_ctx),
+        Subcommand::Init(iargs) => init::cmd(iargs, krate_ctx),
+        Subcommand::List(largs) => list::cmd(log_ctx, largs, krate_ctx),
     }
 }
 
@@ -440,13 +505,11 @@ mod test {
 
     #[test]
     fn cli_snapshot() {
-        use clap::CommandFactory;
-
         insta::with_settings!({
             snapshot_path => "../../tests/snapshots",
         }, {
             snapshot_test_cli_command(
-                super::Opts::command().name("cargo_deny"),
+                super::Args::command().name("cargo_deny"),
                 "cargo_deny".to_owned(),
             );
         });

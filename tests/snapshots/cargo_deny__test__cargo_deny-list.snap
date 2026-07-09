@@ -7,33 +7,21 @@ Outputs a listing of all licenses and the crates that use them
 Usage: list [OPTIONS]
 
 Options:
-  -c, --config <CONFIG>
-          Path to the config to use
-          
-          Defaults to a deny.toml in the same folder as the manifest path, or a deny.toml in a parent directory.
-
-      --metadata-path <METADATA_PATH>
-          Path to cargo metadata json
-          
-          By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to cargo metadata.
-
   -t, --threshold <THRESHOLD>
-          Minimum confidence threshold for license text
-          
-          When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed.
+          When determining the license from file contents, a confidence score is assigned according to how close the contents are to the canonical license text. If the confidence score is below this threshold, they license text will ignored, which might mean the crate is treated as unlicensed. This overrides the `licenses.confidence-threshold` configuration field.
           
           [possible values: 0.0 - 1.0]
           
           [default: 0.8]
 
   -f, --format <FORMAT>
-          The format of the output
+          The format of the output.
           
           [default: human]
           [possible values: human, json, tsv]
 
   -l, --layout <LAYOUT>
-          The layout for the output, does not apply to TSV
+          The layout for the output, does not apply to TSV.
           
           [default: license]
           [possible values: crate, license]

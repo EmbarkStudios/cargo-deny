@@ -362,7 +362,7 @@ pub fn check(
 
 use std::fmt;
 
-#[derive(clap::ValueEnum, Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum OutputFormat {
     Human,
     Json,
@@ -379,7 +379,7 @@ impl fmt::Display for OutputFormat {
     }
 }
 
-#[derive(clap::ValueEnum, Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Layout {
     Crate,
     License,

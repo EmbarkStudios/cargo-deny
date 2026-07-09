@@ -4,22 +4,17 @@ expression: help_text
 ---
 Fetches remote data
 
-Usage: fetch [OPTIONS] [SOURCES]...
+Usage: fetch [SOURCES]...
 
 Arguments:
   [SOURCES]...
-          The sources to fetch
+          The sources to fetch.
           
           [possible values: db, index, std-replacement, all]
 
 Options:
-  -c, --config <CONFIG>
-          Path to the config to use
-          
-          Defaults to <cwd>/deny.toml if not specified
-
   -h, --help
-          Print help (see a summary with '-h')
+          Print help
 
   -V, --version
           Print version

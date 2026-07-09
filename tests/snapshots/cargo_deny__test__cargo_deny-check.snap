@@ -8,58 +8,36 @@ Usage: check [OPTIONS] [WHICH]...
 
 Arguments:
   [WHICH]...
-          The check(s) to perform
+          The check(s) to perform.
           
-          [possible values: advisories, ban, bans, license, licenses, sources, all]
+          [possible values: advisories, bans, licenses, sources, all]
 
 Options:
-  -c, --config <CONFIG>
-          Path to the config to use
-          
-          Defaults to <cwd>/deny.toml if not specified
-
-      --metadata-path <METADATA_PATH>
-          Path to cargo metadata json
-          
-          By default we use `cargo metadata` to generate the metadata json, but you can override that behaviour by providing the path to cargo metadata.
-
   -g, --graph <GRAPH>
-          Path to graph output root directory
-          
           If set, a dotviz graph will be created for whenever multiple versions of the same crate are detected.
           
           Each file will be created at `<dir>/graph_output/<crate_name>.dot`. `<dir>/graph_output/*` is deleted and recreated each run.
 
       --hide-inclusion-graph
-          Hides the inclusion graph when printing out info for a crate
-
-  -d, --disable-fetch
-          Disable fetching of the advisory database
-          
-          When running the `advisories` check, the configured advisory database will be fetched and opened. If this flag is passed, the database won't be fetched, but an error will occur if it doesn't already exist locally.
-
-      --exclude-dev
-          If set, excludes all dev-dependencies, not just ones for non-workspace crates
+          Hide the inclusion graph when printing out info for a crate.
 
       --audit-compatible-output
-          To ease transition from cargo-audit to cargo-deny, this flag will tell cargo-deny to output the exact same output as cargo-audit would, to `stdout` instead of `stderr`, just as with cargo-audit.
-          
           Note that this flag only applies when the output format is JSON, and note that since cargo-deny supports multiple advisory databases, instead of a single JSON object, there will be 1 for each unique advisory database.
 
   -s, --show-stats
-          Show stats for all the checks, regardless of the log-level
+          Show stats for all the checks, regardless of the log-level.
 
   -W, --warn <WARN>
-          Set lint warnings
+          Set lint warnings.
 
   -A, --allow <ALLOW>
-          Set lint allowed
+          Set lint allowed.
 
   -D, --deny <DENY>
-          Set lint denied
+          Set lint denied.
 
       --feature-depth <FEATURE_DEPTH>
-          Specifies the depth at which feature edges are added in inclusion graphs
+          Specifies the depth at which feature edges are added in inclusion graphs.
 
   -h, --help
           Print help (see a summary with '-h')

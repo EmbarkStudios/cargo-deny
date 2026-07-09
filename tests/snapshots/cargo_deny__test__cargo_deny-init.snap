@@ -4,18 +4,11 @@ expression: help_text
 ---
 Creates a cargo-deny config from a template
 
-Usage: init [CONFIG]
-
-Arguments:
-  [CONFIG]
-          The path to create
-          
-          Defaults to <cwd>/deny.toml
+Usage: init
 
 Options:
   -h, --help
-          Print help (see a summary with '-h')
+          Print help
 
   -V, --version
           Print version
-

@@ -9,6 +9,97 @@ use cargo_deny::{
 mod cfg;
 pub use cfg::ValidConfig;
 
+#[macro_export]
+macro_rules! clap_err {
+    ($kind:ident, $cmd:expr) => {
+        clap::Error::new(clap::error::ErrorKind::$kind).with_cmd($cmd)
+    };
+}
+
+#[macro_export]
+macro_rules! clap_err_invalid_value {
+    ($v:expr, $arg:expr, $cmd:expr) => {{
+        let mut err = clap::Error::new(clap::error::ErrorKind::ValueValidation).with_cmd($cmd);
+        err.insert(
+            clap::error::ContextKind::InvalidValue,
+            clap::error::ContextValue::String($v.to_owned()),
+        );
+        err.insert(
+            clap::error::ContextKind::InvalidArg,
+            clap::error::ContextValue::String(
+                $arg.map(ToString::to_string)
+                    .unwrap_or_else(|| "...".to_owned()),
+            ),
+        );
+        err
+    }};
+}
+
+#[macro_export]
+macro_rules! enum_args {
+    ($kind:ty : $parser:ident => { $($name:literal => $value:ident),*$(,)? }) => {
+        #[derive(Clone)]
+        struct $parser;
+
+        impl clap::builder::TypedValueParser for $parser {
+            type Value = $kind;
+
+            fn parse_ref(
+                &self,
+                cmd: &clap::Command,
+                arg: Option<&clap::Arg>,
+                value: &std::ffi::OsStr,
+            ) -> Result<Self::Value, clap::Error> {
+                let Some(v) = value.to_str() else {
+                    return Err($crate::clap_err!(InvalidUtf8, cmd));
+                };
+
+                let v = match v {
+                    $(
+                        $name => <$kind>::$value,
+                    )*
+                    _ => return Err($crate::clap_err_invalid_value!(v, arg, cmd))
+                };
+
+                Ok(v)
+            }
+
+            fn possible_values(
+                &self,
+            ) -> Option<Box<dyn Iterator<Item = clap::builder::PossibleValue> + '_>> {
+                Some(Box::new(
+                    [
+                        $(
+                            clap::builder::PossibleValue::new($name),
+                        )*
+                    ]
+                    .into_iter(),
+                ))
+            }
+        }
+    };
+}
+
+#[derive(Clone)]
+pub struct PathParser;
+
+impl clap::builder::TypedValueParser for PathParser {
+    type Value = crate::PathBuf;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        _arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let Some(p) = value.to_str() else {
+            return Err(clap_err!(InvalidUtf8, cmd));
+        };
+
+        Ok(crate::PathBuf::from(p.to_owned()))
+    }
+}
+
 pub(crate) fn load_license_store() -> Result<LicenseStore, anyhow::Error> {
     log::debug!("loading license store...");
     LicenseStore::from_cache()
@@ -25,26 +116,24 @@ pub(crate) fn current_dir_utf8() -> anyhow::Result<PathBuf> {
     Ok(current_dir)
 }
 
-fn single_target(
-    cmd_targets: &[String],
-    cfg_targets: &[Target],
-    f: impl FnOnce(std::borrow::Cow<'_, str>),
-) {
+fn single_target(cmd_targets: &[&'static str], cfg_targets: &[Target], f: impl FnOnce(&str)) {
     if let Some(targ) = cmd_targets.first().filter(|_| cmd_targets.len() == 1) {
-        f(targ.into());
+        f(targ);
     } else if let Some(targ) = cfg_targets
         .first()
         .filter(|_| cfg_targets.len() == 1 && cmd_targets.is_empty())
     {
-        f(targ.filter.value.to_string().into());
+        f(&targ.filter.value.to_string());
     }
 }
 
 pub struct KrateContext {
     pub manifest_path: PathBuf,
+    pub config_path: Option<PathBuf>,
+    pub metadata_path: Option<PathBuf>,
     pub workspace: bool,
     pub exclude: Vec<String>,
-    pub targets: Vec<String>,
+    pub targets: Vec<&'static str>,
     pub no_default_features: bool,
     pub all_features: bool,
     pub features: Vec<String>,
@@ -56,20 +145,20 @@ pub struct KrateContext {
 }
 
 impl KrateContext {
-    pub fn get_config_path(&self, config_path: Option<&Path>) -> anyhow::Result<Option<PathBuf>> {
-        if let Some(config_path) = config_path {
+    pub fn get_config_path(&self) -> anyhow::Result<Option<PathBuf>> {
+        if let Some(config_path) = &self.config_path {
             let current_dir = current_dir_utf8()?;
-            Self::resolve_config_path(&current_dir, config_path).map(Some)
+            Ok(Some(Self::resolve_config_path(&current_dir, config_path)))
         } else {
             Ok(Self::default_config_path(&self.manifest_path))
         }
     }
 
-    fn resolve_config_path(current_dir: &Path, config_path: &Path) -> anyhow::Result<PathBuf> {
+    fn resolve_config_path(current_dir: &Path, config_path: &Path) -> PathBuf {
         if config_path.is_absolute() {
-            Ok(config_path.to_owned())
+            config_path.to_owned()
         } else {
-            Ok(current_dir.join(config_path))
+            current_dir.join(config_path)
         }
     }
 
@@ -151,7 +240,6 @@ impl KrateContext {
 
     pub fn gather_krates(
         self,
-        metadata: Option<krates::cm::Metadata>,
         cfg_targets: Vec<Target>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
@@ -159,8 +247,11 @@ impl KrateContext {
         let start = std::time::Instant::now();
 
         log::debug!("gathering crate metadata");
-        let metadata = if let Some(md) = metadata {
-            md
+        let metadata = if let Some(md) = self.metadata_path {
+            let data = std::fs::read_to_string(&md)
+                .with_context(|| format!("failed to read metadata JSON from {md}"))?;
+            serde_json::from_str(&data)
+                .with_context(|| format!("failed to deserialize metadata JSON from {md}"))?
         } else {
             Self::get_metadata(
                 MetadataOptions {
@@ -223,8 +314,8 @@ impl KrateContext {
         }
         if self.exclude_unpublished {
             gb.include_workspace_crates(metadata.workspace_packages().iter().filter_map(
-                |package| match package.publish {
-                    Some(ref registries) if registries.is_empty() => None,
+                |package| match &package.publish {
+                    Some(registries) if registries.is_empty() => None,
                     _ => Some(package.manifest_path.as_std_path()),
                 },
             ));
@@ -266,7 +357,7 @@ impl KrateContext {
 
     fn get_metadata(
         opts: MetadataOptions,
-        targets: &[String],
+        targets: &[&'static str],
         cfg_targets: &[Target],
     ) -> Result<krates::cm::Metadata, anyhow::Error> {
         let mut mdc = krates::Cmd::new();
@@ -288,7 +379,7 @@ impl KrateContext {
             });
 
         single_target(targets, cfg_targets, |target| {
-            mdc.other_options(["--filter-platform".to_owned(), target.into_owned()]);
+            mdc.other_options(["--filter-platform".to_owned(), target.to_owned()]);
         });
 
         let mdc: krates::cm::MetadataCommand = mdc.into();
@@ -308,7 +399,7 @@ struct MetadataOptions {
 
 fn fetch(
     opts: MetadataOptions,
-    cmd_targets: &[String],
+    cmd_targets: &[&'static str],
     cfg_targets: &[cargo_deny::root_cfg::Target],
 ) -> anyhow::Result<()> {
     use anyhow::Context as _;
@@ -332,7 +423,7 @@ fn fetch(
 
     single_target(cmd_targets, cfg_targets, |target| {
         cargo.arg("--target");
-        cargo.arg(target.into_owned());
+        cargo.arg(target);
     });
 
     cargo.stderr(std::process::Stdio::piped());
@@ -628,11 +719,11 @@ mod tests {
         let expected = current_dir.join("deny.toml");
 
         let abs_path = current_dir.join("deny.toml");
-        let actual = KrateContext::resolve_config_path(&current_dir, &abs_path).unwrap();
+        let actual = KrateContext::resolve_config_path(&current_dir, &abs_path);
         assert_eq!(actual, abs_path);
 
         let rel_path = Path::new("./deny.toml");
-        let actual = KrateContext::resolve_config_path(&current_dir, rel_path).unwrap();
+        let actual = KrateContext::resolve_config_path(&current_dir, rel_path);
         assert_eq!(actual, expected);
     }
 
