@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#884](https://github.com/EmbarkStudios/cargo-deny/pull/884) fixed snapshot filenames on Windows which caused the release binary publish to fail...again.
+
 ## [0.20.1] - 2026-07-09
 ### Fixed
 - [PR#883](https://github.com/EmbarkStudios/cargo-deny/pull/883) fixed snapshot filenames on Windows which caused the release binary publish to fail.

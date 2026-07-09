@@ -424,9 +424,9 @@ include-dev = true
 ",
     );
 
-    let name = func_name!();
+    let name = func_name!().replace("::", "_");
     let krates = krates();
-    let (_ctx, summary) = setup(&krates, name, cfg);
+    let (_ctx, summary) = setup(&krates, &name, cfg);
 
     let mut out = Vec::with_capacity(1024);
 
