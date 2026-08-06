@@ -340,6 +340,27 @@ unused = 'warn'
     insta::assert_json_snapshot!(diags);
 }
 
+/// Covers issue <https://github.com/EmbarkStudios/cargo-deny/issues/772>
+#[test]
+fn excluded_workspace_dependency_is_used() {
+    let (krates, filtered_krates) = KrateGather {
+        name: "workspace_exclude",
+        exclude: &["issue-772-dep"],
+        ..Default::default()
+    }
+    .gather_with_filtered();
+
+    let mut files = cargo_deny::diag::Files::new();
+    let spans = cargo_deny::diag::KrateSpans::synthesize_with_filtered(
+        &krates,
+        &filtered_krates,
+        func_name!(),
+        &mut files,
+    );
+
+    assert!(spans.unused_workspace_deps.is_empty());
+}
+
 /// Ensures skips generate warnings if they aren't needed
 #[test]
 fn unused_skips_generate_warnings() {
