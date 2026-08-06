@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["member"]
+exclude = ["dep"]
+
+[workspace.dependencies]
+issue-772-dep = { path = "dep" }

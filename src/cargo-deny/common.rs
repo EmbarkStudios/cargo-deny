@@ -243,6 +243,40 @@ impl KrateContext {
         cfg_targets: Vec<Target>,
         cfg_excludes: Vec<String>,
     ) -> Result<cargo_deny::Krates, anyhow::Error> {
+        self.gather_krates_with_callback(cfg_targets, cfg_excludes, |filtered| {
+            Self::log_filtered_krate(&filtered);
+        })
+    }
+
+    /// Gathers the crate graph and packages filtered from it.
+    ///
+    /// The filtered packages allow manifest-level checks to distinguish dependencies that Cargo
+    /// resolved from dependencies that are unused by the workspace.
+    pub fn gather_krates_with_filtered(
+        self,
+        cfg_targets: Vec<Target>,
+        cfg_excludes: Vec<String>,
+    ) -> Result<(cargo_deny::Krates, Vec<cargo_deny::Krate>), anyhow::Error> {
+        let mut filtered_krates = Vec::new();
+        let krates = self.gather_krates_with_callback(
+            cfg_targets,
+            cfg_excludes,
+            |filtered: krates::cm::Package| {
+                Self::log_filtered_krate(&filtered);
+                filtered_krates.push(filtered.into());
+            },
+        )?;
+
+        Ok((krates, filtered_krates))
+    }
+
+    /// Gathers the crate graph and reports filtered packages to `on_filter`.
+    fn gather_krates_with_callback(
+        self,
+        cfg_targets: Vec<Target>,
+        cfg_excludes: Vec<String>,
+        on_filter: impl krates::OnFilter,
+    ) -> Result<cargo_deny::Krates, anyhow::Error> {
         log::info!("gathering crates for {}", self.manifest_path);
         let start = std::time::Instant::now();
 
@@ -333,16 +367,7 @@ impl KrateContext {
             );
         }
 
-        let graph = gb.build_with_metadata(metadata, |filtered: krates::cm::Package| {
-            let name = filtered.name;
-            let vers = filtered.version;
-
-            if let Some(src) = filtered.source.filter(|src| !src.is_crates_io()) {
-                log::debug!("filtered {name} {vers} {src}");
-            } else {
-                log::debug!("filtered {name} {vers}");
-            }
-        });
+        let graph = gb.build_with_metadata(metadata, on_filter);
 
         if let Ok(krates) = &graph {
             log::info!(
@@ -353,6 +378,15 @@ impl KrateContext {
         }
 
         Ok(graph?)
+    }
+
+    /// Logs a package filtered from the crate graph.
+    fn log_filtered_krate(filtered: &krates::cm::Package) {
+        if let Some(src) = filtered.source.as_ref().filter(|src| !src.is_crates_io()) {
+            log::debug!("filtered {} {} {src}", filtered.name, filtered.version);
+        } else {
+            log::debug!("filtered {} {}", filtered.name, filtered.version);
+        }
     }
 
     fn get_metadata(

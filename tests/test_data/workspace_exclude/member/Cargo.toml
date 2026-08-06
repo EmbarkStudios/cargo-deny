@@ -1,0 +1,7 @@
+[package]
+name = "issue-772-member"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+issue-772-dep.workspace = true
