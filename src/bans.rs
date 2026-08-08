@@ -1735,14 +1735,18 @@ fn check_workspace_duplicates(
                 continue;
             }
 
-            labels.push(Label::primary(id, mdep.key_span));
-
-            if let Some(rename) = &mdep.rename {
-                labels.push(
-                    Label::secondary(id, rename.span)
-                        .with_message("note the dependency is renamed"),
-                );
+            // A renamed dependency can never satisfy this lint by switching to
+            // `workspace = true`: cargo does not support combining workspace
+            // inheritance with a `package` rename (rust-lang/cargo#14673), so
+            // this crate has no way to declare it that would not be flagged.
+            // `parents` is already grouped by resolved krate id (see above), so
+            // a rename here is not evidence of drift from the shared workspace
+            // dependency -- it still resolves to the exact same crate.
+            if mdep.rename.is_some() {
+                continue;
             }
+
+            labels.push(Label::primary(id, mdep.key_span));
         }
 
         if llen >= labels.len() {
