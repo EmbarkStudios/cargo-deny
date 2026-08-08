@@ -17,6 +17,11 @@ crate-two = { version = "0.1.0", registry = "embark-deny-git" }
 
 [build-dependencies]
 spdx = "0.9"
+# Renamed, non-workspace reference to the same crate as the `member-one`
+# workspace dependency. Cargo doesn't support combining `workspace = true`
+# with a `package` rename (rust-lang/cargo#14673), so this can never be
+# rewritten to use the shared workspace dependency: validates workspace-duplicate
+# does not flag it. See https://github.com/EmbarkStudios/cargo-deny/issues/707
 member = { path = "../member-one", package = "member-one" }
 
 [target.'cfg(windows)'.build-dependencies]
