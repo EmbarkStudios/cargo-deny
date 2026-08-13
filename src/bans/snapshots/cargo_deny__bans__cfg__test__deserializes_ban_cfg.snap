@@ -85,6 +85,7 @@ expression: validated
     }
   ],
   "external_default_features": "deny",
+  "direct_external_default_features": "warn",
   "workspace_default_features": "warn",
   "skipped": [
     {
