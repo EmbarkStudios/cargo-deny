@@ -4,7 +4,7 @@ The check command is the primary subcommand of cargo-deny as it is what actually
 
 ## Args
 
-### `<WHICH>`
+### `[WHICH...]`
 
 The check(s) to perform. By default, **all** checks will be performed, unless one or more checks are specified here.
 
