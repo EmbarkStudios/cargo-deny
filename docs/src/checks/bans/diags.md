@@ -91,7 +91,7 @@ A feature in either [`bans.features.deny`](cfg.md#the-features-deny-field-option
 
 ### `default-feature-enabled`
 
-The `default` feature was enabled on a crate, and the [`bans.external-default-features`](cfg.md#the-external-default-features-field-optional) or [`bans.workspace-default-features`](cfg.md#the-workspace-default-features-field-optional) was configured.
+The `default` feature was enabled on a crate, and the [`bans.direct-external-default-features`](cfg.md#the-direct-external-default-features-field-optional), [`bans.external-default-features`](cfg.md#the-external-default-features-field-optional), or [`bans.workspace-default-features`](cfg.md#the-workspace-default-features-field-optional) was configured.
 
 ### `path-bypassed`
 

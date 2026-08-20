@@ -204,6 +204,7 @@ pub fn check(
         features,
         workspace_default_features,
         external_default_features,
+        direct_external_default_features,
         skipped,
         multiple_versions,
         multiple_versions_include_dev,
@@ -383,23 +384,34 @@ pub fn check(
             .collect(),
     );
 
-    // Collect workspace members if allow_workspace is enabled
-    let workspace_members: std::collections::HashSet<Kid> = if allow_workspace {
-        let members: std::collections::HashSet<Kid> = ctx
-            .krates
-            .workspace_members()
-            .filter_map(|node| {
-                if let krates::Node::Krate { id, .. } = node {
-                    Some(id.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
+    let workspace_members: std::collections::HashSet<Kid> = ctx
+        .krates
+        .workspace_members()
+        .filter_map(|node| {
+            if let krates::Node::Krate { id, .. } = node {
+                Some(id.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
 
-        members
-    } else {
-        std::collections::HashSet::new()
+    let workspace_enables_default_features = |krate: &Krate| {
+        ctx.krates.nid_for_kid(&krate.id).is_some_and(|node_id| {
+            ctx.krates
+                .direct_dependents(node_id)
+                .into_iter()
+                .filter(|dep| workspace_members.contains(&dep.krate.id))
+                .any(|dependent| {
+                    dependent.krate.deps.iter().enumerate().any(|(index, dep)| {
+                        dep.uses_default_features
+                            && ctx
+                                .krates
+                                .resolved_dependency(dependent.node_id, index)
+                                .is_some_and(|resolved| resolved.id == krate.id)
+                    })
+                })
+        })
     };
 
     let report_duplicates = |multi_detector: &mut MultiDetector<'_>, sink: &mut diag::ErrorSink| {
@@ -689,14 +701,12 @@ pub fn check(
                 let enabled_features = ctx.krates.get_enabled_features(&krate.id).unwrap();
 
                 let default_lint_level = if enabled_features.contains("default") {
-                    if ctx.krates.workspace_members().any(|n| {
-                        if let krates::Node::Krate { id, .. } = n {
-                            id == &krate.id
-                        } else {
-                            false
-                        }
-                    }) {
+                    if workspace_members.contains(&krate.id) {
                         workspace_default_features.as_ref()
+                    } else if let Some(level) = direct_external_default_features.as_ref()
+                        && workspace_enables_default_features(krate)
+                    {
+                        Some(level)
                     } else {
                         external_default_features.as_ref()
                     }

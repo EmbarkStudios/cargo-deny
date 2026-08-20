@@ -153,9 +153,19 @@ allow = [{ crate = "package-spec", reason = "the reason this crate is allowed"}]
 
 This field provides the reason the crate is allowed as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.
 
+### The `direct-external-default-features` field (optional)
+
+Overrides `external-default-features` for external dependencies whose workspace declaration enables default features. This allows stricter handling of dependencies declared by the workspace without applying the same policy when default features are enabled only by transitive dependencies.
+
+```ini
+[bans]
+external-default-features = "allow"
+direct-external-default-features = "deny"
+```
+
 ### The `external-default-features` field (optional)
 
-Determines the lint level used for when the `default` feature is enabled on a crate not in the workspace. This lint level will can then be overridden on a per-crate basis if desired.
+Determines the lint level used for when the `default` feature is enabled on a crate not in the workspace. This lint level can then be overridden for direct external dependencies or on a per-crate basis if desired.
 
 For example, if `an-external-crate` had the `default` feature enabled it could be explicitly allowed.
 
