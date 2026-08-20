@@ -326,12 +326,26 @@ pub struct KrateSpans<'k> {
     pub workspace_id: Option<FileId>,
     /// The ID of the (synthesized) lockfile
     pub lock_id: FileId,
-    /// `[workspace.dependencies]` that are not actually used in the graph
+    /// `[workspace.dependencies]` that are not actually used in the workspace
     pub unused_workspace_deps: Vec<UnusedWorkspaceDep>,
 }
 
 impl<'k> KrateSpans<'k> {
     pub fn synthesize(krates: &'k Krates, lock_name: &str, files: &mut Files) -> Self {
+        Self::synthesize_with_filtered(krates, &[], lock_name, files)
+    }
+
+    /// Synthesizes crate spans while retaining resolution information for crates filtered from
+    /// the analysis graph.
+    ///
+    /// Filtered crates are only used to determine whether `[workspace.dependencies]` entries were
+    /// resolved; they are not added back to the analysis graph.
+    pub fn synthesize_with_filtered(
+        krates: &'k Krates,
+        filtered_krates: &[Krate],
+        lock_name: &str,
+        files: &mut Files,
+    ) -> Self {
         use anyhow::Context as _;
         use std::fmt::Write as _;
 
@@ -437,7 +451,7 @@ impl<'k> KrateSpans<'k> {
 
         let unused_workspace_deps = if let Some(wid) = workspace_id {
             let workspace_root = files.source(wid);
-            match read_workspace_deps(workspace_root, krates, &mut spans) {
+            match read_workspace_deps(workspace_root, krates, filtered_krates, &mut spans) {
                 Ok(unused) => unused,
                 Err(err) => {
                     log::error!(
@@ -617,6 +631,7 @@ impl<'t> PackageSource<'t> {
 fn read_workspace_deps<'k>(
     root_toml: &str,
     krates: &'k Krates,
+    filtered_krates: &[Krate],
     map: &mut BTreeMap<&'k Kid, Spans<'k>>,
 ) -> anyhow::Result<Vec<UnusedWorkspaceDep>> {
     use toml_span::value::ValueInner;
@@ -688,6 +703,8 @@ fn read_workspace_deps<'k>(
 
     enum WsDep<'k> {
         Resolved(WorkspaceSpan<'k>),
+        /// Cargo resolved the dependency, but graph filtering removed it
+        Filtered,
         Unresolved(UnusedWorkspaceDep),
     }
 
@@ -732,8 +749,8 @@ fn read_workspace_deps<'k>(
             .as_ref()
             .map_or(key.name.as_ref(), |r| r.value.as_ref());
 
-        let Some(krate) = krates.krates_by_name(krate_name).find_map(|km| {
-            match (&km.krate.source, &ws_src.source) {
+        let mut matches_workspace_dep = |krate: &Krate| {
+            match (&krate.source, &ws_src.source) {
                 (
                     Some(crate::Source::Git {
                         url,
@@ -746,7 +763,7 @@ fn read_workspace_deps<'k>(
                         || url.path().trim_end_matches(".git")
                             != repo.path().trim_end_matches(".git")
                     {
-                        return None;
+                        return false;
                     }
 
                     let sv = spec_value.as_deref();
@@ -758,14 +775,16 @@ fn read_workspace_deps<'k>(
                         }
                         (crate::GitSpec::Tag, GitSpec::Tag(tag)) if sv == Some(tag) => {}
                         (crate::GitSpec::Rev, GitSpec::Rev(rev)) if sv == Some(rev) => {}
-                        _ => return None,
+                        _ => return false,
                     }
                 }
                 (None, Source::Path(path)) => {
                     // Paths should always be workspace relative, but we still need to
                     // account for parent paths to handle overly complicated nested workspace
                     // situations
-                    let dir = km.krate.manifest_path.parent()?;
+                    let Some(dir) = krate.manifest_path.parent() else {
+                        return false;
+                    };
                     let path = crate::Path::new(path);
 
                     // Handle cases of current '.' or parent '..' directories
@@ -785,7 +804,7 @@ fn read_workspace_deps<'k>(
                                     // We _could_ warn here, because absolute paths are
                                     // a terrible idea, but whatever
                                     if dir != path {
-                                        return None;
+                                        return false;
                                     }
 
                                     break;
@@ -796,14 +815,16 @@ fn read_workspace_deps<'k>(
                         .strip_prefix(krates.workspace_root())
                         .is_ok_and(|dir| dir != path)
                     {
-                        return None;
+                        return false;
                     }
                 }
                 (Some(reg_src), Source::Registry { registry }) => {
-                    let urls = reg_cache.get(
+                    let Some(urls) = reg_cache.get(
                         registry.as_ref().map_or("crates-io", |r| r.as_ref()),
                         config_root,
-                    )?;
+                    ) else {
+                        return false;
+                    };
                     match reg_src {
                         crate::Source::CratesIo(is_sparse) => {
                             let crates_io = if *is_sparse {
@@ -813,20 +834,20 @@ fn read_workspace_deps<'k>(
                             };
 
                             if urls.as_str() != crates_io {
-                                return None;
+                                return false;
                             }
                         }
                         crate::Source::Registry(url) | crate::Source::Sparse(url) => {
                             if urls != url {
-                                return None;
+                                return false;
                             }
                         }
-                        crate::Source::Git { .. } => return None,
+                        crate::Source::Git { .. } => return false,
                     }
 
                     if let Some(req) = &ws_src.version {
-                        if !req.value.matches(&km.krate.version) {
-                            return None;
+                        if !req.value.matches(&krate.version) {
+                            return false;
                         }
                     } else {
                         log::warn!(
@@ -834,28 +855,41 @@ fn read_workspace_deps<'k>(
                         );
                     }
                 }
-                _ => return None,
+                _ => return false,
             }
 
-            Some(km.krate)
-        }) else {
-            return Some(WsDep::Unresolved(UnusedWorkspaceDep {
+            true
+        };
+
+        let resolved_krate = krates
+            .krates_by_name(krate_name)
+            .find_map(|km| matches_workspace_dep(km.krate).then_some(km.krate));
+        let was_filtered = resolved_krate.is_none()
+            && filtered_krates
+                .iter()
+                .filter(|krate| krate.name == krate_name)
+                .any(matches_workspace_dep);
+
+        if let Some(krate) = resolved_krate {
+            Some(WsDep::Resolved(WorkspaceSpan {
+                krate,
+                key: key.span,
+                value,
+                version: ws_src.version,
+                patched,
+                rename: ws_src.rename.map(|s| s.map()),
+            }))
+        } else if was_filtered {
+            Some(WsDep::Filtered)
+        } else {
+            Some(WsDep::Unresolved(UnusedWorkspaceDep {
                 key: key.span,
                 value,
                 version: ws_src.version,
                 rename: ws_src.rename.map(|s| s.map()),
                 patched,
-            }));
-        };
-
-        Some(WsDep::Resolved(WorkspaceSpan {
-            krate,
-            key: key.span,
-            value,
-            version: ws_src.version,
-            patched,
-            rename: ws_src.rename.map(|s| s.map()),
-        }))
+            }))
+        }
     });
 
     let mut ur = Vec::new();
@@ -878,6 +912,7 @@ fn read_workspace_deps<'k>(
             WsDep::Unresolved(unresolved) => {
                 ur.push(unresolved);
             }
+            WsDep::Filtered => {}
         }
     }
 

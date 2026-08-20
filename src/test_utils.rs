@@ -9,6 +9,7 @@ pub struct KrateGather<'k> {
     pub name: &'k str,
     pub features: &'k [&'k str],
     pub targets: &'k [&'k str],
+    pub exclude: &'k [&'k str],
     pub all_features: bool,
     pub no_default_features: bool,
 }
@@ -22,6 +23,21 @@ impl<'k> KrateGather<'k> {
     }
 
     pub fn gather(self) -> crate::Krates {
+        self.gather_with(krates::NoneFilter)
+    }
+
+    /// Gathers the crate graph and packages filtered from it.
+    pub fn gather_with_filtered(self) -> (crate::Krates, Vec<crate::Krate>) {
+        let mut filtered_krates = Vec::new();
+        let krates = self.gather_with(|filtered: krates::cm::Package| {
+            filtered_krates.push(filtered.into());
+        });
+
+        (krates, filtered_krates)
+    }
+
+    /// Gathers the crate graph and reports filtered packages to `on_filter`.
+    fn gather_with(self, on_filter: impl krates::OnFilter) -> crate::Krates {
         let mut project_dir = crate::PathBuf::from("./tests/test_data");
         project_dir.push(self.name);
 
@@ -46,7 +62,15 @@ impl<'k> KrateGather<'k> {
             kb.include_targets(self.targets.iter().map(|t| (t, vec![])));
         }
 
-        kb.build(cmd, krates::NoneFilter)
+        if !self.exclude.is_empty() {
+            kb.exclude(
+                self.exclude
+                    .iter()
+                    .map(|spec| spec.parse().expect("invalid excluded package spec")),
+            );
+        }
+
+        kb.build(cmd, on_filter)
             .expect("failed to build crate graph")
     }
 }
