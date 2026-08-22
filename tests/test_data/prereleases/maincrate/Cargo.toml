@@ -1,0 +1,11 @@
+[package]
+name = "prereleases-test-crate"
+version = "0.1.0"
+authors = []
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+prereleases-test-dep = { path = "../dependency", version = "0.1.0-alpha.1" }
+
+[workspace]

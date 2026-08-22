@@ -211,6 +211,7 @@ pub fn check(
         highlight,
         tree_skipped,
         wildcards,
+        prereleases,
         allow_wildcard_paths,
         build,
         std_replacements,
@@ -1019,6 +1020,17 @@ pub fn check(
                                 }
                             }
                         }
+                    }
+                }
+
+                'prereleases: {
+                    if prereleases != LintLevel::Allow && !krate.version.pre.is_empty() {
+                        let severity = match prereleases {
+                            LintLevel::Warn => Severity::Warning,
+                            LintLevel::Deny => Severity::Error,
+                            LintLevel::Allow => break 'prereleases,
+                        };
+                        sink.push(diags::Prerelease { krate, severity });
                     }
                 }
 

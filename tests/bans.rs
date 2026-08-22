@@ -85,6 +85,28 @@ fn deny_wildcards() {
     insta::assert_json_snapshot!(diags);
 }
 
+/// Validates that prerelease versions in the dependency graph are detected
+/// and banned when `prereleases = 'deny'`.  Closes #850.
+#[test]
+fn deny_prereleases() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("prereleases/maincrate"),
+        "prereleases = 'deny'",
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
+/// Validates that the default `prereleases = 'allow'` behaviour produces no
+/// diagnostics for prerelease dependencies.
+#[test]
+fn allow_prereleases_by_default() {
+    let diags = gather_bans(func_name!(), KrateGather::new("prereleases/maincrate"), "");
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Ensures that wildcard dependencies are still banned when
 /// allow-wildcard-paths is set to true but the package is public.
 #[test]
