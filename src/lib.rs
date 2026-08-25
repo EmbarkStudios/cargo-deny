@@ -148,7 +148,7 @@ impl Source {
                 if urls == tame_index::CRATES_IO_HTTP_INDEX {
                     Ok(Self::crates_io(true))
                 } else {
-                    Url::parse(&urls)
+                    Url::parse(url_str)
                         .map(Self::Sparse)
                         .context("failed to parse url")
                 }
@@ -730,6 +730,23 @@ mod test {
         let url = Url::parse("ssh://git@repo2.test.org:8000").unwrap();
 
         assert!(!krate.matches_url(&url, false));
+    }
+
+    #[test]
+    fn sparse_registry_with_ip_matches() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "sparse+http://10.0.0.5:8001/api/v1/crates/".to_owned(),
+                    None,
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("http://10.0.0.5:8001/api/v1/crates/").unwrap();
+
+        assert!(krate.matches_url(&url, true));
     }
 
     #[test]
