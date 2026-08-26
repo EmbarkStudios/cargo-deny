@@ -388,9 +388,34 @@ impl Krate {
             Source::Sparse(surl) | Source::Registry(surl) | Source::Git { url: surl, .. } => surl,
         };
 
-        kurl.host() == url.host()
-            && ((exact && kurl.path() == url.path())
-                || (!exact && kurl.path().starts_with(url.path())))
+        if kurl
+            .scheme()
+            .split_once('+')
+            .map_or(kurl.scheme(), |(_, s)| s)
+            != url.scheme()
+        {
+            return false;
+        }
+
+        let (Some(khost), Some(host)) = (kurl.host(), url.host()) else {
+            return false;
+        };
+
+        match (khost, host) {
+            // We need to special case this because of how url parses eg. http vs non-http schemes
+            (url::Host::Domain(d), url::Host::Ipv4(v4)) => {
+                if !d.parse::<std::net::Ipv4Addr>().is_ok_and(|d| d == v4) {
+                    return false;
+                }
+            }
+            (khost, host) => {
+                if khost != host {
+                    return false;
+                }
+            }
+        }
+
+        (exact && kurl.path() == url.path()) || (!exact && kurl.path().starts_with(url.path()))
     }
 
     #[inline]
@@ -730,6 +755,48 @@ mod test {
         let url = Url::parse("ssh://git@repo2.test.org:8000").unwrap();
 
         assert!(!krate.matches_url(&url, false));
+    }
+
+    #[test]
+    fn same_scheme() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata("sparse+https://blah.net/path/test.git".to_owned(), None)
+                    .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("http://blah.net/path/test.git").unwrap();
+
+        assert!(!krate.matches_url(&url, false));
+    }
+
+    #[test]
+    fn sparse_registry_with_ip_matches() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "sparse+http://10.0.0.5:8001/api/v1/crates/".to_owned(),
+                    None,
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("http://10.0.0.5:8001/api/v1/crates/").unwrap();
+
+        assert!(krate.matches_url(&url, true));
+
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata("sparse+http://[::f1]:8001/api/v1/crates/".to_owned(), None)
+                    .unwrap(),
+            ),
+            ..Krate::default()
+        };
+        let url = Url::parse("http://[::f1]:8001/api/v1/crates/").unwrap();
+
+        assert!(krate.matches_url(&url, true));
     }
 
     #[test]
