@@ -189,7 +189,7 @@ pub(crate) fn cmd(
         graph,
         output,
     } = ValidConfig::load(
-        krate_ctx.get_config_path()?,
+        krate_ctx.get_config_source()?,
         krate_ctx.get_local_exceptions_path(),
         &mut files,
         log_ctx,

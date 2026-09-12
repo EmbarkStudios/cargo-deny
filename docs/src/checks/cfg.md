@@ -1,6 +1,11 @@
 # config
 
-The top level config for cargo-deny, by default called `deny.toml`.  The config can be hidden (`.deny.toml`) or live in the `.cargo` or `.config` directory, i.e. `.cargo/deny.toml` or `.config/deny.toml`. See [`--config`](../cli/common.md#-c---config-config) for the full search order.
+The top level config for cargo-deny, by default called `deny.toml`.  The config can be hidden (`.deny.toml`) or live in the `.cargo` or `.config` directory, i.e. `.cargo/deny.toml` or `.config/deny.toml`. It can also be embedded in the manifest as `[workspace.metadata.cargo-deny]` or `[package.metadata.cargo-deny]`, which is only used if no config file is found. See [`--config`](../cli/common.md#-c---config-config) for the full search order.
+
+```ini
+[workspace.metadata.cargo-deny.licenses]
+allow = ["MIT", "Apache-2.0"]
+```
 
 ## Example - cargo-deny's own configuration
 

@@ -7,7 +7,7 @@ use cargo_deny::{
 };
 
 mod cfg;
-pub use cfg::ValidConfig;
+pub use cfg::{ConfigSource, ValidConfig};
 
 #[macro_export]
 macro_rules! clap_err {
@@ -152,6 +152,26 @@ impl KrateContext {
         } else {
             Ok(Self::default_config_path(&self.manifest_path))
         }
+    }
+
+    /// The source of the config, falling back to the `metadata.cargo-deny` table
+    /// of the manifest if no config file could be located
+    ///
+    /// <https://github.com/EmbarkStudios/cargo-deny/issues/677>
+    pub fn get_config_source(&self) -> anyhow::Result<Option<ConfigSource>> {
+        if let Some(config_path) = self.get_config_path()? {
+            return Ok(Some(ConfigSource::File(config_path)));
+        }
+
+        Ok(Self::manifest_config(&self.manifest_path))
+    }
+
+    fn manifest_config(manifest_path: &Path) -> Option<ConfigSource> {
+        let contents = std::fs::read_to_string(manifest_path).ok()?;
+        let manifest = toml_span::parse(&contents).ok()?;
+
+        cfg::manifest_cfg_pointer(&manifest)
+            .map(|_| ConfigSource::Manifest(manifest_path.to_owned()))
     }
 
     fn resolve_config_path(current_dir: &Path, config_path: &Path) -> PathBuf {
@@ -745,5 +765,23 @@ mod tests {
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = Some(current_dir.join("deny.toml"));
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_manifest_config() {
+        let temp_dir = temp_dir();
+
+        let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        let manifest_path = current_dir.join("Cargo.toml");
+
+        std::fs::write(&manifest_path, "[package]\nname = \"mc\"\n").unwrap();
+        assert!(KrateContext::manifest_config(&manifest_path).is_none());
+
+        std::fs::write(
+            &manifest_path,
+            "[workspace.metadata.cargo-deny.bans]\nmultiple-versions = \"deny\"\n",
+        )
+        .unwrap();
+        assert!(KrateContext::manifest_config(&manifest_path).is_some());
     }
 }

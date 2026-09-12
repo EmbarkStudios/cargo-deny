@@ -19,6 +19,8 @@ If not specified, each directory from the one containing the manifest up to the 
 1. `.cargo/deny.toml`
 1. `.config/deny.toml`
 
+If none of those are found, the `[workspace.metadata.cargo-deny]` table, or failing that the `[package.metadata.cargo-deny]` table, of the manifest is used as the config instead.
+
 ### `--metadata-path`
 
 Path to cargo metadata json.

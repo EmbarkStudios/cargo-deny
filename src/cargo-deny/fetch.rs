@@ -45,13 +45,13 @@ pub fn cmd(
     args: Args,
     krate_ctx: crate::common::KrateContext,
 ) -> Result<(), Error> {
-    let cfg_path = krate_ctx.get_config_path()?;
+    let cfg_src = krate_ctx.get_config_source()?;
 
     let mut files = Files::new();
     let ValidConfig {
         advisories, graph, ..
     } = ValidConfig::load(
-        cfg_path,
+        cfg_src,
         krate_ctx.get_local_exceptions_path(),
         &mut files,
         log_ctx,

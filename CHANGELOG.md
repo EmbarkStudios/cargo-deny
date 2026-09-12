@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Added
 - [PR#897](https://github.com/EmbarkStudios/cargo-deny/pull/897) resolved [#896](https://github.com/EmbarkStudios/cargo-deny/issues/896) by adding `.config/deny.toml` to the [config paths](https://embarkstudios.github.io/cargo-deny/cli/common.html#-c---config-config) searched when `--config` is not specified.
+- [PR#897](https://github.com/EmbarkStudios/cargo-deny/pull/897) resolved [#677](https://github.com/EmbarkStudios/cargo-deny/issues/677) by reading the config from the `[workspace.metadata.cargo-deny]` or `[package.metadata.cargo-deny]` table of the manifest if no config file was found.
 
 ## [0.20.2] - 2026-07-09
 ### Fixed
