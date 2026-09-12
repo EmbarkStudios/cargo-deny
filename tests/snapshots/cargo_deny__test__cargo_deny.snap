@@ -48,7 +48,7 @@ Options:
       --config <CONFIG_PATH>
           Path to the config to use.
           
-          Defaults to <cwd>/deny.toml if not specified.
+          If not specified, each directory from the one containing the manifest up to the root is searched for `deny.toml`, `.deny.toml`, `.cargo/deny.toml`, and `.config/deny.toml`, in that order.
 
       --workspace
           If passed, all workspace packages are used as roots for the crate graph.

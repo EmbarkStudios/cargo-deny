@@ -1,6 +1,6 @@
 # config
 
-The top level config for cargo-deny, by default called `deny.toml`.  The config can be hidden (`.deny.toml`) or live in the `.cargo` directory, i.e. `.cargo/deny.toml`.
+The top level config for cargo-deny, by default called `deny.toml`.  The config can be hidden (`.deny.toml`) or live in the `.cargo` or `.config` directory, i.e. `.cargo/deny.toml` or `.config/deny.toml`. See [`--config`](../cli/common.md#-c---config-config) for the full search order.
 
 ## Example - cargo-deny's own configuration
 

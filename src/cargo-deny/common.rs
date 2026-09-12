@@ -163,27 +163,22 @@ impl KrateContext {
     }
 
     fn default_config_path(manifest_path: &Path) -> Option<PathBuf> {
+        const CONFIG_PATHS: &[&str] = &[
+            "deny.toml",
+            ".deny.toml",
+            ".cargo/deny.toml",
+            ".config/deny.toml",
+        ];
+
         let mut p = manifest_path.parent();
 
         while let Some(parent) = p {
-            let mut config_path = parent.join("deny.toml");
+            for cp in CONFIG_PATHS {
+                let config_path = parent.join(cp);
 
-            if config_path.exists() {
-                return Some(config_path);
-            }
-
-            config_path.pop();
-            config_path.push(".deny.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
-            }
-
-            config_path.pop();
-            config_path.push(".cargo/deny.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
+                if config_path.exists() {
+                    return Some(config_path);
+                }
             }
 
             p = parent.parent();
@@ -739,6 +734,13 @@ mod tests {
         let expected = None;
         assert_eq!(actual, expected);
 
+        std::fs::create_dir(current_dir.join(".config")).unwrap();
+        std::fs::File::create(current_dir.join(".config/deny.toml")).unwrap();
+        let actual = KrateContext::default_config_path(&manifest_path);
+        let expected = Some(current_dir.join(".config/deny.toml"));
+        assert_eq!(actual, expected);
+
+        // The dedicated files take precedence over the `.config` directory
         std::fs::File::create(current_dir.join("deny.toml")).unwrap();
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = Some(current_dir.join("deny.toml"));

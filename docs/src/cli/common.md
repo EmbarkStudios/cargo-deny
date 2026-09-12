@@ -12,7 +12,12 @@ The path to a `Cargo.toml` file which is used as the context for operations.
 
 Path to the config to use.
 
-Defaults to `<cwd>/deny.toml` if not specified.
+If not specified, each directory from the one containing the manifest up to the root is searched for the following, in order:
+
+1. `deny.toml`
+1. `.deny.toml`
+1. `.cargo/deny.toml`
+1. `.config/deny.toml`
 
 ### `--metadata-path`
 

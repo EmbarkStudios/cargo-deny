@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#897](https://github.com/EmbarkStudios/cargo-deny/pull/897) resolved [#896](https://github.com/EmbarkStudios/cargo-deny/issues/896) by adding `.config/deny.toml` to the [config paths](https://embarkstudios.github.io/cargo-deny/cli/common.html#-c---config-config) searched when `--config` is not specified.
+
 ## [0.20.2] - 2026-07-09
 ### Fixed
 - [PR#884](https://github.com/EmbarkStudios/cargo-deny/pull/884) fixed snapshot filenames on Windows which caused the release binary publish to fail...again.
