@@ -163,30 +163,33 @@ impl KrateContext {
     }
 
     fn default_config_path(manifest_path: &Path) -> Option<PathBuf> {
-        let mut p = manifest_path.parent();
+        let mut config_path = manifest_path.parent()?.to_owned();
 
-        while let Some(parent) = p {
-            let mut config_path = parent.join("deny.toml");
+        const SUB_PATHS: [&[&str]; 4] = [
+            &["deny.toml"],
+            &[".deny.toml"],
+            &[".cargo", "deny.toml"],
+            &[".config", "deny.toml"],
+        ];
 
-            if config_path.exists() {
-                return Some(config_path);
+        loop {
+            for sp in SUB_PATHS {
+                for p in sp {
+                    config_path.push(p);
+                }
+
+                if config_path.exists() {
+                    return Some(config_path);
+                }
+
+                for _ in 0..sp.len() {
+                    config_path.pop();
+                }
             }
 
-            config_path.pop();
-            config_path.push(".deny.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
+            if !config_path.pop() {
+                break;
             }
-
-            config_path.pop();
-            config_path.push(".cargo/deny.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
-            }
-
-            p = parent.parent();
         }
 
         None
