@@ -1,0 +1,12 @@
+[package]
+name = "direct-default-features"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+direct-default = { path = "direct-default" }
+transitive-default = { path = "transitive-default", default-features = false }
+
+[workspace]
+exclude = ["direct-default", "transitive-default"]

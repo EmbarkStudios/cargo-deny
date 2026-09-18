@@ -159,6 +159,9 @@ workspace-default-features = "allow"
 # members of the workspace. This can be overridden by allowing/denying `default`
 # on a crate-by-crate basis if desired.
 external-default-features = "allow"
+# Optional override for external dependencies whose workspace declaration enables
+# default features. If unset, the `external-default-features` lint level is used.
+direct-external-default-features = "allow"
 # List of crates that are allowed. Use with care!
 allow = [
     #"ansi_term@0.11.0",

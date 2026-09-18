@@ -527,6 +527,9 @@ pub struct Config {
     /// The default lint level for default features for external, non-workspace
     /// crates, can be overridden in `features` on a crate by crate basis
     pub external_default_features: Option<Spanned<LintLevel>>,
+    /// The default lint level for external dependencies whose workspace declaration
+    /// enables default features. Overrides `external_default_features`.
+    pub direct_external_default_features: Option<Spanned<LintLevel>>,
     /// The default lint level for default features for workspace crates, can be
     /// overridden in `features` on a crate by crate basis
     pub workspace_default_features: Option<Spanned<LintLevel>>,
@@ -565,6 +568,7 @@ impl Default for Config {
             allow_workspace: false,
             features: Vec::new(),
             external_default_features: None,
+            direct_external_default_features: None,
             workspace_default_features: None,
             skip: Vec::new(),
             skip_tree: Vec::new(),
@@ -591,6 +595,7 @@ impl<'de> Deserialize<'de> for Config {
         let allow_workspace = th.optional("allow-workspace").unwrap_or_default();
         let features = th.optional("features").unwrap_or_default();
         let external_default_features = th.optional("external-default-features");
+        let direct_external_default_features = th.optional("direct-external-default-features");
         let workspace_default_features = th.optional("workspace-default-features");
         let skip = th.optional("skip").unwrap_or_default();
         let skip_tree = th.optional("skip-tree").unwrap_or_default();
@@ -614,6 +619,7 @@ impl<'de> Deserialize<'de> for Config {
             allow_workspace,
             features,
             external_default_features,
+            direct_external_default_features,
             workspace_default_features,
             skip,
             skip_tree,
@@ -933,6 +939,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             allow_workspace: self.allow_workspace,
             features,
             external_default_features: self.external_default_features,
+            direct_external_default_features: self.direct_external_default_features,
             workspace_default_features: self.workspace_default_features,
             skipped,
             wildcards: self.wildcards,
@@ -1108,6 +1115,7 @@ pub struct ValidConfig {
     pub allow_workspace: bool,
     pub(crate) features: Vec<ValidKrateFeatures>,
     pub external_default_features: Option<Spanned<LintLevel>>,
+    pub direct_external_default_features: Option<Spanned<LintLevel>>,
     pub workspace_default_features: Option<Spanned<LintLevel>>,
     pub(crate) skipped: Vec<SpecAndReason>,
     pub(crate) tree_skipped: Vec<ValidTreeSkip>,
