@@ -1,0 +1,341 @@
+<svg fill="none" viewBox="0 0 800 6268" width="800" height="6268" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+
+      <style>.term-container {
+  background: #282c34;
+  border-radius: 5px;
+  color: #abb2bf;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-family: Monaco, courier, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 14px 18px;
+  white-space: pre-wrap;
+}
+
+.term-fg1 { font-weight: bold; }
+.term-fg3 { font-style: italic; } /* italic */
+.term-fg4 { text-decoration: underline; } /* underline */
+.term-fg9 { text-decoration: line-through; } /* crossed-out */
+
+.term-fg30 { color: #666; }
+.term-fg31 { color: #e06c75; } /* red */
+.term-fg32 { color: #98c379; } /* green */
+.term-fg33 { color: #e5c07b; } /* yellow */
+.term-fg34 { color: #61afef; } /* blue */
+.term-fg35 { color: #c678dd; } /* magenta */
+.term-fg36 { color: #56b6c2; } /* cyan */
+.term-fgx9 { color: #be5046; } /* bright red */
+.term-fgx11 { color: #d19a66; } /* bright yellow */
+
+      </style>
+
+      <div class="term-container">cargo-deny --manifest-path examples&#47;06_advisories&#47;Cargo.toml --color always check advisories`
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Uncontrolled recursion leads to abort in HTML serialization</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:4:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">4</span> <span class="term-fg34">│</span> ammonia 0.7.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ID: RUSTSEC-2019-0001
+  <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2019-0001
+  <span class="term-fg34">=</span> Affected versions of this crate did use recursion for serialization of HTML
+    DOM trees.
+
+    This allows an attacker to cause abort due to stack overflow by providing
+    a pathologically nested input.
+
+    The flaw was corrected by serializing the DOM tree iteratively instead.
+  <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-ammonia&#47;ammonia&#47;blob&#47;master&#47;CHANGELOG.md#210
+  <span class="term-fg34">=</span> Solution: Upgrade to &gt;=2.1.0
+  <span class="term-fg34">=</span> ammonia v0.7.0
+    └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Incorrect handling of embedded SVG and MathML leads to mutation XSS</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:4:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">4</span> <span class="term-fg34">│</span> ammonia 0.7.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ID: RUSTSEC-2021-0074
+  <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2021-0074
+  <span class="term-fg34">=</span> Affected versions of this crate did not account for namespace-related parsing
+    differences between HTML, SVG, and MathML. Even if the `svg` and `math` elements
+    are not allowed, the underlying HTML parser still treats them differently.
+    Running cleanup without accounting for these differing namespaces resulted in an &quot;impossible&quot;
+    DOM, which appeared &quot;safe&quot; when examining the DOM tree, but when serialized and deserialized,
+    could be exploited to inject abitrary markup.
+
+    To exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.
+    These [elements] are:
+
+    * title
+    * textarea
+    * xmp
+    * iframe
+    * noembed
+    * noframes
+    * plaintext
+    * noscript
+    * style
+    * script
+
+    Applications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.
+
+    [elements]: https:&#47;&#47;github.com&#47;servo&#47;html5ever&#47;blob&#47;57eb334c0ffccc6f88d563419f0fbeef6ff5741c&#47;html5ever&#47;src&#47;tree_builder&#47;rules.rs
+  <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-ammonia&#47;ammonia&#47;pull&#47;142
+  <span class="term-fg34">=</span> Solution: Upgrade to &gt;=3.1.0 OR &gt;=2.1.3, &lt;3.0.0
+  <span class="term-fg34">=</span> ammonia v0.7.0
+    └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Uncontrolled recursion leads to abort in HTML serialization</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:5:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">5</span> <span class="term-fg34">│</span> ammonia 1.2.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ID: RUSTSEC-2019-0001
+  <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2019-0001
+  <span class="term-fg34">=</span> Affected versions of this crate did use recursion for serialization of HTML
+    DOM trees.
+
+    This allows an attacker to cause abort due to stack overflow by providing
+    a pathologically nested input.
+
+    The flaw was corrected by serializing the DOM tree iteratively instead.
+  <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-ammonia&#47;ammonia&#47;blob&#47;master&#47;CHANGELOG.md#210
+  <span class="term-fg34">=</span> Solution: Upgrade to &gt;=2.1.0
+  <span class="term-fg34">=</span> ammonia v1.2.0
+    └── artifact_serde v0.3.1
+        └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Incorrect handling of embedded SVG and MathML leads to mutation XSS</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:5:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">5</span> <span class="term-fg34">│</span> ammonia 1.2.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ID: RUSTSEC-2021-0074
+  <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2021-0074
+  <span class="term-fg34">=</span> Affected versions of this crate did not account for namespace-related parsing
+    differences between HTML, SVG, and MathML. Even if the `svg` and `math` elements
+    are not allowed, the underlying HTML parser still treats them differently.
+    Running cleanup without accounting for these differing namespaces resulted in an &quot;impossible&quot;
+    DOM, which appeared &quot;safe&quot; when examining the DOM tree, but when serialized and deserialized,
+    could be exploited to inject abitrary markup.
+
+    To exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.
+    These [elements] are:
+
+    * title
+    * textarea
+    * xmp
+    * iframe
+    * noembed
+    * noframes
+    * plaintext
+    * noscript
+    * style
+    * script
+
+    Applications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.
+
+    [elements]: https:&#47;&#47;github.com&#47;servo&#47;html5ever&#47;blob&#47;57eb334c0ffccc6f88d563419f0fbeef6ff5741c&#47;html5ever&#47;src&#47;tree_builder&#47;rules.rs
+  <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-ammonia&#47;ammonia&#47;pull&#47;142
+  <span class="term-fg34">=</span> Solution: Upgrade to &gt;=3.1.0 OR &gt;=2.1.3, &lt;3.0.0
+  <span class="term-fg34">=</span> ammonia v1.2.0
+    └── artifact_serde v0.3.1
+        └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Regexes with large repetitions on empty sub-expressions take a very long time to parse</span>
+    <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:128:1
+    <span class="term-fg34">│</span>
+<span class="term-fg34">128</span> <span class="term-fg34">│</span> regex 1.5.4 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+    <span class="term-fg34">│</span> <span class="term-fg34">-----------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+    <span class="term-fg34">│</span>
+    <span class="term-fg34">=</span> ID: RUSTSEC-2022-0013
+    <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2022-0013
+    <span class="term-fg34">=</span> The Rust Security Response WG was notified that the `regex` crate did not
+      properly limit the complexity of the regular expressions (regex) it parses. An
+      attacker could use this security issue to perform a denial of service, by
+      sending a specially crafted regex to a service accepting untrusted regexes. No
+      known vulnerability is present when parsing untrusted input with trusted
+      regexes.
+
+      This issue has been assigned CVE-2022-24713. The severity of this vulnerability
+      is &quot;high&quot; when the `regex` crate is used to parse untrusted regexes. Other uses
+      of the `regex` crate are not affected by this vulnerability.
+
+      ## Overview
+
+      The `regex` crate features built-in mitigations to prevent denial of service
+      attacks caused by untrusted regexes, or untrusted input matched by trusted
+      regexes. Those (tunable) mitigations already provide sane defaults to prevent
+      attacks. This guarantee is documented and it&#39;s considered part of the crate&#39;s
+      API.
+
+      Unfortunately a bug was discovered in the mitigations designed to prevent
+      untrusted regexes to take an arbitrary amount of time during parsing, and it&#39;s
+      possible to craft regexes that bypass such mitigations. This makes it possible
+      to perform denial of service attacks by sending specially crafted regexes to
+      services accepting user-controlled, untrusted regexes.
+
+      ## Affected versions
+
+      All versions of the `regex` crate before or equal to 1.5.4 are affected by this
+      issue. The fix is include starting from  `regex` 1.5.5.
+
+      ## Mitigations
+
+      We recommend everyone accepting user-controlled regexes to upgrade immediately
+      to the latest version of the `regex` crate.
+
+      Unfortunately there is no fixed set of problematic regexes, as there are
+      practically infinite regexes that could be crafted to exploit this
+      vulnerability. Because of this, we do not recommend denying known problematic
+      regexes.
+
+      ## Acknowledgements
+
+      We want to thank Addison Crump for responsibly disclosing this to us according
+      to the [Rust security policy][1], and for helping review the fix.
+
+      We also want to thank Andrew Gallant for developing the fix, and Pietro Albini
+      for coordinating the disclosure and writing this advisory.
+
+      [1]: https:&#47;&#47;www.rust-lang.org&#47;policies&#47;security
+    <span class="term-fg34">=</span> Announcement: https:&#47;&#47;groups.google.com&#47;g&#47;rustlang-security-announcements&#47;c&#47;NcNNL1Jq7Yw
+    <span class="term-fg34">=</span> Solution: Upgrade to &gt;=1.5.5
+    <span class="term-fg34">=</span> regex v1.5.4
+      ├── lettre v0.10.0-rc.3
+      │   └── advisories v0.1.0
+      └── spdx v0.3.1
+          └── advisories v0.1.0 (*)
+
+<span class="term-fgx9 term-fg1">error[vulnerability]</span><span class="term-fg1">: Stack overflow in rustc_serialize when parsing deeply nested JSON</span>
+    <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:133:1
+    <span class="term-fg34">│</span>
+<span class="term-fg34">133</span> <span class="term-fg34">│</span> rustc-serialize 0.3.24 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+    <span class="term-fg34">│</span> <span class="term-fg34">----------------------------------------------------------------------------</span> <span class="term-fg34">security vulnerability detected</span>
+    <span class="term-fg34">│</span>
+    <span class="term-fg34">=</span> ID: RUSTSEC-2022-0004
+    <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2022-0004
+    <span class="term-fg34">=</span> When parsing JSON using `json::Json::from_str`, there is no limit to the depth of the stack, therefore deeply nested objects can cause a stack overflow, which aborts the process.
+
+      Example code that triggers the vulnerability is
+
+      ```rust
+      fn main() {
+          let _ = rustc_serialize::json::Json::from_str(&amp;&quot;[0,[&quot;.repeat(10000));
+      }
+      ```
+
+      [serde](https:&#47;&#47;crates.io&#47;crates&#47;serde) is recommended as a replacement to rustc_serialize.
+    <span class="term-fg34">=</span> Solution: No safe upgrade is available!
+    <span class="term-fg34">=</span> rustc-serialize v0.3.24
+      └── (build) markup5ever v0.4.0
+          └── html5ever v0.19.0
+              └── ammonia v0.7.0
+                  └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[unmaintained]</span><span class="term-fg1">: failure is officially deprecated&#47;unmaintained</span>
+   <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:29:1
+   <span class="term-fg34">│</span>
+<span class="term-fg34">29</span> <span class="term-fg34">│</span> failure 0.1.8 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+   <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">unmaintained advisory detected</span>
+   <span class="term-fg34">│</span>
+   <span class="term-fg34">=</span> ID: RUSTSEC-2020-0036
+   <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2020-0036
+   <span class="term-fg34">=</span> The `failure` crate is officially end-of-life: it has been marked as deprecated
+     by the former maintainer, who has announced that there will be no updates or
+     maintenance work on it going forward.
+
+     The following are some suggested actively developed alternatives to switch to:
+
+     - [`anyhow`](https:&#47;&#47;crates.io&#47;crates&#47;anyhow)
+     - [`eyre`](https:&#47;&#47;crates.io&#47;crates&#47;eyre)
+     - [`fehler`](https:&#47;&#47;crates.io&#47;crates&#47;fehler)
+     - [`snafu`](https:&#47;&#47;crates.io&#47;crates&#47;snafu)
+     - [`thiserror`](https:&#47;&#47;crates.io&#47;crates&#47;thiserror)
+   <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-lang-nursery&#47;failure&#47;pull&#47;347
+   <span class="term-fg34">=</span> Solution: No safe upgrade is available!
+   <span class="term-fg34">=</span> failure v0.1.8
+     └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[unmaintained]</span><span class="term-fg1">: libusb is unmaintained; use rusb instead</span>
+   <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:64:1
+   <span class="term-fg34">│</span>
+<span class="term-fg34">64</span> <span class="term-fg34">│</span> libusb 0.3.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+   <span class="term-fg34">│</span> <span class="term-fg34">------------------------------------------------------------------</span> <span class="term-fg34">unmaintained advisory detected</span>
+   <span class="term-fg34">│</span>
+   <span class="term-fg34">=</span> ID: RUSTSEC-2016-0004
+   <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2016-0004
+   <span class="term-fg34">=</span> The `libusb` crate has not seen a release since September 2016, and its author
+     is unresponsive.
+
+     The `rusb` crate is a maintained fork:
+
+     https:&#47;&#47;github.com&#47;a1ien&#47;rusb
+   <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;dcuddeback&#47;libusb-rs&#47;issues&#47;33
+   <span class="term-fg34">=</span> Solution: No safe upgrade is available!
+   <span class="term-fg34">=</span> libusb v0.3.0
+     └── advisories v0.1.0
+
+<span class="term-fgx9 term-fg1">error[unsound]</span><span class="term-fg1">: Type confusion if __private_get_type_id__ is overridden</span>
+   <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:29:1
+   <span class="term-fg34">│</span>
+<span class="term-fg34">29</span> <span class="term-fg34">│</span> failure 0.1.8 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+   <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">unsound advisory detected</span>
+   <span class="term-fg34">│</span>
+   <span class="term-fg34">=</span> ID: RUSTSEC-2019-0036
+   <span class="term-fg34">=</span> Advisory: https:&#47;&#47;rustsec.org&#47;advisories&#47;RUSTSEC-2019-0036
+   <span class="term-fg34">=</span> Safe Rust code can implement malfunctioning `__private_get_type_id__` and cause
+     type confusion when downcasting, which is an undefined behavior.
+
+     Users who derive `Fail` trait are not affected.
+   <span class="term-fg34">=</span> Announcement: https:&#47;&#47;github.com&#47;rust-lang-nursery&#47;failure&#47;issues&#47;336
+   <span class="term-fg34">=</span> Solution: No safe upgrade is available!
+   <span class="term-fg34">=</span> failure v0.1.8
+     └── advisories v0.1.0
+
+<span class="term-fgx11 term-fg1">warning[yanked]</span><span class="term-fg1">: detected yanked crate</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:4:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">4</span> <span class="term-fg34">│</span> ammonia 0.7.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">yanked version</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ammonia v0.7.0
+    └── advisories v0.1.0
+
+<span class="term-fgx11 term-fg1">warning[yanked]</span><span class="term-fg1">: detected yanked crate</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:5:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">5</span> <span class="term-fg34">│</span> ammonia 1.2.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+  <span class="term-fg34">│</span> <span class="term-fg34">-------------------------------------------------------------------</span> <span class="term-fg34">yanked version</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> ammonia v1.2.0
+    └── artifact_serde v0.3.1
+        └── advisories v0.1.0
+
+<span class="term-fgx11 term-fg1">warning[yanked]</span><span class="term-fg1">: detected yanked crate</span>
+    <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;06_advisories&#47;Cargo.lock:147:1
+    <span class="term-fg34">│</span>
+<span class="term-fg34">147</span> <span class="term-fg34">│</span> spdx 0.3.1 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index
+    <span class="term-fg34">│</span> <span class="term-fg34">----------------------------------------------------------------</span> <span class="term-fg34">yanked version</span>
+    <span class="term-fg34">│</span>
+    <span class="term-fg34">=</span> spdx v0.3.1
+      └── advisories v0.1.0
+
+<span class="term-fgx11 term-fg1">warning[advisory-not-detected]</span><span class="term-fg1">: advisory was not encountered</span>
+   <span class="term-fg34">┌─</span> deny.toml:19:5
+   <span class="term-fg34">│</span>
+<span class="term-fg34">19</span> <span class="term-fg34">│</span>     <span class="term-fg33">&quot;RUSTSEC-2021-0139&quot;</span>,
+   <span class="term-fg34">│</span>     <span class="term-fg33">^^^^^^^^^^^^^^^^^^^</span> <span class="term-fg33">no crate matched advisory criteria</span>
+
+advisories <span class="term-fg31">FAILED</span></div>
+
+    </div>
+  </foreignObject>
+</svg>
