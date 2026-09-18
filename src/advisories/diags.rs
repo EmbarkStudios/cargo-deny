@@ -25,34 +25,24 @@ impl IgnoreId {
     }
 }
 
-#[derive(
-    strum::Display,
-    strum::EnumString,
-    strum::EnumIter,
-    strum::IntoStaticStr,
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-)]
-#[strum(serialize_all = "kebab-case")]
-pub enum Code {
-    Vulnerability,
-    Notice,
-    Unmaintained,
-    Unsound,
-    Yanked,
-    AdvisoryIgnored,
-    YankedIgnored,
-    IndexFailure,
-    IndexCacheLoadFailure,
-    AdvisoryNotDetected,
-    YankedNotDetected,
-    UnknownAdvisory,
-}
+crate::simple_enum!(
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    Code,
+    [
+        Vulnerability = "vulnerability",
+        Notice = "notice",
+        Unmaintained = "unmaintained",
+        Unsound = "unsound",
+        Yanked = "yanked",
+        AdvisoryIgnored = "advisory-ignored",
+        YankedIgnored = "yanked-ignored",
+        IndexFailure = "index-failure",
+        IndexCacheLoadFailure = "index-cache-load-failure",
+        AdvisoryNotDetected = "advisory-not-detected",
+        YankedNotDetected = "yanked-not-detected",
+        UnknownAdvisory = "unknown-advisory",
+    ]
+);
 
 impl Code {
     #[inline]

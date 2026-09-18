@@ -52,30 +52,21 @@ pub trait UnvalidatedConfig {
     fn validate(self, ctx: ValidationContext<'_>) -> Self::ValidCfg;
 }
 
-#[derive(Copy, Clone, PartialEq, strum::VariantNames, strum::VariantArray)]
-#[cfg_attr(test, derive(serde::Serialize))]
-#[strum(serialize_all = "kebab-case")]
-pub enum Scope {
-    /// Matches any crate
-    All,
-    /// Matches crates in the workspace
-    Workspace,
-    /// Matches external crates
-    Transitive,
-    /// Matches no crates
-    None,
-}
-
-impl Scope {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::All => "all",
-            Self::Workspace => "workspace",
-            Self::Transitive => "transitive",
-            Self::None => "none",
-        }
-    }
-}
+crate::simple_enum!(
+    #[derive(Copy, Clone, PartialEq)]
+    #[cfg_attr(test, derive(serde::Serialize))]
+    Scope,
+    [
+        /// Matches any crate
+        All = "all",
+        /// Matches crates in the workspace
+        Workspace = "workspace",
+        /// Matches external crates
+        Transitive = "transitive",
+        /// Matches no crates
+        None = "none",
+    ]
+);
 
 crate::enum_deser!(Scope);
 

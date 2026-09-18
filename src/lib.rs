@@ -13,6 +13,7 @@ pub mod licenses;
 pub mod root_cfg;
 pub mod sarif;
 pub mod sources;
+pub mod utils;
 
 #[doc(hidden)]
 pub mod test_utils;
@@ -26,54 +27,25 @@ pub use toml_span::{
     span::{Span, Spanned},
 };
 
-/// The possible lint levels for the various lints. These function similarly
-/// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Default, strum::VariantNames, strum::VariantArray)]
-#[cfg_attr(test, derive(serde::Serialize))]
-#[cfg_attr(test, serde(rename_all = "kebab-case"))]
-#[strum(serialize_all = "kebab-case")]
-pub enum LintLevel {
-    /// A debug or info diagnostic _may_ be emitted if the lint is violated
-    Allow,
-    /// A warning will be emitted if the lint is violated, but the command
-    /// will succeed
-    #[default]
-    Warn,
-    /// An error will be emitted if the lint is violated, and the command
-    /// will fail with a non-zero exit code
-    Deny,
-}
-
-#[macro_export]
-macro_rules! enum_deser {
-    ($enum:ty) => {
-        impl<'de> toml_span::Deserialize<'de> for $enum {
-            fn deserialize(
-                value: &mut toml_span::value::Value<'de>,
-            ) -> Result<Self, toml_span::DeserError> {
-                let s = value.take_string(Some(stringify!($enum)))?;
-
-                use strum::{VariantArray, VariantNames};
-
-                let Some(pos) = <$enum as VariantNames>::VARIANTS
-                    .iter()
-                    .position(|v| *v == s.as_ref())
-                else {
-                    return Err(toml_span::Error::from((
-                        toml_span::ErrorKind::UnexpectedValue {
-                            expected: <$enum as VariantNames>::VARIANTS,
-                            value: None,
-                        },
-                        value.span,
-                    ))
-                    .into());
-                };
-
-                Ok(<$enum as VariantArray>::VARIANTS[pos])
-            }
-        }
-    };
-}
+simple_enum!(
+    /// The possible lint levels for the various lints. These function similarly
+    /// to the standard [Rust lint levels](https://doc.rust-lang.org/rustc/lints/levels.html)
+    #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
+    #[cfg_attr(test, derive(serde::Serialize))]
+    #[cfg_attr(test, serde(rename_all = "kebab-case"))]
+    LintLevel,
+    [
+        /// A debug or info diagnostic _may_ be emitted if the lint is violated
+        Allow = "allow",
+        /// A warning will be emitted if the lint is violated, but the command
+        /// will succeed
+        #[default]
+        Warn = "warn",
+        /// An error will be emitted if the lint is violated, and the command
+        /// will fail with a non-zero exit code
+        Deny = "deny",
+    ]
+);
 
 enum_deser!(LintLevel);
 

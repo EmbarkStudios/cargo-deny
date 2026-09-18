@@ -80,8 +80,6 @@ serde_json = "1.0"
 smallvec = "1.14"
 # Used for parsing and checking SPDX license expressions
 spdx = { version = "0.13", features = ["detection-parallel", "detection-inline-cache"] }
-# Lazy
-strum = { version = "0.28", features = ["derive"] }
 # Index retrieval and querying
 tame-index = { version = "0.26", default-features = false, features = [
   "local",

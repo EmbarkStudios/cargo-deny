@@ -29,7 +29,6 @@ deny = [
 ]
 skip = [
     { crate = "getrandom@0.2.17", reason = "ring uses this old version" },
-    { crate = "hashbrown@0.15.5", reason = "petgraph uses this old version" },
 ]
 skip-tree = [
     { crate = "windows-sys", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
@@ -48,6 +47,7 @@ confidence-threshold = 0.93
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
     "MIT",
     "ISC",
     "Unicode-3.0",
