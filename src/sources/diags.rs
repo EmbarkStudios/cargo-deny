@@ -3,28 +3,18 @@ use crate::{
     diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
 };
 
-#[derive(
-    strum::Display,
-    strum::EnumString,
-    strum::EnumIter,
-    strum::IntoStaticStr,
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-)]
-#[strum(serialize_all = "kebab-case")]
-pub enum Code {
-    GitSourceUnderspecified,
-    AllowedSource,
-    AllowedByOrganization,
-    SourceNotAllowed,
-    UnmatchedSource,
-    UnmatchedOrganization,
-}
+crate::simple_enum!(
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    Code,
+    [
+        GitSourceUnderspecified = "git-source-underspecified",
+        AllowedSource = "allowed-source",
+        AllowedByOrganization = "allowed-by-organization",
+        SourceNotAllowed = "source-not-allowed",
+        UnmatchedSource = "unmatched-source",
+        UnmatchedOrganization = "unmatched-organization",
+    ]
+);
 
 impl Code {
     #[inline]

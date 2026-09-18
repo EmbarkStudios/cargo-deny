@@ -388,7 +388,6 @@ pub enum DiagnosticCode {
 
 impl DiagnosticCode {
     pub fn iter() -> impl Iterator<Item = Self> {
-        use strum::IntoEnumIterator;
         crate::advisories::Code::iter()
             .map(Self::Advisory)
             .chain(crate::bans::Code::iter().map(Self::Bans))
@@ -400,22 +399,22 @@ impl DiagnosticCode {
     #[inline]
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Advisory(code) => code.into(),
-            Self::Bans(code) => code.into(),
-            Self::License(code) => code.into(),
-            Self::Source(code) => code.into(),
-            Self::General(code) => code.into(),
+            Self::Advisory(code) => code.as_str(),
+            Self::Bans(code) => code.as_str(),
+            Self::License(code) => code.as_str(),
+            Self::Source(code) => code.as_str(),
+            Self::General(code) => code.as_str(),
         }
     }
 
     #[inline]
     pub fn qualified_str(self) -> String {
         let (prefix, code): (_, &'static str) = match self {
-            Self::Advisory(code) => ('a', code.into()),
-            Self::Bans(code) => ('b', code.into()),
-            Self::License(code) => ('l', code.into()),
-            Self::Source(code) => ('s', code.into()),
-            Self::General(code) => ('g', code.into()),
+            Self::Advisory(code) => ('a', code.as_str()),
+            Self::Bans(code) => ('b', code.as_str()),
+            Self::License(code) => ('l', code.as_str()),
+            Self::Source(code) => ('s', code.as_str()),
+            Self::General(code) => ('g', code.as_str()),
         };
 
         format!("{prefix}:{code}")
@@ -442,7 +441,7 @@ impl fmt::Display for DiagnosticCode {
 }
 
 impl std::str::FromStr for DiagnosticCode {
-    type Err = strum::ParseError;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.parse::<crate::advisories::Code>()

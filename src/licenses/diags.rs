@@ -3,33 +3,23 @@ use crate::{
     diag::{CfgCoord, Diag, Diagnostic, Label, Severity},
 };
 
-#[derive(
-    strum::Display,
-    strum::EnumString,
-    strum::EnumIter,
-    strum::IntoStaticStr,
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-)]
-#[strum(serialize_all = "kebab-case")]
-pub enum Code {
-    Accepted,
-    Rejected,
-    Unlicensed,
-    SkippedPrivateWorkspaceCrate,
-    LicenseNotEncountered,
-    LicenseExceptionNotEncountered,
-    MissingClarificationFile,
-    ParseError,
-    EmptyLicenseField,
-    NoLicenseField,
-    GatherFailure,
-}
+crate::simple_enum!(
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    Code,
+    [
+        Accepted = "accepted",
+        Rejected = "rejected",
+        Unlicensed = "unlicensed",
+        SkippedPrivateWorkspaceCrate = "skipped-private-workspace-crate",
+        LicenseNotEncountered = "license-not-encountered",
+        LicenseExceptionNotEncountered = "license-exception-not-encountered",
+        MissingClarificationFile = "missing-clarification-file",
+        ParseError = "parse-error",
+        EmptyLicenseField = "empty-license-field",
+        NoLicenseField = "no-license-field",
+        GatherFailure = "gather-failure",
+    ]
+);
 
 impl Code {
     #[inline]

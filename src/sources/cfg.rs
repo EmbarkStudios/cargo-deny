@@ -32,47 +32,23 @@ impl<'de> Deserialize<'de> for Orgs {
     }
 }
 
+crate::simple_enum!(
 /// The types of specifiers that can be used on git sources by cargo, in order
 /// of their specificity from least to greatest
-#[derive(
-    PartialEq,
-    Eq,
-    Debug,
-    PartialOrd,
-    Ord,
-    Clone,
-    Copy,
-    Default,
-    strum::VariantArray,
-    strum::VariantNames,
-)]
-#[strum(serialize_all = "kebab-case")]
-pub enum GitSpec {
+#[derive(PartialEq, Eq, Debug, PartialOrd, Ord, Clone, Copy, Default)]
+GitSpec, [
     /// Specifies the `HEAD` of the remote
     #[default]
-    Any,
+    Any = "any",
     /// Specifies the `HEAD` of a particular branch
-    Branch,
+    Branch = "branch",
     /// Specifies the commit pointed to by a particular tag
-    Tag,
+    Tag = "tag",
     /// Specifies an exact commit
-    Rev,
-}
+    Rev = "rev",
+]);
 
 crate::enum_deser!(GitSpec);
-
-use std::fmt;
-
-impl fmt::Display for GitSpec {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Any => "any",
-            Self::Branch => "branch",
-            Self::Tag => "tag",
-            Self::Rev => "rev",
-        })
-    }
-}
 
 pub struct Config {
     /// How to handle registries that weren't listed

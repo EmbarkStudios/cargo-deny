@@ -9,29 +9,31 @@ use toml_span::{DeserError, Deserialize, de_helpers::TableHelper, value::Value};
 
 const DEFAULT_CONFIDENCE_THRESHOLD: f32 = 0.8;
 
-/// Allows agreement of licensing terms based on whether the license is
-/// [OSI Approved](https://opensource.org/licenses) or [considered free](
-/// https://www.gnu.org/licenses/license-list.en.html) by the FSF
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Default, strum::VariantArray, strum::VariantNames)]
-#[cfg_attr(test, derive(serde::Serialize))]
-#[strum(serialize_all = "kebab-case")]
-pub enum BlanketAgreement {
-    /// The license must be both OSI Approved and FSF/Free Libre
-    Both,
-    /// The license can be be either OSI Approved or FSF/Free Libre
-    Either,
-    /// The license must be OSI Approved
-    Osi,
-    /// The license must be FSF/Free
-    Fsf,
-    /// The license must be OSI Approved but not FSF/Free Libre
-    OsiOnly,
-    /// The license must be FSF/Free Libre but not OSI Approved
-    FsfOnly,
-    /// The license is not regarded specially
-    #[default]
-    Neither,
-}
+crate::simple_enum!(
+    /// Allows agreement of licensing terms based on whether the license is
+    /// [OSI Approved](https://opensource.org/licenses) or [considered free](
+    /// https://www.gnu.org/licenses/license-list.en.html) by the FSF
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+    #[cfg_attr(test, derive(serde::Serialize))]
+    BlanketAgreement,
+    [
+        /// The license must be both OSI Approved and FSF/Free Libre
+        Both = "both",
+        /// The license can be be either OSI Approved or FSF/Free Libre
+        Either = "either",
+        /// The license must be OSI Approved
+        Osi = "osi",
+        /// The license must be FSF/Free
+        Fsf = "fsf",
+        /// The license must be OSI Approved but not FSF/Free Libre
+        OsiOnly = "osi-only",
+        /// The license must be FSF/Free Libre but not OSI Approved
+        FsfOnly = "fsf-only",
+        /// The license is not regarded specially
+        #[default]
+        Neither = "neither",
+    ]
+);
 
 crate::enum_deser!(BlanketAgreement);
 

@@ -6,23 +6,11 @@ use crate::{
 };
 use std::fmt;
 
-#[derive(
-    strum::Display,
-    strum::EnumString,
-    strum::EnumIter,
-    strum::IntoStaticStr,
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-)]
-#[strum(serialize_all = "kebab-case")]
-pub enum Code {
-    Deprecated,
-}
+crate::simple_enum!(
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    Code,
+    [Deprecated = "deprecated"]
+);
 
 impl Code {
     #[inline]

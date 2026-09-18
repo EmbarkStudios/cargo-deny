@@ -75,19 +75,21 @@ impl<'de> Deserialize<'de> for CrateFeatures {
     }
 }
 
-#[cfg_attr(test, derive(serde::Serialize))]
-#[derive(PartialEq, Eq, Copy, Clone, Default, strum::VariantArray, strum::VariantNames)]
-#[strum(serialize_all = "kebab-case")]
-pub enum GraphHighlight {
-    /// Highlights the path to a duplicate dependency with the fewest number
-    /// of total edges, which tends to make it the best candidate for removing
-    SimplestPath,
-    /// Highlights the path to the duplicate dependency with the lowest version
-    LowestVersion,
-    /// Highlights with all of the other configs
-    #[default]
-    All,
-}
+crate::simple_enum!(
+    #[cfg_attr(test, derive(serde::Serialize))]
+    #[derive(PartialEq, Eq, Copy, Clone, Default)]
+    GraphHighlight,
+    [
+        /// Highlights the path to a duplicate dependency with the fewest number
+        /// of total edges, which tends to make it the best candidate for removing
+        SimplestPath = "simplest-path",
+        /// Highlights the path to the duplicate dependency with the lowest version
+        LowestVersion = "lowest-version",
+        /// Highlights with all of the other configs
+        #[default]
+        All = "all",
+    ]
+);
 
 crate::enum_deser!(GraphHighlight);
 

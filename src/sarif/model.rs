@@ -90,10 +90,10 @@ impl Serialize for Help {
         m.serialize_entry("text", "For more information, see cargo-deny documentation")?;
 
         let (check, code): (_, &'static str) = match self.0 {
-            crate::diag::DiagnosticCode::Advisory(code) => ("advisories", code.into()),
-            crate::diag::DiagnosticCode::Bans(code) => ("bans", code.into()),
-            crate::diag::DiagnosticCode::License(code) => ("licenses", code.into()),
-            crate::diag::DiagnosticCode::Source(code) => ("sources", code.into()),
+            crate::diag::DiagnosticCode::Advisory(code) => ("advisories", code.as_str()),
+            crate::diag::DiagnosticCode::Bans(code) => ("bans", code.as_str()),
+            crate::diag::DiagnosticCode::License(code) => ("licenses", code.as_str()),
+            crate::diag::DiagnosticCode::Source(code) => ("sources", code.as_str()),
             crate::diag::DiagnosticCode::General(_code) => {
                 return m.end();
             }
