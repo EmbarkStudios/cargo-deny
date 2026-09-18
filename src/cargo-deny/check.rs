@@ -297,7 +297,7 @@ pub(crate) fn cmd(
                 log::info!("fetched crates in {:?}", start.elapsed());
             }
 
-            krates = Some(krate_ctx.gather_krates(graph.targets, graph.exclude));
+            krates = Some(krate_ctx.gather_krates_with_filtered(graph.targets, graph.exclude));
         });
 
         if check_advisories {
@@ -340,7 +340,7 @@ pub(crate) fn cmd(
         }
     });
 
-    let krates = krates.unwrap()?;
+    let (krates, filtered_krates) = krates.unwrap()?;
 
     let advisory_db_set = if check_advisories {
         let dbset = advisory_dbs.unwrap()?;
@@ -349,11 +349,13 @@ pub(crate) fn cmd(
         None
     };
 
-    let krate_spans = cargo_deny::diag::KrateSpans::synthesize(
+    let krate_spans = cargo_deny::diag::KrateSpans::synthesize_with_filtered(
         &krates,
+        &filtered_krates,
         krates.workspace_root().as_str(),
         &mut files,
     );
+    drop(filtered_krates);
 
     let license_summary = if check_licenses {
         let store = license_store.unwrap()?;
