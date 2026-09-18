@@ -52,7 +52,7 @@ macro_rules! simple_enum {
     };
 }
 
-/// Implements toml_span Deserialize for an enum that was declared via [`simple_enum!`]
+/// Implements `toml_span` Deserialize for an enum that was declared via [`simple_enum!`]
 #[macro_export]
 macro_rules! enum_deser {
     ($enum:ty) => {
