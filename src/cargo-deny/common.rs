@@ -165,6 +165,7 @@ impl KrateContext {
     fn default_config_path(manifest_path: &Path) -> Option<PathBuf> {
         let mut config_path = manifest_path.parent()?.to_owned();
 
+        // Prefer the nearest directory, then check these names in order.
         const SUB_PATHS: [&[&str]; 4] = [
             &["deny.toml"],
             &[".deny.toml"],
@@ -739,7 +740,9 @@ impl<'a> DiagPrinter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{KrateContext, Path, PathBuf};
+    use std::fs::{self, File};
+    use std::io;
 
     #[inline]
     fn temp_dir() -> tempfile::TempDir {
@@ -751,7 +754,7 @@ mod tests {
         let temp_dir = temp_dir();
 
         let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
-        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+        File::create(current_dir.join("deny.toml")).unwrap();
 
         let expected = current_dir.join("deny.toml");
 
@@ -769,16 +772,77 @@ mod tests {
         let temp_dir = temp_dir();
 
         let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
-        std::fs::File::create(current_dir.join("Cargo.toml")).unwrap();
+        File::create(current_dir.join("Cargo.toml")).unwrap();
         let manifest_path = current_dir.join("Cargo.toml");
 
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = None;
         assert_eq!(actual, expected);
 
-        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+        File::create(current_dir.join("deny.toml")).unwrap();
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = Some(current_dir.join("deny.toml"));
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_default_config_path_finds_config_in_parent_directory() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let parent_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        fs::create_dir(parent_dir.join("project"))?;
+        let manifest_path = parent_dir.join("project/Cargo.toml");
+
+        fs::create_dir(parent_dir.join(".config"))?;
+        let config_path = parent_dir.join(".config/deny.toml");
+        File::create(&config_path)?;
+
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(config_path));
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_config_path_prefers_nearer_directory() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let parent_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        File::create(parent_dir.join("deny.toml"))?;
+        fs::create_dir_all(parent_dir.join("project/.config"))?;
+        let nearer_config_path = parent_dir.join("project/.config/deny.toml");
+        File::create(&nearer_config_path)?;
+
+        let manifest_path = parent_dir.join("project/Cargo.toml");
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(nearer_config_path));
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_config_path_precedence() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let root = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        let manifest_path = root.join("Cargo.toml");
+
+        fs::create_dir(root.join(".config"))?;
+        let config_path = root.join(".config/deny.toml");
+        File::create(&config_path)?;
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(config_path));
+
+        fs::create_dir(root.join(".cargo"))?;
+        let cargo_path = root.join(".cargo/deny.toml");
+        File::create(&cargo_path)?;
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(cargo_path));
+
+        let hidden_path = root.join(".deny.toml");
+        File::create(&hidden_path)?;
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(hidden_path));
+
+        let default_path = root.join("deny.toml");
+        File::create(&default_path)?;
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(default_path));
+        Ok(())
     }
 }
