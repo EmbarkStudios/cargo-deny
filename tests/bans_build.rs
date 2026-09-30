@@ -251,6 +251,41 @@ build-script = "1a850d791184374f614d01c86c8d6c9ba0500e64cb746edc9720ceaaa1cd8eaf
     insta::assert_json_snapshot!(diags);
 }
 
+/// Warns when we allow build scripts for crates that don't have one, or if the crate is not encountered
+#[test]
+fn warns_on_allowed_but_missing() {
+    ci_ignore!();
+
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather {
+            name: "build-bans",
+            features: &["mixed", "scripts"],
+            no_default_features: true,
+            targets: &["x86_64-unknown-linux-gnu"],
+            ..Default::default()
+        },
+        Config::new(
+            r#"
+[build]
+allow-build-scripts = [
+    "ittapi-sys",
+    "libc",
+    "ring",
+
+    # Warns since this crate isn't in the graph
+    "no-such-crate",
+    # Warns since this crate doesn't have a build script
+    "spin",
+]
+executables = "allow"
+"#,
+        ),
+    );
+
+    insta::assert_json_snapshot!(diags);
+}
+
 /// Verifies executables are allowed by glob patterns
 #[test]
 fn allows_by_glob() {

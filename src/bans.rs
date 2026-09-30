@@ -546,6 +546,7 @@ pub fn check(
 
     struct BuildCheckCtx {
         bypasses: parking_lot::Mutex<BitVec>,
+        allowed: Option<parking_lot::Mutex<BitVec>>,
         diag_packs: parking_lot::Mutex<std::collections::BTreeMap<usize, Pack>>,
         cargo_home: Option<crate::PathBuf>,
         build_config: ValidBuildConfig,
@@ -563,10 +564,15 @@ pub fn check(
         // if they're configured but not actually used
         let bypasses =
             parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, build_config.bypass.len()));
+        let allowed = build_config
+            .allow_build_scripts
+            .as_ref()
+            .map(|abs| parking_lot::Mutex::<BitVec>::new(BitVec::repeat(false, abs.len() * 2)));
 
         BuildCheckCtx {
             cargo_home,
             bypasses,
+            allowed,
             diag_packs: parking_lot::Mutex::new(std::collections::BTreeMap::new()),
             build_config,
         }
@@ -1028,15 +1034,25 @@ pub fn check(
 
                 if let Some(build_ctx) = &build_check_ctx {
                     scope.spawn(move |_s| {
-                        if let Some(bcc) = check_build(
+                        let bci = check_build(
                             ctx.cfg.file_id,
                             &build_ctx.build_config,
                             build_ctx.cargo_home.as_deref(),
                             krate,
                             ctx.krates,
                             &mut pack,
-                        ) {
+                        );
+
+                        if let Some(bcc) = bci.bypass_index {
                             build_ctx.bypasses.lock().set(bcc, true);
+                        }
+
+                        if let Some(mut l) = build_ctx.allowed.as_ref().map(|a| a.lock())
+                            && let Some((index, has_build_script)) = bci.allowed
+                        {
+                            let ind = index * 2;
+                            l.set(ind, true);
+                            l.set(ind + 1, has_build_script);
                         }
 
                         if !pack.is_empty() {
@@ -1082,6 +1098,25 @@ pub fn check(
                 unmatched: &ve,
                 file_id,
             });
+        }
+
+        if let Some((allowed, config)) = bcc.allowed.zip(bcc.build_config.allow_build_scripts) {
+            let allowed = allowed.into_inner();
+            for (i, acfg) in config.into_iter().enumerate() {
+                if allowed[i * 2] {
+                    if !allowed[i * 2 + 1] {
+                        pack.push(diags::AllowedScriptWithNoScript {
+                            missing: &acfg,
+                            file_id,
+                        });
+                    }
+                } else {
+                    pack.push(diags::UnmatchedAllowBuildScript {
+                        unmatched: &acfg,
+                        file_id,
+                    });
+                }
+            }
         }
 
         sink.push(pack);
@@ -1139,6 +1174,13 @@ pub fn check(
     }
 }
 
+pub struct BuildCheckInfo {
+    /// The index of the bypass configuration for the particular crate
+    pub bypass_index: Option<usize>,
+    /// The index of the allow-build-scripts config, and a bool indicating if it actually contained a build script or not
+    pub allowed: Option<(usize, bool)>,
+}
+
 pub fn check_build(
     file_id: FileId,
     config: &ValidBuildConfig,
@@ -1146,25 +1188,33 @@ pub fn check_build(
     krate: &Krate,
     krates: &Krates,
     pack: &mut Pack,
-) -> Option<usize> {
+) -> BuildCheckInfo {
     use krates::cm::TargetKind;
 
-    let build_script_allowed = if let Some(allow_build_scripts) = &config.allow_build_scripts {
-        let has_build_script = krate
-            .targets
-            .iter()
-            .any(|t| t.kind.contains(&TargetKind::CustomBuild));
-
-        !has_build_script
-            || allow_build_scripts
+    let (build_script_allowed, allowed) =
+        if let Some(allow_build_scripts) = &config.allow_build_scripts {
+            let has_build_script = krate
+                .targets
                 .iter()
-                .any(|id| crate::match_krate(krate, id))
-    } else {
-        true
-    };
+                .any(|t| t.kind.contains(&TargetKind::CustomBuild));
+
+            let pos = allow_build_scripts
+                .iter()
+                .position(|id| crate::match_krate(krate, id));
+
+            (
+                !has_build_script || pos.is_some(),
+                pos.map(|p| (p, has_build_script)),
+            )
+        } else {
+            (true, None)
+        };
 
     if build_script_allowed && config.executables == LintLevel::Allow {
-        return None;
+        return BuildCheckInfo {
+            bypass_index: None,
+            allowed,
+        };
     }
 
     #[inline]
@@ -1204,15 +1254,23 @@ pub fn check_build(
         || (config.include_dependencies
             && !needs_checking(krates.nid_for_kid(&krate.id).unwrap(), krates))
     {
-        return None;
+        return BuildCheckInfo {
+            bypass_index: None,
+            allowed,
+        };
     }
 
-    let (kc_index, krate_config) = config
+    let (bypass_index, krate_config) = config
         .bypass
         .iter()
         .enumerate()
         .find_map(|(i, ae)| crate::match_krate(krate, &ae.spec).then_some((i, ae)))
         .unzip();
+
+    let ret = BuildCheckInfo {
+        bypass_index,
+        allowed,
+    };
 
     let build_script_path = krate.targets.iter().find_map(|t| {
         t.kind
@@ -1258,7 +1316,7 @@ pub fn check_build(
                 // If none of the required-features are present then we
                 // can skip the rest of the check
                 if enabled_features.is_empty() {
-                    return kc_index;
+                    return ret;
                 }
 
                 pack.push(diags::FeaturesEnabled {
@@ -1301,7 +1359,8 @@ pub fn check_build(
             krate,
             build_script,
         });
-        return kc_index;
+
+        return ret;
     }
 
     let root = krate.manifest_path.parent().unwrap();
@@ -1522,7 +1581,7 @@ pub fn check_build(
         pack.push(diag);
     }
 
-    kc_index
+    ret
 }
 
 pub(crate) enum ExecutableKind {
