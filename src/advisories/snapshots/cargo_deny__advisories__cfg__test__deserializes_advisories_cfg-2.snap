@@ -12,7 +12,8 @@ expression: validated
     {
       "id": "RUSTSEC-0000-0000",
       "reason": null,
-      "expiry": null
+      "expiry": null,
+      "allow": null
     }
   ],
   "unmaintained": "Workspace",

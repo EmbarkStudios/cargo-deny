@@ -35,6 +35,7 @@ pub(crate) struct IgnoreId {
     pub id: AdvisoryId,
     pub reason: Option<Reason>,
     pub expiry: Option<Spanned<Duration>>,
+    pub allow: Option<Spanned<Vec<PackageSpecOrExtended<Reason>>>>,
 }
 
 impl<'de> Deserialize<'de> for IgnoreId {
@@ -56,6 +57,7 @@ impl<'de> Deserialize<'de> for IgnoreId {
         };
         let reason = th.optional_s::<String>("reason");
         let expiry = do_duration_parse(th.take("expiry"))?;
+        let allow = th.optional_s("allow");
 
         th.finalize(None)?;
 
@@ -63,6 +65,7 @@ impl<'de> Deserialize<'de> for IgnoreId {
             id,
             reason: reason.map(Reason::from),
             expiry,
+            allow,
         })
     }
 }
@@ -207,6 +210,7 @@ impl<'de> Deserialize<'de> for Config {
                                                 id: Spanned::with_span(s.into(), v.span),
                                                 reason: None,
                                                 expiry: None,
+                                                allow: Default::default(),
                                             },
                                             v.span,
                                         ));
@@ -317,7 +321,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 ctx.push(
                     Diagnostic::error()
                         .with_message("advisory database url doesn't have a domain name")
-                        .with_labels(vec![Label::secondary(ctx.cfg_id, url.span)]),
+                        .with_label(Label::secondary(ctx.cfg_id, url.span)),
                 );
             }
         }
@@ -683,7 +687,7 @@ fn shellexpand(
                 .map_err(|err| {
                     Diagnostic::error()
                         .with_message(format_args!("unable to obtain $HOME: {err:#}"))
-                        .with_labels(vec![Label::primary(cfg_id, span.start..span.start + 1)])
+                        .with_label(Label::primary(cfg_id, span.start..span.start + 1))
                 })?
                 .expect("this either fails or returns a path"),
         );
@@ -700,7 +704,7 @@ fn shellexpand(
             let end = te[cursor..].find('}').ok_or_else(|| {
                 Diagnostic::error()
                     .with_message("opening `{` is unbalanced")
-                    .with_labels(vec![Label::primary(cfg_id, sspan..span.end)])
+                    .with_label(Label::primary(cfg_id, sspan..span.end))
             })?;
 
             // Check if a default value is available
@@ -738,7 +742,7 @@ fn shellexpand(
         if var_name.is_empty() {
             return Err(Diagnostic::error()
                 .with_message("variable name cannot be empty")
-                .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                .with_label(Label::primary(cfg_id, sspan..span.start + next)));
         }
 
         match expand(Expand::Var(var_name)) {
@@ -748,7 +752,7 @@ fn shellexpand(
             Err(err) => {
                 return Err(Diagnostic::error()
                     .with_message(format_args!("failed to expand variable: {err:#}"))
-                    .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                    .with_label(Label::primary(cfg_id, sspan..span.start + next)));
             }
             Ok(None) => {
                 if let Some(default) = default {
@@ -756,7 +760,7 @@ fn shellexpand(
                 } else {
                     return Err(Diagnostic::error()
                         .with_message("failed to find variable")
-                        .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                        .with_label(Label::primary(cfg_id, sspan..span.start + next)));
                 }
             }
         }

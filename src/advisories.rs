@@ -104,47 +104,65 @@ pub fn check<R, S>(
     };
 
     // Emit diagnostics for any advisories found that matched crates in the graph
-    'lup: for (krate, advisory) in &report.advisories {
-        'block: {
-            let Some(scope) =
-                advisory
-                    .advisory
-                    .informational
-                    .as_ref()
-                    .and_then(|info| match info {
-                        model::Informational::Unmaintained => Some(&ctx.cfg.unmaintained),
-                        model::Informational::Unsound => Some(&ctx.cfg.unsound),
-                        _ => None,
-                    })
-            else {
-                break 'block;
-            };
+    'lup: for (advisory, k) in &report.advisories {
+        let mut dds = Vec::new();
+        let mut ignore = None;
 
-            match scope.value {
-                Scope::All => break 'block,
-                Scope::None => continue 'lup,
-                Scope::Workspace | Scope::Transitive => {
-                    let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                    let dds = ctx.krates.direct_dependents(nid);
+        for krate in k {
+            'block: {
+                let Some(scope) =
+                    advisory
+                        .advisory
+                        .informational
+                        .as_ref()
+                        .and_then(|info| match info {
+                            model::Informational::Unmaintained => Some(&ctx.cfg.unmaintained),
+                            model::Informational::Unsound => Some(&ctx.cfg.unsound),
+                            _ => None,
+                        })
+                else {
+                    break 'block;
+                };
 
-                    let transitive = scope.value == Scope::Transitive;
-                    if dds
-                        .iter()
-                        .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
-                    {
-                        break 'block;
+                match scope.value {
+                    Scope::All => break 'block,
+                    Scope::None => continue 'lup,
+                    Scope::Workspace | Scope::Transitive => {
+                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
+                        let dds = ctx.krates.direct_dependents(nid);
+
+                        let transitive = scope.value == Scope::Transitive;
+                        if dds
+                            .iter()
+                            .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
+                        {
+                            break 'block;
+                        }
+
+                        continue 'lup;
                     }
-
-                    continue 'lup;
                 }
             }
+
+            let mut dd = None;
+            let diag = ctx.diag_for_advisory(
+                krate,
+                serialize_advisories,
+                advisory,
+                date,
+                &mut dd,
+                |index| {
+                    ignore_hits.as_mut_bitslice().set(index, true);
+                    ignore = Some(&ctx.cfg.ignore[index]);
+                },
+            );
+
+            sink.push(diag);
+
+            dds.extend(dd);
         }
 
-        let diag = ctx.diag_for_advisory(krate, serialize_advisories, advisory, date, |index| {
-            ignore_hits.as_mut_bitslice().set(index, true);
-        });
-
-        sink.push(diag);
+        sink.push(ctx.diag_for_allowed_missing(ignore, dds));
     }
 
     for (krate, status) in yanked {

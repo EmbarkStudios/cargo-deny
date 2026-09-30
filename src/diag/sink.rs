@@ -18,6 +18,9 @@ impl From<super::PackChannel> for ErrorSink {
 impl ErrorSink {
     pub fn push(&mut self, pack: impl Into<Pack>) {
         let mut pack = pack.into();
+        if pack.is_empty() {
+            return;
+        }
 
         if let Some(overrides) = &self.overrides {
             for diag in &mut pack.diags {
