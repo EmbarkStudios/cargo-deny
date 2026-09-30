@@ -1,0 +1,117 @@
+---
+source: tests/direct_default_features.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "default-feature-enabled",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "direct-default",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "direct-default",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "direct-default-features",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 37,
+          "line": 2,
+          "message": "lint level",
+          "span": "warn"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'direct-default = 0.1.0'",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "default-feature-enabled",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "transitive-default",
+            "version": "0.1.0"
+          },
+          "parents": [
+            {
+              "Feature": {
+                "crate_name": "transitive-default",
+                "name": "default"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "direct-default",
+                    "version": "0.1.0"
+                  },
+                  "parents": [
+                    {
+                      "Feature": {
+                        "crate_name": "direct-default",
+                        "name": "default"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "direct-default-features",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Feature": {
+                        "crate_name": "direct-default",
+                        "name": "enabled"
+                      },
+                      "parents": [
+                        {
+                          "Feature": {
+                            "crate_name": "direct-default",
+                            "name": "default"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 30,
+          "line": 1,
+          "message": "lint level",
+          "span": "deny"
+        }
+      ],
+      "message": "'default' feature enabled for crate 'transitive-default = 0.1.0'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

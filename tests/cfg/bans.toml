@@ -5,6 +5,7 @@ allow-wildcard-paths = true
 highlight = "simplest-path"
 workspace-default-features = "warn"
 external-default-features = "deny"
+direct-external-default-features = "warn"
 allow = [
     { name = "all-versionsa" },
     "version-rangea:<0.1.1",
