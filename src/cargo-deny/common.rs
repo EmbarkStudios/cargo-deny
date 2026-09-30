@@ -165,6 +165,7 @@ impl KrateContext {
     fn default_config_path(manifest_path: &Path) -> Option<PathBuf> {
         let mut config_path = manifest_path.parent()?.to_owned();
 
+        // Prefer the nearest directory, then check these names in order.
         const SUB_PATHS: [&[&str]; 4] = [
             &["deny.toml"],
             &[".deny.toml"],
@@ -195,30 +196,34 @@ impl KrateContext {
         None
     }
 
-    pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
-        let mut p = self.manifest_path.parent();
+    pub fn get_local_exceptions_path(manifest_path: &Path) -> Option<PathBuf> {
+        let mut config_path = manifest_path.parent()?.to_owned();
 
-        while let Some(parent) = p {
-            let mut config_path = parent.join("deny.exceptions.toml");
+        const SUB_PATHS: [&[&str]; 4] = [
+            &["deny.exceptions.toml"],
+            &[".deny.exceptions.toml"],
+            &[".cargo", "deny.exceptions.toml"],
+            &[".config", "deny.exceptions.toml"],
+        ];
 
-            if config_path.exists() {
-                return Some(config_path);
+        loop {
+            for sp in SUB_PATHS {
+                for p in sp {
+                    config_path.push(p);
+                }
+
+                if config_path.exists() {
+                    return Some(config_path);
+                }
+
+                for _ in 0..sp.len() {
+                    config_path.pop();
+                }
             }
 
-            config_path.pop();
-            config_path.push(".deny.exceptions.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
+            if !config_path.pop() {
+                break;
             }
-
-            config_path.pop();
-            config_path.push(".cargo/deny.exceptions.toml");
-            if config_path.exists() {
-                return Some(config_path);
-            }
-
-            p = parent.parent();
         }
 
         None
@@ -739,7 +744,9 @@ impl<'a> DiagPrinter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{KrateContext, Path, PathBuf};
+    use std::fs::{self, File};
+    use std::io;
 
     #[inline]
     fn temp_dir() -> tempfile::TempDir {
@@ -751,7 +758,7 @@ mod tests {
         let temp_dir = temp_dir();
 
         let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
-        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+        File::create(current_dir.join("deny.toml")).unwrap();
 
         let expected = current_dir.join("deny.toml");
 
@@ -769,16 +776,92 @@ mod tests {
         let temp_dir = temp_dir();
 
         let current_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
-        std::fs::File::create(current_dir.join("Cargo.toml")).unwrap();
+        File::create(current_dir.join("Cargo.toml")).unwrap();
         let manifest_path = current_dir.join("Cargo.toml");
 
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = None;
         assert_eq!(actual, expected);
 
-        std::fs::File::create(current_dir.join("deny.toml")).unwrap();
+        File::create(current_dir.join("deny.toml")).unwrap();
         let actual = KrateContext::default_config_path(&manifest_path);
         let expected = Some(current_dir.join("deny.toml"));
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_default_config_path_finds_config_in_parent_directory() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let parent_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        fs::create_dir(parent_dir.join("project"))?;
+        let manifest_path = parent_dir.join("project/Cargo.toml");
+
+        fs::create_dir(parent_dir.join(".config"))?;
+        let config_path = parent_dir.join(".config/deny.toml");
+        File::create(&config_path)?;
+
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(config_path));
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_config_path_prefers_nearer_directory() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let parent_dir = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        File::create(parent_dir.join("deny.toml"))?;
+        fs::create_dir_all(parent_dir.join("project/.config"))?;
+        let nearer_config_path = parent_dir.join("project/.config/deny.toml");
+        File::create(&nearer_config_path)?;
+
+        let manifest_path = parent_dir.join("project/Cargo.toml");
+        let path = KrateContext::default_config_path(&manifest_path);
+        assert_eq!(path, Some(nearer_config_path));
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_config_path_precedence() -> io::Result<()> {
+        let temp_dir = temp_dir();
+        let root = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+        let manifest_path = root.join("Cargo.toml");
+
+        // Reverse order of how they are searched for so each iteration uses the higher precedence
+        let cfg_paths = [
+            ".config/deny.toml",
+            ".cargo/deny.toml",
+            ".deny.toml",
+            "deny.toml",
+        ];
+
+        for sp in cfg_paths {
+            let path = root.join(sp);
+            if let Some(parent) = path.parent()
+                && !parent.exists()
+            {
+                fs::create_dir_all(parent)?;
+            }
+
+            File::create(&path)?;
+            let found = KrateContext::default_config_path(&manifest_path);
+            assert_eq!(path, found.unwrap());
+        }
+
+        let exc_paths = [
+            ".config/deny.exceptions.toml",
+            ".cargo/deny.exceptions.toml",
+            ".deny.exceptions.toml",
+            "deny.exceptions.toml",
+        ];
+
+        for sp in exc_paths {
+            let path = root.join(sp);
+
+            File::create(&path)?;
+            let found = KrateContext::get_local_exceptions_path(&manifest_path);
+            assert_eq!(path, found.unwrap());
+        }
+
+        Ok(())
     }
 }
