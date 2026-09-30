@@ -1,0 +1,40 @@
+---
+source: tests/bans_build.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unmatched-allow-build-script",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 6,
+          "line": 9,
+          "message": "unmatched allow-build-script",
+          "span": "no-such-crate"
+        }
+      ],
+      "message": "allowed build script for a crate not encountered",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "allowed-crate-without-build-script",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 6,
+          "line": 11,
+          "message": "crate without a build script",
+          "span": "spin"
+        }
+      ],
+      "message": "allowed build script for a crate that does not have a build script",
+      "severity": "warning"
+    },
+    "type": "diagnostic"
+  }
+]

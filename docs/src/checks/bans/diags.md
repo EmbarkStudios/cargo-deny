@@ -1,6 +1,7 @@
 # Bans diagnostics
 
 <!-- markdownlint-disable-next-line heading-increment -->
+
 ### `banned`
 
 A crate which is [explicitly banned](cfg.md#the-allow-and-deny-fields-optional) was detected.
@@ -140,6 +141,14 @@ A [path bypass](cfg.md#the-bypassallow-field-optional) did not match a file in t
 ### `unmatched-glob`
 
 A [glob bypass](cfg.md#the-allow-globs-field-optional) did not match any files in the crate.
+
+### `unmatched-allow-build-script`
+
+A [allow-build-scripts](cfg.md#the-allow-build-scripts-field-optional) specified a crate not found in the graph.
+
+### `allowed-crate-without-build-script`
+
+A [allow-build-scripts](cfg.md#the-allow-build-scripts-field-optional) specified a crate that does not have a build script.
 
 ### `non-root-path`
 

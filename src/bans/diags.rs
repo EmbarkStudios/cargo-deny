@@ -43,6 +43,8 @@ crate::simple_enum!(
         UnmatchedBypass = "unmatched-bypass",
         UnmatchedPathBypass = "unmatched-path-bypass",
         UnmatchedGlob = "unmatched-glob",
+        UnmatchedAllowBuildScript = "unmatched-allow-build-script",
+        AllowedCrateWithoutBuildScript = "allowed-crate-without-build-script",
         UnusedWrapper = "unused-wrapper",
         WorkspaceDuplicate = "workspace-duplicate",
         UnresolvedWorkspaceDependency = "unresolved-workspace-dependency",
@@ -112,6 +114,12 @@ impl Code {
             }
             Self::UnmatchedPathBypass => "A path bypass did not match a path in a crate's source",
             Self::UnmatchedGlob => "A glob bypass did not match any paths in a crate's source",
+            Self::UnmatchedAllowBuildScript => {
+                "A build script was allowed for a crate that wasn't present in the graph"
+            }
+            Self::AllowedCrateWithoutBuildScript => {
+                "A build script was allowed for a crate that doesn't have a build script"
+            }
             Self::UnusedWrapper => "A wrapper was declared for a crate not in the graph",
             Self::WorkspaceDuplicate => {
                 "A workspace directly depended on more than one version of the same crate"
@@ -987,6 +995,44 @@ impl<'a> From<UnmatchedGlob<'a>> for Diag {
                 .with_message("glob was not encountered")
                 .with_labels(vec![Label::primary(ug.file_id, ug.unmatched.span)]),
             Code::UnmatchedGlob,
+        )
+    }
+}
+
+pub(crate) struct UnmatchedAllowBuildScript<'a> {
+    pub(crate) unmatched: &'a crate::cfg::PackageSpec,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<UnmatchedAllowBuildScript<'a>> for Diag {
+    fn from(ubc: UnmatchedAllowBuildScript<'a>) -> Self {
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("allowed build script for a crate not encountered")
+                .with_labels(vec![
+                    Label::primary(ubc.file_id, ubc.unmatched.name.span)
+                        .with_message("unmatched allow-build-script"),
+                ]),
+            Code::UnmatchedAllowBuildScript,
+        )
+    }
+}
+
+pub(crate) struct AllowedScriptWithNoScript<'a> {
+    pub(crate) missing: &'a crate::cfg::PackageSpec,
+    pub(crate) file_id: FileId,
+}
+
+impl<'a> From<AllowedScriptWithNoScript<'a>> for Diag {
+    fn from(ubc: AllowedScriptWithNoScript<'a>) -> Self {
+        diag(
+            Diagnostic::new(Severity::Warning)
+                .with_message("allowed build script for a crate that does not have a build script")
+                .with_labels(vec![
+                    Label::primary(ubc.file_id, ubc.missing.name.span)
+                        .with_message("crate without a build script"),
+                ]),
+            Code::AllowedCrateWithoutBuildScript,
         )
     }
 }
