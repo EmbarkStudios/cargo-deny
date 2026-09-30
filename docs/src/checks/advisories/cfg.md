@@ -11,7 +11,6 @@ db-path = "~/.cargo/advisory-dbs" # Or wherever $CARGO_HOME/advisory-dbs resolve
 yanked = "warn"
 unmaintained = "all"
 unsound = "workspace"
-git-fetch-with-cli = false
 maximum-db-staleness = "P90D" # Only checked when advisory database fetching has been disabled
 unused-ignored-advisory = "warn"
 ```
@@ -121,10 +120,7 @@ Determines if unsound advisories will result in an error. An unsound error can s
 
 ### The `git-fetch-with-cli` field (optional)
 
-Similar to cargo's [net.git-fetch-with-cli](https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli), this field allows you to opt-in to fetching advisory databases with the git CLI rather than using `gix`.
-
-- `false` (default) - Fetches advisory databases via `gix`
-- `true` - Fetches advisory databases using `git`. Git must be installed and in `PATH`.
+Deprecated. `cargo-deny` now fetches with git cli unconditionally.
 
 ### The `maximum-db-staleness` field (optional)
 

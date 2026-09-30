@@ -12,12 +12,8 @@ pub static CTX: std::sync::OnceLock<Ctx> = std::sync::OnceLock::new();
 pub fn ctx() -> &'static Ctx {
     CTX.get_or_init(|| {
         let td = cargo_deny::PathBuf::from_path_buf(std::env::temp_dir()).unwrap();
-        let cd = db::AdvisoryDb::load(
-            db::DEFAULT_URL.parse().unwrap(),
-            td,
-            db::Fetch::AllowWithGitCli,
-        )
-        .expect("(cargo_deny) failed to load db");
+        let cd = db::AdvisoryDb::load(db::DEFAULT_URL.parse().unwrap(), td, db::Fetch::Allow)
+            .expect("(cargo_deny) failed to load db");
 
         let rs = rustsec::database::Database::open(cd.path.as_std_path())
             .expect("(rustsec) failed to load db");
