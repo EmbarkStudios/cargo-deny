@@ -7,6 +7,7 @@ use cargo_deny::{
 use std::time::Duration;
 
 const TEN_THOUSAND_DAYS: Duration = Duration::from_secs(10000 * 24 * 60 * 60);
+const DATE: jiff::civil::Date = jiff::civil::date(2000, 1, 1);
 
 struct TestCtx {
     dbs: advisories::DbSet,
@@ -86,6 +87,7 @@ fn detects_vulnerabilities() {
                 SA::Json,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -111,6 +113,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -129,6 +132,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -147,6 +151,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -165,6 +170,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -189,6 +195,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -207,6 +214,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -225,6 +233,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -243,6 +252,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -274,6 +284,7 @@ ignore = [
                 SA::Json,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -294,6 +305,60 @@ ignore = [
         .collect();
 
     insta::assert_json_snapshot!(ignored);
+}
+
+/// Validates that ignores can expire
+#[test]
+fn expires_ignores() {
+    let TestCtx { dbs, krates } = load();
+
+    use jiff::ToSpan;
+    for date in [
+        DATE,                           // A date well before either of the advisories were issued
+        jiff::civil::date(2019, 4, 27), // Same day as RUSTSEC-2019-0001
+        jiff::civil::date(2019, 4, 27)
+            .checked_add(100.days())
+            .unwrap(), // Past the expiration of RUSTSEC-2019-0001
+        jiff::civil::date(2023, 11, 29), // Day after RUSTSEC-2023-0072 was issued
+        jiff::civil::date(2023, 11, 28)
+            .checked_add(11.days())
+            .unwrap(), // 11 days after RUSTSEC-2023-0072 was issued
+    ] {
+        let cfg = tu::Config::new(
+            r#"
+    ignore-expiry = "P10D"
+    unsound = 'transitive'
+    ignore = [
+        { id = "RUSTSEC-2019-0001", reason = "this is a test", expiry = "P90D" },
+        "RUSTSEC-2023-0072",
+    ]
+    "#,
+        );
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    date,
+                );
+            });
+
+        let expired: Vec<_> = diags
+            .into_iter()
+            .filter(|v| {
+                v.pointer("/fields/code")
+                    .and_then(|s| s.as_str())
+                    .is_some_and(|s| s == "advisory-ignore-expired")
+            })
+            .collect();
+
+        insta::assert_json_snapshot!(format!("{date}"), expired);
+    }
 }
 
 /// Validates we can detect yanked crates from sparse, git, and
@@ -348,6 +413,7 @@ fn detects_yanked() {
                     SA::No,
                     Some(indices),
                     tx,
+                    DATE,
                 );
             });
 
@@ -385,6 +451,7 @@ ignore = [
                     SA::No,
                     Some(indices),
                     tx,
+                    DATE,
                 );
             });
 
@@ -441,6 +508,7 @@ fn warns_on_index_failures() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 
@@ -471,6 +539,7 @@ fn warns_on_ignored_and_withdrawn() {
                 SA::No,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -825,6 +894,7 @@ fn crates_io_source_replacement() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 
@@ -936,6 +1006,7 @@ fn crates_io_source_replacement() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 

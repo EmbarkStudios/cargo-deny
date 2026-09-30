@@ -35,6 +35,7 @@ crate::simple_enum!(
         Unsound = "unsound",
         Yanked = "yanked",
         AdvisoryIgnored = "advisory-ignored",
+        AdvisoryIgnoreExpired = "advisory-ignore-expired",
         YankedIgnored = "yanked-ignored",
         IndexFailure = "index-failure",
         IndexCacheLoadFailure = "index-cache-load-failure",
@@ -54,6 +55,7 @@ impl Code {
             Self::Notice => "A notice advisory was detected",
             Self::Yanked => "Detected a crate version yanked from its remote registry",
             Self::AdvisoryIgnored => "An advisory was ignored",
+            Self::AdvisoryIgnoreExpired => "An ignore for an advisory expired",
             Self::YankedIgnored => "A yanked crate version was ignored",
             Self::IndexFailure => "Failed to get index information for a registry",
             Self::IndexCacheLoadFailure => "Failed to load cached index information for a registry",
@@ -111,6 +113,7 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
         krate: &crate::Krate,
         serialize_advisories: crate::SerializeAdvisory,
         advisory: &Advisory<'_>,
+        date: jiff::civil::Date,
         mut on_ignore: F,
     ) -> Pack
     where
@@ -141,28 +144,54 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
                 }
             });
 
-            // Ok, we found a crate whose version lies within the range of an
-            // advisory, but the user might have decided to ignore it
-            // for "reasons", but in that case we still emit it to the log
-            // so it doesn't just disappear into the aether
+            // Ok, we found a crate whose version lies within the range of an advisory, but the user might have decided
+            // to ignore it for "reasons", but in that case we still emit it to the log so it doesn't just disappear
+            // into the aether
             let lint_level = if let Ok(index) = self
                 .cfg
                 .ignore
                 .binary_search_by(|i| i.id.value.as_str().cmp(md.id))
             {
+                // This just marks the ignore as seen, even if we ultimately don't ignore it due to when it was issued
                 on_ignore(index);
 
-                pack.push(diag(
-                    Diagnostic::note()
-                        .with_message("advisory ignored")
-                        .with_labels(
-                            self.cfg.ignore[index]
-                                .to_labels(self.cfg.file_id, "advisory ignored here"),
-                        ),
-                    Code::AdvisoryIgnored,
-                ));
+                let ignore = &self.cfg.ignore[index];
 
-                LintLevel::Allow
+                // There are no notice advisories at this time, and unmaintained advisories are uninteresting since if
+                // the crate transitions back to being maintained the advisory will/should be withdrawn, but otherwise
+                // unmaintained advisories won't ever have a fix/unaffected version
+                if matches!(adv_ty, AdvisoryType::Vulnerability | AdvisoryType::Unsound)
+                    && let Some(expiry) = ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
+                    && let Ok(max) = md.date.checked_add(expiry.value)
+                    && date > max
+                {
+                    let mut l = ignore.to_labels(self.cfg.file_id, "advisory ignored here");
+                    l.push(Label {
+                        style: codespan_reporting::diagnostic::LabelStyle::Primary,
+                        file_id: self.cfg.file_id,
+                        range: expiry.span.into(),
+                        message: "expiry which was exceeded".into(),
+                    });
+                    pack.push(diag(
+                        Diagnostic::note()
+                            .with_message("ignored advisory expired")
+                            .with_labels(l),
+                        Code::AdvisoryIgnoreExpired,
+                    ));
+
+                    LintLevel::Deny
+                } else {
+                    pack.push(diag(
+                        Diagnostic::note()
+                            .with_message("advisory ignored")
+                            .with_labels(
+                                ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                            ),
+                        Code::AdvisoryIgnored,
+                    ));
+
+                    LintLevel::Allow
+                }
             } else {
                 LintLevel::Deny
             };

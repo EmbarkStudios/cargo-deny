@@ -38,6 +38,7 @@ pub fn check<R, S>(
     serialize_advisories: crate::SerializeAdvisory,
     indices: Option<Indices<'_>>,
     sink: S,
+    date: jiff::civil::Date,
 ) where
     R: AuditReporter,
     S: Into<diag::ErrorSink>,
@@ -139,7 +140,7 @@ pub fn check<R, S>(
             }
         }
 
-        let diag = ctx.diag_for_advisory(krate, serialize_advisories, advisory, |index| {
+        let diag = ctx.diag_for_advisory(krate, serialize_advisories, advisory, date, |index| {
             ignore_hits.as_mut_bitslice().set(index, true);
         });
 

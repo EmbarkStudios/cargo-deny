@@ -138,6 +138,7 @@ fn sarif_advisories() {
             cargo_deny::SerializeAdvisory::Sarif,
             None,
             sink,
+            jiff::civil::date(2000, 1, 1),
         );
     });
 

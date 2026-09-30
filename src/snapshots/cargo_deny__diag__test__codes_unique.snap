@@ -4,6 +4,7 @@ expression: unique
 ---
 {
     "accepted",
+    "advisory-ignore-expired",
     "advisory-ignored",
     "advisory-not-detected",
     "allowed",

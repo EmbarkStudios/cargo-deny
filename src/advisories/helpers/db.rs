@@ -296,8 +296,7 @@ impl<'db, 'k> Report<'db, 'k> {
             advisories.append(&mut db_advisories);
         }
 
-        // We can't just sort by krate id, as then multiple advisories for the same crate could
-        // ordered differently between runs
+        // We can't just sort by krate id, as then multiple advisories for the same crate could be ordered differently between runs
         advisories.sort_by(|a, b| {
             let c = a.0.cmp(b.0);
             if c != std::cmp::Ordering::Equal {
