@@ -190,7 +190,7 @@ pub(crate) fn cmd(
         output,
     } = ValidConfig::load(
         krate_ctx.get_config_path()?,
-        krate_ctx.get_local_exceptions_path(),
+        crate::common::KrateContext::get_local_exceptions_path(&krate_ctx.manifest_path),
         &mut files,
         log_ctx,
     )?;

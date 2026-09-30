@@ -93,7 +93,7 @@ pub fn cmd(
         graph, licenses, ..
     } = ValidConfig::load(
         cfg_path,
-        krate_ctx.get_local_exceptions_path(),
+        crate::common::KrateContext::get_local_exceptions_path(&krate_ctx.manifest_path),
         &mut files,
         log_ctx,
     )?;

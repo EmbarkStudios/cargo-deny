@@ -196,30 +196,34 @@ impl KrateContext {
         None
     }
 
-    pub fn get_local_exceptions_path(&self) -> Option<PathBuf> {
-        let mut p = self.manifest_path.parent();
+    pub fn get_local_exceptions_path(manifest_path: &Path) -> Option<PathBuf> {
+        let mut config_path = manifest_path.parent()?.to_owned();
 
-        while let Some(parent) = p {
-            let mut config_path = parent.join("deny.exceptions.toml");
+        const SUB_PATHS: [&[&str]; 4] = [
+            &["deny.exceptions.toml"],
+            &[".deny.exceptions.toml"],
+            &[".cargo", "deny.exceptions.toml"],
+            &[".config", "deny.exceptions.toml"],
+        ];
 
-            if config_path.exists() {
-                return Some(config_path);
+        loop {
+            for sp in SUB_PATHS {
+                for p in sp {
+                    config_path.push(p);
+                }
+
+                if config_path.exists() {
+                    return Some(config_path);
+                }
+
+                for _ in 0..sp.len() {
+                    config_path.pop();
+                }
             }
 
-            config_path.pop();
-            config_path.push(".deny.exceptions.toml");
-
-            if config_path.exists() {
-                return Some(config_path);
+            if !config_path.pop() {
+                break;
             }
-
-            config_path.pop();
-            config_path.push(".cargo/deny.exceptions.toml");
-            if config_path.exists() {
-                return Some(config_path);
-            }
-
-            p = parent.parent();
         }
 
         None
@@ -822,27 +826,42 @@ mod tests {
         let root = PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
         let manifest_path = root.join("Cargo.toml");
 
-        fs::create_dir(root.join(".config"))?;
-        let config_path = root.join(".config/deny.toml");
-        File::create(&config_path)?;
-        let path = KrateContext::default_config_path(&manifest_path);
-        assert_eq!(path, Some(config_path));
+        // Reverse order of how they are searched for so each iteration uses the higher precedence
+        let cfg_paths = [
+            ".config/deny.toml",
+            ".cargo/deny.toml",
+            ".deny.toml",
+            "deny.toml",
+        ];
 
-        fs::create_dir(root.join(".cargo"))?;
-        let cargo_path = root.join(".cargo/deny.toml");
-        File::create(&cargo_path)?;
-        let path = KrateContext::default_config_path(&manifest_path);
-        assert_eq!(path, Some(cargo_path));
+        for sp in cfg_paths {
+            let path = root.join(sp);
+            if let Some(parent) = path.parent()
+                && !parent.exists()
+            {
+                fs::create_dir_all(parent)?;
+            }
 
-        let hidden_path = root.join(".deny.toml");
-        File::create(&hidden_path)?;
-        let path = KrateContext::default_config_path(&manifest_path);
-        assert_eq!(path, Some(hidden_path));
+            File::create(&path)?;
+            let found = KrateContext::default_config_path(&manifest_path);
+            assert_eq!(path, found.unwrap());
+        }
 
-        let default_path = root.join("deny.toml");
-        File::create(&default_path)?;
-        let path = KrateContext::default_config_path(&manifest_path);
-        assert_eq!(path, Some(default_path));
+        let exc_paths = [
+            ".config/deny.exceptions.toml",
+            ".cargo/deny.exceptions.toml",
+            ".deny.exceptions.toml",
+            "deny.exceptions.toml",
+        ];
+
+        for sp in exc_paths {
+            let path = root.join(sp);
+
+            File::create(&path)?;
+            let found = KrateContext::get_local_exceptions_path(&manifest_path);
+            assert_eq!(path, found.unwrap());
+        }
+
         Ok(())
     }
 }
