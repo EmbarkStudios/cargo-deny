@@ -56,6 +56,13 @@ impl<'k> KrateGather<'k> {
             cmd.features(self.features.iter().map(|f| (*f).to_owned()));
         }
 
+        // unrecoverable internal error: 'eos' occurs when trying to fetch from cloudsmith.io/embark/cargo for some reason
+        // with the libgit2 backend, so force the cli, which works
+        cmd.other_options([
+            "--config".to_owned(),
+            "net.git-fetch-with-cli=true".to_owned(),
+        ]);
+
         let mut kb = krates::Builder::new();
 
         if !self.targets.is_empty() {
