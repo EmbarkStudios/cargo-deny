@@ -311,8 +311,6 @@ pub(crate) fn cmd(
                         .collect(),
                     if offline {
                         advisories::Fetch::Disallow(advisories.maximum_db_staleness.value)
-                    } else if advisories.git_fetch_with_cli {
-                        advisories::Fetch::AllowWithGitCli
                     } else {
                         advisories::Fetch::Allow
                     },

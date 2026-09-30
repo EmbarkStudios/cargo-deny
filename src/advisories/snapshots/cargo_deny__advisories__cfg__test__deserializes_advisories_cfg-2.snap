@@ -35,7 +35,6 @@ expression: validated
     }
   ],
   "yanked": "warn",
-  "git_fetch_with_cli": false,
   "disable_yank_checking": false,
   "maximum_db_staleness": {
     "secs": 7776000,

@@ -17,7 +17,6 @@ pub const DEFAULT_URL: &str = "https://github.com/RustSec/advisory-db";
 #[derive(Copy, Clone)]
 pub enum Fetch {
     Allow,
-    AllowWithGitCli,
     Disallow(std::time::Duration),
 }
 
@@ -39,7 +38,7 @@ impl AdvisoryDb {
 
         let fetch_start = std::time::Instant::now();
         match fetch {
-            Fetch::Allow | Fetch::AllowWithGitCli => {
+            Fetch::Allow => {
                 debug!("Fetching advisory database with git cli from '{db_url}'");
 
                 let res = crate::git::fetch_repo(db_url.as_str(), &db_path, "main").with_context(

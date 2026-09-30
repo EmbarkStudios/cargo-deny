@@ -93,11 +93,7 @@ pub fn cmd(
                         .into_iter()
                         .map(|dburl| dburl.take())
                         .collect(),
-                    if advisories.git_fetch_with_cli {
-                        advisories::Fetch::AllowWithGitCli
-                    } else {
-                        advisories::Fetch::Allow
-                    },
+                    advisories::Fetch::Allow,
                 ));
             });
         }

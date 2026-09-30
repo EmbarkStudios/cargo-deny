@@ -78,8 +78,8 @@ pub struct Config {
     pub unsound: Spanned<Scope>,
     /// Ignore yanked crates
     pub ignore_yanked: Vec<Spanned<PackageSpecOrExtended<Reason>>>,
-    /// Use the git executable to fetch advisory database rather than gitoxide
-    pub git_fetch_with_cli: Option<bool>,
+    /// Deprecated, we unconditionally use git cli
+    pub git_fetch_with_cli: Option<Spanned<bool>>,
     /// If set to true, the local crates indices are not checked for yanked crates
     pub disable_yank_checking: bool,
     /// The maximum duration, in RFC3339 format, that an advisory database is
@@ -237,7 +237,7 @@ impl<'de> Deserialize<'de> for Config {
         if let Some((key, _)) = th.take("severity-threshold") {
             fdeps.push(key.span);
         }
-        let git_fetch_with_cli = th.optional("git-fetch-with-cli");
+        let git_fetch_with_cli = th.optional_s("git-fetch-with-cli");
         let disable_yank_checking = th.optional("disable-yank-checking").unwrap_or_default();
         let maximum_db_staleness = if let Some((_, mut val)) = th.take("maximum-db-staleness") {
             match val.take_string(Some("an RFC3339 time duration")) {
@@ -370,6 +370,19 @@ impl crate::cfg::UnvalidatedConfig for Config {
             );
         }
 
+        if let Some(span) = self.git_fetch_with_cli {
+            ctx.push(
+                Deprecated {
+                    reason: DeprecationReason::Removed(
+                        "https://github.com/EmbarkStudios/cargo-deny/pull/830",
+                    ),
+                    key: span.span,
+                    file_id: ctx.cfg_id,
+                }
+                .into(),
+            );
+        }
+
         ValidConfig {
             file_id: ctx.cfg_id,
             db_path: db_path.unwrap_or_default(), // If we failed to get a path the default won't be used since errors will have occurred
@@ -387,7 +400,6 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 })
                 .collect(),
             yanked: self.yanked,
-            git_fetch_with_cli: self.git_fetch_with_cli.unwrap_or_default(),
             disable_yank_checking: self.disable_yank_checking,
             maximum_db_staleness: self.maximum_db_staleness,
             unused_ignored_advisory: self.unused_ignored_advisory,
@@ -404,7 +416,6 @@ pub struct ValidConfig {
     pub(crate) unsound: Spanned<Scope>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub yanked: Spanned<LintLevel>,
-    pub git_fetch_with_cli: bool,
     pub disable_yank_checking: bool,
     pub maximum_db_staleness: Spanned<Duration>,
     pub unused_ignored_advisory: LintLevel,
@@ -447,7 +458,6 @@ impl serde::Serialize for ValidConfig {
         s.serialize_entry("unsound", &self.unsound)?;
         s.serialize_entry("ignore_yanked", &self.ignore_yanked)?;
         s.serialize_entry("yanked", &self.yanked)?;
-        s.serialize_entry("git_fetch_with_cli", &self.git_fetch_with_cli)?;
         s.serialize_entry("disable_yank_checking", &self.disable_yank_checking)?;
         s.serialize_entry("maximum_db_staleness", &self.maximum_db_staleness)?;
         s.serialize_entry("unused_ignored_advisory", &self.unused_ignored_advisory)?;

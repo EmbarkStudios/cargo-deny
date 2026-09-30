@@ -565,7 +565,7 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
 #[test]
 fn clones_with_git() {
     let td = temp_dir();
-    let db = do_open(&td, Fetch::AllowWithGitCli);
+    let db = do_open(&td, Fetch::Allow);
 
     validate(
         &db,
@@ -656,7 +656,7 @@ fn fetches_with_git() {
         return;
     }
 
-    validate_fetch(Fetch::AllowWithGitCli);
+    validate_fetch(Fetch::Allow);
 }
 
 /// Validates that we can detect source replacement and can still perform yank
