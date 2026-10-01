@@ -19,14 +19,12 @@ fn do_duration_parse<'de>(
 
     match parse_rfc3339_duration(&dur) {
         Ok(d) => Ok(Some(Spanned::with_span(d, ds.span))),
-        Err(err) => {
-            return Err(toml_span::Error {
-                kind: toml_span::ErrorKind::Custom(err.to_string().into()),
-                span: ds.span,
-                line_info: None,
-            }
-            .into());
+        Err(err) => Err(toml_span::Error {
+            kind: toml_span::ErrorKind::Custom(err.to_string().into()),
+            span: ds.span,
+            line_info: None,
         }
+        .into()),
     }
 }
 
