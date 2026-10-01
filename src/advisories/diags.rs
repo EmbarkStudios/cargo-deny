@@ -35,6 +35,9 @@ crate::simple_enum!(
         Unsound = "unsound",
         Yanked = "yanked",
         AdvisoryIgnored = "advisory-ignored",
+        AdvisoryIgnoreExpired = "advisory-ignore-expired",
+        AdvisoryIgnoreDisallowedDependent = "advisory-ignore-disallowed-dependent",
+        AdvisoryIgnoreAllowedDependentMissing = "advisory-ignore-allowed-dependent-missing",
         YankedIgnored = "yanked-ignored",
         IndexFailure = "index-failure",
         IndexCacheLoadFailure = "index-cache-load-failure",
@@ -54,6 +57,13 @@ impl Code {
             Self::Notice => "A notice advisory was detected",
             Self::Yanked => "Detected a crate version yanked from its remote registry",
             Self::AdvisoryIgnored => "An advisory was ignored",
+            Self::AdvisoryIgnoreExpired => "An ignore for an advisory expired",
+            Self::AdvisoryIgnoreDisallowedDependent => {
+                "An ignore for an advisory did not explicitly a direct dependency"
+            }
+            Self::AdvisoryIgnoreAllowedDependentMissing => {
+                "An ignore an advisory explicitly allowed a crate that is not a direct dependency"
+            }
             Self::YankedIgnored => "A yanked crate version was ignored",
             Self::IndexFailure => "Failed to get index information for a registry",
             Self::IndexCacheLoadFailure => "Failed to load cached index information for a registry",
@@ -105,12 +115,14 @@ fn get_notes_from_advisory(advisory: &Metadata<'_>) -> Vec<String> {
     n
 }
 
-impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
+impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
     pub(crate) fn diag_for_advisory<F>(
         &self,
         krate: &crate::Krate,
         serialize_advisories: crate::SerializeAdvisory,
         advisory: &Advisory<'_>,
+        date: jiff::civil::Date,
+        direct_dependents: &mut Option<Vec<krates::DirectDependent<'ctx, crate::Krate>>>,
         mut on_ignore: F,
     ) -> Pack
     where
@@ -141,30 +153,91 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
                 }
             });
 
-            // Ok, we found a crate whose version lies within the range of an
-            // advisory, but the user might have decided to ignore it
-            // for "reasons", but in that case we still emit it to the log
-            // so it doesn't just disappear into the aether
-            let lint_level = if let Ok(index) = self
-                .cfg
-                .ignore
-                .binary_search_by(|i| i.id.value.as_str().cmp(md.id))
-            {
-                on_ignore(index);
+            // Ok, we found a crate whose version lies within the range of an advisory, but the user might have decided
+            // to ignore it for "reasons", but in that case we still emit it to the log so it doesn't just disappear
+            // into the aether
+            let lint_level = 'll: {
+                if let Ok(index) = self
+                    .cfg
+                    .ignore
+                    .binary_search_by(|i| i.id.value.as_str().cmp(md.id))
+                {
+                    // This just marks the ignore as seen, even if we ultimately don't ignore it due to when it was issued,
+                    // or if a crate not explicitly allowed depended on it
+                    on_ignore(index);
 
-                pack.push(diag(
-                    Diagnostic::note()
-                        .with_message("advisory ignored")
-                        .with_labels(
-                            self.cfg.ignore[index]
-                                .to_labels(self.cfg.file_id, "advisory ignored here"),
-                        ),
-                    Code::AdvisoryIgnored,
-                ));
+                    let ignore = &self.cfg.ignore[index];
 
-                LintLevel::Allow
-            } else {
-                LintLevel::Deny
+                    // There are no notice advisories at this time, and unmaintained advisories are uninteresting since if
+                    // the crate transitions back to being maintained the advisory will/should be withdrawn, but otherwise
+                    // unmaintained advisories won't ever have a fix/unaffected version
+                    if matches!(adv_ty, AdvisoryType::Vulnerability | AdvisoryType::Unsound)
+                        && let Some(expiry) =
+                            ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
+                        && let Ok(max) = md.date.checked_add(expiry.value)
+                        && date > max
+                    {
+                        let mut l = ignore.to_labels(self.cfg.file_id, "advisory ignored here");
+                        l.push(Label {
+                            style: codespan_reporting::diagnostic::LabelStyle::Primary,
+                            file_id: self.cfg.file_id,
+                            range: expiry.span.into(),
+                            message: "expiry which was exceeded".into(),
+                        });
+                        pack.push(diag(
+                            Diagnostic::note()
+                                .with_message("ignored advisory expired")
+                                .with_labels(l),
+                            Code::AdvisoryIgnoreExpired,
+                        ));
+
+                        break 'll LintLevel::Deny;
+                    }
+
+                    if let Some(allow) = &ignore.allow {
+                        let dds = self
+                            .krates
+                            .direct_dependents(self.krates.nid_for_kid(&krate.id).unwrap());
+
+                        let before = pack.len();
+                        for dd in &dds {
+                            if !allow
+                                .value
+                                .iter()
+                                .any(|allowed| crate::match_krate(dd.krate, &allowed.spec))
+                            {
+                                pack.push(diag(
+                                    Diagnostic::warning()
+                                        .with_message(format!(
+                                            "direct dependent '{}' was not explicitly allowed",
+                                            dd.krate
+                                        ))
+                                        .with_label(Label::primary(self.cfg.file_id, allow.span)),
+                                    Code::AdvisoryIgnoreDisallowedDependent,
+                                ));
+                            }
+                        }
+
+                        *direct_dependents = Some(dds);
+
+                        if pack.len() > before {
+                            break 'll LintLevel::Deny;
+                        }
+                    }
+
+                    pack.push(diag(
+                        Diagnostic::note()
+                            .with_message("advisory ignored")
+                            .with_labels(
+                                ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                            ),
+                        Code::AdvisoryIgnored,
+                    ));
+
+                    LintLevel::Allow
+                } else {
+                    LintLevel::Deny
+                }
             };
 
             (lint_level.into(), adv_ty)
@@ -219,6 +292,36 @@ impl crate::CheckCtx<'_, super::cfg::ValidConfig> {
             crate::SerializeAdvisory::No => {}
             crate::SerializeAdvisory::Json => diag.advisory = Some(advisory.to_json()),
             crate::SerializeAdvisory::Sarif => diag.advisory = Some(advisory.to_sarif()),
+        }
+
+        pack
+    }
+
+    pub(crate) fn diag_for_allowed_missing(
+        &self,
+        ignore: Option<&IgnoreId>,
+        dds: Vec<Vec<krates::DirectDependent<'_, crate::Krate>>>,
+    ) -> Pack {
+        let mut pack = Pack::new(Check::Advisories);
+
+        if let Some(ignore) = ignore
+            && let Some(allowed) = &ignore.allow
+            && !dds.is_empty()
+        {
+            // Inform the user if they've allowed a direct dependency that doesn't/no longer exist/s
+            for allow in &allowed.value {
+                if !dds.iter().any(|dd| {
+                    dd.iter()
+                        .any(|dd| crate::match_krate(dd.krate, &allow.spec))
+                }) {
+                    pack.push(diag(
+                        Diagnostic::warning()
+                            .with_message("direct dependency not found")
+                            .with_label(Label::primary(self.cfg.file_id, allow.spec.name.span)),
+                        Code::AdvisoryIgnoreAllowedDependentMissing,
+                    ));
+                }
+            }
         }
 
         pack

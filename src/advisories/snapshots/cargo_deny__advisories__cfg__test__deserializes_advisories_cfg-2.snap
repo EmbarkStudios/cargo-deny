@@ -11,7 +11,9 @@ expression: validated
   "ignore": [
     {
       "id": "RUSTSEC-0000-0000",
-      "reason": null
+      "reason": null,
+      "expiry": null,
+      "allow": null
     }
   ],
   "unmaintained": "Workspace",

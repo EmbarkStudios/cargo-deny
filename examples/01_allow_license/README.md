@@ -4,13 +4,13 @@ This example shows how to selectively allow certain licenses that will be checke
 
 ## Requirement
 
-```ini
+```toml
 license = "MIT OR Apache-2.0"
 ```
 
 ## Config
 
-```ini
+```toml
 [license]
 allow = [ "MIT" ]
 ```

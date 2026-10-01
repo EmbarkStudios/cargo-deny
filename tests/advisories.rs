@@ -1,12 +1,13 @@
 use cargo_deny::{
     Krates, SerializeAdvisory as SA,
     advisories::{self, cfg},
-    field_eq, func_name,
+    field_eq, func_name, snapshot_name,
     test_utils::{self as tu},
 };
 use std::time::Duration;
 
 const TEN_THOUSAND_DAYS: Duration = Duration::from_secs(10000 * 24 * 60 * 60);
+const DATE: jiff::civil::Date = jiff::civil::date(2000, 1, 1);
 
 struct TestCtx {
     dbs: advisories::DbSet,
@@ -86,6 +87,7 @@ fn detects_vulnerabilities() {
                 SA::Json,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -111,6 +113,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -129,6 +132,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -147,6 +151,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -165,6 +170,7 @@ fn detects_unmaintained() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -189,6 +195,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -207,6 +214,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -225,6 +233,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -243,6 +252,7 @@ fn detects_unsound() {
                     SA::Json,
                     None,
                     tx,
+                    DATE,
                 );
             });
 
@@ -274,6 +284,7 @@ ignore = [
                 SA::Json,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -294,6 +305,168 @@ ignore = [
         .collect();
 
     insta::assert_json_snapshot!(ignored);
+}
+
+/// Validates that ignores can expire
+#[test]
+fn expires_ignores() {
+    let TestCtx { dbs, krates } = load();
+
+    use jiff::ToSpan;
+    for date in [
+        DATE,                           // A date well before either of the advisories were issued
+        jiff::civil::date(2019, 4, 27), // Same day as RUSTSEC-2019-0001
+        jiff::civil::date(2019, 4, 27)
+            .checked_add(100.days())
+            .unwrap(), // Past the expiration of RUSTSEC-2019-0001
+        jiff::civil::date(2023, 11, 29), // Day after RUSTSEC-2023-0072 was issued
+        jiff::civil::date(2023, 11, 28)
+            .checked_add(11.days())
+            .unwrap(), // 11 days after RUSTSEC-2023-0072 was issued
+    ] {
+        let cfg = tu::Config::new(
+            r#"
+    ignore-expiry = "P10D"
+    unsound = 'transitive'
+    ignore = [
+        { id = "RUSTSEC-2019-0001", reason = "this is a test", expiry = "P90D" },
+        "RUSTSEC-2023-0072",
+    ]
+    "#,
+        );
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    date,
+                );
+            });
+
+        let expired: Vec<_> = diags
+            .into_iter()
+            .filter(|v| {
+                v.pointer("/fields/code")
+                    .and_then(|s| s.as_str())
+                    .is_some_and(|s| s == "advisory-ignore-expired")
+            })
+            .collect();
+
+        insta::assert_json_snapshot!(snapshot_name!(date), expired);
+    }
+}
+
+/// Ensures we handle allowed dependents in for ignores
+#[test]
+fn ignore_with_allow() {
+    load();
+
+    let md: krates::cm::Metadata = serde_json::from_str(
+        &std::fs::read_to_string("tests/test_data/advisories/06_advisories.json").unwrap(),
+    )
+    .unwrap();
+
+    // # ammonia had a stack overflow < 2.1.0
+    // # https://github.com/RustSec/advisory-db/blob/01ac6725d549dbc7873250fe2a55e54d528fe945/crates/ammonia/RUSTSEC-2019-0001.toml
+    // ammonia = "=0.7.0"
+    //
+    // # Version =0.3.0-rc.1 has a vulnerability, but not this version, and, presumably
+    // # not in >=0.3 as well, but that isn't released yet
+    // axum-core = "=0.3.0-rc.2"
+    // # Another prelease version that originated https://github.com/EmbarkStudios/cargo-deny/issues/316
+    // trust-dns-resolver = "0.20.0-alpha.3"
+    //
+    // # Transitively depends on an ammonia 1.2.0
+    // artifact_serde = "0.3.1"
+    //
+    // # Dirs had an advisory added for it that was then withdrawn
+    // dirs = "4.0"
+    //
+    // # Failure has an unsound advisory (and is unmaintained)
+    // failure = "=0.1.8"
+    //
+    // # atty is unmaintained
+    // # https://github.com/rustsec/advisory-db/blob/8eb99abe8c369b48bbd4ca04133e1f05be22a778/crates/static_type_map/RUSTSEC-2022-0023.md
+    // static_type_map = "0.3"
+    //
+    // # The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
+    // # https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md
+    // lettre = "0.10.0-alpha.3"
+
+    let mut b = krates::Builder::new();
+
+    b.exclude(
+        [
+            "axum-core",
+            "trust-dns-resolver",
+            "dirs",
+            "failure",
+            "static_type_map",
+            "lettre",
+            "spdx",
+            "libusb",
+        ]
+        .map(|p| p.parse().unwrap()),
+    );
+
+    let krates: Krates = b.build_with_metadata(md, krates::NoneFilter).unwrap();
+
+    let dbs = {
+        advisories::DbSet::load(
+            "tests/advisory-db".into(),
+            vec![],
+            advisories::Fetch::Disallow(TEN_THOUSAND_DAYS),
+        )
+        .unwrap()
+    };
+
+    let allows: &[&[&str]] = &[
+        &[""],
+        &["advisories"],
+        &["advisories", "artifact_serde"],
+        &["advisories", "artifact_serde", "missing-crate"],
+    ];
+    for allow in allows {
+        let a = allow.iter().fold(String::new(), |mut s, a| {
+            if !s.is_empty() {
+                s.push_str(", ");
+            }
+
+            s.push('"');
+            s.push_str(a);
+            s.push('"');
+
+            s
+        });
+        let cfg = tu::Config::new(format!(
+            r#"
+    ignore = [
+        {{ id = "RUSTSEC-2019-0001", allow = [{a}] }},
+        {{ id = "RUSTSEC-2021-0074", allow = [{a}] }},
+    ]
+    "#
+        ));
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    DATE,
+                );
+            });
+
+        insta::assert_json_snapshot!(snapshot_name!(allow.join("_")), diags,);
+    }
 }
 
 /// Validates we can detect yanked crates from sparse, git, and
@@ -348,6 +521,7 @@ fn detects_yanked() {
                     SA::No,
                     Some(indices),
                     tx,
+                    DATE,
                 );
             });
 
@@ -385,6 +559,7 @@ ignore = [
                     SA::No,
                     Some(indices),
                     tx,
+                    DATE,
                 );
             });
 
@@ -441,6 +616,7 @@ fn warns_on_index_failures() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 
@@ -471,6 +647,7 @@ fn warns_on_ignored_and_withdrawn() {
                 SA::No,
                 None,
                 tx,
+                DATE,
             );
         });
 
@@ -825,6 +1002,7 @@ fn crates_io_source_replacement() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 
@@ -936,6 +1114,7 @@ fn crates_io_source_replacement() {
                 SA::No,
                 Some(indices),
                 tx,
+                DATE,
             );
         });
 

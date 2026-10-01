@@ -11,7 +11,7 @@ targets = [
 all-features = true
 
 [advisories]
-unmaintained = "workspace"
+unmaintained = "all"
 unsound = "all"
 ignore = [
 ]
@@ -20,7 +20,8 @@ ignore = [
 multiple-versions = "deny"
 wildcards = 'deny'
 deny = [
-    { crate = "git2", use-instead = "gix" },
+    { crate = "git2", use-instead = "git cli" },
+    { crate = "gix", use-instead = "git cli" },
     { crate = "openssl", use-instead = "rustls" },
     { crate = "openssl-sys", use-instead = "rustls" },
     "libssh2-sys",

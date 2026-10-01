@@ -1059,7 +1059,7 @@ pub fn check(
                             build_ctx.diag_packs.lock().insert(i, pack);
                         }
                     });
-                } else if !pack.is_empty() {
+                } else {
                     sink.push(pack);
                 }
             }

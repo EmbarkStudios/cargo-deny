@@ -4,7 +4,7 @@ This example shows how to use cargo-deny to deny crate sources not explicitly al
 
 ## Config
 
-```ini
+```toml
 [dependencies]
 # this works, crates.io is allowed by default
 log = "0.4.8"
@@ -20,7 +20,7 @@ cfg-expr = { git = "https://github.com/EmbarkStudios/cfg-expr" }
 spdx = { git = "https://github.com/EmbarkStudios/spdx" }
 ```
 
-```ini
+```toml
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

@@ -588,6 +588,9 @@ pub(crate) fn cmd(
                     serialize_advisory,
                     indices,
                     advisories_sink,
+                    jiff::tz::TimeZone::UTC
+                        .to_datetime(jiff::Timestamp::now())
+                        .date(),
                 );
 
                 log::info!("advisories checked in {}ms", start.elapsed().as_millis());

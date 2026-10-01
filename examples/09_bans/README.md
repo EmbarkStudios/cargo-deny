@@ -4,7 +4,7 @@ This example shows how to ban particular crates, and handle duplicate versions.
 
 ## Config
 
-```ini
+```toml
 [dependencies.reqwest]
 version = "0.10.1"
 # Uncomment these to "fix" cargo deny check bans.
@@ -16,7 +16,7 @@ version = "0.10.1"
 # features = ["rustls"]
 ```
 
-```ini
+```toml
 # We restrict the platforms, this primarily gets rid of wasm32, which pulls
 # in additional crates that include more duplicates
 [graph]

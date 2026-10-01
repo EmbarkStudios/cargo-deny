@@ -1,4 +1,4 @@
-use cargo_deny::{func_name, test_utils::*};
+use cargo_deny::{func_name, snapshot_name, test_utils::*};
 
 /// Covers issue <https://github.com/EmbarkStudios/cargo-deny/issues/184>
 #[test]
@@ -461,12 +461,6 @@ fn sync_replacements() {
             panic!("failed to sync replacements! - {error:#}");
         }
     });
-}
-
-macro_rules! snapshot_name {
-    ($suffix:literal) => {
-        format!("{}__{}", func_name!().replace("::", "_"), $suffix)
-    };
 }
 
 /// Tests that std replacements are correctly shown based on the configured scope

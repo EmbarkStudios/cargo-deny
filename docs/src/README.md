@@ -12,11 +12,11 @@ cargo install --locked cargo-deny && cargo deny init && cargo deny check
 
 ## Command Line Interface
 
-cargo-deny is intended to be used as a [Command Line Tool](cli/index.html), see the link for the available commands and options.
+cargo-deny is intended to be used as a [Command Line Tool](cli/index.md), see the link for the available commands and options.
 
 ## Checks
 
-cargo-deny supports several classes of checks, see [Checks](checks/index.html) for the available checks and their configuration options.
+cargo-deny supports several classes of checks, see [Checks](checks/index.md) for the available checks and their configuration options.
 
 ## API
 
@@ -33,8 +33,8 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: EmbarkStudios/cargo-deny-action@v1
+      - uses: actions/checkout@v3
+      - uses: EmbarkStudios/cargo-deny-action@v1
 ```
 
 For more information, see [`cargo-deny-action`](https://github.com/EmbarkStudios/cargo-deny-action) repository.

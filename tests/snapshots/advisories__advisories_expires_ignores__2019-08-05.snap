@@ -1,43 +1,11 @@
 ---
 source: tests/advisories.rs
-expression: ignored
+expression: expired
 ---
 [
   {
     "fields": {
-      "code": "advisory-ignored",
-      "graphs": [
-        {
-          "Krate": {
-            "name": "libusb",
-            "version": "0.3.0"
-          },
-          "parents": [
-            {
-              "Krate": {
-                "name": "advisories",
-                "version": "0.1.0"
-              }
-            }
-          ]
-        }
-      ],
-      "labels": [
-        {
-          "column": 6,
-          "line": 3,
-          "message": "advisory ignored here",
-          "span": "RUSTSEC-2016-0004"
-        }
-      ],
-      "message": "advisory ignored",
-      "severity": "note"
-    },
-    "type": "diagnostic"
-  },
-  {
-    "fields": {
-      "code": "advisory-ignored",
+      "code": "advisory-ignore-expired",
       "graphs": [
         {
           "Krate": {
@@ -56,26 +24,32 @@ expression: ignored
       ],
       "labels": [
         {
-          "column": 13,
-          "line": 4,
+          "column": 17,
+          "line": 5,
           "message": "advisory ignored here",
           "span": "RUSTSEC-2019-0001"
         },
         {
-          "column": 43,
-          "line": 4,
+          "column": 47,
+          "line": 5,
           "message": "ignore reason",
           "span": "this is a test"
+        },
+        {
+          "column": 74,
+          "line": 5,
+          "message": "expiry which was exceeded",
+          "span": "P90D"
         }
       ],
-      "message": "advisory ignored",
+      "message": "ignored advisory expired",
       "severity": "note"
     },
     "type": "diagnostic"
   },
   {
     "fields": {
-      "code": "advisory-ignored",
+      "code": "advisory-ignore-expired",
       "graphs": [
         {
           "Krate": {
@@ -102,19 +76,25 @@ expression: ignored
       ],
       "labels": [
         {
-          "column": 13,
-          "line": 4,
+          "column": 17,
+          "line": 5,
           "message": "advisory ignored here",
           "span": "RUSTSEC-2019-0001"
         },
         {
-          "column": 43,
-          "line": 4,
+          "column": 47,
+          "line": 5,
           "message": "ignore reason",
           "span": "this is a test"
+        },
+        {
+          "column": 74,
+          "line": 5,
+          "message": "expiry which was exceeded",
+          "span": "P90D"
         }
       ],
-      "message": "advisory ignored",
+      "message": "ignored advisory expired",
       "severity": "note"
     },
     "type": "diagnostic"

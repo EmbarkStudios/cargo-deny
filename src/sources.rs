@@ -184,9 +184,7 @@ pub fn check(ctx: crate::CheckCtx<'_, ValidConfig>, sink: impl Into<ErrorSink>) 
         });
     }
 
-    if !pack.is_empty() {
-        sink.push(pack);
-    }
+    sink.push(pack);
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

@@ -19,17 +19,17 @@ All of the fields below are optional. If the `[advisories]` section is omitted e
 
 ## Example Config
 
-```ini
+```toml
 {{#include ../../../../tests/cfg/advisories.toml}}
 ```
 
-### The `db-urls` field (optional)
+### `db-urls`
 
 URLs to one or more advisory databases.
 
 Default: [RustSec Advisory DB](https://github.com/RustSec/advisory-db)
 
-### The `db-path` field (optional)
+### `db-path`
 
 Path to the root directory into which one or more advisory databases are cloned into.
 
@@ -45,9 +45,9 @@ Note that the path must be valid utf-8, after expansion.
 
 Default: `$CARGO_HOME/advisory-dbs`
 
-### The `version` field (optional)
+### `version`
 
-```ini
+```toml
 version = 2
 ```
 
@@ -60,7 +60,7 @@ The version field is (at the time of this writing) no longer used, the following
 
 As before, if you want to ignore a specific advisory, add it to the `ignore` field.
 
-### The `yanked` field (optional)
+### `yanked`
 
 Determines what happens when a crate with a version that has been yanked from its source registry is encountered.
 
@@ -68,16 +68,16 @@ Determines what happens when a crate with a version that has been yanked from it
 - `warn` (default) - Prints a warning with the crate name and version that was yanked, but does not fail the check.
 - `allow` - Prints a note about the yanked crate, but does not fail the check.
 
-### The `disable-yank-checking` field (optional)
+### `disable-yank-checking`
 
-Controls whether the local registry indices are checked for yanked crates (see the [`yanked`](#the-yanked-field-optional) field).
+Controls whether the local registry indices are checked for yanked crates (see [`yanked`](#yanked)).
 
 - `false` (default) - The local registry indices are checked for yanked crates.
 - `true` - Yank checking is disabled; the local registry indices are not checked for yanked crates.
 
-### The `ignore` field (optional)
+### `ignore`
 
-```ini
+```toml
 ignore = [
    "RUSTSEC-0000-0000",
    { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
@@ -88,47 +88,85 @@ ignore = [
 
 Every advisory in the advisory database contains a unique identifier, eg. `RUSTSEC-2019-0001`. Putting an identifier in this array will cause the advisory to be treated as a note, rather than a warning or error.
 
-In addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-spec) with an optional `reason`.
+In addition, yanked crate versions can be ignored by specifying a [PackageSpec](../cfg.md#package-specs) with an optional `reason`.
 
 Default: empty (no advisories or yanked crates are ignored).
 
-### The `unmaintained` field (optional)
+#### `expiry`
 
-```ini
+```toml
+ignore = [
+   { id = "RUSTSEC-0000-0000", expiry = "P30D" },
+]
+```
+
+Allows an advisory to be ignored until the specified [duration](#durations) has elapsed since the the advisory was published. If there is no expiry for the individual ignore then [`ignore-expiry`](#ignore-expiry) is used if it is present.
+
+#### `allow`
+
+```toml
+ignore = [
+   { id = "RUSTSEC-0000-0000", allow = ['some-crate@0.1.0'] },
+]
+```
+
+A list of [PackageSpecs](../cfg.md#package-specs) of the crates that are allowed to directly depend on the crate(s) that the advisory applies to. This allows an advisory to be ignored, but not allow new crates/updates to add more dependencies on the crate(s) with the advisory.
+
+### `ignore-expiry`
+
+```toml
+ignore-expiry = "P90D"
+```
+
+The default [duration](#durations) used if an [`expiry`](#expiry) is not present for a specific advisory.
+
+### `unmaintained`
+
+```toml
 unmaintained = 'workspace'
 ```
 
-Determines if unmaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
+Determines if unmaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#ignore) option.
 
 - `all` (default) - Any crate that matches an unmaintained advisory will fail
 - `workspace` - Unmaintained advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
 - `transitive` - Unmaintained advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
 - `none` - Unmaintained advisories are completely ignored.
 
-### The `unsound` field (optional)
+### `unsound`
 
-```ini
+```toml
 unsound = 'workspace'
 ```
 
-Determines if unsound advisories will result in an error. An unsound error can still be ignored specifically via the [`ignore`](#the-ignore-field-optional) option.
+Determines if unsound advisories will result in an error. An unsound error can still be ignored specifically via the [`ignore`](#ignore) option.
 
 - `all` - Any crate that matches an unsound advisory will fail
 - `workspace` (default) - Unsound advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
 - `transitive` - Unsound advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
 - `none` - Unsound advisories are completely ignored.
 
-### The `git-fetch-with-cli` field (optional)
+### `git-fetch-with-cli`
 
-Deprecated. `cargo-deny` now fetches with git cli unconditionally.
+Deprecated. `cargo-deny` now fetches with git cli unconditionally, using this will issue a deprecation warning and have no effect.
 
-### The `maximum-db-staleness` field (optional)
+### `maximum-db-staleness`
 
-A duration in RFC3339 format that specifies the maximum amount of time that can pass before the database is considered stale and an error is emitted. This is only checked when advisory database fetching has been disabled via the `--offline` or `check --disable-fetch` flags, as otherwise the database is always cloned or fetched to be up to date with the remote git repository.
+The maximum [duration](#durations) that can pass before the database is considered stale and an error is emitted. This is only checked when advisory database fetching has been disabled via the `--offline` or `check --disable-fetch` flags, as otherwise the database is always cloned or fetched to be up to date with the remote git repository.
 
 The default if not specified is the same value that `cargo-audit` uses, and `cargo-deny` has been using, which is `P90D`, or 90 days.
 
-The RFC3339 duration format is...not well documented. The official grammar is as follows:
+### `unused-ignored-advisory`
+
+Determines what happens when one of the advisories that appears in the `ignore` list is not encountered in the dependency graph.
+
+- `warn` (default) - A warning is emitted for each advisory that appears in `advisories.ignore` but which is not used in any crate.
+- `allow` - Unused advisories in the `advisories.ignore` list are ignored.
+- `deny` - An unused advisory in the `advisories.ignore` list triggers an error, and cause the advisory check to fail.
+
+## Durations
+
+We use the [RFC3339](https://www.rfc-editor.org/info/rfc3339/) duration format as it is somewhat standard...though not well documented. The official grammar is as follows:
 
 ```txt
    dur-second        = 1*DIGIT "S"
@@ -152,11 +190,3 @@ One final note, there are 2 units available in the format that are not exact, na
 
 - 1 year = 365 days
 - 1 month = 30.43 days
-
-### The `unused-ignored-advisory` field (optional)
-
-Determines what happens when one of the advisories that appears in the `ignore` list is not encountered in the dependency graph.
-
-- `warn` (default) - A warning is emitted for each advisory that appears in `advisories.ignore` but which is not used in any crate.
-- `allow` - Unused advisories in the `advisories.ignore` list are ignored.
-- `deny` - An unused advisory in the `advisories.ignore` list triggers an error, and cause the advisory check to fail.

@@ -4,67 +4,66 @@ Contains all of the configuration for `cargo deny check sources`
 
 ## Example Config
 
-```ini
+```toml
 {{#include ../../../../tests/cfg/sources.toml}}
 ```
 
-### The `unknown-registry` field (optional)
+### `unknown-registry`
 
 Determines what happens when a crate from a crate registry that is not in the `allow-registry` list is encountered.
 
-* `deny` - Will emit an error with the URL of the source, and fail the check.
-* `warn` (default) - Prints a warning for each crate, but does not fail the check.
-* `allow` - Prints a note for each crate, but does not fail the check.
+- `deny` - Will emit an error with the URL of the source, and fail the check.
+- `warn` (default) - Prints a warning for each crate, but does not fail the check.
+- `allow` - Prints a note for each crate, but does not fail the check.
 
-### The `unknown-git` field (optional)
+### `unknown-git`
 
 Determines what happens when a crate from a git repository not in the `allow-git` list is encountered.
 
-* `deny` - Will emit an error with the URL of the repository, and fail the check.
-* `warn` (default) - Prints a warning for each crate, but does not fail the check.
-* `allow` - Prints a note for each crate, but does not fail the check.
+- `deny` - Will emit an error with the URL of the repository, and fail the check.
+- `warn` (default) - Prints a warning for each crate, but does not fail the check.
+- `allow` - Prints a note for each crate, but does not fail the check.
 
-### The `required-git-spec` (optional)
+### `required-git-spec`
 
 Determines which [specifiers](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) are required for git sources. Git sources are a convenient way to use patched code temporarily, but they have downsides for long term maintenance, as the specifier you use for the source determines what happens when you do a `cargo update`, and in the default case, this means you essentially have a wildcard dependency on the repository.
 
 This configuration value allows you to control what specifiers you want to allow for your git sources to reduce surprises. The following values are listed in order from least to most specific, and using a less specific specifier will also allow all of the more specific ones.
 
-* `any` (default) - Allows all git specs, including the default of not having
-any specifier, which tracks the latest commit on the `master` branch of the repo
-* `branch` - Allows the `branch = "<branch_name>"` specifier.
-* `tag` - Allows the `tag = "<tag_name>"` specifier.
-* `rev` - Allows the `rev = "<commit_sha>"` specifier.
+- `any` (default) - Allows all git specs, including the default of not having any specifier, which tracks the latest commit on the `master` branch of the repo
+- `branch` - Allows the `branch = "<branch_name>"` specifier.
+- `tag` - Allows the `tag = "<tag_name>"` specifier.
+- `rev` - Allows the `rev = "<commit_sha>"` specifier.
 
-### The `allow-git` field (optional)
+### `allow-git`
 
 Configure which git urls are allowed for crate sources. If a crate's source is not in one of the listed urls, then the `unknown-git` setting will determine how it is handled. Note that the url must match exactly, though `.git` is stripped if it exists to match the logic of cargo.
 
-```ini
+```toml
 [sources]
 allow-git = [
     "https://github.com/EmbarkStudios/cargo-deny",
 ]
 ```
 
-### The `private` field (optional)
+### `private`
 
 Similarly to `allow-git`, allows you to configure urls, however, unlike `allow-git` which is meant for a single, exact, url, `private` urls actually allow _any_ git repo url which matches the host and begins with the same path. This field is primarily meant to support the use of internal/private git hosts (usually on a VPN) without needing to specify each individual repo. Of course, this can be used to also just allow every repo on Github, but this is not recommended. 😉
 
-```ini
+```toml
 [sources]
 private = [
     "https://super-duper-sekret",
 ]
 ```
 
-### The `allow-registry` field (optional)
+### `allow-registry`
 
 The list of registries that are allowed. If a crate is not found in one of the listed registries, then the `unknown-registry` setting will determine how it is handled.
 
 If not specified, this list will by default contain the [crates.io](http://crates.io) registry, equivalent to this:
 
-```ini
+```toml
 [sources]
 allow-registry = [
     "https://github.com/rust-lang/crates.io-index",
@@ -73,13 +72,13 @@ allow-registry = [
 
 To not allow any crates registries, set it to empty:
 
-```ini
+```toml
 [sources]
 unknown-registry = "deny"
 allow-registry = []
 ```
 
-### The `allow-org` field (optional)
+### `allow-org`
 
 Generally, I think most projects in the Rust space probably follow a similar procedure as we do when they want to fix a bug or add a feature to one of their dependencies, which is basically.
 
@@ -96,34 +95,34 @@ When working in a company or organization, it is often the case that all crates 
 
 The `allow-org` object allows you to specify multiple organizations or users in several VCS providers to more easily configure git sources for your projects.
 
-#### The `github` field (optional)
+#### `github`
 
 Allows you to specify multiple `github.com` organizations to allow as git sources.
 
-```ini
+```toml
 [sources.allow-org]
 github = ["YourCoolOrgGoesHere"]
 ```
 
-#### The `gitlab` field (optional)
+#### `gitlab`
 
 Allows you to specify multiple `gitlab.com` organizations to allow as git sources.
 
-```ini
+```toml
 [sources.allow-org]
 gitlab = ["YourCoolOrgGoesHere"]
 ```
 
-#### The `bitbucket` field (optional)
+#### `bitbucket`
 
 Allows you to specify multiple `bitbucket.org` organizations to allow as git sources.
 
-```ini
+```toml
 [sources.allow-org]
 bitbucket = ["YourCoolOrgGoesHere"]
 ```
 
-### The `unused-allowed-source` field (optional)
+### `unused-allowed-source`
 
 Determines what happens when one of the sources that appears in the `allow` list is not encountered in the dependency graph.
 
@@ -131,7 +130,7 @@ Determines what happens when one of the sources that appears in the `allow` list
 - `allow` - Unused sources in the `sources.allow` list are ignored.
 - `deny` - An unused source in the `sources.allow` list triggers an error, and cause the source check to fail.
 
-### The `unused-allowed-org` field (optional)
+### `unused-allowed-org`
 
 Determines what happens when one of the organizations that appears in the `allow-org` list is not encountered in the dependency graph.
 

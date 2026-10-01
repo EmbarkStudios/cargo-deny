@@ -10,7 +10,7 @@ edition = "2018"
 ammonia = "=0.7.0"
 
 # Version =0.3.0-rc.1 has a vulnerability, but not this version, and, presumably
-# not in >=0.3 as well, but that isn't release yet
+# not in >=0.3 as well, but that isn't released yet
 axum-core = "=0.3.0-rc.2"
 # Another prelease version that originated https://github.com/EmbarkStudios/cargo-deny/issues/316
 trust-dns-resolver = "0.20.0-alpha.3"

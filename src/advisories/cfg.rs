@@ -9,10 +9,31 @@ use url::Url;
 
 pub(crate) type AdvisoryId = Spanned<String>;
 
+fn do_duration_parse<'de>(
+    dur: Option<(toml_span::value::Key<'de>, Value<'de>)>,
+) -> Result<Option<Spanned<Duration>>, toml_span::DeserError> {
+    let Some((_, mut ds)) = dur else {
+        return Ok(None);
+    };
+    let dur = ds.take_string(Some("an RFC3339 time duration"))?;
+
+    match parse_rfc3339_duration(&dur) {
+        Ok(d) => Ok(Some(Spanned::with_span(d, ds.span))),
+        Err(err) => Err(toml_span::Error {
+            kind: toml_span::ErrorKind::Custom(err.to_string().into()),
+            span: ds.span,
+            line_info: None,
+        }
+        .into()),
+    }
+}
+
 #[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) struct IgnoreId {
     pub id: AdvisoryId,
     pub reason: Option<Reason>,
+    pub expiry: Option<Spanned<Duration>>,
+    pub allow: Option<Spanned<Vec<PackageSpecOrExtended<Reason>>>>,
 }
 
 impl<'de> Deserialize<'de> for IgnoreId {
@@ -33,12 +54,16 @@ impl<'de> Deserialize<'de> for IgnoreId {
             }
         };
         let reason = th.optional_s::<String>("reason");
+        let expiry = do_duration_parse(th.take("expiry"))?;
+        let allow = th.optional_s("allow");
 
         th.finalize(None)?;
 
         Ok(Self {
             id,
             reason: reason.map(Reason::from),
+            expiry,
+            allow,
         })
     }
 }
@@ -72,6 +97,8 @@ pub struct Config {
     pub yanked: Spanned<LintLevel>,
     /// Ignore advisories for the given IDs
     ignore: Vec<Spanned<IgnoreId>>,
+    /// The default amount of time from when an advisory is issued that an ignore for it will still emit a diagnostic
+    pub ignore_expiry: Option<Spanned<Duration>>,
     /// Whether to error on unmaintained advisories, and for what scope
     pub unmaintained: Spanned<Scope>,
     /// Whether to error on unsound advisories, and for what scope
@@ -102,6 +129,7 @@ impl Default for Config {
             db_path: None,
             db_urls: Vec::new(),
             ignore: Vec::new(),
+            ignore_expiry: None,
             unmaintained: Spanned::new(crate::cfg::Scope::All),
             unsound: Spanned::new(crate::cfg::Scope::Workspace),
             ignore_yanked: Vec::new(),
@@ -179,6 +207,8 @@ impl<'de> Deserialize<'de> for Config {
                                             IgnoreId {
                                                 id: Spanned::with_span(s.into(), v.span),
                                                 reason: None,
+                                                expiry: None,
+                                                allow: Default::default(),
                                             },
                                             v.span,
                                         ));
@@ -234,34 +264,14 @@ impl<'de> Deserialize<'de> for Config {
             (Vec::new(), Vec::new())
         };
 
+        let ignore_expiry = do_duration_parse(th.take("ignore-expiry"))?;
+
         if let Some((key, _)) = th.take("severity-threshold") {
             fdeps.push(key.span);
         }
         let git_fetch_with_cli = th.optional_s("git-fetch-with-cli");
         let disable_yank_checking = th.optional("disable-yank-checking").unwrap_or_default();
-        let maximum_db_staleness = if let Some((_, mut val)) = th.take("maximum-db-staleness") {
-            match val.take_string(Some("an RFC3339 time duration")) {
-                Ok(mds) => match parse_rfc3339_duration(&mds) {
-                    Ok(mds) => Some(Spanned::with_span(mds, val.span)),
-                    Err(err) => {
-                        th.errors.push(
-                            (
-                                toml_span::ErrorKind::Custom(err.to_string().into()),
-                                val.span,
-                            )
-                                .into(),
-                        );
-                        None
-                    }
-                },
-                Err(err) => {
-                    th.errors.push(err);
-                    None
-                }
-            }
-        } else {
-            None
-        };
+        let maximum_db_staleness = do_duration_parse(th.take("maximum-db-staleness"))?;
 
         let unused_ignored_advisory = th
             .optional("unused-ignored-advisory")
@@ -278,6 +288,7 @@ impl<'de> Deserialize<'de> for Config {
             db_urls,
             yanked,
             ignore,
+            ignore_expiry,
             unmaintained: unmaintained.unwrap_or(Spanned::new(Scope::All)),
             unsound: unsound.unwrap_or(Spanned::new(Scope::Workspace)),
             ignore_yanked,
@@ -308,7 +319,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 ctx.push(
                     Diagnostic::error()
                         .with_message("advisory database url doesn't have a domain name")
-                        .with_labels(vec![Label::secondary(ctx.cfg_id, url.span)]),
+                        .with_label(Label::secondary(ctx.cfg_id, url.span)),
                 );
             }
         }
@@ -388,6 +399,7 @@ impl crate::cfg::UnvalidatedConfig for Config {
             db_path: db_path.unwrap_or_default(), // If we failed to get a path the default won't be used since errors will have occurred
             db_urls,
             ignore: ignore.into_iter().map(|s| s.value).collect(),
+            ignore_expiry: self.ignore_expiry,
             unmaintained: self.unmaintained,
             unsound: self.unsound,
             ignore_yanked: ignore_yanked
@@ -412,6 +424,7 @@ pub struct ValidConfig {
     pub db_path: PathBuf,
     pub db_urls: Vec<Spanned<Url>>,
     pub(crate) ignore: Vec<IgnoreId>,
+    pub(crate) ignore_expiry: Option<Spanned<Duration>>,
     pub(crate) unmaintained: Spanned<Scope>,
     pub(crate) unsound: Spanned<Scope>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
@@ -672,7 +685,7 @@ fn shellexpand(
                 .map_err(|err| {
                     Diagnostic::error()
                         .with_message(format_args!("unable to obtain $HOME: {err:#}"))
-                        .with_labels(vec![Label::primary(cfg_id, span.start..span.start + 1)])
+                        .with_label(Label::primary(cfg_id, span.start..span.start + 1))
                 })?
                 .expect("this either fails or returns a path"),
         );
@@ -689,7 +702,7 @@ fn shellexpand(
             let end = te[cursor..].find('}').ok_or_else(|| {
                 Diagnostic::error()
                     .with_message("opening `{` is unbalanced")
-                    .with_labels(vec![Label::primary(cfg_id, sspan..span.end)])
+                    .with_label(Label::primary(cfg_id, sspan..span.end))
             })?;
 
             // Check if a default value is available
@@ -727,7 +740,7 @@ fn shellexpand(
         if var_name.is_empty() {
             return Err(Diagnostic::error()
                 .with_message("variable name cannot be empty")
-                .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                .with_label(Label::primary(cfg_id, sspan..span.start + next)));
         }
 
         match expand(Expand::Var(var_name)) {
@@ -737,7 +750,7 @@ fn shellexpand(
             Err(err) => {
                 return Err(Diagnostic::error()
                     .with_message(format_args!("failed to expand variable: {err:#}"))
-                    .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                    .with_label(Label::primary(cfg_id, sspan..span.start + next)));
             }
             Ok(None) => {
                 if let Some(default) = default {
@@ -745,7 +758,7 @@ fn shellexpand(
                 } else {
                     return Err(Diagnostic::error()
                         .with_message("failed to find variable")
-                        .with_labels(vec![Label::primary(cfg_id, sspan..span.start + next)]));
+                        .with_label(Label::primary(cfg_id, sspan..span.start + next)));
                 }
             }
         }

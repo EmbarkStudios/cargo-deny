@@ -4,6 +4,9 @@ expression: unique
 ---
 {
     "accepted",
+    "advisory-ignore-allowed-dependent-missing",
+    "advisory-ignore-disallowed-dependent",
+    "advisory-ignore-expired",
     "advisory-ignored",
     "advisory-not-detected",
     "allowed",

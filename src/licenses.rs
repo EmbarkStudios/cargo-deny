@@ -297,9 +297,7 @@ pub fn check(
             }
         }
 
-        if !pack.is_empty() {
-            sink.push(pack);
-        }
+        sink.push(pack);
     }
 
     {
@@ -329,9 +327,7 @@ pub fn check(
             });
         }
 
-        if !pack.is_empty() {
-            sink.push(pack);
-        }
+        sink.push(pack);
     }
 
     {
@@ -354,9 +350,7 @@ pub fn check(
             });
         }
 
-        if !pack.is_empty() {
-            sink.push(pack);
-        }
+        sink.push(pack);
     }
 }
 

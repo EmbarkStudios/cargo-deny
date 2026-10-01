@@ -8,7 +8,7 @@ The check command is the primary subcommand of cargo-deny as it is what actually
 
 The check(s) to perform. By default, **all** checks will be performed, unless one or more checks are specified here.
 
-See [checks](../checks/index.html) for the list of available checks.
+See [checks](../checks/index.md) for the list of available checks.
 
 ## Options
 

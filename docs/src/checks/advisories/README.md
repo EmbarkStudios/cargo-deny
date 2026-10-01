@@ -16,7 +16,7 @@ You can also use your own advisory databases instead of, or in addition to, the 
 
 The [advisory database](https://github.com/RustSec/advisory-db) also contains advisories for unmaintained crates, which in most cases users will want to avoid in favor of more actively maintained crates. By default, all `unmaintained` advisories will result in an error, but by using the following config you can error only if you directly depend on an unmaintained crate from your workspace.
 
-```ini
+```toml
 [advisories]
 unmaintained = 'workspace'
 ```

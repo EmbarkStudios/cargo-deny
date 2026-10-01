@@ -1,0 +1,156 @@
+---
+source: tests/advisories.rs
+expression: expired
+---
+[
+  {
+    "fields": {
+      "code": "advisory-ignore-expired",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 5,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        },
+        {
+          "column": 47,
+          "line": 5,
+          "message": "ignore reason",
+          "span": "this is a test"
+        },
+        {
+          "column": 74,
+          "line": 5,
+          "message": "expiry which was exceeded",
+          "span": "P90D"
+        }
+      ],
+      "message": "ignored advisory expired",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignore-expired",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 5,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        },
+        {
+          "column": 47,
+          "line": 5,
+          "message": "ignore reason",
+          "span": "this is a test"
+        },
+        {
+          "column": 74,
+          "line": 5,
+          "message": "expiry which was exceeded",
+          "span": "P90D"
+        }
+      ],
+      "message": "ignored advisory expired",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignore-expired",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "openssl",
+            "version": "0.10.35"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "native-tls",
+                "version": "0.2.7"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "lettre",
+                    "version": "0.10.0-rc.3"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 10,
+          "line": 6,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2023-0072"
+        },
+        {
+          "column": 22,
+          "line": 2,
+          "message": "expiry which was exceeded",
+          "span": "P10D"
+        }
+      ],
+      "message": "ignored advisory expired",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  }
+]

@@ -391,6 +391,13 @@ macro_rules! func_name {
 }
 
 #[macro_export]
+macro_rules! snapshot_name {
+    ($suffix:expr) => {
+        format!("{}__{}", func_name!().replace("::", "_"), $suffix)
+    };
+}
+
+#[macro_export]
 macro_rules! overrides {
     ($($code:expr => $severity:ident),* $(,)?) => {
         {

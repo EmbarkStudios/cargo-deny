@@ -4,13 +4,13 @@ This example shows how to deal with the GNU style licenses such as GPL, AGPL, LG
 
 ## Requirement
 
-```ini
+```toml
 license = "Apache-2.0/GPL-2.0+ AND LGPL-3.0-only or gnu gpl v3"
 ```
 
 ## Config
 
-```ini
+```toml
 [licenses]
 allow = [
     "GPL-2.0-or-later",

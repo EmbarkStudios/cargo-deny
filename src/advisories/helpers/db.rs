@@ -3,10 +3,7 @@
 use crate::{Krate, Krates, Path, PathBuf, advisories::model};
 use anyhow::Context as _;
 use log::{debug, info};
-use rayon::{
-    iter::{ParallelBridge, ParallelIterator},
-    prelude::IntoParallelRefIterator,
-};
+use rayon::{iter::ParallelIterator, prelude::IntoParallelRefIterator};
 use std::fmt;
 use url::Url;
 
@@ -175,7 +172,7 @@ fn url_to_db_path(mut db_path: PathBuf, url: &Url) -> anyhow::Result<PathBuf> {
 }
 
 pub struct Report<'db, 'k> {
-    pub advisories: Vec<(&'k Krate, &'db model::Advisory<'static>)>,
+    pub advisories: Vec<(&'db model::Advisory<'static>, Vec<&'k Krate>)>,
     /// For backwards compatibility with cargo-audit, we optionally serialize the
     /// reports to JSON and output them in addition to the normal cargo-deny
     /// diagnostics
@@ -209,10 +206,9 @@ impl<'db, 'k> Report<'db, 'k> {
                     log::trace!("ignoring advisory '{id}', withdrawn {wdate}");
                     false
                 })
-                .flat_map(|(_id, entry)| {
-                    krates
+                .filter_map(|(_id, entry)| {
+                    let mut matched: Vec<_> = krates
                         .krates_by_name(entry.advisory.advisory.krate)
-                        .par_bridge()
                         .filter_map(move |km| {
                             let ksrc = km.krate.source.as_ref()?;
 
@@ -226,8 +222,12 @@ impl<'db, 'k> Report<'db, 'k> {
                                 return None;
                             }
 
-                            Some((km.krate, &entry.advisory))
+                            Some(km.krate)
                         })
+                        .collect();
+
+                    matched.sort();
+                    (!matched.is_empty()).then_some((&entry.advisory, matched))
                 })
                 .collect();
 
@@ -236,76 +236,69 @@ impl<'db, 'k> Report<'db, 'k> {
                     std::collections::BTreeMap::<&'static str, Vec<serde_json::Value>>::new();
                 let mut vulns = Vec::new();
 
-                for (krate, adv) in &db_advisories {
-                    let package = serde_json::json!({
-                        "name": krate.name,
-                        "version": krate.version,
-                        "source": krate.source.as_ref().map(|s| s.to_string()),
-                        // TODO: Get this info from the lockfile
-                        "checksum": serde_json::Value::Null,
-                        "dependencies": [],
-                        "replace": serde_json::Value::Null,
-                    });
+                for (adv, k) in &db_advisories {
+                    for krate in k {
+                        let package = serde_json::json!({
+                            "name": krate.name,
+                            "version": krate.version,
+                            "source": krate.source.as_ref().map(|s| s.to_string()),
+                            // TODO: Get this info from the lockfile
+                            "checksum": serde_json::Value::Null,
+                            "dependencies": [],
+                            "replace": serde_json::Value::Null,
+                        });
 
-                    if let Some(informational) = &adv.advisory.informational {
-                        let kind = match informational {
-                            model::Informational::Unmaintained => "unmaintained",
-                            model::Informational::Unsound => "unsound",
-                            model::Informational::Notice => "notice",
-                            model::Informational::Other(o) => o,
-                        };
+                        if let Some(informational) = &adv.advisory.informational {
+                            let kind = match informational {
+                                model::Informational::Unmaintained => "unmaintained",
+                                model::Informational::Unsound => "unsound",
+                                model::Informational::Notice => "notice",
+                                model::Informational::Other(o) => o,
+                            };
 
-                        warnings.entry(kind).or_default().push(serde_json::json!({
-                            "kind": kind,
-                            "package": package,
-                            "advisory": adv.advisory.to_json(),
-                            "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
-                            "versions": adv.versions.to_json(),
-                        }));
-                    } else {
-                        vulns.push(serde_json::json!({
-                            "advisory": adv.advisory.to_json(),
-                            "versions": adv.versions.to_json(),
-                            "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
-                            "package": package,
-                        }));
+                            warnings.entry(kind).or_default().push(serde_json::json!({
+                                "kind": kind,
+                                "package": package,
+                                "advisory": adv.advisory.to_json(),
+                                "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
+                                "versions": adv.versions.to_json(),
+                            }));
+                        } else {
+                            vulns.push(serde_json::json!({
+                                "advisory": adv.advisory.to_json(),
+                                "versions": adv.versions.to_json(),
+                                "affected": adv.affected.as_ref().map(|aff| aff.to_json()),
+                                "package": package,
+                            }));
+                        }
                     }
-                }
 
-                serialized_reports.push(serde_json::json!({
-                    // This is extremely cargo-audit specific, we fill it out a bit lazily
-                    "settings": serde_json::json!({
-                        "target_arch": [],
-                        "target_os": [],
-                        "severity": serde_json::Value::Null,
-                        "ignore": serde_json::Value::Array(cfg.ignore.iter().map(|i| serde_json::Value::String(i.id.value.clone())).collect()),
-                        "informational_warnings": [
-                            "notice",
-                            "unmaintained",
-                            "unsound",
-                        ],
-                    }),
-                    "lockfile": {
-                        "dependency-count": krates.len(),
-                    },
-                    "vulnerabilities": vulns,
-                    "warnings": warnings,
-                }));
+                    serialized_reports.push(serde_json::json!({
+                        // This is extremely cargo-audit specific, we fill it out a bit lazily
+                        "settings": serde_json::json!({
+                            "target_arch": [],
+                            "target_os": [],
+                            "severity": serde_json::Value::Null,
+                            "ignore": serde_json::Value::Array(cfg.ignore.iter().map(|i| serde_json::Value::String(i.id.value.clone())).collect()),
+                            "informational_warnings": [
+                                "notice",
+                                "unmaintained",
+                                "unsound",
+                            ],
+                        }),
+                        "lockfile": {
+                            "dependency-count": krates.len(),
+                        },
+                        "vulnerabilities": vulns,
+                        "warnings": warnings,
+                    }));
+                }
             }
 
             advisories.append(&mut db_advisories);
         }
 
-        // We can't just sort by krate id, as then multiple advisories for the same crate could
-        // ordered differently between runs
-        advisories.sort_by(|a, b| {
-            let c = a.0.cmp(b.0);
-            if c != std::cmp::Ordering::Equal {
-                c
-            } else {
-                a.1.advisory.id.cmp(b.1.advisory.id)
-            }
-        });
+        advisories.sort_by_key(|(a, _)| a.advisory.id);
 
         Self {
             advisories,

@@ -90,16 +90,16 @@ fn stats_to_exit_code(stats: AllStats) -> Option<i32> {
     (exit_code > 0).then_some(exit_code)
 }
 
-fn write_min_stats(mut summary: &mut String, stats: &AllStats, color: bool) {
+fn write_min_stats(summary: &mut String, stats: &AllStats, color: bool) {
     let mut print_stats = |check: &str, stats: Option<&Stats>| {
         use std::fmt::Write;
 
         if let Some(stats) = stats {
-            write!(&mut summary, "{check} ").unwrap();
+            write!(summary, "{check} ").unwrap();
 
             if color {
                 write!(
-                    &mut summary,
+                    summary,
                     "{}, ",
                     if stats.errors > 0 {
                         Color::Red.paint("FAILED")
@@ -110,7 +110,7 @@ fn write_min_stats(mut summary: &mut String, stats: &AllStats, color: bool) {
                 .unwrap();
             } else {
                 write!(
-                    &mut summary,
+                    summary,
                     "{}, ",
                     if stats.errors > 0 { "FAILED" } else { "ok" }
                 )
