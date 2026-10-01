@@ -4,13 +4,13 @@ This example shows how the license check will fail when all required licenses ha
 
 ## Requirement
 
-```ini
+```toml
 license = "MIT AND Apache-2.0"
 ```
 
 ## Config
 
-```ini
+```toml
 [licenses]
 allow = ["MIT"]
 ```

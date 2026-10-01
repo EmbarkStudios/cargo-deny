@@ -4,11 +4,11 @@ Contains all of the configuration for `cargo deny check bans`
 
 ## Example Config
 
-```ini
+```toml
 {{#include ../../../../tests/cfg/bans.toml}}
 ```
 
-### The `multiple-versions` field (optional)
+### `multiple-versions`
 
 Determines what happens when multiple versions of the same crate are encountered.
 
@@ -16,11 +16,11 @@ Determines what happens when multiple versions of the same crate are encountered
 - `warn` (default) - Prints a warning for each crate with duplicates, but does not fail the check.
 - `allow` - Ignores duplicate versions of the same crate.
 
-### The `multiple-versions-include-dev` field (optional)
+### `multiple-versions-include-dev`
 
 If `true`, `dev-dependencies` are included when checking for multiple versions of crates. By default this is false, and any crates that are only reached via dev dependency edges are ignored when checking for multiple versions. Note that this also means that `skip` and `skip` tree are not used, which may lead to warnings about unused configuration.
 
-### The `wildcards` field (optional)
+### `wildcards`
 
 Determines what happens when a dependency is specified with the `*` (wildcard) version.
 
@@ -28,7 +28,7 @@ Determines what happens when a dependency is specified with the `*` (wildcard) v
 - `warn` (default) - Prints a warning for each crate with a wildcard version, but does not fail the check.
 - `allow` - Ignores all wildcard version specifications.
 
-### The `allow-wildcard-paths` field (optional)
+### `allow-wildcard-paths`
 
 If specified, alters how the `wildcard` field behaves:
 
@@ -38,18 +38,18 @@ If specified, alters how the `wildcard` field behaves:
 
 Being limited to private crates is due to crates.io not allowing packages to be published with `path` or `git` dependencies except for `dev-dependencies`.
 
-### The `workspace-dependencies` field (optional)
+### `workspace-dependencies`
 
 Used to configure how [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) are treated.
 
-```ini
+```toml
 [bans.workspace-dependencies]
 duplicates = 'deny'
 include-path-dependencies = true
 unused = 'deny'
 ```
 
-#### The `duplicates` field (optional)
+#### `duplicates`
 
 Determines what happens when more than 1 direct workspace dependency is resolved to the same crate and 1 or more declarations do not use `workspace = true`
 
@@ -57,11 +57,11 @@ Determines what happens when more than 1 direct workspace dependency is resolved
 - `warn` - Will emit a warning for each dependency declaration that does not use `workspace = true`, but does not fail the check.
 - `allow` - Ignores checking for `workspace = true` for dependencies in workspace crates
 
-#### The `include-path-dependencies` field (optional)
+#### `include-path-dependencies`
 
-If true, path dependencies will be included in the duplication check, otherwise they are completely ignored.
+If `true`, path dependencies will be included in the duplication check, otherwise they are completely ignored.
 
-#### The `unused` field (optional)
+#### `unused`
 
 Determines what happens when a dependency in [`[workspace.dependencies]`](https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table) is not used in the workspace.
 
@@ -69,7 +69,7 @@ Determines what happens when a dependency in [`[workspace.dependencies]`](https:
 - `warn` - Will emit a warning for each dependency that is not actually used in the workspace, but does not fail the check.
 - `allow` - Ignores checking for unused workspace dependencies.
 
-### The `highlight` field (optional)
+### `highlight`
 
 When multiple versions of the same crate are encountered and `multiple-versions` is set to `warn` or `deny`, using the `-g <dir>` option will print out a [dotgraph](https://www.graphviz.org/) of each of the versions and how they were included into the graph. This field determines how the graph is colored to help you quickly spot good candidates for removal or updating.
 
@@ -79,58 +79,58 @@ When multiple versions of the same crate are encountered and `multiple-versions`
 
 ![Imgur](https://i.imgur.com/xtarzeU.png)
 
-### The `deny` field (optional)
+### `deny`
 
-```ini
+```toml
 deny = ["package-spec"]
 ```
 
 Determines specific crates that are denied. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
-#### The `wrappers` field (optional)
+#### `wrappers`
 
-```ini
+```toml
 deny = [{ crate = "crate-you-don't-want:<=0.7.0", wrappers = ["this-can-use-it"] }]
 ```
 
 This field allows specific crates to have a direct dependency on the banned crate but denies all transitive dependencies on it.
 
-#### The `deny-multiple-versions` field (optional)
+#### `deny-multiple-versions`
 
-```ini
+```toml
 multiple-versions = 'allow'
 deny = [{ crate = "crate-you-want-only-one-version-of", deny-multiple-versions = true }]
 ```
 
 This field allows specific crates to deny multiple versions of themselves, but allowing or warning on multiple versions for all other crates. This field cannot be set simultaneously with `wrappers`.
 
-#### The `deny.reason` field (optional)
+#### `deny.reason`
 
-```ini
+```toml
 deny = [{ crate = "package-spec", reason = "the reason this crate is banned"}]
 ```
 
 This field provides the reason the crate is banned as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.
 
-#### The `deny.use-instead` field (optional)
+#### `deny.use-instead`
 
-```ini
+```toml
 deny = [{ crate = "openssl", use-instead = "rustls"}]
 ```
 
 This is a shorthand for the most common case for banning a particular crate, which is that your project has chosen to use a different crate for that functionality.
 
-### The `allow` field (optional)
+### `allow`
 
-```ini
+```toml
 allow = ["package-spec"]
 ```
 
 Determines specific crates that are allowed. If the `allow` list has one or more entries, then any crate not in that list will be denied, so use with care. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
-### The `allow-workspace` field (optional)
+### `allow-workspace`
 
-```ini
+```toml
 allow-workspace = false
 ```
 
@@ -145,21 +145,21 @@ When `allow-workspace = true`:
 
 **Default**: `false`
 
-#### The `allow.reason` field (optional)
+#### `allow.reason`
 
-```ini
+```toml
 allow = [{ crate = "package-spec", reason = "the reason this crate is allowed"}]
 ```
 
 This field provides the reason the crate is allowed as a string (eg. a simple message or even a url) that is surfaced in diagnostic output so that the user does not have to waste time digging through history or asking maintainers why this is the case.
 
-### The `external-default-features` field (optional)
+### `external-default-features`
 
 Determines the lint level used for when the `default` feature is enabled on a crate not in the workspace. This lint level will can then be overridden on a per-crate basis if desired.
 
 For example, if `an-external-crate` had the `default` feature enabled it could be explicitly allowed.
 
-```ini
+```toml
 [bans]
 external-default-features = "deny"
 
@@ -168,11 +168,11 @@ crate = "an-external-crate"
 allow = ["default"]
 ```
 
-### The `workspace-default-features` field (optional)
+### `workspace-default-features`
 
 The workspace version of `external-default-features`.
 
-```ini
+```toml
 [bans]
 external-default-features = "allow"
 
@@ -181,9 +181,9 @@ crate = "a-workspace-crate"
 deny = ["default"]
 ```
 
-### The `features` field (optional)
+### `features`
 
-```ini
+```toml
 [[bans.features]]
 crate = "featured-krate:1.0"
 deny = ["bad-feature"]
@@ -193,21 +193,21 @@ exact = true
 
 Allows specification of crate specific allow/deny lists of features. Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
-#### The `features.deny` field (optional)
+#### `features.deny`
 
 Denies specific features for the crate.
 
-#### The `features.allow` field (optional)
+#### `features.allow`
 
 Allows specific features for the crate, enabled features not in this list are denied.
 
-#### The `features.exact` field (optional)
+#### `features.exact`
 
 If specified, requires that the features in `allow` exactly match the features enabled on the crate, and will fail if features are allowed that are not enabled.
 
-### The `skip` field (optional)
+### `skip`
 
-```ini
+```toml
 skip = [
     "package-spec",
     { crate = "package-spec", reason = "an old version is used by crate-x, see <PR link> for updating it" },
@@ -220,9 +220,9 @@ It is recommended to use specific version constraints for crates in the `skip` l
 
 Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
-### The `skip-tree` field (optional)
+### `skip-tree`
 
-```ini
+```toml
 skip-tree = [
     "windows-sys<=0.52", # will skip this crate and _all_ direct and transitive dependencies
     { crate = "windows-sys<=0.52", reason = "several crates use the outdated 0.42 and 0.45 versions" },
@@ -240,13 +240,13 @@ Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts o
 
 **NOTE:** `skip-tree` is a very big hammer, and should be used with care.
 
-### The `std-replacements` field (optional)
+### `std-replacements`
 
 The `std-replacements` field configures if and how crates.io-sourced crates are checked against [`std-replacement-data`] which contains information on crates that have been either partially or fully implemented in `std` or `core`.
 
 By default if this field is not present, the check is completely skipped.
 
-#### The `std-replacements.scope` field (optional)
+#### `std-replacements.scope`
 
 The scope for what crates are considered. The scope filters the crates which depend upon a crate listed in the [`std-replacement-data`], not the crate itself.
 
@@ -255,7 +255,7 @@ The scope for what crates are considered. The scope filters the crates which dep
 - `transitive` - Only crates depended upon by crates outside your workspace are considered.
 - `none` - No crates are considered, this is another way to disable the check.
 
-#### The `std-replacements.ignore-rust-version` field (optional)
+#### `std-replacements.ignore-rust-version`
 
 The scope for when the `rust-version` for a crate is ignored. By default this is `none`, and the `rust-version` is respected, meaning crates that depend on a crate in [`std-replacement-data`] only trigger the lint if at least one of them declares a `rust-version` that is >= to at least one version that the std replacement API was stabilized.
 
@@ -264,15 +264,15 @@ The scope for when the `rust-version` for a crate is ignored. By default this is
 - `all` - The `rust-version` is never taken into account
 - `transitive` - The `rust-version` is ignored for crates that are depended upon by crates not in the workspace
 
-#### The `std-replacements.rust-version` field (optional)
+#### `std-replacements.rust-version`
 
 The `rust-version` to use for crate's which do not specify their own. If not specified the version(s) in the [`std-replacement-data`] are not considered. This does not have to conform to semver and can be a simple `<major>.<minor>`. Note that Rust rarely/never adds functionality in patch releases, and there is only 1 major version, so only the minor version is considered during matching.
 
-#### The `std-replacements.ignore` field (optional)
+#### `std-replacements.ignore`
 
 Ignores crates that would otherwise cause the lint to trigger, via a [PackageSpec](../cfg.md#package-specs).
 
-#### The `std-replacements.level` field (optional)
+#### `std-replacements.level`
 
 The lint level for the diagnostic emitted when a crate is in the [`std-replacement-data`] and satisfies all the required conditions.
 
@@ -280,7 +280,7 @@ The lint level for the diagnostic emitted when a crate is in the [`std-replaceme
 - `warn`
 - `allow`
 
-### The `build` field (optional)
+### `build`
 
 The `build` field contains configuration for raising diagnostics for crates that execute at compile time, either because they have a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html), or they are a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html). The configuration is (currently) focused on diagnostics around specific file types, as configured via extension glob patterns, as well as executables, either native or in the form of [interpreted shebang scripts](<https://en.wikipedia.org/wiki/Shebang_(Unix)>).
 
@@ -296,11 +296,11 @@ A quick run down of things that cargo-deny **WILL NOT DETECT**.
 
 So all this is to say, `cargo-deny` (currently) is only really useful for analyzing when crates have native executables, and/or the crate maintainers have either forgotten or purposefully left helper scripts for their CI/release management/etc in the crate source that are not actually ever executed automatically.
 
-#### The `allow-build-scripts` field (optional)
+#### `allow-build-scripts`
 
 Specifies all the crates that are allowed to have a build script. If this option is omitted, all crates are allowed to have a build script, and if this option is set to an empty list, no crate is allowed to have a build script.
 
-#### The `executables` field (optional)
+#### `executables`
 
 This controls how native executables are handled. Note this check is done by actually reading the file headers from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
 
@@ -314,7 +314,7 @@ This check currently only handles the major executable formats.
 - [PE](https://en.wikipedia.org/wiki/Portable_Executable)
 - [Mach-O](https://en.wikipedia.org/wiki/Mach-O)
 
-#### The `interpreted` field (optional)
+#### `interpreted`
 
 This controls how interpreted scripts are handled. Note this check is done by actually reading the file header from disk so that this check works on Windows as well, ie the executable bit is irrelevant.
 
@@ -322,58 +322,58 @@ This controls how interpreted scripts are handled. Note this check is done by ac
 - `warn` - Prints a warning when interpreted scripts are detected, but does not fail the check.
 - `allow` (default) - Prints a note when interpreted scripts are detected, but does not fail the check.
 
-#### The `script-extensions` field (optional)
+#### `script-extensions`
 
 If supplied scans crates that execute at compile time for any files with the specified extension(s), emitting an error for every one that matches.
 
-#### The `enable-builtin-globs` field (optional)
+#### `enable-builtin-globs`
 
 If `true`, enables the builtin glob patterns for common languages that tend to be installed on most developer machines, such as python.
 
-```ini
+```toml
 {{#include ../../../../src/bans/builtin_globs.toml}}
 ```
 
-#### The `include-dependencies` field (optional)
+#### `include-dependencies`
 
 By default, only the crate that executes at compile time is scanned, but if set to `true`, this field will check this crate as well as all of its dependencies. This option is disabled by default, as this will tend to only find CI scripts that people leave in their published crates.
 
-#### The `include-workspace` field (optional)
+#### `include-workspace`
 
 If `true`, workspace crates will also be scanned. This defaults to false as you presumably have some degree of trust for your own code.
 
-#### The `include-archives` field (optional)
+#### `include-archives`
 
 If `true`, archive files (eg. Windows .lib, Unix .a, C++ .o object files etc) are also counted as native code. This defaults to false, as these tend to need to be linked before they can be executed.
 
-#### The `bypass` field (optional)
+#### `bypass`
 
 While all the previous configuration is about configuration the global checks that run on compile time crates, the `allow` field is how one can suppress those lints on a crate-by-crate basis.
 
 Each entry uses the same [PackageSpec](../cfg.md#package-specs) as other parts of cargo-deny's configuration.
 
-```ini
+```toml
 [build.bypass]
 crate = "crate-name"
 ```
 
-##### The `build-script` and `required-features` field (optional)
+##### `build-script` and `required-features`
 
 If set to a valid, 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2), the `build-script` field will cause the rest of the scanning to be bypassed _if_ the crate's build script's checksum matches the user specified checksum **AND** none of the features specified in the `required-features` field are enabled. If the checksum does not match, the calculated checksum will be emitted as a warning, and the crate will be scanned as if a checksum was not supplied.
 
-**NOTE:** These options only applies to crate with build scripts, not proc macros, as proc macros do not have a single entry point that can be easily checksummed.
+**NOTE:** These options only applies to crates with build scripts, not proc macros, as proc macros do not have a single entry point that can be easily checksummed.
 
-```ini
+```toml
 [[build.bypass]]
 name = "crate-name"
 build-script = "5392f0e58ad06e089462d93304dfe82337acbbefb87a0749a7dc2ed32af04af7"
 ```
 
-##### The `allow-globs` field (optional)
+##### `allow-globs`
 
 Bypasses scanning of files that match one or more of the glob patterns specified. Note that unlike the [`script-extensions`](#the-script-extensions-field-optional) field that applies to all crates, these globs can match anything, not just extensions.
 
-```ini
+```toml
 [build]
 script-extensions = ["cs"]
 
@@ -384,11 +384,11 @@ allow-globs = [
 ]
 ```
 
-##### The `bypass.allow` field (optional)
+##### `bypass.allow`
 
 Bypasses scanning a single file.
 
-```ini
+```toml
 [build]
 executables = "deny"
 
@@ -399,11 +399,11 @@ allow = [
 ]
 ```
 
-###### The `path` field
+###### `path`
 
 The path, relative to the crate root, of the file to bypass scanning.
 
-###### The `checksum` field (optional)
+###### `checksum`
 
 The 64-character hexadecimal [SHA-256](https://en.wikipedia.org/wiki/SHA-2) checksum of the file. If the checksum does not match, an error is emitted.
 

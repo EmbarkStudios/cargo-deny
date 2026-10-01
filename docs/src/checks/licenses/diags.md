@@ -1,31 +1,32 @@
 # Licenses Diagnostics
 
 <!-- markdownlint-disable-next-line heading-increment -->
+
 ### `rejected`
 
-One or more licenses for a crate were rejected because they were not configured to be [allowed](cfg.md#the-allow-and-deny-fields-optional).
+One or more licenses for a crate were rejected because they were not configured to be [allowed](cfg.md#allow).
 
 ### `accepted`
 
-The license expression for a crate was [allowed](cfg.md#the-allow-and-deny-fields-optional), though there may be warnings.
+The license expression for a crate was [allowed](cfg.md#allow), though there may be warnings.
 
 ### `unlicensed`
 
-No license expression could be found for a crate and it is considered [unlicensed](cfg.md#the-unlicensed-field-optional).
+No license expression could be found or synthesized for a crate and it is considered unlicensed.
 
 ### `skipped-private-workspace-crate`
 
-A workspace member is `publish = false` and was [skipped](cfg.md#the-private-field-optional).
+A workspace member is `publish = false` and was [skipped](cfg.md#private).
 
 ### `license-not-encountered`
 
-A license in [`licenses.allow`](cfg.md#the-allow-and-deny-fields-optional) was not found in any crate.
+A license in [`licenses.allow`](cfg.md#allow) was not found in any crate.
 
-This diagnostic can be silenced by configuring the [`licenses.unused-allowed-license`](cfg.md#the-unused-allowed-license-field-optional) field to "allow".
+This diagnostic can be silenced by configuring the [`licenses.unused-allowed-license`](cfg.md#unused-allowed-license) field to `'allow'`.
 
 ### `license-exception-not-encountered`
 
-A [`licenses.exception`](cfg.md#the-exceptions-field-optional) was not used as the crate it applied to was not encountered.
+A [`licenses.exception`](cfg.md#exceptions) was not used as the crate it applied to was not encountered.
 
 ### `empty-license-field`
 
@@ -41,7 +42,7 @@ The package did not use the `license` field, cargo-deny will attempt to fallback
 
 ### `missing-clarification-file`
 
-A file referenced by a [clarification](cfg.md#the-clarify-field-optional) was not found.
+A file referenced by a [clarification](cfg.md#clarify) was not found.
 
 ### `parse-error`
 

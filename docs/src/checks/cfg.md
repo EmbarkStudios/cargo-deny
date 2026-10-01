@@ -11,15 +11,15 @@ The first existing file is used. Pass `--config <path>` to choose a specific fil
 
 ## Example - cargo-deny's own configuration
 
-```ini
+```toml
 {{#include ../../../deny.toml}}
 ```
 
-## The `graph` field (optional)
+## `graph`
 
 The graph tables provides configuration options for how the dependency graph that the various checks are executed against is constructed.
 
-```ini
+```toml
 [graph]
 targets = [
     "x86_64-unknown-linux-gnu",
@@ -33,11 +33,11 @@ features = ["some-feature"]
 exclude-dev = true
 ```
 
-### The `targets` field (optional)
+### `targets`
 
 By default, cargo-deny will consider every single crate that is resolved by cargo, including target specific dependencies eg
 
-```ini
+```toml
 [target.x86_64-pc-windows-msvc.dependencies]
 winapi = "0.3.8"
 
@@ -49,49 +49,49 @@ But unless you are actually targeting `x86_64-fuchsia` or `aarch64-fuchsia`, the
 
 The `targets` field allows you to specify one or more targets which you **actually** build for. Every dependency link to a crate is checked against this list, and if none of the listed targets satisfy the target constraint, the dependency link is ignored. If a crate has no dependency links to it, it is not included into the crate graph that the checks are executed against.
 
-#### The `targets.triple` field (optional) or `"<triple_string>"`
+#### `targets.triple` OR `"<triple_string>"`
 
 The [target triple](https://forge.rust-lang.org/release/platform-support.html) for the target you wish to filter target specific dependencies with. If the target triple specified is **not** one of the targets builtin to `rustc`, the configuration check for that target will be limited to only the raw `[target.<target-triple>.dependencies]` style of target configuration, as `cfg()` expressions require us to know the details about the target.
 
-#### The `targets.features` field (optional)
+#### `targets.features`
 
 Rust `cfg()` expressions support the [`target_feature = "feature-name"`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute) predicate, but at the moment, the only way to actually pass them when compiling is to use the `RUSTFLAGS` environment variable. The `features` field allows you to specify 1 or more `target_feature`s you plan to build with, for a particular target triple. At the time of this writing, cargo-deny does not attempt to validate that the features you specify are actually valid for the target triple, but this is [planned](https://github.com/EmbarkStudios/cfg-expr/issues/1).
 
-### The `exclude` field (optional)
+### `exclude`
 
 Just as with the [`--exclude`](../cli/common.md#--exclude) command line option, this field allows you to specify one or more [Package ID specifications](https://doc.rust-lang.org/cargo/commands/cargo-pkgid.html) that will cause the crate(s) in question to be excluded from the crate graph that is used for the operation you are performing.
 
 Note that excluding a crate is recursive, if any of its transitive dependencies are only referenced via the excluded crate, they will also be excluded from the crate graph.
 
-### The `all-features` field (optional)
+### `all-features`
 
 If set to `true`, `--all-features` will be used when collecting metadata.
 
-### The `no-default-features` field (optional)
+### `no-default-features`
 
 If set to `true`, `--no-default-features` will be used when collecting metadata.
 
-### The `features` field (optional)
+### `features`
 
 If set, and `--features` is not specified on the cmd line, these features will be used when collecting metadata.
 
-### The `exclude-dev` field (optional)
+### `exclude-dev`
 
 If set to `true`, all `dev-dependencies`, even one for workspace crates, are not included in the crate graph used for any of the checks. This option can also be enabled on cmd line with `--exclude-dev` either [before](../cli/common.md#--exclude-dev) or [after](../cli/check.md#--exclude-dev) the `check` subcommand.
 
-### The `exclude-unpublished` field (optional)
+### `exclude-unpublished`
 
 If set to `true`, workspace crates marked as `publish = false` will not be used as roots in the dependency graph, meaning they, and any dependencies they have that aren't directly or indirectly referenced by workspace crates that _are_ published, will be excluded from the dependency graph that checks are executed against.
 
-## The `output` field (optional)
+## `output`
 
-### The `feature-depth` field (optional)
+### `feature-depth`
 
 The maximum depth that features will be displayed when inclusion graphs are included in diagnostics, unless specified via `--feature-depth` on the command line. Only applies to diagnostics that actually print features. If not specified defaults to `1`.
 
 ## Package Specs
 
-Many configuration options require a package specifier at a minimum, which we'll describe here. The options that use package specifiers will be called out in their individual documentation. We'll use the [`bans.deny`](bans/cfg.md#the-deny-field-optional) option in the following examples.
+Many configuration options require a package specifier at a minimum, which we'll describe here. The options that use package specifiers will be called out in their individual documentation. We'll use the [`bans.deny`](bans/cfg.md#deny) option in the following examples.
 
 ### String format
 
@@ -99,7 +99,7 @@ If the particular only requires a package spec at a minimum, then the string for
 
 #### Simple
 
-```ini
+```toml
 # Will match any version of the simple crate
 deny = ["simple"]
 ```
@@ -108,7 +108,7 @@ The simplest string is one which is just the crate name. In this case, the versi
 
 #### With Version Requirements
 
-```ini
+```toml
 # Will match only this versions of the simple crate that match the predicate(s)
 deny = ["simple:<=0.1,>0.2"]
 ```
@@ -117,7 +117,7 @@ If you want to apply version requirements (predicates) to the crate, simply appe
 
 #### Exact
 
-```ini
+```toml
 # Will match only this exact version of the simple crate
 deny = [
     "simple@0.1.0",
@@ -132,7 +132,7 @@ The exact form is a specialization of the version requirements, where the semver
 
 #### Crate format
 
-```ini
+```toml
 deny = [
     { crate = "simple@0.1.0" }, # equivalent to "simple@0.1.0"
     { crate = "simple", wrappers = ["example"] },
@@ -143,7 +143,7 @@ The crate format is a replacement for the old `name` and/or `version` table form
 
 #### Old format
 
-```ini
+```toml
 deny = [
     { name = "simple" },
     { name = "simple", version = "*" }
