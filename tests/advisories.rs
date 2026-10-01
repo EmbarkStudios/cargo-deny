@@ -1,7 +1,7 @@
 use cargo_deny::{
     Krates, SerializeAdvisory as SA,
     advisories::{self, cfg},
-    field_eq, func_name,
+    field_eq, func_name, snapshot_name,
     test_utils::{self as tu},
 };
 use std::time::Duration;
@@ -357,7 +357,115 @@ fn expires_ignores() {
             })
             .collect();
 
-        insta::assert_json_snapshot!(format!("{date}"), expired);
+        insta::assert_json_snapshot!(snapshot_name!(date), expired);
+    }
+}
+
+/// Ensures we handle allowed dependents in for ignores
+#[test]
+fn ignore_with_allow() {
+    load();
+
+    let md: krates::cm::Metadata = serde_json::from_str(
+        &std::fs::read_to_string("tests/test_data/advisories/06_advisories.json").unwrap(),
+    )
+    .unwrap();
+
+    // # ammonia had a stack overflow < 2.1.0
+    // # https://github.com/RustSec/advisory-db/blob/01ac6725d549dbc7873250fe2a55e54d528fe945/crates/ammonia/RUSTSEC-2019-0001.toml
+    // ammonia = "=0.7.0"
+    //
+    // # Version =0.3.0-rc.1 has a vulnerability, but not this version, and, presumably
+    // # not in >=0.3 as well, but that isn't released yet
+    // axum-core = "=0.3.0-rc.2"
+    // # Another prelease version that originated https://github.com/EmbarkStudios/cargo-deny/issues/316
+    // trust-dns-resolver = "0.20.0-alpha.3"
+    //
+    // # Transitively depends on an ammonia 1.2.0
+    // artifact_serde = "0.3.1"
+    //
+    // # Dirs had an advisory added for it that was then withdrawn
+    // dirs = "4.0"
+    //
+    // # Failure has an unsound advisory (and is unmaintained)
+    // failure = "=0.1.8"
+    //
+    // # atty is unmaintained
+    // # https://github.com/rustsec/advisory-db/blob/8eb99abe8c369b48bbd4ca04133e1f05be22a778/crates/static_type_map/RUSTSEC-2022-0023.md
+    // static_type_map = "0.3"
+    //
+    // # The advisory applies to 0.10.0-alpha.1 >= && < 0.10.0-alpha.4
+    // # https://github.com/RustSec/advisory-db/blob/c71cfec8c3fe313c9445a9ab0ae9b7faedda850a/crates/lettre/RUSTSEC-2020-0069.md
+    // lettre = "0.10.0-alpha.3"
+
+    let mut b = krates::Builder::new();
+
+    b.exclude(
+        [
+            "axum-core",
+            "trust-dns-resolver",
+            "dirs",
+            "failure",
+            "static_type_map",
+            "lettre",
+            "spdx",
+            "libusb",
+        ]
+        .map(|p| p.parse().unwrap()),
+    );
+
+    let krates: Krates = b.build_with_metadata(md, krates::NoneFilter).unwrap();
+
+    let dbs = {
+        advisories::DbSet::load(
+            "tests/advisory-db".into(),
+            vec![],
+            advisories::Fetch::Disallow(TEN_THOUSAND_DAYS),
+        )
+        .unwrap()
+    };
+
+    let allows: &[&[&str]] = &[
+        &[""],
+        &["advisories"],
+        &["advisories", "artifact_serde"],
+        &["advisories", "artifact_serde", "missing-crate"],
+    ];
+    for allow in allows {
+        let a = allow.iter().fold(String::new(), |mut s, a| {
+            if !s.is_empty() {
+                s.push_str(", ");
+            }
+
+            s.push('"');
+            s.push_str(a);
+            s.push('"');
+
+            s
+        });
+        let cfg = tu::Config::new(format!(
+            r#"
+    ignore = [
+        {{ id = "RUSTSEC-2019-0001", allow = [{a}] }},
+        {{ id = "RUSTSEC-2021-0074", allow = [{a}] }},
+    ]
+    "#
+        ));
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    DATE,
+                );
+            });
+
+        insta::assert_json_snapshot!(snapshot_name!(allow.join("_")), diags,);
     }
 }
 

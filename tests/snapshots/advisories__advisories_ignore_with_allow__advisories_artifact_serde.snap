@@ -1,0 +1,626 @@
+---
+source: tests/advisories.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 3,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "CVE-2019-15542",
+          "GHSA-5hp8-35wj-m525"
+        ],
+        "categories": [],
+        "collection": "crates",
+        "cvss": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "date": "2019-04-27",
+        "description": "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2019-0001",
+        "informational": null,
+        "keywords": [
+          "stack-overflow",
+          "crash"
+        ],
+        "license": "CC0-1.0",
+        "package": "ammonia",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "Uncontrolled recursion leads to abort in HTML serialization",
+        "url": "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 2,
+          "message": "security vulnerability detected",
+          "span": "ammonia 0.7.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "Uncontrolled recursion leads to abort in HTML serialization",
+      "notes": [
+        "ID: RUSTSEC-2019-0001",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2019-0001",
+        "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+        "Announcement: https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+        "Solution: Upgrade to >=2.1.0 (try `cargo update -p ammonia`)"
+      ],
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 3,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2019-0001"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "CVE-2019-15542",
+          "GHSA-5hp8-35wj-m525"
+        ],
+        "categories": [],
+        "collection": "crates",
+        "cvss": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "date": "2019-04-27",
+        "description": "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2019-0001",
+        "informational": null,
+        "keywords": [
+          "stack-overflow",
+          "crash"
+        ],
+        "license": "CC0-1.0",
+        "package": "ammonia",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "Uncontrolled recursion leads to abort in HTML serialization",
+        "url": "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 3,
+          "message": "security vulnerability detected",
+          "span": "ammonia 1.2.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "Uncontrolled recursion leads to abort in HTML serialization",
+      "notes": [
+        "ID: RUSTSEC-2019-0001",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2019-0001",
+        "Affected versions of this crate did use recursion for serialization of HTML\nDOM trees.\n\nThis allows an attacker to cause abort due to stack overflow by providing\na pathologically nested input.\n\nThe flaw was corrected by serializing the DOM tree iteratively instead.",
+        "Announcement: https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+        "Solution: Upgrade to >=2.1.0 (try `cargo update -p ammonia`)"
+      ],
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 4,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2021-0074"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "CVE-2021-38193",
+          "GHSA-5325-xw5m-phm3"
+        ],
+        "categories": [
+          "format-injection"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2021-07-08",
+        "description": "Affected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2021-0074",
+        "informational": null,
+        "keywords": [
+          "html",
+          "xss"
+        ],
+        "license": "CC0-1.0",
+        "package": "ammonia",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "Incorrect handling of embedded SVG and MathML leads to mutation XSS",
+        "url": "https://github.com/rust-ammonia/ammonia/pull/142",
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "0.7.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "advisories",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 2,
+          "message": "security vulnerability detected",
+          "span": "ammonia 0.7.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "Incorrect handling of embedded SVG and MathML leads to mutation XSS",
+      "notes": [
+        "ID: RUSTSEC-2021-0074",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2021-0074",
+        "Affected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs",
+        "Announcement: https://github.com/rust-ammonia/ammonia/pull/142",
+        "Solution: Upgrade to >=3.1.0 OR >=2.1.3, <3.0.0 (try `cargo update -p ammonia`)"
+      ],
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 17,
+          "line": 4,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2021-0074"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "CVE-2021-38193",
+          "GHSA-5325-xw5m-phm3"
+        ],
+        "categories": [
+          "format-injection"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2021-07-08",
+        "description": "Affected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2021-0074",
+        "informational": null,
+        "keywords": [
+          "html",
+          "xss"
+        ],
+        "license": "CC0-1.0",
+        "package": "ammonia",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "Incorrect handling of embedded SVG and MathML leads to mutation XSS",
+        "url": "https://github.com/rust-ammonia/ammonia/pull/142",
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "ammonia",
+            "version": "1.2.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "artifact_serde",
+                "version": "0.3.1"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisories",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 3,
+          "message": "security vulnerability detected",
+          "span": "ammonia 1.2.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "Incorrect handling of embedded SVG and MathML leads to mutation XSS",
+      "notes": [
+        "ID: RUSTSEC-2021-0074",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2021-0074",
+        "Affected versions of this crate did not account for namespace-related parsing\ndifferences between HTML, SVG, and MathML. Even if the `svg` and `math` elements\nare not allowed, the underlying HTML parser still treats them differently.\nRunning cleanup without accounting for these differing namespaces resulted in an \"impossible\"\nDOM, which appeared \"safe\" when examining the DOM tree, but when serialized and deserialized,\ncould be exploited to inject arbitrary markup.\n\nTo exploit this, the application using this library must allow a tag that is parsed as raw text in HTML.\nThese [elements] are:\n\n* title\n* textarea\n* xmp\n* iframe\n* noembed\n* noframes\n* plaintext\n* noscript\n* style\n* script\n\nApplications that do not explicitly allow any of these tags should not be affected, since none are allowed by default.\n\n[elements]: https://github.com/servo/html5ever/blob/57eb334c0ffccc6f88d563419f0fbeef6ff5741c/html5ever/src/tree_builder/rules.rs",
+        "Announcement: https://github.com/rust-ammonia/ammonia/pull/142",
+        "Solution: Upgrade to >=3.1.0 OR >=2.1.3, <3.0.0 (try `cargo update -p ammonia`)"
+      ],
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "GHSA-2226-4v3c-cff8"
+        ],
+        "categories": [
+          "denial-of-service"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2022-01-01",
+        "description": "When parsing JSON using `json::Json::from_str`, there is no limit to the depth of the stack, therefore deeply nested objects can cause a stack overflow, which aborts the process.\n\nExample code that triggers the vulnerability is\n\n```rust\nfn main() {\n    let _ = rustc_serialize::json::Json::from_str(&\"[0,[\".repeat(10000));\n}\n```\n\n[serde](https://crates.io/crates/serde) is recommended as a replacement to rustc_serialize.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2022-0004",
+        "informational": null,
+        "keywords": [
+          "stack overflow"
+        ],
+        "license": "CC0-1.0",
+        "package": "rustc-serialize",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "Stack overflow in rustc_serialize when parsing deeply nested JSON",
+        "url": null,
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "rustc-serialize",
+            "version": "0.3.24"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "kind": "build",
+                "name": "markup5ever",
+                "version": "0.4.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "html5ever",
+                    "version": "0.19.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "ammonia",
+                        "version": "0.7.0"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "advisories",
+                            "version": "0.1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 52,
+          "message": "security vulnerability detected",
+          "span": "rustc-serialize 0.3.24 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "Stack overflow in rustc_serialize when parsing deeply nested JSON",
+      "notes": [
+        "ID: RUSTSEC-2022-0004",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2022-0004",
+        "When parsing JSON using `json::Json::from_str`, there is no limit to the depth of the stack, therefore deeply nested objects can cause a stack overflow, which aborts the process.\n\nExample code that triggers the vulnerability is\n\n```rust\nfn main() {\n    let _ = rustc_serialize::json::Json::from_str(&\"[0,[\".repeat(10000));\n}\n```\n\n[serde](https://crates.io/crates/serde) is recommended as a replacement to rustc_serialize.",
+        "Solution: No safe upgrade is available!"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "advisory": {
+        "aliases": [
+          "CVE-2024-12224"
+        ],
+        "categories": [
+          "privilege-escalation"
+        ],
+        "collection": "crates",
+        "cvss": null,
+        "date": "2024-12-09",
+        "description": "`idna` 0.5.0 and earlier accepts Punycode labels that do not produce any non-ASCII output, which means that either ASCII labels or the empty root label can be masked such that they appear unequal without IDNA processing or when processed with a different implementation and equal when processed with `idna` 0.5.0 or earlier.\n\nConcretely, `example.org` and `xn--example-.org` become equal after processing by `idna` 0.5.0 or earlier. Also, `example.org.xn--` and `example.org.` become equal after processing by `idna` 0.5.0 or earlier.\n\nIn applications using `idna` (but not in `idna` itself) this may be able to lead to privilege escalation when host name comparison is part of a privilege check and the behavior is combined with a client that resolves domains with such labels instead of treating them as errors that preclude DNS resolution / URL fetching and with the attacker managing to introduce a DNS entry (and TLS certificate) for an `xn--`-masked name that turns into the name of the target when processed by `idna` 0.5.0 or earlier.\n\n## Remedy\n\nUpgrade to `idna` 1.0.3 or later, if depending on `idna` directly, or to `url` 2.5.4 or later, if depending on `idna` via `url`. (This issue was fixed in `idna` 1.0.0, but versions earlier than 1.0.3 are not recommended for other reasons.)\n\nWhen upgrading, please take a moment to read about [alternative Unicode back ends for `idna`](https://docs.rs/crate/idna_adapter/latest).\n\nIf you are using Rust earlier than 1.81 in combination with SQLx 0.8.2 or earlier, please also read an [issue](https://github.com/servo/rust-url/issues/992) about combining them with `url` 2.5.4 and `idna` 1.0.3.\n\n## Additional information\n\nThis issue resulted from `idna` 0.5.0 and earlier implementing the UTS 46 specification literally on this point and the specification having this bug. The specification bug has been fixed in [revision 33 of UTS 46](https://www.unicode.org/reports/tr46/tr46-33.html#Modifications).\n\n## Acknowledgements\n\nThanks to kageshiron for recognizing the security implications of this behavior.",
+        "expect-deleted": false,
+        "id": "RUSTSEC-2024-0421",
+        "informational": null,
+        "keywords": [
+          "idna",
+          "punycode",
+          "same-origin",
+          "domain-name"
+        ],
+        "license": "CC0-1.0",
+        "package": "idna",
+        "references": [],
+        "related": [],
+        "source": null,
+        "title": "`idna` accepts Punycode labels that do not produce any non-ASCII when decoded",
+        "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1887898",
+        "withdrawn": null
+      },
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "idna",
+            "version": "0.1.5"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "url",
+                "version": "1.7.2"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "ammonia",
+                    "version": "0.7.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "advisories",
+                        "version": "0.1.0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Krate": {
+                    "name": "ammonia",
+                    "version": "1.2.0"
+                  },
+                  "parents": [
+                    {
+                      "Krate": {
+                        "name": "artifact_serde",
+                        "version": "0.3.1"
+                      },
+                      "parents": [
+                        {
+                          "Krate": {
+                            "name": "advisories",
+                            "version": "0.1.0"
+                          },
+                          "repeat": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 16,
+          "message": "security vulnerability detected",
+          "span": "idna 0.1.5 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "`idna` accepts Punycode labels that do not produce any non-ASCII when decoded",
+      "notes": [
+        "ID: RUSTSEC-2024-0421",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0421",
+        "`idna` 0.5.0 and earlier accepts Punycode labels that do not produce any non-ASCII output, which means that either ASCII labels or the empty root label can be masked such that they appear unequal without IDNA processing or when processed with a different implementation and equal when processed with `idna` 0.5.0 or earlier.\n\nConcretely, `example.org` and `xn--example-.org` become equal after processing by `idna` 0.5.0 or earlier. Also, `example.org.xn--` and `example.org.` become equal after processing by `idna` 0.5.0 or earlier.\n\nIn applications using `idna` (but not in `idna` itself) this may be able to lead to privilege escalation when host name comparison is part of a privilege check and the behavior is combined with a client that resolves domains with such labels instead of treating them as errors that preclude DNS resolution / URL fetching and with the attacker managing to introduce a DNS entry (and TLS certificate) for an `xn--`-masked name that turns into the name of the target when processed by `idna` 0.5.0 or earlier.\n\n## Remedy\n\nUpgrade to `idna` 1.0.3 or later, if depending on `idna` directly, or to `url` 2.5.4 or later, if depending on `idna` via `url`. (This issue was fixed in `idna` 1.0.0, but versions earlier than 1.0.3 are not recommended for other reasons.)\n\nWhen upgrading, please take a moment to read about [alternative Unicode back ends for `idna`](https://docs.rs/crate/idna_adapter/latest).\n\nIf you are using Rust earlier than 1.81 in combination with SQLx 0.8.2 or earlier, please also read an [issue](https://github.com/servo/rust-url/issues/992) about combining them with `url` 2.5.4 and `idna` 1.0.3.\n\n## Additional information\n\nThis issue resulted from `idna` 0.5.0 and earlier implementing the UTS 46 specification literally on this point and the specification having this bug. The specification bug has been fixed in [revision 33 of UTS 46](https://www.unicode.org/reports/tr46/tr46-33.html#Modifications).\n\n## Acknowledgements\n\nThanks to kageshiron for recognizing the security implications of this behavior.",
+        "Announcement: https://bugzilla.mozilla.org/show_bug.cgi?id=1887898",
+        "Solution: Upgrade to >=1.0.0 (try `cargo update -p idna`)"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
