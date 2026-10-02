@@ -1,0 +1,251 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>bans - cargo-deny</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> cargo-deny</a></li><li class="chapter-item expanded "><a href="../../cli/index.html"><strong aria-hidden="true">2.</strong> Command Line Tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../cli/common.html"><strong aria-hidden="true">2.1.</strong> common</a></li><li class="chapter-item expanded "><a href="../../cli/init.html"><strong aria-hidden="true">2.2.</strong> init</a></li><li class="chapter-item expanded "><a href="../../cli/check.html"><strong aria-hidden="true">2.3.</strong> check</a></li><li class="chapter-item expanded "><a href="../../cli/list.html"><strong aria-hidden="true">2.4.</strong> list</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/index.html"><strong aria-hidden="true">3.</strong> Checks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/cfg.html"><strong aria-hidden="true">3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/advisories/index.html"><strong aria-hidden="true">3.2.</strong> advisories</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/advisories/cfg.html"><strong aria-hidden="true">3.2.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/advisories/diags.html"><strong aria-hidden="true">3.2.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/bans/index.html" class="active"><strong aria-hidden="true">3.3.</strong> bans</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/bans/cfg.html"><strong aria-hidden="true">3.3.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/bans/diags.html"><strong aria-hidden="true">3.3.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/licenses/index.html"><strong aria-hidden="true">3.4.</strong> licenses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/licenses/cfg.html"><strong aria-hidden="true">3.4.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/licenses/diags.html"><strong aria-hidden="true">3.4.2.</strong> diagnostics</a></li></ol></li><li class="chapter-item expanded "><a href="../../checks/sources/index.html"><strong aria-hidden="true">3.5.</strong> sources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../checks/sources/cfg.html"><strong aria-hidden="true">3.5.1.</strong> config</a></li><li class="chapter-item expanded "><a href="../../checks/sources/diags.html"><strong aria-hidden="true">3.5.2.</strong> diagnostics</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">cargo-deny</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="bans"><a class="header" href="#bans">bans</a></h1>
+<p>The bans check is used to deny (or allow) specific crates, as well as detect and handle multiple versions of the same crate.</p>
+<pre><code class="language-bash">cargo deny check bans
+</code></pre>
+<h2 id="use-case---denying-specific-crates"><a class="header" href="#use-case---denying-specific-crates">Use Case - Denying specific crates</a></h2>
+<p>Sometimes, certain crates just don't fit in your project, so you have to remove them. However, nothing really stops them from sneaking back in due to innocuous changes like doing a <code>cargo update</code> and getting it transitively, or even forgetting to set <code>default-features = false, features = [&quot;feature-without-the-thing&quot;]</code> when the crate is pulled in via the default features of a crate you already depend on, in your entire workspace.</p>
+<p>For example, we previously depended on OpenSSL as it is the &quot;default&quot; for many crates that provide TLS. This was extremely annoying as it required us to have OpenSSL development libraries installed on Windows, for both individuals and CI. We moved all of our dependencies to use the much more streamlined <code>native-tls</code> or <code>ring</code> crates instead, and now we can make sure that OpenSSL doesn't return from the grave by accident.</p>
+<h2 id="use-case---duplicate-version-detection"><a class="header" href="#use-case---duplicate-version-detection">Use Case - Duplicate version detection</a></h2>
+<p>The larger your project and number of external dependencies, the likelihood that you will have multiple versions of the same crate rises. This is due to two fundamental aspects of the Rust ecosystem.</p>
+<ol>
+<li>Cargo's dependency resolution tries to solve all the version constraints to a crate to the same version, but is totally ok with using <a href="https://stephencoakley.com/2019/04/24/how-rust-solved-dependency-hell">multiple versions</a> if it is unable to.</li>
+<li>Rust has a huge (ever growing) number of crates. Every maintainer has different amounts of time and energy they can spend on their crate, not to mention different philosophies on dependencies and how often (or not) they should be updated, so it is inevitable that crates will not always agree on which version of another crate they want to use.</li>
+</ol>
+<p>This tradeoff of allowing multiple version of the same crate is one of the reasons that cargo is such a pleasant experience for many people new to Rust, but as with all tradeoffs, it does come with costs.</p>
+<ol>
+<li>More packages must be <strong>fetched</strong>, which especially impacts CI, as well as devs.</li>
+<li><strong>Compile times</strong> increase, which impacts CI and devs.</li>
+<li><strong>Target directory size</strong> increases, which can impact devs, or static CI environments.</li>
+<li>Final <strong>binary size</strong> will also tend to increase, which can impact users.</li>
+</ol>
+<p>Normally, you will not really notice that you have multiple versions of the same crate unless you constantly watch your build log, but as mentioned above, it <strong>does</strong> introduce paper cuts into your workflows.</p>
+<p>The intention of duplicate detection in cargo-deny is not to &quot;correct&quot; cargo's behavior, but rather to draw your attention to duplicates so that you can make an informed decision about how to handle the situation.</p>
+<ul>
+<li>Maybe you want to open up a PR on a crate to use a version of the duplicate that is aligned with the rest of the ecosystem.</li>
+<li>Maybe the crate has actually already been updated, but the maintainer hasn't published a new version yet, and you can ask if they can publish a new one.</li>
+<li>Maybe, even though the versions are supposedly incompatible according to semver, they actually aren't, and you can temporarily patch 1 or more crates to use a different version requirement without actually change the crates' code itself.</li>
+<li>Sometimes having the &quot;latest and greatest&quot; is not really that important for every version, and you can just specify a lower version in your own project that matches the transitive constraint(s).</li>
+<li>And finally, you don't care about a particular case of multiple versions, so you just tell cargo-deny to ignore one or more of the specific versions, and the situation will eventually resolve itself.</li>
+</ul>
+<h2 id="example-output"><a class="header" href="#example-output">Example output</a></h2>
+<p><img src="../../output/bans.svg" alt="bans output" /></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../checks/advisories/diags.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../checks/bans/cfg.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../checks/advisories/diags.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../checks/bans/cfg.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
