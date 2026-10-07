@@ -56,7 +56,7 @@ pub fn check<R, S>(
             )
         },
         || {
-            if let Some(indices) = indices {
+            if let Some(indices) = &indices {
                 let yanked: Vec<_> = ctx
                     .krates
                     .krates()
@@ -109,6 +109,20 @@ pub fn check<R, S>(
         let mut ignore = None;
 
         for krate in k {
+            let mut kdds = ctx
+                .krates
+                .direct_dependents(ctx.krates.nid_for_kid(&krate.id).unwrap());
+
+            kdds.sort_by(|a, b| {
+                let ord = a.krate.name.cmp(&b.krate.name);
+
+                if ord == std::cmp::Ordering::Equal {
+                    a.krate.version.cmp(&b.krate.version)
+                } else {
+                    ord
+                }
+            });
+
             'block: {
                 let Some(scope) =
                     advisory
@@ -128,11 +142,8 @@ pub fn check<R, S>(
                     Scope::All => break 'block,
                     Scope::None => continue 'lup,
                     Scope::Workspace | Scope::Transitive => {
-                        let nid = ctx.krates.nid_for_kid(&krate.id).unwrap();
-                        let dds = ctx.krates.direct_dependents(nid);
-
                         let transitive = scope.value == Scope::Transitive;
-                        if dds
+                        if kdds
                             .iter()
                             .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
                         {
@@ -144,13 +155,13 @@ pub fn check<R, S>(
                 }
             }
 
-            let mut dd = None;
             let diag = ctx.diag_for_advisory(
                 krate,
                 serialize_advisories,
                 advisory,
                 date,
-                &mut dd,
+                &kdds,
+                indices.as_ref(),
                 |index| {
                     ignore_hits.as_mut_bitslice().set(index, true);
                     ignore = Some(&ctx.cfg.ignore[index]);
@@ -159,7 +170,7 @@ pub fn check<R, S>(
 
             sink.push(diag);
 
-            dds.extend(dd);
+            dds.append(&mut kdds);
         }
 
         sink.push(ctx.diag_for_allowed_missing(ignore, dds));

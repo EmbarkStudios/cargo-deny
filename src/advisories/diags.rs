@@ -122,7 +122,8 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
         serialize_advisories: crate::SerializeAdvisory,
         advisory: &Advisory<'_>,
         date: jiff::civil::Date,
-        direct_dependents: &mut Option<Vec<krates::DirectDependent<'ctx, crate::Krate>>>,
+        direct_dependents: &Vec<krates::DirectDependent<'ctx, crate::Krate>>,
+        indices: Option<&super::Indices<'_>>,
         mut on_ignore: F,
     ) -> Pack
     where
@@ -195,12 +196,8 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                     }
 
                     if let Some(allow) = &ignore.allow {
-                        let dds = self
-                            .krates
-                            .direct_dependents(self.krates.nid_for_kid(&krate.id).unwrap());
-
                         let before = pack.len();
-                        for dd in &dds {
+                        for dd in direct_dependents {
                             if !allow
                                 .value
                                 .iter()
@@ -217,8 +214,6 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                                 ));
                             }
                         }
-
-                        *direct_dependents = Some(dds);
 
                         if pack.len() > before {
                             break 'll LintLevel::Deny;
@@ -248,23 +243,95 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
         if advisory.versions.patched.is_empty() {
             notes.push("Solution: No safe upgrade is available!".to_owned());
         } else {
-            let mut patched = String::with_capacity(
-                advisory.versions.patched.len() * 9 + advisory.versions.patched.len() - 4,
-            );
+            // Attempt to detect if any of the direct dependents have a version requirement that precludes updating to a patched version
+            let updatable = 'u: {
+                let Some(versions) = indices.and_then(|i| i.versions(krate)) else {
+                    // We can't tell what versions are available, but maybe it will work out for the user
+                    break 'u true;
+                };
 
-            for (i, req) in advisory.versions.patched.iter().enumerate() {
-                if i > 0 {
-                    patched.push_str(" OR ");
+                let available: Vec<_> = versions
+                    .iter()
+                    .filter_map(|(v, yanked)| {
+                        if *yanked {
+                            return None;
+                        }
+
+                        (advisory.versions.patched.iter().any(|vr| vr.matches(v))
+                            || advisory.versions.unaffected.iter().any(|vr| vr.matches(v)))
+                        .then_some(v)
+                    })
+                    .collect();
+
+                let incompatible: smallvec::SmallVec<[_; 4]> = direct_dependents
+                    .iter()
+                    .filter_map(|dd| {
+                        let deps: smallvec::SmallVec<[_; 2]> = dd
+                            .krate
+                            .deps
+                            .iter()
+                            .filter_map(|dep| {
+                                if dep.rename.as_deref().unwrap_or(&dep.name) != krate.name
+                                    || !dep.req.matches(&krate.version)
+                                    || dep.source.as_ref().is_none_or(|src| {
+                                        // For now, only care about crates.io
+                                        src != tame_index::CRATES_IO_HTTP_INDEX
+                                    })
+                                {
+                                    return None;
+                                }
+
+                                (!available.iter().any(|av| dep.req.matches(av))).then_some(dep)
+                            })
+                            .collect();
+
+                        (!deps.is_empty()).then_some((dd.krate, deps))
+                    })
+                    .collect();
+
+                if incompatible.is_empty() {
+                    break 'u true;
                 }
 
-                use std::fmt::Write;
-                write!(&mut patched, "{req}").expect("unreachable unless OOM");
-            }
+                notes.push(format!(
+                    "{} dependents have version requirements that preclude updating:",
+                    incompatible.len()
+                ));
 
-            notes.push(format!(
-                "Solution: Upgrade to {patched} (try `cargo update -p {}`)",
-                krate.name,
-            ));
+                for (dependent, deps) in incompatible {
+                    notes.push(format!("{dependent}"));
+
+                    for dep in deps {
+                        notes.push(format!(
+                            "  - {} = '{}'",
+                            dep.registry.as_deref().unwrap_or(&dep.name),
+                            dep.req
+                        ));
+                    }
+                }
+
+                false
+            };
+
+            if updatable {
+                let mut patched = String::with_capacity(
+                    advisory.versions.patched.len() * 9 + advisory.versions.patched.len() - 4,
+                );
+
+                for (i, req) in advisory.versions.patched.iter().enumerate() {
+                    if i > 0 {
+                        patched.push_str(" OR ");
+                    }
+
+                    use std::fmt::Write;
+                    write!(&mut patched, "{req}").expect("unreachable unless OOM");
+                }
+
+                notes.push(format!(
+                    "Solution: Upgrade to {patched} (try `cargo update -p {}`)",
+                    krate.name,
+                ));
+            }
         }
 
         let (message, code) = match ty {
@@ -300,7 +367,7 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
     pub(crate) fn diag_for_allowed_missing(
         &self,
         ignore: Option<&IgnoreId>,
-        dds: Vec<Vec<krates::DirectDependent<'_, crate::Krate>>>,
+        dds: Vec<krates::DirectDependent<'_, crate::Krate>>,
     ) -> Pack {
         let mut pack = Pack::new(Check::Advisories);
 
@@ -310,10 +377,10 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
         {
             // Inform the user if they've allowed a direct dependency that doesn't/no longer exist/s
             for allow in &allowed.value {
-                if !dds.iter().any(|dd| {
-                    dd.iter()
-                        .any(|dd| crate::match_krate(dd.krate, &allow.spec))
-                }) {
+                if !dds
+                    .iter()
+                    .any(|dd| crate::match_krate(dd.krate, &allow.spec))
+                {
                     pack.push(diag(
                         Diagnostic::warning()
                             .with_message("direct dependency not found")

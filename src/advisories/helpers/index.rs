@@ -128,6 +128,20 @@ impl<'k> Indices<'k> {
     }
 
     #[inline]
+    pub fn versions(&self, krate: &'k Krate) -> Option<&YankMap> {
+        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else {
+            return None;
+        };
+
+        self.cache
+            .get(&(krate.name.as_str(), src))
+            .and_then(|e| match e {
+                Entry::Map(map) => Some(map),
+                Entry::Error(_) => None,
+            })
+    }
+
+    #[inline]
     pub fn is_yanked(&self, krate: &'k Krate) -> Result<bool, String> {
         // Ignore non-registry crates when checking, as a crate sourced
         // locally or via git can have the same name as a registry package
