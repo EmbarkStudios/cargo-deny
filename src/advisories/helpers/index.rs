@@ -129,9 +129,7 @@ impl<'k> Indices<'k> {
 
     #[inline]
     pub fn versions(&self, krate: &'k Krate) -> Option<&YankMap> {
-        let Some(src) = krate.source.as_ref().filter(|s| s.is_registry()) else {
-            return None;
-        };
+        let src = krate.source.as_ref().filter(|s| s.is_registry())?;
 
         self.cache
             .get(&(krate.name.as_str(), src))

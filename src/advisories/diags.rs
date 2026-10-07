@@ -116,6 +116,7 @@ fn get_notes_from_advisory(advisory: &Metadata<'_>) -> Vec<String> {
 }
 
 impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn diag_for_advisory<F>(
         &self,
         krate: &crate::Krate,
@@ -270,18 +271,18 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                             .krate
                             .deps
                             .iter()
-                            .filter_map(|dep| {
-                                if dep.rename.as_deref().unwrap_or(&dep.name) != krate.name
+                            .filter(|dep| {
+                                if dep.name != krate.name
                                     || !dep.req.matches(&krate.version)
-                                    || dep.source.as_ref().is_none_or(|src| {
-                                        // For now, only care about crates.io
-                                        src != tame_index::CRATES_IO_HTTP_INDEX
-                                    })
+                                    || dep
+                                        .source
+                                        .as_ref()
+                                        .is_none_or(|src| !crate::Source::is_raw_crates_io(src))
                                 {
-                                    return None;
+                                    return false;
                                 }
 
-                                (!available.iter().any(|av| dep.req.matches(av))).then_some(dep)
+                                !available.iter().any(|av| dep.req.matches(av))
                             })
                             .collect();
 
@@ -293,20 +294,32 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                     break 'u true;
                 }
 
-                notes.push(format!(
-                    "{} dependents have version requirements that preclude updating:",
-                    incompatible.len()
-                ));
+                if incompatible.len() == 1 {
+                    notes.push(
+                        "1 dependent has version requirements that preclude updating:".to_owned(),
+                    );
+                } else {
+                    notes.push(format!(
+                        "{} dependents have version requirements that preclude updating:",
+                        incompatible.len()
+                    ));
+                }
 
                 for (dependent, deps) in incompatible {
                     notes.push(format!("{dependent}"));
 
                     for dep in deps {
-                        notes.push(format!(
+                        let mut s = format!(
                             "  - {} = '{}'",
-                            dep.registry.as_deref().unwrap_or(&dep.name),
-                            dep.req
-                        ));
+                            dep.rename.as_deref().unwrap_or(&dep.name),
+                            dep.req,
+                        );
+                        match dep.kind {
+                            krates::cm::DependencyKind::Normal => {}
+                            krates::cm::DependencyKind::Development => s.push_str(" (dev)"),
+                            krates::cm::DependencyKind::Build => s.push_str(" (build)"),
+                        }
+                        notes.push(s);
                     }
                 }
 

@@ -179,6 +179,15 @@ impl Source {
     }
 
     #[inline]
+    pub fn is_raw_crates_io(raw: &str) -> bool {
+        if let Some((kind, url)) = raw.split_once('+') {
+            kind == "registry" && url == tame_index::CRATES_IO_INDEX
+        } else {
+            raw == tame_index::CRATES_IO_HTTP_INDEX
+        }
+    }
+
+    #[inline]
     pub fn matches_rustsec(&self, sid: Option<&Self>) -> bool {
         let Some(sid) = sid else {
             return self.is_crates_io();

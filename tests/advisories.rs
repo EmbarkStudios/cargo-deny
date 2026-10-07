@@ -1207,3 +1207,50 @@ fn ignores_placeholders_and_duplicates() {
     );
     assert_eq!(adv.advisory.advisory.id, DUPLICATE);
 }
+
+/// Ensures that crates with advisories that are not updatable due to one or more version requirements precluding a
+/// semver compatible update are correctly shown
+#[test]
+fn shows_non_updatable() {
+    let TestCtx { dbs, .. } = load();
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("tests/test_data/non-updatable/Cargo.toml");
+
+    let td = temp_dir();
+    let cargo_home = td.path();
+
+    let mut cmd: krates::cm::MetadataCommand = cmd.into();
+    cmd.env("CARGO_HOME", cargo_home);
+
+    let cargo_home: camino::Utf8PathBuf = cargo_home.to_owned().try_into().unwrap();
+
+    let mut kb = krates::Builder::new();
+    cargo_deny::krates_with_index(&mut kb, None, Some(cargo_home.clone())).unwrap();
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let cfg = tu::Config::new(
+        r"
+    ",
+    );
+
+    let indices = advisories::Indices::load(&krates, cargo_home.clone());
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                SA::No,
+                Some(indices),
+                tx,
+                DATE,
+            );
+        });
+
+    insta::assert_json_snapshot!(advisories_by_kind(diags, "vulnerability"));
+}
