@@ -179,6 +179,35 @@ impl Source {
     }
 
     #[inline]
+    pub fn is_raw_crates_io(raw: &str) -> bool {
+        if let Some((kind, url)) = raw.split_once('+') {
+            kind == "registry" && url == tame_index::CRATES_IO_INDEX
+        } else {
+            raw == tame_index::CRATES_IO_HTTP_INDEX
+        }
+    }
+
+    #[inline]
+    pub fn matches_raw(&self, raw: &str) -> bool {
+        match self {
+            Self::CratesIo(_) => Self::is_raw_crates_io(raw),
+            Self::Registry(url) => {
+                let Some((kind, rurl)) = raw.split_once('+') else {
+                    return false;
+                };
+
+                kind == "registry" && url.as_str() == rurl
+            }
+            Self::Sparse(url) => url.as_str() == raw,
+            Self::Git { .. } => {
+                // This isn't really relevant for now as this function is only used when checking
+                // yanked crates
+                false
+            }
+        }
+    }
+
+    #[inline]
     pub fn matches_rustsec(&self, sid: Option<&Self>) -> bool {
         let Some(sid) = sid else {
             return self.is_crates_io();
