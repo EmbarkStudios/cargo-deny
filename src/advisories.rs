@@ -196,7 +196,10 @@ pub fn check<R, S>(
                 sink.push(ctx.diag_for_yanked_ignore(krate, i));
                 ignore_yanked_hits.as_mut_bitslice().set(i, true);
             } else {
-                sink.push(ctx.diag_for_yanked(krate));
+                let dds = ctx
+                    .krates
+                    .direct_dependents(ctx.krates.nid_for_kid(&krate.id).unwrap());
+                sink.push(ctx.diag_for_yanked(krate, dds, indices.as_ref()));
             }
         }
     }

@@ -407,21 +407,97 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
         pack
     }
 
-    pub(crate) fn diag_for_yanked(&self, krate: &crate::Krate) -> Pack {
+    pub(crate) fn diag_for_yanked(
+        &self,
+        krate: &crate::Krate,
+        direct_dependents: Vec<krates::DirectDependent<'ctx, crate::Krate>>,
+        indices: Option<&super::Indices<'_>>,
+    ) -> Pack {
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
+
+        let mut notes = Vec::new();
+
+        if let Some(versions) = indices.and_then(|i| i.versions(krate))
+            && let Some(ksrc) = &krate.source
+        {
+            let incompatible: smallvec::SmallVec<[_; 4]> = direct_dependents
+                .iter()
+                .filter_map(|dd| {
+                    let deps: smallvec::SmallVec<[_; 2]> = dd
+                        .krate
+                        .deps
+                        .iter()
+                        .filter(|dep| {
+                            if dep.name != krate.name
+                                || !dep.req.matches(&krate.version)
+                                || dep.source.as_ref().is_none_or(|src| !ksrc.matches_raw(src))
+                            {
+                                return false;
+                            }
+
+                            !versions
+                                .iter()
+                                .any(|(av, yanked)| !*yanked && dep.req.matches(av))
+                        })
+                        .collect();
+
+                    (!deps.is_empty()).then_some((dd.krate, deps))
+                })
+                .collect();
+
+            if !incompatible.is_empty() {
+                if incompatible.len() == 1 {
+                    notes.push(
+                        "1 dependent has version requirements that preclude updating:".to_owned(),
+                    );
+                } else {
+                    notes.push(format!(
+                        "{} dependents have version requirements that preclude updating:",
+                        incompatible.len()
+                    ));
+                }
+
+                for (dependent, deps) in incompatible {
+                    notes.push(format!("{dependent}"));
+
+                    for dep in deps {
+                        let mut s = format!(
+                            "  - {} = '{}'",
+                            dep.rename.as_deref().unwrap_or(&dep.name),
+                            dep.req,
+                        );
+                        match dep.kind {
+                            krates::cm::DependencyKind::Normal => {}
+                            krates::cm::DependencyKind::Development => s.push_str(" (dev)"),
+                            krates::cm::DependencyKind::Build => s.push_str(" (build)"),
+                        }
+                        notes.push(s);
+                    }
+                }
+            }
+        }
+
         pack.push(diag(
             Diagnostic::new(self.cfg.yanked.value.into())
-                .with_message(format_args!(
-                    "detected yanked crate (try `cargo update -p {}`)",
-                    krate.name
-                ))
+                .with_message(if notes.is_empty() {
+                    format!(
+                        "detected yanked crate (try `cargo update -p {}`)",
+                        krate.name
+                    )
+                } else {
+                    format!(
+                        "detected yanked crate (`cargo update -p {}` will most likely not work)",
+                        krate.name
+                    )
+                })
                 .with_labels(vec![
                     Label::primary(
                         self.krate_spans.lock_id,
                         self.krate_spans.lock_span(&krate.id).total,
                     )
                     .with_message("yanked version"),
-                ]),
+                ])
+                .with_notes(notes),
             Code::Yanked,
         ));
 

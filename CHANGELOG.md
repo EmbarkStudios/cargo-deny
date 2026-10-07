@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
+- [PR#895](https://github.com/EmbarkStudios/cargo-deny/pull/895) fixed an issue where `--target` could not be passed multiple times in the CLI.
+- [PR#887](https://github.com/EmbarkStudios/cargo-deny/pull/887) resolved [#707](https://github.com/EmbarkStudios/cargo-deny/issues/707) by ignoring renamed packages when checking for workspace duplicates.
+- [PR#885](https://github.com/EmbarkStudios/cargo-deny/pull/885) resolved [#772](https://github.com/EmbarkStudios/cargo-deny/issues/772) by not emitting diagnostics for unused workspace dependencies when those crates were explicitly excluded from the graph by the user.
+- [PR#902](https://github.com/EmbarkStudios/cargo-deny/pull/902) resolved [#898](https://github.com/EmbarkStudios/cargo-deny/issues/898) by adding the [`unmatched-allow-build-script`](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#unmatched-allow-build-script) and [`allowed-crate-without-build-script`](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#allowed-crate-without-build-script) diagnostics.
+
+### Added
+- [PR#899](https://github.com/EmbarkStudios/cargo-deny/pull/899) resolved [#896](https://github.com/EmbarkStudios/cargo-deny/issues/896) by searching for configuration in `.config` as well.
+- [PR#904](https://github.com/EmbarkStudios/cargo-deny/pull/904) resolved [#754](https://github.com/EmbarkStudios/cargo-deny/issues/754) and [#889](https://github.com/EmbarkStudios/cargo-deny/issues/889) by adding 3 new configuration fields:
+  - [`advisories.ignore-expiry`](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#ignore-expiry) - The default duration after the publishing of an advisory that an `advisories.ignore` will function for it. Once the current date surpasses that expiry the ignore will not prevent the diagnostic for the advisory being emitted.
+  - [`advisories.ignore.expiry`](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#expiry) is the same as the above, but scoped to a particular ignore. This value overrides the default.
+  - [`advisories.ignore.allow`](https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#allow) only allows specific crates by [PackageSpec](https://embarkstudios.github.io/cargo-deny/checks/cfg.html#package-specs) to depend on the crate(s) that the advisory applies to, intended to prevent new crates or versions from being added to the graph that increase the number of edges and thus making it harder to update/remove the affected crate.
+- [PR#906](https://github.com/EmbarkStudios/cargo-deny/pull/906) changed the diagnostics for advisories and yanked crates to conditionally show the `(try cargo update -p <affected crate>)` and instead detect if any dependents use 1 or more version requirements that preclude updating to an unaffected/patched version.
+
+### Deprecated
+- [PR#903](https://github.com/EmbarkStudios/cargo-deny/pull/903) deprecated the `advisories.git-fetch-with-cli` configuration field, which has done nothing since [PR#830](https://github.com/EmbarkStudios/cargo-deny/pull/830).
+
 ## [0.20.2] - 2026-07-09
 ### Fixed
 - [PR#884](https://github.com/EmbarkStudios/cargo-deny/pull/884) fixed snapshot filenames on Windows which caused the release binary publish to fail...again.

@@ -30,7 +30,12 @@ expression: diags
           "span": "crate-two 0.1.0 registry+https://github.com/EmbarkStudios/cargo-test-index"
         }
       ],
-      "message": "detected yanked crate (try `cargo update -p crate-two`)",
+      "message": "detected yanked crate (`cargo update -p crate-two` will most likely not work)",
+      "notes": [
+        "1 dependent has version requirements that preclude updating:",
+        "yank-check = 0.1.0",
+        "  - crate-two = '=0.1.0'"
+      ],
       "severity": "error"
     },
     "type": "diagnostic"
