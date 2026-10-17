@@ -541,3 +541,52 @@ fn std_replacement_downgrades() {
 
     insta::assert_json_snapshot!(snapshot_name!("fallback-rust-version"), diags);
 }
+
+#[test]
+fn wildcard_workspace_dependency_resolves_span_from_dependency() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    for (path, contents) in [
+        (
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"a\", \"b\"]\nresolver = \"2\"\n\n[workspace.dependencies]\na = { path = \"a\", version = \"*\" }\n",
+        ),
+        (
+            "a/Cargo.toml",
+            "[package]\nname = \"a\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+        ),
+        ("a/src/lib.rs", ""),
+        (
+            "b/Cargo.toml",
+            "[package]\nname = \"b\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\na.workspace = true\n",
+        ),
+        ("b/src/lib.rs", ""),
+    ] {
+        let path = root.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, contents).unwrap();
+    }
+
+    let mut cmd = krates::Cmd::new();
+    cmd.current_dir(root);
+    let krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .expect("failed to build minimal workspace graph");
+    let diags = gather_diagnostics::<cargo_deny::bans::cfg::Config, _, _>(
+        &krates,
+        func_name!(),
+        "multiple-versions = 'allow'\nwildcards = 'deny'".into(),
+        |ctx, tx| cargo_deny::bans::check(ctx, None, tx),
+    );
+
+    assert!(
+        diags
+            .iter()
+            .any(|diag| diag["fields"]["code"] == "wildcard")
+    );
+    assert!(
+        !diags
+            .iter()
+            .any(|diag| diag["fields"]["code"] == "unresolved-workspace-dependency")
+    );
+}
