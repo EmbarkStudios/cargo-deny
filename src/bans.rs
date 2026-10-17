@@ -990,7 +990,7 @@ pub fn check(
                                         }
 
                                         if let Some(ws_dep) =
-                                            ctx.krate_spans.workspace_span(&krate.id)
+                                            ctx.krate_spans.workspace_span(&mdep.krate.id)
                                         {
                                             labels.push(
                                                 crate::diag::Label::secondary(
