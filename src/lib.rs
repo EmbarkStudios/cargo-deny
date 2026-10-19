@@ -601,7 +601,7 @@ pub fn krates_with_index(
     // Note we don't take a lock here ourselves, since we are calling cargo
     // it will take the lock and only give us results if it gets access, if we
     // took a look we would deadlock here
-    let lock = tame_index::utils::flock::FileLock::unlocked();
+    let lock = tame_index::flock::FileLock::unlocked();
 
     let index_cache_build = move |krates: std::collections::BTreeSet<String>| {
         let mut cache = std::collections::BTreeMap::new();
@@ -610,9 +610,10 @@ pub fn krates_with_index(
                 let name = name.as_str().try_into().ok()?;
                 let krate = index.cached_krate(name, &lock).ok()??;
                 let versions = krate
-                    .versions
-                    .into_iter()
+                    .iter()
+                    .ok()?
                     .filter_map(|kv| {
+                        let kv = kv.deserialize().ok()?;
                         // The index (currently) can have both features, and
                         // features2, the features method gives us an iterator
                         // over both

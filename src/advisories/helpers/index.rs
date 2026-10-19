@@ -3,7 +3,57 @@ use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::collections::BTreeMap;
 use tame_index::{Error, IndexLocation, IndexUrl, index::ComboIndexCache};
 
-type YankMap = Vec<(semver::Version, bool)>;
+#[derive(Clone)]
+pub struct YankMap {
+    inner: Vec<(semver::Version, bool)>,
+}
+
+impl YankMap {
+    fn build(krate: &str, entry: tame_index::index::IndexEntry<'_, '_>) -> Entry {
+        let i = match entry.iter() {
+            Ok(i) => i,
+            Err(err) => {
+                let mut err = &err as &dyn std::error::Error;
+
+                while let Some(src) = err.source() {
+                    err = src;
+                }
+
+                return Entry::Error(err.to_string());
+            }
+        };
+
+        let mut inner = Vec::new();
+
+        for item in i {
+            // This failing would indicate that there is an invalid semver, which theoretically is impossible, but if it
+            // does happen just skip it, as it should additionally be impossible to ask for that "version" from a valid lockfile
+            match item.yanked() {
+                Ok(item) => inner.push(item),
+                Err(err) => {
+                    panic!("failed to parse yank status for crate {krate}: {err}");
+                }
+            }
+        }
+
+        inner.sort_by(|a, b| a.0.cmp(&b.0));
+
+        Entry::Map(YankMap { inner })
+    }
+
+    #[inline]
+    fn status(&self, version: &semver::Version) -> Option<bool> {
+        self.inner
+            .binary_search_by(|(v, _)| v.cmp(version))
+            .ok()
+            .map(|i| self.inner[i].1)
+    }
+
+    #[inline]
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &(semver::Version, bool)> {
+        self.inner.iter()
+    }
+}
 
 #[derive(Clone)]
 pub enum Entry {
@@ -52,7 +102,7 @@ impl<'k> Indices<'k> {
 
         #[allow(clippy::blocks_in_conditions)]
         let cargo_package_lock =
-            match tame_index::utils::flock::LockOptions::cargo_package_lock(Some(cargo_home))
+            match tame_index::flock::LockOptions::cargo_package_lock(Some(cargo_home))
                 .expect("unreachable")
                 .shared()
                 .lock(|path| {
@@ -62,7 +112,7 @@ impl<'k> Indices<'k> {
                 Ok(fl) => fl,
                 Err(err) => {
                     log::error!("unable to acquire cargo global package lock: {err:#}");
-                    tame_index::utils::flock::FileLock::unlocked()
+                    tame_index::flock::FileLock::unlocked()
                 }
             };
 
@@ -93,10 +143,7 @@ impl<'k> Indices<'k> {
                                     .map_err(|e: tame_index::Error| e.to_string())?,
                                 &cargo_package_lock,
                             ) {
-                                Ok(Some(ik)) => {
-                                    let yank_map = Self::load_index_krate(ik);
-                                    Entry::Map(yank_map)
-                                }
+                                Ok(Some(ie)) => YankMap::build(name, ie),
                                 Ok(None) => Entry::Error(
                                     "unable to locate index entry for crate".to_owned(),
                                 ),
@@ -117,14 +164,6 @@ impl<'k> Indices<'k> {
             .collect();
 
         Self { indices, cache }
-    }
-
-    #[inline]
-    fn load_index_krate(ik: tame_index::IndexKrate) -> YankMap {
-        ik.versions
-            .into_iter()
-            .filter_map(|iv| Some((iv.version.parse().ok()?, iv.yanked)))
-            .collect()
     }
 
     #[inline]
@@ -152,13 +191,9 @@ impl<'k> Indices<'k> {
         };
 
         match entry {
-            Entry::Map(cache_entry) => {
-                let is_yanked = cache_entry
-                    .iter()
-                    .find_map(|kv| (kv.0 == krate.version).then_some(kv.1));
-
-                is_yanked.ok_or_else(|| format!("unable to locate version '{}'", krate.version))
-            }
+            Entry::Map(cache_entry) => cache_entry
+                .status(&krate.version)
+                .ok_or_else(|| format!("unable to locate version '{}'", krate.version)),
             Entry::Error(err) => Err(err.clone()),
         }
     }
