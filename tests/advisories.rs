@@ -882,7 +882,7 @@ fn crates_io_source_replacement() {
             version: semver::Version,
         }
 
-        let lock = &tame_index::utils::flock::FileLock::unlocked();
+        let lock = &tame_index::flock::FileLock::unlocked();
 
         let index_krates: Vec<_> = krates
             .krates()
@@ -894,13 +894,16 @@ fn crates_io_source_replacement() {
                     ik: sparse
                         .cached_krate(k.name.as_str().try_into().unwrap(), lock)
                         .unwrap()
+                        .unwrap()
+                        .deserialize()
                         .unwrap(),
                     version: k.version.clone(),
                 })
             })
             .collect();
 
-        let lrb = local::LocalRegistryBuilder::create(to_path(&lrd).unwrap().to_owned()).unwrap();
+        let lrb = local::builder::LocalRegistryBuilder::create(to_path(&lrd).unwrap().to_owned())
+            .unwrap();
         let config = sparse.index_config().unwrap();
         let agent = ureq::agent();
 
@@ -918,7 +921,7 @@ fn crates_io_source_replacement() {
             let res = agent.get(url).call().unwrap();
             let body = res.into_body().read_to_vec().unwrap();
 
-            let vk = local::ValidKrate::validate(body, iv).unwrap();
+            let vk = local::builder::ValidKrate::validate(body, iv).unwrap();
 
             lrb.insert(&ip.ik, &[vk]).unwrap();
         });
