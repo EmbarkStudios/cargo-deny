@@ -1227,13 +1227,21 @@ pub fn check_build(
     }
 
     fn needs_checking(krate: krates::NodeId, krates: &Krates) -> bool {
-        if executes_at_buildtime(&krates[krate]) {
-            return true;
-        }
+        // Dev-dependencies can form cycles in the graph, so each node is visited once
+        let mut visited = std::collections::HashSet::new();
+        let mut stack = vec![krate];
 
-        for dd in krates.direct_dependents(krate) {
-            if needs_checking(dd.node_id, krates) {
+        while let Some(nid) = stack.pop() {
+            if !visited.insert(nid) {
+                continue;
+            }
+
+            if executes_at_buildtime(&krates[nid]) {
                 return true;
+            }
+
+            for dd in krates.direct_dependents(nid) {
+                stack.push(dd.node_id);
             }
         }
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Fixed
+- [PR#911](https://github.com/EmbarkStudios/cargo-deny/pull/911) resolved [#910](https://github.com/EmbarkStudios/cargo-deny/issues/910) by visiting each crate once when checking build-time dependents, so a dependency cycle no longer overflows the stack.
 - [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
 - [PR#895](https://github.com/EmbarkStudios/cargo-deny/pull/895) fixed an issue where `--target` could not be passed multiple times in the CLI.
 - [PR#887](https://github.com/EmbarkStudios/cargo-deny/pull/887) resolved [#707](https://github.com/EmbarkStudios/cargo-deny/issues/707) by ignoring renamed packages when checking for workspace duplicates.
