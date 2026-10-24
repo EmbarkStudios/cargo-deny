@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Fixed
-- [PR#915](https://github.com/EmbarkStudios/cargo-deny/pull/915) resolved [#914](https://github.com/EmbarkStudios/cargo-deny/issues/914) by ignoring a trailing slash when exactly matching source urls, so that [`licenses.private.ignore-sources`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#the-ignore-sources-field-optional) can match sparse registries.
+- [PR#915](https://github.com/EmbarkStudios/cargo-deny/pull/915) resolved [#914](https://github.com/EmbarkStudios/cargo-deny/issues/914) by ignoring a trailing slash when exactly matching source urls, so that [`licenses.private.ignore-sources`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#ignore-sources) can match sparse registries.
 - [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
 - [PR#895](https://github.com/EmbarkStudios/cargo-deny/pull/895) fixed an issue where `--target` could not be passed multiple times in the CLI.
 - [PR#887](https://github.com/EmbarkStudios/cargo-deny/pull/887) resolved [#707](https://github.com/EmbarkStudios/cargo-deny/issues/707) by ignoring renamed packages when checking for workspace duplicates.
