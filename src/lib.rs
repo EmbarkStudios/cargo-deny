@@ -416,7 +416,11 @@ impl Krate {
             }
         }
 
-        (exact && kurl.path() == url.path()) || (!exact && kurl.path().starts_with(url.path()))
+        // Configured urls go through `normalize_git_url`, which drops a trailing
+        // slash, but registry index urls from cargo metadata keep theirs (sparse
+        // indices always end with one), so an exact match ignores it on both sides
+        (exact && kurl.path().trim_end_matches('/') == url.path().trim_end_matches('/'))
+            || (!exact && kurl.path().starts_with(url.path()))
     }
 
     #[inline]
@@ -799,6 +803,31 @@ mod test {
         let url = Url::parse("http://[::f1]:8001/api/v1/crates/").unwrap();
 
         assert!(krate.matches_url(&url, true));
+    }
+
+    #[test]
+    fn sparse_registry_matches_normalized_url() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "sparse+https://crates.example.com/api/v1/crates/".to_owned(),
+                    None,
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+
+        // This is how `licenses.private.ignore-sources` urls are parsed
+        let mut url = Url::parse("https://crates.example.com/api/v1/crates/").unwrap();
+        crate::normalize_git_url(&mut url);
+        assert_eq!(url.path(), "/api/v1/crates");
+
+        assert!(krate.matches_url(&url, true));
+        assert!(!krate.matches_url(
+            &Url::parse("https://crates.example.com/api/v1").unwrap(),
+            true
+        ));
     }
 
     #[test]
