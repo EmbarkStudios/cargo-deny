@@ -1,0 +1,81 @@
+<svg fill="none" viewBox="0 0 800 908" width="800" height="908" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+
+      <style>.term-container {
+  background: #282c34;
+  border-radius: 5px;
+  color: #abb2bf;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-family: Monaco, courier, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 14px 18px;
+  white-space: pre-wrap;
+}
+
+.term-fg1 { font-weight: bold; }
+.term-fg3 { font-style: italic; } /* italic */
+.term-fg4 { text-decoration: underline; } /* underline */
+.term-fg9 { text-decoration: line-through; } /* crossed-out */
+
+.term-fg30 { color: #666; }
+.term-fg31 { color: #e06c75; } /* red */
+.term-fg32 { color: #98c379; } /* green */
+.term-fg33 { color: #e5c07b; } /* yellow */
+.term-fg34 { color: #61afef; } /* blue */
+.term-fg35 { color: #c678dd; } /* magenta */
+.term-fg36 { color: #56b6c2; } /* cyan */
+.term-fgx9 { color: #be5046; } /* bright red */
+
+      </style>
+
+      <div class="term-container">cargo-deny --manifest-path examples&#47;09_bans&#47;Cargo.toml --color always check bans`
+<span class="term-fgx9 term-fg1">error[duplicate]</span><span class="term-fg1">: found 2 duplicate entries for crate &#39;autocfg&#39;</span>
+  <span class="term-fg34">┌─</span> &#47;home&#47;jake&#47;code&#47;cargo-deny&#47;examples&#47;09_bans&#47;Cargo.lock:1:1
+  <span class="term-fg34">│</span>
+<span class="term-fg34">1</span> <span class="term-fg34">│</span> <span class="term-fg31">╭</span> <span class="term-fg31">autocfg 0.1.7 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index</span>
+<span class="term-fg34">2</span> <span class="term-fg34">│</span> <span class="term-fg31">│</span> <span class="term-fg31">autocfg 1.0.0 registry+https:&#47;&#47;github.com&#47;rust-lang&#47;crates.io-index</span>
+  <span class="term-fg34">│</span> <span class="term-fg31">╰───────────────────────────────────────────────────────────────────^ lock entries</span>
+  <span class="term-fg34">│</span>
+  <span class="term-fg34">=</span> autocfg v0.1.7
+    └── (build) openssl-sys v0.9.53
+        ├── native-tls v0.2.3
+        │   ├── hyper-tls v0.4.1
+        │   │   └── reqwest v0.10.1
+        │   │       └── bans v0.1.0
+        │   └── tokio-tls v0.3.0
+        │       ├── hyper-tls v0.4.1 (*)
+        │       └── reqwest v0.10.1 (*)
+        └── openssl v0.10.26
+            └── native-tls v0.2.3 (*)
+  <span class="term-fg34">=</span> autocfg v1.0.0
+    └── (build) indexmap v1.3.1
+        └── h2 v0.2.1
+            └── hyper v0.13.1
+                ├── hyper-tls v0.4.1
+                │   └── reqwest v0.10.1
+                │       └── bans v0.1.0
+                └── reqwest v0.10.1 (*)
+<span class="term-fgx9 term-fg1">error[banned]</span><span class="term-fg1">: crate &#39;openssl-sys = 0.9.53&#39; is explicitly banned</span>
+   <span class="term-fg34">┌─</span> examples&#47;09_bans&#47;deny.toml:10:14
+   <span class="term-fg34">│</span>
+<span class="term-fg34">10</span> <span class="term-fg34">│</span>     { name = <span class="term-fg31">&quot;openssl-sys&quot;</span> },
+   <span class="term-fg34">│</span>              <span class="term-fg31">^^^^^^^^^^^^^</span> <span class="term-fg31">banned here</span>
+   <span class="term-fg34">│</span>
+   <span class="term-fg34">=</span> openssl-sys v0.9.53
+     ├── native-tls v0.2.3
+     │   ├── hyper-tls v0.4.1
+     │   │   └── reqwest v0.10.1
+     │   │       └── bans v0.1.0
+     │   └── tokio-tls v0.3.0
+     │       ├── hyper-tls v0.4.1 (*)
+     │       └── reqwest v0.10.1 (*)
+     └── openssl v0.10.26
+         └── native-tls v0.2.3 (*)
+bans <span class="term-fg31">FAILED</span></div>
+
+    </div>
+  </foreignObject>
+</svg>
