@@ -1,0 +1,9 @@
+---
+source: src/advisories/cfg.rs
+expression: diags
+---
+error[custom]: expected an RFC3339 time duration (eg. 'P90D') or a date in the form YYYY-MM-DD: strptime parsing failed: %m failed: failed to parse month number: parameter 'month' is not in the required range of 1..=12
+  ┌─ invalid-expiry.toml:2:11
+  │
+2 │ expiry = "2026-13-45"
+  │           ━━━━━━━━━━
