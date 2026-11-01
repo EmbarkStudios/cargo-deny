@@ -81,6 +81,7 @@ Controls whether the local registry indices are checked for yanked crates (see [
 ignore = [
    "RUSTSEC-0000-0000",
    { id = "RUSTSEC-0000-0000", reason = "this vulnerability does not affect us as we don't use the particular code path" },
+   { id = "RUSTSEC-0000-0001", reason = "waiting on an upstream fix", expiry = "2026-12-31" },
    "yanked@0.1.1",
    { crate = "yanked-crate@0.1.1", reason = "a semver compatible version hasn't been published yet" },
 ]
@@ -100,7 +101,14 @@ ignore = [
 ]
 ```
 
-Allows an advisory to be ignored until the specified [duration](#durations) has elapsed since the the advisory was published. If there is no expiry for the individual ignore then [`ignore-expiry`](#ignore-expiry) is used if it is present.
+Allows an advisory to be ignored only until an expiry is reached, after which the advisory is reported as normal and an `advisory-ignore-expired` diagnostic pointing at the `expiry` value is emitted. The value must be a quoted string in one of two forms:
+
+- A [duration](#durations) such as `"P30D"`, which is relative to when the advisory was published. The ignore stops applying once that duration has elapsed since publication.
+- An absolute date in the form `YYYY-MM-DD`, such as `"2026-12-31"`. The ignore is valid through that whole day, and stops applying once the current UTC date is after it. Unquoted TOML dates are not supported.
+
+Both forms apply to all advisory types, including unmaintained advisories. Previously duration expiries were only applied to vulnerability and unsound advisories.
+
+If there is no expiry for the individual ignore then [`ignore-expiry`](#ignore-expiry) is used if it is present.
 
 #### `allow`
 
@@ -116,9 +124,11 @@ A list of [PackageSpecs](../cfg.md#package-specs) of the crates that are allowed
 
 ```toml
 ignore-expiry = "P90D"
+# or an absolute date
+# ignore-expiry = "2026-12-31"
 ```
 
-The default [duration](#durations) used if an [`expiry`](#expiry) is not present for a specific advisory.
+The default expiry used if an [`expiry`](#expiry) is not present for a specific advisory. This accepts the same two forms as `expiry`: a [duration](#durations) relative to the advisory's publication, or an absolute `YYYY-MM-DD` date (inclusive, compared against the current UTC date). Both forms apply to all advisory types.
 
 ### `unmaintained`
 
