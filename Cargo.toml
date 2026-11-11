@@ -68,7 +68,7 @@ parking_lot = "0.12"
 # Moar brrrr
 rayon = "1.11"
 # Laziness, but we already pull it in transitively
-regex = "1.12"
+regex = "1.5.5"
 # sha-256 hash calculation, already a dependency via rustls/etc
 ring = "0.17"
 # Parsing and checking of versions/version requirements
