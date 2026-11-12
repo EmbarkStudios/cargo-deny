@@ -58,7 +58,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-14]
+        os: [ubuntu-24.04, macos-26]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -161,11 +161,7 @@ jobs:
             toolchain: stable
             target: x86_64-pc-windows-msvc
             bin: cargo-deny.exe
-          - os: macos-14
-            toolchain: stable
-            target: x86_64-apple-darwin
-            bin: cargo-deny
-          - os: macos-14
+          - os: macos-26
             toolchain: stable
             target: aarch64-apple-darwin
             bin: cargo-deny
