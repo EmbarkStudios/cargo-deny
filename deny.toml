@@ -13,8 +13,7 @@ all-features = true
 [advisories]
 unmaintained = "all"
 unsound = "all"
-ignore = [
-]
+ignore = []
 
 [bans]
 multiple-versions = "deny"
@@ -30,6 +29,7 @@ deny = [
 ]
 skip = [
     { crate = "getrandom@0.2.17", reason = "ring uses this old version" },
+    { crate = "hashbrown@0.15.5", reason = "petgraph pulls this in directly, while pulling in later versions via indexmap" },
 ]
 skip-tree = [
     { crate = "windows-sys", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
@@ -54,5 +54,4 @@ allow = [
     "Unicode-3.0",
     "Zlib",
 ]
-exceptions = [
-]
+exceptions = []
