@@ -163,7 +163,7 @@ struct ReplacementData {
     /// Memory map of the actual data
     inner: memmap2::Mmap,
     /// File lock to prevent write access by other instances of cargo-deny while we have the mmap open
-    lock: tame_index::utils::flock::FileLock,
+    lock: tame_index::flock::FileLock,
     /// The name of the crate and the block of data it occupies, minus said name
     entries: Vec<(String, &'static [u8])>,
 }
@@ -315,13 +315,13 @@ impl ReplacementCtx {
 
     fn acquire_lock(
         exclusive: bool,
-    ) -> anyhow::Result<(tame_index::utils::flock::FileLock, crate::PathBuf)> {
+    ) -> anyhow::Result<(tame_index::flock::FileLock, crate::PathBuf)> {
         let mut path = crate::PathBuf::from_path_buf(std::env::temp_dir())
             .map_err(|td| anyhow::anyhow!("std::env::temp_dir gave {td:?} which is not utf-8"))?;
         path.push("cargo-deny");
         path.push(".lock");
 
-        let mut lopts = tame_index::utils::flock::LockOptions::new(&path);
+        let mut lopts = tame_index::flock::LockOptions::new(&path);
 
         if exclusive {
             lopts = lopts.exclusive(false);

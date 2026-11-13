@@ -100,7 +100,7 @@ impl fmt::Debug for AdvisoryDb {
 /// [`Database`]: https://docs.rs/rustsec/latest/rustsec/database/struct.Database.html
 pub struct DbSet {
     pub dbs: Vec<AdvisoryDb>,
-    pub lock: Option<tame_index::utils::flock::FileLock>,
+    pub lock: Option<tame_index::flock::FileLock>,
 }
 
 impl DbSet {
@@ -113,7 +113,7 @@ impl DbSet {
         // Acquire an exclusive lock, even if we aren't fetching, to prevent
         // other cargo-deny processes from performing mutations
         let lock_path = root.join("db.lock");
-        let lock = tame_index::utils::flock::LockOptions::new(&lock_path)
+        let lock = tame_index::flock::LockOptions::new(&lock_path)
             .exclusive(false)
             .lock(|path| {
                 log::info!("waiting on advisory db lock '{path}'");

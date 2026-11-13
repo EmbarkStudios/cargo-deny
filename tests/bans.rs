@@ -193,6 +193,17 @@ allow-wildcard-paths = true
     insta::assert_json_snapshot!(diags);
 }
 
+/// Tests that both the workspace and `workspace = true` dependency with a wildcards emit a diagnostic
+#[test]
+fn wildcard_workspace_dependency() {
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("wildcards/workspace"),
+        "wildcards = 'deny'",
+    );
+    insta::assert_json_snapshot!(snapshot_name!("wildards.workspace"), diags);
+}
+
 /// Ensures that multiple versions are always deterministically sorted by
 /// version number
 /// See <https://github.com/EmbarkStudios/cargo-deny/issues/384>

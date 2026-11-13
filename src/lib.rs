@@ -416,7 +416,11 @@ impl Krate {
             }
         }
 
-        (exact && kurl.path() == url.path()) || (!exact && kurl.path().starts_with(url.path()))
+        // Configured urls go through `normalize_git_url`, which drops a trailing
+        // slash, but registry index urls from cargo metadata keep theirs (sparse
+        // indices always end with one), so an exact match ignores it on both sides
+        (exact && kurl.path().trim_end_matches('/') == url.path().trim_end_matches('/'))
+            || (!exact && kurl.path().starts_with(url.path()))
     }
 
     #[inline]
@@ -601,7 +605,7 @@ pub fn krates_with_index(
     // Note we don't take a lock here ourselves, since we are calling cargo
     // it will take the lock and only give us results if it gets access, if we
     // took a look we would deadlock here
-    let lock = tame_index::utils::flock::FileLock::unlocked();
+    let lock = tame_index::flock::FileLock::unlocked();
 
     let index_cache_build = move |krates: std::collections::BTreeSet<String>| {
         let mut cache = std::collections::BTreeMap::new();
@@ -610,9 +614,10 @@ pub fn krates_with_index(
                 let name = name.as_str().try_into().ok()?;
                 let krate = index.cached_krate(name, &lock).ok()??;
                 let versions = krate
-                    .versions
-                    .into_iter()
+                    .iter()
+                    .ok()?
                     .filter_map(|kv| {
+                        let kv = kv.deserialize().ok()?;
                         // The index (currently) can have both features, and
                         // features2, the features method gives us an iterator
                         // over both
@@ -798,6 +803,31 @@ mod test {
         let url = Url::parse("http://[::f1]:8001/api/v1/crates/").unwrap();
 
         assert!(krate.matches_url(&url, true));
+    }
+
+    #[test]
+    fn sparse_registry_matches_normalized_url() {
+        let krate = Krate {
+            source: Some(
+                Source::from_metadata(
+                    "sparse+https://crates.example.com/api/v1/crates/".to_owned(),
+                    None,
+                )
+                .unwrap(),
+            ),
+            ..Krate::default()
+        };
+
+        // This is how `licenses.private.ignore-sources` urls are parsed
+        let mut url = Url::parse("https://crates.example.com/api/v1/crates/").unwrap();
+        crate::normalize_git_url(&mut url);
+        assert_eq!(url.path(), "/api/v1/crates");
+
+        assert!(krate.matches_url(&url, true));
+        assert!(!krate.matches_url(
+            &Url::parse("https://crates.example.com/api/v1").unwrap(),
+            true
+        ));
     }
 
     #[test]

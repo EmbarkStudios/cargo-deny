@@ -1,0 +1,36 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "wildcard",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "wild-workspace",
+            "version": "0.1.0"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "column": 18,
+          "line": 7,
+          "message": "wildcard dependency",
+          "span": "true"
+        },
+        {
+          "column": 36,
+          "line": 13,
+          "message": "workspace dependency",
+          "span": "*"
+        }
+      ],
+      "message": "found 2 wildcard dependencies for crate 'wild-workspace'",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
