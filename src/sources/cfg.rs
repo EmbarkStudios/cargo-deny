@@ -33,20 +33,22 @@ impl<'de> Deserialize<'de> for Orgs {
 }
 
 crate::simple_enum!(
-/// The types of specifiers that can be used on git sources by cargo, in order
-/// of their specificity from least to greatest
-#[derive(PartialEq, Eq, Debug, PartialOrd, Ord, Clone, Copy, Default)]
-GitSpec, [
-    /// Specifies the `HEAD` of the remote
-    #[default]
-    Any = "any",
-    /// Specifies the `HEAD` of a particular branch
-    Branch = "branch",
-    /// Specifies the commit pointed to by a particular tag
-    Tag = "tag",
-    /// Specifies an exact commit
-    Rev = "rev",
-]);
+    /// The types of specifiers that can be used on git sources by cargo, in order
+    /// of their specificity from least to greatest
+    #[derive(PartialEq, Eq, Debug, PartialOrd, Ord, Clone, Copy, Default)]
+    GitSpec,
+    [
+        /// Specifies the `HEAD` of the remote
+        #[default]
+        Any = "any",
+        /// Specifies the `HEAD` of a particular branch
+        Branch = "branch",
+        /// Specifies the commit pointed to by a particular tag
+        Tag = "tag",
+        /// Specifies an exact commit
+        Rev = "rev",
+    ]
+);
 
 crate::enum_deser!(GitSpec);
 

@@ -11,7 +11,6 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 documentation = "https://docs.rs/cargo-deny"
-homepage = "https://github.com/EmbarkStudios/cargo-deny"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "license", "spdx", "ci", "advisories"]
 exclude = ["docs/", "examples/", ".github/", "tests"]
