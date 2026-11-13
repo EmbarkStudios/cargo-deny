@@ -1,0 +1,13 @@
+[package]
+name = "wild-workspace"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wild.workspace = true
+
+[workspace]
+members = [".", "wild"]
+
+[workspace.dependencies]
+wild = { path = "wild", version = "*" }
