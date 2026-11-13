@@ -14,6 +14,12 @@ expression: validated
       "reason": null,
       "expiry": null,
       "allow": null
+    },
+    {
+      "id": "RUSTSEC-0000-0001",
+      "reason": "has a deadline",
+      "expiry": "2026-12-31",
+      "allow": null
     }
   ],
   "unmaintained": "Workspace",

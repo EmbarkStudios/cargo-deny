@@ -42,7 +42,7 @@ An advisory in [`advisories.ignore`](cfg.md#ignore) was encountered.
 
 ### `advisory-ignore-expired`
 
-An advisory in [`advisories.ignore`](cfg.md#ignore) was published over the limit specified in either the ignore's [`expiry`](cfg.md#expiry) or the default [`ignore-expiry`](cfg.md#ignore-expiry).
+An advisory in [`advisories.ignore`](cfg.md#ignore) was published over the limit specified in either the ignore's [`expiry`](cfg.md#expiry) or the default [`ignore-expiry`](cfg.md#ignore-expiry), or the current date was after the absolute date given there.
 
 ### `advisory-ignore-disallowed-dependent`
 
