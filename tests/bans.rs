@@ -10,6 +10,19 @@ fn cyclic_dependencies_do_not_cause_infinite_loop() {
     );
 }
 
+/// Covers issue <https://github.com/EmbarkStudios/cargo-deny/issues/910>
+#[test]
+fn cyclic_dependencies_do_not_overflow_build_checks() {
+    gather_bans(
+        func_name!(),
+        KrateGather::new("cyclic_dependencies"),
+        "
+[build]
+include-dependencies = true
+",
+    );
+}
+
 /// Validates a crate that is otherwise denied can be allowed by a wrapper
 #[test]
 fn allow_wrappers() {

@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ### Fixed
-- [PR#915](https://github.com/EmbarkStudios/cargo-deny/pull/915) resolved [#914](https://github.com/EmbarkStudios/cargo-deny/issues/914) by ignoring a trailing slash when exactly matching source urls, so that [`licenses.private.ignore-sources`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#ignore-sources) can match sparse registries.
 - [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
 - [PR#895](https://github.com/EmbarkStudios/cargo-deny/pull/895) fixed an issue where `--target` could not be passed multiple times in the CLI.
 - [PR#887](https://github.com/EmbarkStudios/cargo-deny/pull/887) resolved [#707](https://github.com/EmbarkStudios/cargo-deny/issues/707) by ignoring renamed packages when checking for workspace duplicates.
 - [PR#885](https://github.com/EmbarkStudios/cargo-deny/pull/885) resolved [#772](https://github.com/EmbarkStudios/cargo-deny/issues/772) by not emitting diagnostics for unused workspace dependencies when those crates were explicitly excluded from the graph by the user.
 - [PR#902](https://github.com/EmbarkStudios/cargo-deny/pull/902) resolved [#898](https://github.com/EmbarkStudios/cargo-deny/issues/898) by adding the [`unmatched-allow-build-script`](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#unmatched-allow-build-script) and [`allowed-crate-without-build-script`](https://embarkstudios.github.io/cargo-deny/checks/bans/diags.html#allowed-crate-without-build-script) diagnostics.
+- [PR#911](https://github.com/EmbarkStudios/cargo-deny/pull/911) resolved [#910](https://github.com/EmbarkStudios/cargo-deny/issues/910) by visiting each crate once when checking build-time dependents, so a dependency cycle no longer overflows the stack.
+- [PR#915](https://github.com/EmbarkStudios/cargo-deny/pull/915) resolved [#914](https://github.com/EmbarkStudios/cargo-deny/issues/914) by ignoring a trailing slash when exactly matching source urls, so that [`licenses.private.ignore-sources`](https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html#ignore-sources) can match sparse registries.
 
 ### Added
 - [PR#899](https://github.com/EmbarkStudios/cargo-deny/pull/899) resolved [#896](https://github.com/EmbarkStudios/cargo-deny/issues/896) by searching for configuration in `.config` as well.
