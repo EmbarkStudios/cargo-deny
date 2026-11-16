@@ -101,12 +101,10 @@ ignore = [
 ]
 ```
 
-Allows an advisory to be ignored only until an expiry is reached, after which the advisory is reported as normal and an `advisory-ignore-expired` diagnostic pointing at the `expiry` value is emitted. The value must be a quoted string in one of two forms:
+Allows an advisory to be ignored only until an expiry is reached, after which the advisory is reported as normal and an `advisory-ignore-expired` diagnostic pointing at the `expiry` value is emitted
 
-- A [duration](#durations) such as `"P30D"`, which is relative to when the advisory was published. The ignore stops applying once that duration has elapsed since publication.
-- An absolute date in the form `YYYY-MM-DD`, such as `"2026-12-31"`. The ignore is valid through that whole day, and stops applying once the current UTC date is after it. Unquoted TOML dates are not supported.
-
-Both forms apply to all advisory types, including unmaintained advisories. Previously duration expiries were only applied to vulnerability and unsound advisories.
+- A [duration](#durations) which is relative to when the publish date of the advisory.
+- An absolute date in ISO-8601 form, ie. `YYYY-MM-DD`.
 
 If there is no expiry for the individual ignore then [`ignore-expiry`](#ignore-expiry) is used if it is present.
 
@@ -128,7 +126,7 @@ ignore-expiry = "P90D"
 # ignore-expiry = "2026-12-31"
 ```
 
-The default expiry used if an [`expiry`](#expiry) is not present for a specific advisory. This accepts the same two forms as `expiry`: a [duration](#durations) relative to the advisory's publication, or an absolute `YYYY-MM-DD` date (inclusive, compared against the current UTC date). Both forms apply to all advisory types.
+The default expiry used if an [`expiry`](#expiry) is not present for a specific advisory.
 
 ### `unmaintained`
 

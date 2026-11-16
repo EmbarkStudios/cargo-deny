@@ -171,11 +171,11 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                     let ignore = &self.cfg.ignore[index];
 
                     if let Some(expiry) = ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
-                        && let Some(cutoff) = match expiry.value {
+                        && let Some(max) = match expiry.value {
                             Expiry::Duration(dur) => md.date.checked_add(dur).ok(),
                             Expiry::Date(deadline) => Some(deadline),
                         }
-                        && date > cutoff
+                        && date > max
                     {
                         let mut l = ignore.to_labels(self.cfg.file_id, "advisory ignored here");
                         l.push(Label {

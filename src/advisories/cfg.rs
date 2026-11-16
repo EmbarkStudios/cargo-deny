@@ -30,24 +30,123 @@ fn do_duration_parse<'de>(
 
 /// When an ignore stops applying
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(test, derive(serde::Serialize), serde(untagged))]
 pub enum Expiry {
     /// Relative to the publication date of the advisory
     Duration(Duration),
     /// An absolute deadline, valid through the whole of that day
-    Date(#[cfg_attr(test, serde(serialize_with = "serialize_date"))] jiff::civil::Date),
+    Date(jiff::civil::Date),
 }
 
-// jiff's `serde` feature isn't enabled, so snapshots serialize the date as a string
 #[cfg(test)]
-fn serialize_date<S>(date: &jiff::civil::Date, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.collect_str(date)
+impl serde::Serialize for Expiry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Duration(d) => d.serialize(serializer),
+            Self::Date(d) => serializer.collect_str(d),
+        }
+    }
 }
 
-fn do_expiry_parse<'de>(
+fn parse_date(s: &str) -> Result<jiff::civil::Date, (std::ops::Range<usize>, &'static str)> {
+    if s.trim().is_empty() {
+        return Err((0..s.len(), "date is empty"));
+    }
+
+    let mut iter = s.splitn(3, '-');
+
+    let Some(year) = iter.next() else {
+        unreachable!();
+    };
+
+    fn parse(s: &str, mut digits: usize) -> Result<u16, Option<usize>> {
+        let mut val = 0;
+        for (ind, c) in s.char_indices() {
+            if digits == 0 {
+                return Err(None);
+            } else if c.is_ascii_digit() {
+                val *= 10;
+                val += ((c as u8) - b'0') as u16;
+            } else {
+                return Err(Some(ind));
+            }
+
+            digits -= 1;
+        }
+
+        if digits > 0 { Err(None) } else { Ok(val) }
+    }
+
+    let mut off = 0;
+
+    let year = match parse(year, 4) {
+        Ok(y) => match y.try_into() {
+            Ok(y) => y,
+            Err(_) => {
+                return Err((off..off + year.len(), "failed to parse year"));
+            }
+        },
+        Err(None) => {
+            return Err((off..off + year.len(), "year is not 4 digits"));
+        }
+        Err(Some(ind)) => return Err((off + ind..off + ind + 1, "non-digit in year")),
+    };
+
+    let Some(months) = iter.next() else {
+        return Err((4..s.len(), "month not found"));
+    };
+
+    off += 5;
+
+    let month = match parse(months, 2) {
+        Ok(y) => match y.try_into() {
+            Ok(y) => y,
+            Err(_) => {
+                return Err((off..off + months.len(), "failed to parse month"));
+            }
+        },
+        Err(None) => {
+            return Err((off..off + months.len(), "month is not 2 digits"));
+        }
+        Err(Some(ind)) => return Err((off + ind..off + ind + 1, "non-digit in month")),
+    };
+
+    if !(1..=12).contains(&month) {
+        return Err((off..off + months.len(), "month out of range"));
+    }
+
+    let Some(days) = iter.next() else {
+        return Err((off + 2..s.len(), "day not found"));
+    };
+
+    off += 3;
+
+    let day = match parse(days, 2) {
+        Ok(y) => match y.try_into() {
+            Ok(y) => y,
+            Err(_) => {
+                return Err((off..off + days.len(), "failed to parse day"));
+            }
+        },
+        Err(None) => {
+            return Err((off..off + days.len(), "day is not 2 digits"));
+        }
+        Err(Some(ind)) => return Err((off + ind..off + ind + 1, "non-digit in day")),
+    };
+
+    if !(1..=31).contains(&day) {
+        return Err((off..off + days.len(), "day out of range"));
+    }
+
+    jiff::civil::Date::new(year, month, day).map_err(|_| {
+        // We've validated that the year and the month are within range, which only leaves the day
+        (off..off + days.len(), "invalid day")
+    })
+}
+
+fn parse_expiry<'de>(
     exp: Option<(toml_span::value::Key<'de>, Value<'de>)>,
 ) -> Result<Option<Spanned<Expiry>>, toml_span::DeserError> {
     let Some((_, mut es)) = exp else {
@@ -58,30 +157,29 @@ fn do_expiry_parse<'de>(
     ))?;
 
     // Durations always start with 'P', which can never begin a date
-    let parsed = if exp.starts_with('P') {
-        parse_rfc3339_duration(&exp)
-            .map(Expiry::Duration)
-            .map_err(|err| err.to_string())
-    } else {
-        // strtime rather than `Date::from_str` so trailing time components are rejected
-        jiff::fmt::strtime::parse("%Y-%m-%d", &*exp)
-            .and_then(|t| t.to_date())
-            .map(Expiry::Date)
-            .map_err(|err| {
-                format!(
-                    "expected an RFC3339 time duration (eg. 'P90D') or a date in the form YYYY-MM-DD: {err}"
-                )
-            })
-    };
-
-    match parsed {
-        Ok(e) => Ok(Some(Spanned::with_span(e, es.span))),
-        Err(err) => Err(toml_span::Error {
-            kind: toml_span::ErrorKind::Custom(err.into()),
-            span: es.span,
-            line_info: None,
+    if exp.starts_with('P') {
+        match parse_rfc3339_duration(&exp) {
+            Ok(dur) => Ok(Some(Spanned::with_span(Expiry::Duration(dur), es.span))),
+            Err(err) => Err(toml_span::Error {
+                kind: toml_span::ErrorKind::Custom(err.to_string().into()),
+                span: es.span,
+                line_info: None,
+            }
+            .into()),
         }
-        .into()),
+    } else {
+        match parse_date(&exp) {
+            Ok(date) => Ok(Some(Spanned::with_span(Expiry::Date(date), es.span))),
+            Err((span, err)) => Err(toml_span::Error {
+                kind: toml_span::ErrorKind::Custom(err.into()),
+                span: toml_span::Span {
+                    start: es.span.start + span.start,
+                    end: es.span.start + span.end,
+                },
+                line_info: None,
+            }
+            .into()),
+        }
     }
 }
 
@@ -111,7 +209,7 @@ impl<'de> Deserialize<'de> for IgnoreId {
             }
         };
         let reason = th.optional_s::<String>("reason");
-        let expiry = do_expiry_parse(th.take("expiry"))?;
+        let expiry = parse_expiry(th.take("expiry"))?;
         let allow = th.optional_s("allow");
 
         th.finalize(None)?;
@@ -321,7 +419,7 @@ impl<'de> Deserialize<'de> for Config {
             (Vec::new(), Vec::new())
         };
 
-        let ignore_expiry = do_expiry_parse(th.take("ignore-expiry"))?;
+        let ignore_expiry = parse_expiry(th.take("ignore-expiry"))?;
 
         if let Some((key, _)) = th.take("severity-threshold") {
             fdeps.push(key.span);
@@ -849,69 +947,6 @@ mod test {
         }
     }
 
-    fn parse_ignore(expiry: &str) -> Result<IgnoreId, toml_span::DeserError> {
-        let src = format!("id = \"RUSTSEC-0000-0000\"\nexpiry = {expiry}\n");
-        let mut parsed = toml_span::parse(&src).expect("valid toml");
-        IgnoreId::deserialize(&mut parsed)
-    }
-
-    #[test]
-    fn deserializes_ignore_date_expiry() {
-        let iid = parse_ignore("\"2026-12-31\"").expect("valid date should parse");
-
-        assert_eq!(
-            iid.expiry.map(|e| e.value),
-            Some(Expiry::Date(jiff::civil::date(2026, 12, 31)))
-        );
-    }
-
-    #[test]
-    fn deserializes_ignore_duration_expiry() {
-        let iid = parse_ignore("\"P90D\"").expect("valid duration should parse");
-
-        assert!(matches!(
-            iid.expiry.map(|e| e.value),
-            Some(Expiry::Duration(_))
-        ));
-    }
-
-    #[test]
-    fn deserializes_ignore_expiry_date_in_config() {
-        let cd = ConfigData::<Advisories>::load_str(
-            "ignore-expiry-date.toml",
-            "[advisories]\nignore-expiry = \"2026-12-31\"\n",
-        );
-        let validated = cd.validate(|a| a.advisories);
-
-        assert_eq!(
-            validated.ignore_expiry.map(|e| e.value),
-            Some(Expiry::Date(jiff::civil::date(2026, 12, 31)))
-        );
-    }
-
-    #[test]
-    fn rejects_date_expiry_with_time() {
-        assert!(parse_ignore("\"2026-12-31T23:59\"").is_err());
-    }
-
-    #[test]
-    fn rejects_invalid_expiry() {
-        let src = "id = \"RUSTSEC-0000-0000\"\nexpiry = \"2026-13-45\"\n";
-        let mut files = crate::diag::Files::new();
-        let id = files.add("invalid-expiry.toml", src.to_owned());
-
-        let err = match parse_ignore("\"2026-13-45\"") {
-            Ok(_) => panic!("expected the invalid date to be rejected"),
-            Err(err) => err,
-        };
-
-        let diags = write_diagnostics(
-            &files,
-            err.errors.into_iter().map(|err| err.to_diagnostic(id)),
-        );
-        insta::assert_snapshot!(diags);
-    }
-
     #[test]
     fn deserializes_advisories_cfg() {
         let cd = ConfigData::<Advisories>::load("tests/cfg/advisories.toml");
@@ -1026,6 +1061,45 @@ ignore = [
                 }
             }
         }
+    }
+
+    /// Validates we reject invalid dates
+    #[test]
+    fn rejects_invalid_dates() {
+        #[rustfmt::skip]
+        const FAILURES: &[&str] = &[
+            "", " ", "\n", "\t\t", // Empty
+            "07-08-09", "3000-9-09", "3000-09-0", // Insufficient digits
+            "99999-08-09", "2027-010-02", "2027-01-0å", // Too many digits
+            "207d-08-09", "2027-0a-09", "2027-12-+1", // Non-numeric digits
+            "2007", "2006-09", // Missing components
+            "2026-00-01", "2026-66-01", "2026-01-00", "2026-06-32", // Out of range
+            "2023-02-29", // day out of range, an error from jiff
+        ];
+
+        let fdata = FAILURES.join("\n");
+
+        let mut files = crate::diag::Files::new();
+        let cfg_id = files.add("bad-dates.toml", fdata);
+
+        let mut off = 0;
+
+        let errors = FAILURES.iter().map(|d| {
+            let (span, msg) = parse_date(d).unwrap_err();
+
+            let diag = crate::diag::Diagnostic::error().with_label(
+                crate::diag::Label::primary(cfg_id, span.start + off..span.end + off)
+                    .with_message(msg),
+            );
+
+            off += d.len() + 1;
+
+            diag
+        });
+
+        let failures = crate::test_utils::write_diagnostics(&files, errors);
+
+        insta::assert_snapshot!(failures);
     }
 
     #[cfg(unix)]

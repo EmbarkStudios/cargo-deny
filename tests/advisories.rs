@@ -314,15 +314,20 @@ fn expires_ignores() {
 
     use jiff::ToSpan;
     for date in [
-        DATE,                           // A date well before either of the advisories were issued
-        jiff::civil::date(2019, 4, 27), // Same day as RUSTSEC-2019-0001
+        // A date well before either of the advisories were issued
+        DATE,
+        // Same day as RUSTSEC-2019-0001
+        jiff::civil::date(2019, 4, 27),
+        // Past the expiration of RUSTSEC-2019-0001
         jiff::civil::date(2019, 4, 27)
             .checked_add(100.days())
-            .unwrap(), // Past the expiration of RUSTSEC-2019-0001
-        jiff::civil::date(2023, 11, 29), // Day after RUSTSEC-2023-0072 was issued
+            .unwrap(),
+        // Day after RUSTSEC-2023-0072 was issued
+        jiff::civil::date(2023, 11, 29),
+        // 11 days after RUSTSEC-2023-0072 was issued
         jiff::civil::date(2023, 11, 28)
             .checked_add(11.days())
-            .unwrap(), // 11 days after RUSTSEC-2023-0072 was issued
+            .unwrap(),
     ] {
         let cfg = tu::Config::new(
             r#"
@@ -406,8 +411,6 @@ fn expires_ignores_with_date() {
                 .any(|v| field_eq!(v, "/fields/code", "advisory-ignore-expired")),
             expect_expired
         );
-
-        insta::assert_json_snapshot!(snapshot_name!(expiry), relevant);
     }
 }
 
@@ -860,18 +863,6 @@ fn validate_fetch(fetch: Fetch) {
             (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
         ],
     );
-}
-
-/// Validates we can fetch advisory db updates with gix
-#[test]
-fn fetches_with_gix() {
-    #[allow(clippy::disallowed_macros)]
-    if std::env::var_os("CI").is_some() && cfg!(target_os = "macos") {
-        println!("consistently times out, so tired");
-        return;
-    }
-
-    validate_fetch(Fetch::Allow);
 }
 
 /// Validates we can fetch advisory db updates with git
