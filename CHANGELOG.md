@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.21.0] - 2026-11-16
 ### Fixed
 - [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
 - [PR#895](https://github.com/EmbarkStudios/cargo-deny/pull/895) fixed an issue where `--target` could not be passed multiple times in the CLI.
@@ -861,7 +862,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.2...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.21.0...HEAD
+[0.21.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.2...0.21.0
 [0.20.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.1...0.20.2
 [0.20.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.0...0.20.1
 [0.20.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.19.9...0.20.0
