@@ -4,6 +4,7 @@ db-urls = ["https://github.com/RustSec/advisory-db"]
 ignore = [
     "RUSTSEC-0000-0000",
     "crate@0.1",
+    { id = "RUSTSEC-0000-0001", reason = "has a deadline", expiry = "2026-12-31" },
     { crate = "yanked", reason = "a new version has not been released" },
 ]
 unmaintained = "workspace"

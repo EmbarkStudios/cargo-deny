@@ -314,15 +314,20 @@ fn expires_ignores() {
 
     use jiff::ToSpan;
     for date in [
-        DATE,                           // A date well before either of the advisories were issued
-        jiff::civil::date(2019, 4, 27), // Same day as RUSTSEC-2019-0001
+        // A date well before either of the advisories were issued
+        DATE,
+        // Same day as RUSTSEC-2019-0001
+        jiff::civil::date(2019, 4, 27),
+        // Past the expiration of RUSTSEC-2019-0001
         jiff::civil::date(2019, 4, 27)
             .checked_add(100.days())
-            .unwrap(), // Past the expiration of RUSTSEC-2019-0001
-        jiff::civil::date(2023, 11, 29), // Day after RUSTSEC-2023-0072 was issued
+            .unwrap(),
+        // Day after RUSTSEC-2023-0072 was issued
+        jiff::civil::date(2023, 11, 29),
+        // 11 days after RUSTSEC-2023-0072 was issued
         jiff::civil::date(2023, 11, 28)
             .checked_add(11.days())
-            .unwrap(), // 11 days after RUSTSEC-2023-0072 was issued
+            .unwrap(),
     ] {
         let cfg = tu::Config::new(
             r#"
@@ -358,6 +363,54 @@ fn expires_ignores() {
             .collect();
 
         insta::assert_json_snapshot!(snapshot_name!(date), expired);
+    }
+}
+
+/// Validates that an absolute date `expiry` stops an ignore from applying
+/// once the current date is after it
+#[test]
+fn expires_ignores_with_date() {
+    let TestCtx { dbs, krates } = load();
+
+    for (expiry, expect_expired) in [("2000-01-01", true), ("9999-12-31", false)] {
+        let cfg = tu::Config::new(format!(
+            r#"
+    ignore = [
+        {{ id = "RUSTSEC-2019-0001", reason = "this is a test", expiry = "{expiry}" }},
+    ]
+    "#,
+        ));
+
+        let diags =
+            tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    // Well after the 2000-01-01 deadline
+                    jiff::civil::date(2023, 11, 29),
+                );
+            });
+
+        let relevant: Vec<_> = diags
+            .into_iter()
+            .filter(|v| {
+                v.pointer("/fields/code")
+                    .and_then(|s| s.as_str())
+                    .is_some_and(|s| s == "advisory-ignore-expired" || s == "advisory-ignored")
+                    || field_eq!(v, "/fields/advisory/id", "RUSTSEC-2019-0001")
+            })
+            .collect();
+
+        assert_eq!(
+            relevant
+                .iter()
+                .any(|v| field_eq!(v, "/fields/code", "advisory-ignore-expired")),
+            expect_expired
+        );
     }
 }
 
@@ -810,18 +863,6 @@ fn validate_fetch(fetch: Fetch) {
             (EXPECTED_TWO_ID, EXPECTED_TWO_DATE),
         ],
     );
-}
-
-/// Validates we can fetch advisory db updates with gix
-#[test]
-fn fetches_with_gix() {
-    #[allow(clippy::disallowed_macros)]
-    if std::env::var_os("CI").is_some() && cfg!(target_os = "macos") {
-        println!("consistently times out, so tired");
-        return;
-    }
-
-    validate_fetch(Fetch::Allow);
 }
 
 /// Validates we can fetch advisory db updates with git

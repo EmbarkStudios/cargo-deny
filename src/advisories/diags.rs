@@ -1,5 +1,5 @@
 use super::{
-    cfg::IgnoreId,
+    cfg::{Expiry, IgnoreId},
     model::{Advisory, Informational, Metadata},
 };
 use crate::{
@@ -170,13 +170,11 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
 
                     let ignore = &self.cfg.ignore[index];
 
-                    // There are no notice advisories at this time, and unmaintained advisories are uninteresting since if
-                    // the crate transitions back to being maintained the advisory will/should be withdrawn, but otherwise
-                    // unmaintained advisories won't ever have a fix/unaffected version
-                    if matches!(adv_ty, AdvisoryType::Vulnerability | AdvisoryType::Unsound)
-                        && let Some(expiry) =
-                            ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
-                        && let Ok(max) = md.date.checked_add(expiry.value)
+                    if let Some(expiry) = ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
+                        && let Some(max) = match expiry.value {
+                            Expiry::Duration(dur) => md.date.checked_add(dur).ok(),
+                            Expiry::Date(deadline) => Some(deadline),
+                        }
                         && date > max
                     {
                         let mut l = ignore.to_labels(self.cfg.file_id, "advisory ignored here");
