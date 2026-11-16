@@ -140,7 +140,7 @@ fn parse_date(s: &str) -> Result<jiff::civil::Date, (std::ops::Range<usize>, &'s
         return Err((off..off + days.len(), "day out of range"));
     }
 
-    jiff::civil::Date::new(year, month, day).map_err(|_| {
+    jiff::civil::Date::new(year, month, day).map_err(|_e| {
         // We've validated that the year and the month are within range, which only leaves the day
         (off..off + days.len(), "invalid day")
     })
