@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#923](https://github.com/EmbarkStudios/cargo-deny/pull/923) resolved [#920](https://github.com/EmbarkStudios/cargo-deny/issues/920) by emitting a new `advisory-withdrawn` diagnostic when an ignored advisory has been withdrawn in the advisory database and the ignore can be removed, instead of emitting `advisory-not-detected`.
+- [PR#924](https://github.com/EmbarkStudios/cargo-deny/pull/924) resolved [#922](https://github.com/EmbarkStudios/cargo-deny/issues/922) by changing `advisories.unmaintained` to default to `workspace` scope instead of `all`.
+
 ## [0.21.0] - 2026-11-16
 ### Fixed
 - [PR#893](https://github.com/EmbarkStudios/cargo-deny/pull/893) resolved [#892](https://github.com/EmbarkStudios/cargo-deny/issues/892) by correctly handling url matching when using IP hosts.
