@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.22.0] - 2026-11-19
 ### Changed
 - [PR#923](https://github.com/EmbarkStudios/cargo-deny/pull/923) resolved [#920](https://github.com/EmbarkStudios/cargo-deny/issues/920) by emitting a new `advisory-withdrawn` diagnostic when an ignored advisory has been withdrawn in the advisory database and the ignore can be removed, instead of emitting `advisory-not-detected`.
 - [PR#924](https://github.com/EmbarkStudios/cargo-deny/pull/924) resolved [#922](https://github.com/EmbarkStudios/cargo-deny/issues/922) by changing `advisories.unmaintained` to default to `workspace` scope instead of `all`.
@@ -866,7 +867,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.21.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.0...HEAD
+[0.22.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.21.0...0.22.0
 [0.21.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.2...0.21.0
 [0.20.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.1...0.20.2
 [0.20.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.0...0.20.1
