@@ -9,7 +9,7 @@ Contains all of the configuration for `cargo deny check advisories`
 db-urls = ["https://github.com/RustSec/advisory-db"]
 db-path = "~/.cargo/advisory-dbs" # Or wherever $CARGO_HOME/advisory-dbs resolves to
 yanked = "warn"
-unmaintained = "all"
+unmaintained = "workspace"
 unsound = "workspace"
 maximum-db-staleness = "P90D" # Only checked when advisory database fetching has been disabled
 unused-ignored-advisory = "warn"
@@ -136,8 +136,8 @@ unmaintained = 'workspace'
 
 Determines if unmaintained advisories will result in an error. An unmaintained error can still be ignored specifically via the [`ignore`](#ignore) option.
 
-- `all` (default) - Any crate that matches an unmaintained advisory will fail
-- `workspace` - Unmaintained advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
+- `all` - Any crate that matches an unmaintained advisory will fail
+- `workspace` (default) - Unmaintained advisories will only fail if they apply to a crate which is a direct dependency of one or more workspace crates.
 - `transitive` - Unmaintained advisories will only fail if they apply to a crate which is **not** a direct dependency of one or more workspace crates.
 - `none` - Unmaintained advisories are completely ignored.
 
