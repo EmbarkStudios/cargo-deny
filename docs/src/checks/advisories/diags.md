@@ -52,6 +52,10 @@ A direct dependent of a crate that an advisory applied to was not present in the
 
 A [PackageSpec](../cfg.md#package-specs) in the [`ignore.allow`](cfg.md#allow) list was not a direct dependent of any crate that the advisory applies to.
 
+### `advisory-withdrawn`
+
+An advisory in [`advisories.ignore`](cfg.md#ignore) has been withdrawn and will no longer emit a diagnostic if it is not ignored, meaning it can safely be removed from [`advisories.ignore`](cfg.md#ignore).
+
 ### `unknown-advisory`
 
 An advisory in [`advisories.ignore`](cfg.md#ignore) wasn't found in any of the configured advisory databases, usually indicating a typo, as advisories, at the moment, are never deleted from the database, at least the canonical [advisory-db](https://github.com/rustsec/advisory-db).

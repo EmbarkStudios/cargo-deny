@@ -38,6 +38,7 @@ crate::simple_enum!(
         AdvisoryIgnoreExpired = "advisory-ignore-expired",
         AdvisoryIgnoreDisallowedDependent = "advisory-ignore-disallowed-dependent",
         AdvisoryIgnoreAllowedDependentMissing = "advisory-ignore-allowed-dependent-missing",
+        AdvisoryWithdrawn = "advisory-withdrawn",
         YankedIgnored = "yanked-ignored",
         IndexFailure = "index-failure",
         IndexCacheLoadFailure = "index-cache-load-failure",
@@ -62,8 +63,9 @@ impl Code {
                 "An ignore for an advisory did not explicitly a direct dependency"
             }
             Self::AdvisoryIgnoreAllowedDependentMissing => {
-                "An ignore an advisory explicitly allowed a crate that is not a direct dependency"
+                "An ignore for an advisory explicitly allowed a crate that is not a direct dependency"
             }
+            Self::AdvisoryWithdrawn => "The advisory has been withdrawn",
             Self::YankedIgnored => "A yanked crate version was ignored",
             Self::IndexFailure => "Failed to get index information for a registry",
             Self::IndexCacheLoadFailure => "Failed to load cached index information for a registry",
@@ -170,6 +172,19 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
 
                     let ignore = &self.cfg.ignore[index];
 
+                    if let Some(withdrawn) = md.withdrawn {
+                        pack.push(diag(
+                            Diagnostic::warning()
+                                .with_message(format!("this advisory was withdrawn on {withdrawn}"))
+                                .with_labels(
+                                    ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                                ),
+                            Code::AdvisoryWithdrawn,
+                        ));
+
+                        return pack;
+                    }
+
                     if let Some(expiry) = ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
                         && let Some(max) = match expiry.value {
                             Expiry::Duration(dur) => md.date.checked_add(dur).ok(),
@@ -230,7 +245,11 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
 
                     LintLevel::Allow
                 } else {
-                    LintLevel::Deny
+                    if md.withdrawn.is_none() {
+                        LintLevel::Deny
+                    } else {
+                        return pack;
+                    }
                 }
             };
 

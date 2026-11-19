@@ -1,20 +1,35 @@
 ---
 source: tests/advisories.rs
-expression: "diags.iter().find(|diag|\n            field_eq!(diag, \"/fields/code\", \"advisory-not-detected\")).unwrap()"
+expression: "diags.iter().find(|diag|\nfield_eq!(diag, \"/fields/code\", \"advisory-withdrawn\")).unwrap()"
 ---
 {
   "fields": {
-    "code": "advisory-not-detected",
-    "graphs": [],
+    "code": "advisory-withdrawn",
+    "graphs": [
+      {
+        "Krate": {
+          "name": "dirs",
+          "version": "4.0.0"
+        },
+        "parents": [
+          {
+            "Krate": {
+              "name": "advisories",
+              "version": "0.1.0"
+            }
+          }
+        ]
+      }
+    ],
     "labels": [
       {
         "column": 12,
         "line": 2,
-        "message": "no crate matched advisory criteria",
+        "message": "advisory ignored here",
         "span": "RUSTSEC-2020-0053"
       }
     ],
-    "message": "advisory was not encountered",
+    "message": "this advisory was withdrawn on 2021-04-19",
     "severity": "warning"
   },
   "type": "diagnostic"
