@@ -783,12 +783,7 @@ fn validate(adb: &advisories::AdvisoryDb, rev: &str, ids: &[(&str, &str)]) {
         assert_eq!(adv.advisory.date.to_string(), *date);
     }
 
-    assert!(
-        (jiff::Timestamp::now() - adb.fetch_time)
-            .total(jiff::Unit::Second)
-            .unwrap()
-            < 60.
-    );
+    assert!((jiff::Timestamp::now() - adb.fetch_time).as_secs() < 60);
 }
 
 /// Validates we can clone an advisory database with git

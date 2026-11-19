@@ -233,7 +233,7 @@ fn setup_logger(
 
     match format {
         Format::Human => {
-            struct Human(jiff::Zoned);
+            struct Human(jiff::ZonedDateTime);
 
             impl std::fmt::Display for Human {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -250,7 +250,7 @@ fn setup_logger(
                 }
             }
 
-            let now = Human(jiff::Zoned::now());
+            let now = Human(jiff::ZonedDateTime::now());
 
             if color {
                 fern::Dispatch::new()
