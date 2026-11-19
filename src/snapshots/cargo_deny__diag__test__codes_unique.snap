@@ -9,6 +9,7 @@ expression: unique
     "advisory-ignore-expired",
     "advisory-ignored",
     "advisory-not-detected",
+    "advisory-withdrawn",
     "allowed",
     "allowed-by-organization",
     "allowed-by-wrapper",

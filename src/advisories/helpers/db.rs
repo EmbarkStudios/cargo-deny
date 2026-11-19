@@ -199,13 +199,6 @@ impl<'db, 'k> Report<'db, 'k> {
                 .db
                 .advisories
                 .par_iter()
-                .filter(|(id, entry)| {
-                    let Some(wdate) = &entry.advisory.advisory.withdrawn else {
-                        return true;
-                    };
-                    log::trace!("ignoring advisory '{id}', withdrawn {wdate}");
-                    false
-                })
                 .filter_map(|(_id, entry)| {
                     let mut matched: Vec<_> = krates
                         .krates_by_name(entry.advisory.advisory.krate)
@@ -237,6 +230,13 @@ impl<'db, 'k> Report<'db, 'k> {
                 let mut vulns = Vec::new();
 
                 for (adv, k) in &db_advisories {
+                    // Don't serialize withdrawn advisories to match the previous behavior if completely ignoring
+                    // them, but if this gets removed for whatever reason, add metadata to the serialized report to
+                    // indicate it's been withdrawn
+                    if adv.advisory.withdrawn.is_some() {
+                        continue;
+                    }
+
                     for krate in k {
                         let package = serde_json::json!({
                             "name": krate.name,
