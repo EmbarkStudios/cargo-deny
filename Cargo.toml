@@ -54,7 +54,7 @@ goblin = { version = "0.10", default-features = false, features = [
     "pe64",
     "te",
 ] }
-jiff = { version = "0.2", default-features = false, features = ["std"] }
+jiff = { version = "1.0", default-features = false, features = ["std"] }
 # Provides graphs on top of cargo_metadata
 krates = { version = "0.22", features = ["targets"] }
 # Log macros
@@ -63,7 +63,7 @@ log = "0.4"
 memchr = "2.7"
 memmap2 = "0.9"
 # Nicer sync primitives
-parking_lot = "0.12"
+parking_lot = "0.13"
 # Moar brrrr
 rayon = "1.11"
 # Laziness, but we already pull it in transitively
