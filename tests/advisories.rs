@@ -102,7 +102,7 @@ fn detects_unmaintained() {
     let TestCtx { dbs, krates } = load();
 
     {
-        let cfg = tu::Config::new("");
+        let cfg = tu::Config::new("unmaintained = 'all'");
 
         let diags =
             tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
