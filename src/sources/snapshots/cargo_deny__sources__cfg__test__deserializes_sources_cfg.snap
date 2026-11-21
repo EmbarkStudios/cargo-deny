@@ -3,4 +3,10 @@ source: src/sources/cfg.rs
 expression: diags
 snapshot_kind: text
 ---
-
+warning: source URL contains unused components
+  ┌─ tests/cfg/sources.toml:7:6
+  │
+7 │     "sparse+https://fake.sparse.com",
+  │      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  │
+  ├ use `https://fake.sparse.com/` instead
