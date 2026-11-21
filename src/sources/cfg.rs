@@ -155,6 +155,19 @@ impl cfg::UnvalidatedConfig for Config {
 
             match url::Url::parse(&astr[skip..]) {
                 Ok(mut url) => {
+                    if skip != 0 || url.query().is_some() || url.fragment().is_some() {
+                        let mut base = url.clone();
+                        base.set_query(None);
+                        base.set_fragment(None);
+
+                        ctx.push(
+                            Diagnostic::warning()
+                                .with_message("source URL contains unused components")
+                                .with_labels(vec![Label::primary(ctx.cfg_id, aurl.span)])
+                                .with_notes(vec![format!("use `{base}` instead")]),
+                        );
+                    }
+
                     if is_git {
                         crate::normalize_git_url(&mut url);
                     }
@@ -237,6 +250,69 @@ pub struct ValidConfig {
 mod test {
     use super::*;
     use crate::test_utils::{ConfigData, write_diagnostics};
+
+    #[test]
+    fn warns_on_unused_url_components() {
+        for (field, url, base) in [
+            (
+                "allow-git",
+                "git+https://example.com/repo",
+                "https://example.com/repo",
+            ),
+            (
+                "allow-git",
+                "https://example.com/repo?branch=master",
+                "https://example.com/repo",
+            ),
+            (
+                "allow-git",
+                "https://example.com/repo?rev=abc#def",
+                "https://example.com/repo",
+            ),
+            (
+                "allow-registry",
+                "sparse+https://example.com/index/",
+                "https://example.com/index/",
+            ),
+            (
+                "allow-registry",
+                "https://example.com/index?query",
+                "https://example.com/index",
+            ),
+            (
+                "private",
+                "https://example.com/repos#fragment",
+                "https://example.com/repos",
+            ),
+        ] {
+            ConfigData::<Config>::load_str("sources.toml", format!("{field} = ['{url}']"))
+                .validate_with_diags(
+                    |cfg| cfg,
+                    |files, diags| {
+                        assert_eq!(diags.len(), 1, "{field}: {url}");
+                        let diag = &diags[0];
+                        assert_eq!(diag.severity, crate::diag::Severity::Warning);
+                        assert_eq!(diag.message, "source URL contains unused components");
+                        assert_eq!(diag.notes, [format!("use `{base}` instead")]);
+                        let label = &diag.labels[0];
+                        assert!(files.source(label.file_id)[label.range.clone()].contains(url));
+                    },
+                );
+        }
+    }
+
+    #[test]
+    fn accepts_base_source_urls() {
+        ConfigData::<Config>::load_str(
+            "sources.toml",
+            r#"
+allow-git = ['https://example.com/repo.git', 'ssh://git@example.com/repo/']
+allow-registry = ['https://example.com/index/']
+private = ['https://example.com/repos']
+"#,
+        )
+        .validate(|cfg| cfg);
+    }
 
     #[test]
     fn deserializes_sources_cfg() {
