@@ -1,0 +1,5 @@
+---
+source: tests/advisories.rs
+expression: "advisories_by_kind(diags, \"unsound\")"
+---
+[]
