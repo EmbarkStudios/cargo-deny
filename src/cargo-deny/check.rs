@@ -612,11 +612,31 @@ fn print_diagnostics(
 ) {
     use cargo_deny::diag::Check;
 
+    let mut update_stats = |pack: &cargo_deny::diag::Pack| {
+        let check_stats = match pack.check {
+            Check::Advisories => stats.advisories.as_mut().unwrap(),
+            Check::Bans => stats.bans.as_mut().unwrap(),
+            Check::Licenses => stats.licenses.as_mut().unwrap(),
+            Check::Sources => stats.sources.as_mut().unwrap(),
+        };
+
+        for diag in pack.iter() {
+            match diag.diag.severity {
+                Severity::Error => check_stats.errors += 1,
+                Severity::Warning => check_stats.warnings += 1,
+                Severity::Note => check_stats.notes += 1,
+                Severity::Help => check_stats.helps += 1,
+                Severity::Bug => {}
+            }
+        }
+    };
+
     if log_ctx.format == crate::Format::Sarif {
         let workspace_root = krates.map_or("", |k| k.workspace_root().as_str());
         let mut sc = cargo_deny::sarif::SarifCollector::new(workspace_root);
 
         for pack in rx {
+            update_stats(&pack);
             sc.add_diagnostics(pack, files);
         }
 
@@ -632,22 +652,7 @@ fn print_diagnostics(
     } else {
         let dp = crate::common::DiagPrinter::new(log_ctx, krates, feature_depth);
         for pack in rx {
-            let check_stats = match pack.check {
-                Check::Advisories => stats.advisories.as_mut().unwrap(),
-                Check::Bans => stats.bans.as_mut().unwrap(),
-                Check::Licenses => stats.licenses.as_mut().unwrap(),
-                Check::Sources => stats.sources.as_mut().unwrap(),
-            };
-
-            for diag in pack.iter() {
-                match diag.diag.severity {
-                    Severity::Error => check_stats.errors += 1,
-                    Severity::Warning => check_stats.warnings += 1,
-                    Severity::Note => check_stats.notes += 1,
-                    Severity::Help => check_stats.helps += 1,
-                    Severity::Bug => {}
-                }
-            }
+            update_stats(&pack);
 
             if let Some(mut lock) = dp.as_ref().map(|dp| dp.lock()) {
                 lock.print_krate_pack(pack, files);

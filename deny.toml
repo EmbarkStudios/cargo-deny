@@ -54,6 +54,4 @@ allow = [
     "Unicode-3.0",
     "Zlib",
 ]
-exceptions = [
-    { crate = "zstd-sys", allow = ["BSD-2-Clause"] }
-]
+exceptions = [{ crate = "zstd-sys", allow = ["BSD-2-Clause"] }]
