@@ -1293,3 +1293,228 @@ fn shows_non_updatable() {
 
     insta::assert_json_snapshot!(advisories_by_kind(diags, "vulnerability"));
 }
+
+fn build_duplicate_krate_graph(direct_ver: &str, transitive_ver: &str) -> Krates {
+    let app_id = "app 0.1.0 (path+file:///ws/app)";
+    let mid_id = "mid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)";
+    let dup_direct_id =
+        format!("dup {direct_ver} (registry+https://github.com/rust-lang/crates.io-index)");
+    let dup_trans_id =
+        format!("dup {transitive_ver} (registry+https://github.com/rust-lang/crates.io-index)");
+
+    let dep_entry = |name: &str, req: &str| {
+        serde_json::json!({
+            "name": name,
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "req": req,
+            "kind": null,
+            "rename": null,
+            "optional": false,
+            "uses_default_features": true,
+            "features": [],
+            "target": null,
+            "registry": null
+        })
+    };
+
+    let pkg_json = |name: &str,
+                    ver: &str,
+                    id: &str,
+                    source: Option<&str>,
+                    manifest: &str,
+                    deps: Vec<serde_json::Value>| {
+        serde_json::json!({
+            "name": name,
+            "version": ver,
+            "id": id,
+            "source": source,
+            "dependencies": deps,
+            "targets": [{
+                "kind": ["lib"],
+                "crate_types": ["lib"],
+                "name": name,
+                "src_path": format!("/ws/{name}/src/lib.rs"),
+                "edition": "2021"
+            }],
+            "features": {},
+            "manifest_path": manifest,
+            "edition": "2021"
+        })
+    };
+
+    let md_json = serde_json::json!({
+        "packages": [
+            pkg_json("app", "0.1.0", app_id, None, "/ws/app/Cargo.toml", vec![
+                dep_entry("mid", "^0.1"),
+                dep_entry("dup", &format!("={direct_ver}")),
+            ]),
+            pkg_json("mid", "0.1.0", mid_id, Some("registry+https://github.com/rust-lang/crates.io-index"), "/reg/mid/Cargo.toml", vec![
+                dep_entry("dup", &format!("={transitive_ver}")),
+            ]),
+            pkg_json("dup", direct_ver, &dup_direct_id, Some("registry+https://github.com/rust-lang/crates.io-index"), "/reg/dup_d/Cargo.toml", vec![]),
+            pkg_json("dup", transitive_ver, &dup_trans_id, Some("registry+https://github.com/rust-lang/crates.io-index"), "/reg/dup_t/Cargo.toml", vec![])
+        ],
+        "workspace_members": [app_id],
+        "resolve": {
+            "nodes": [
+                {
+                    "id": app_id,
+                    "deps": [
+                        { "name": "mid", "pkg": mid_id, "dep_kinds": [{ "kind": null, "target": null }] },
+                        { "name": "dup", "pkg": dup_direct_id, "dep_kinds": [{ "kind": null, "target": null }] }
+                    ],
+                    "dependencies": [mid_id, dup_direct_id]
+                },
+                {
+                    "id": mid_id,
+                    "deps": [
+                        { "name": "dup", "pkg": dup_trans_id, "dep_kinds": [{ "kind": null, "target": null }] }
+                    ],
+                    "dependencies": [dup_trans_id]
+                },
+                { "id": dup_direct_id, "deps": [], "dependencies": [] },
+                { "id": dup_trans_id, "deps": [], "dependencies": [] }
+            ],
+            "root": app_id
+        },
+        "target_directory": "/ws/target",
+        "version": 1,
+        "workspace_root": "/ws"
+    });
+
+    let md: krates::cm::Metadata = serde_json::from_value(md_json).unwrap();
+    krates::Builder::new()
+        .build_with_metadata(md, krates::NoneFilter)
+        .unwrap()
+}
+
+fn build_temp_advisory_db(informational: &str) -> (tempfile::TempDir, advisories::DbSet) {
+    let td = tempfile::tempdir().unwrap();
+    let root = cargo_deny::Path::from_path(td.path()).unwrap().to_owned();
+    let dir = root.join("crates").join("dup");
+    std::fs::create_dir_all(&dir).unwrap();
+    let adv_path = dir.join("RUSTSEC-9999-0001.md");
+    std::fs::write(
+        &adv_path,
+        format!(
+            "```toml\n[advisory]\nid = \"RUSTSEC-9999-0001\"\npackage = \"dup\"\ndate = \"2020-01-01\"\ninformational = \"{informational}\"\n[versions]\npatched = []\n```\n\n# Advisory title\n\nDescription.\n"
+        ),
+    )
+    .unwrap();
+
+    let db = cargo_deny::advisories::db::Database::open(&root).unwrap();
+    let dbs = advisories::DbSet {
+        dbs: vec![advisories::db::AdvisoryDb {
+            url: url::Url::parse("https://example.invalid/advisory-db").unwrap(),
+            db,
+            path: root,
+            fetch_time: jiff::Timestamp::UNIX_EPOCH,
+        }],
+        lock: None,
+    };
+    (td, dbs)
+}
+
+#[test]
+fn reports_scoped_advisories_across_duplicate_crate_versions() {
+    for informational in ["unsound", "unmaintained"] {
+        let (_td, dbs) = build_temp_advisory_db(informational);
+
+        // Older transitive copy (0.1.0) appears before newer direct workspace copy (0.2.0).
+        let krates_ws = build_duplicate_krate_graph("0.2.0", "0.1.0");
+        let cfg_ws = tu::Config::new(format!("{informational} = 'workspace'"));
+        let diags_ws = tu::gather_diagnostics::<cfg::Config, _, _>(
+            &krates_ws,
+            func_name!(),
+            cfg_ws,
+            |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    DATE,
+                );
+            },
+        );
+        let matched_ws = advisories_by_kind(diags_ws, informational);
+        assert_eq!(
+            matched_ws.len(),
+            1,
+            "{informational} = 'workspace' must still report direct 0.2.0 when older transitive 0.1.0 is skipped"
+        );
+        assert_eq!(
+            matched_ws[0]
+                .pointer("/fields/graphs/0/Krate/version")
+                .and_then(|v| v.as_str()),
+            Some("0.2.0")
+        );
+
+        // Older direct workspace copy (0.1.0) appears before newer transitive copy (0.2.0).
+        let krates_tr = build_duplicate_krate_graph("0.1.0", "0.2.0");
+        let cfg_tr = tu::Config::new(format!("{informational} = 'transitive'"));
+        let diags_tr = tu::gather_diagnostics::<cfg::Config, _, _>(
+            &krates_tr,
+            func_name!(),
+            cfg_tr,
+            |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    DATE,
+                );
+            },
+        );
+        let matched_tr = advisories_by_kind(diags_tr, informational);
+        assert_eq!(
+            matched_tr.len(),
+            1,
+            "{informational} = 'transitive' must still report transitive 0.2.0 when older direct 0.1.0 is skipped"
+        );
+        assert_eq!(
+            matched_tr[0]
+                .pointer("/fields/graphs/0/Krate/version")
+                .and_then(|v| v.as_str()),
+            Some("0.2.0")
+        );
+
+        // When copy 1 matches scope and ignore.allow accumulates `dds`, copy 2 failing scope must not skip diag_for_allowed_missing.
+        let cfg_allow = tu::Config::new(format!(
+            "{informational} = 'workspace'\nignore = [{{ id = \"RUSTSEC-9999-0001\", allow = [\"nonexistent-dep\"] }}]"
+        ));
+        let diags_allow = tu::gather_diagnostics::<cfg::Config, _, _>(
+            &krates_tr,
+            func_name!(),
+            cfg_allow,
+            |ctx, tx| {
+                advisories::check(
+                    ctx,
+                    &dbs,
+                    Option::<advisories::NoneReporter>::None,
+                    SA::Json,
+                    None,
+                    tx,
+                    DATE,
+                );
+            },
+        );
+        let missing_allowed: Vec<_> = diags_allow
+            .iter()
+            .filter(|v| {
+                v.pointer("/fields/code").and_then(|s| s.as_str())
+                    == Some("advisory-ignore-allowed-dependent-missing")
+            })
+            .collect();
+        assert_eq!(
+            missing_allowed.len(),
+            1,
+            "skipping out-of-scope duplicate copy must not skip diag_for_allowed_missing for earlier ignored copy"
+        );
+    }
+}

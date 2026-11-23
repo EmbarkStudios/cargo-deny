@@ -108,7 +108,7 @@ pub fn check<R, S>(
         let mut dds = Vec::new();
         let mut ignore = None;
 
-        for krate in k {
+        'krate: for krate in k {
             let mut kdds = ctx
                 .krates
                 .direct_dependents(ctx.krates.nid_for_kid(&krate.id).unwrap());
@@ -150,7 +150,7 @@ pub fn check<R, S>(
                             break 'block;
                         }
 
-                        continue 'lup;
+                        continue 'krate;
                     }
                 }
             }
