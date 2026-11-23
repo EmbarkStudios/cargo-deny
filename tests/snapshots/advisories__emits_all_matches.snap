@@ -2,4 +2,52 @@
 source: tests/advisories.rs
 expression: "advisories_by_kind(diags, \"unsound\")"
 ---
-[]
+[
+  {
+    "fields": {
+      "code": "unsound",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "acc_reader",
+            "version": "2.0.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "transitive",
+                "version": "0.1.0"
+              },
+              "parents": [
+                {
+                  "Krate": {
+                    "name": "advisory-scopes",
+                    "version": "0.1.0"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 2,
+          "message": "unsound advisory detected",
+          "span": "acc_reader 2.0.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "`Read` on uninitialized buffer in `fill_buf()` and `read_up_to()`",
+      "notes": [
+        "ID: RUSTSEC-2020-0155",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2020-0155",
+        "Affected versions of this crate passes an uninitialized buffer to a user-provided `Read` implementation.\n\nArbitrary `Read` implementations can read from the uninitialized buffer (memory exposure) and also can return incorrect number of bytes written to the buffer.\nReading from uninitialized memory produces undefined values that can quickly invoke undefined behavior.",
+        "Announcement: https://github.com/netvl/acc_reader/issues/1",
+        "Solution: No safe upgrade is available!"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]
