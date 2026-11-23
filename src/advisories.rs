@@ -104,11 +104,25 @@ pub fn check<R, S>(
     };
 
     // Emit diagnostics for any advisories found that matched crates in the graph
-    'lup: for (advisory, k) in &report.advisories {
+    for (advisory, k) in &report.advisories {
         let mut dds = Vec::new();
         let mut ignore = None;
 
-        for krate in k {
+        let scope = advisory
+            .advisory
+            .informational
+            .as_ref()
+            .and_then(|info| match info {
+                model::Informational::Unmaintained => Some(&ctx.cfg.unmaintained),
+                model::Informational::Unsound => Some(&ctx.cfg.unsound),
+                _ => None,
+            });
+
+        if scope.is_some_and(|s| s.value == Scope::None) {
+            continue;
+        }
+
+        'krate: for krate in k {
             let mut kdds = ctx
                 .krates
                 .direct_dependents(ctx.krates.nid_for_kid(&krate.id).unwrap());
@@ -123,34 +137,24 @@ pub fn check<R, S>(
                 }
             });
 
-            'block: {
-                let Some(scope) =
-                    advisory
-                        .advisory
-                        .informational
-                        .as_ref()
-                        .and_then(|info| match info {
-                            model::Informational::Unmaintained => Some(&ctx.cfg.unmaintained),
-                            model::Informational::Unsound => Some(&ctx.cfg.unsound),
-                            _ => None,
-                        })
-                else {
-                    break 'block;
+            'scope: {
+                let Some(scope) = scope else {
+                    break 'scope;
                 };
 
                 match scope.value {
-                    Scope::All => break 'block,
-                    Scope::None => continue 'lup,
+                    Scope::All => break 'scope,
+                    Scope::None => unreachable!(),
                     Scope::Workspace | Scope::Transitive => {
                         let transitive = scope.value == Scope::Transitive;
                         if kdds
                             .iter()
                             .any(|dd| ws_set.contains(&dd.krate.id) ^ transitive)
                         {
-                            break 'block;
+                            break 'scope;
                         }
 
-                        continue 'lup;
+                        continue 'krate;
                     }
                 }
             }
@@ -169,7 +173,6 @@ pub fn check<R, S>(
             );
 
             sink.push(diag);
-
             dds.append(&mut kdds);
         }
 

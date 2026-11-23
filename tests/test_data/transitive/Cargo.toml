@@ -1,0 +1,9 @@
+[package]
+name = "transitive"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+acc_reader = "2.0"
+
+[workspace]

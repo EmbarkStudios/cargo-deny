@@ -1293,3 +1293,39 @@ fn shows_non_updatable() {
 
     insta::assert_json_snapshot!(advisories_by_kind(diags, "vulnerability"));
 }
+
+/// Ensures that if an advisory applies to multiple versions of a crate, the advisory will be emitted even if one of them
+/// is in a scope that the user ignores
+#[test]
+fn emits_all_matches() {
+    let TestCtx { dbs, .. } = load();
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("tests/test_data/advisory-scopes/Cargo.toml");
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    // The earlier version is used by the workspace, since it's not in scope the previous buggy behavior would skip
+    // the later version that is in scope that the advisory also applies to
+    let cfg = tu::Config::new(
+        r"unsound = 'transitive'
+    ",
+    );
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                SA::No,
+                None,
+                tx,
+                DATE,
+            );
+        });
+
+    insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
+}
