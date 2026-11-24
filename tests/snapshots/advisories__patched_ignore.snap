@@ -1,0 +1,112 @@
+---
+source: tests/advisories.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "advisory-ignored",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "abox",
+            "version": "0.4.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "patched",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 1,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2020-0121"
+        }
+      ],
+      "message": "advisory ignored",
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "patched",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "abox",
+            "version": "0.4.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "patched",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 12,
+          "line": 1,
+          "message": "advisory ignored here",
+          "span": "RUSTSEC-2020-0121"
+        }
+      ],
+      "message": "ignored advisory can be fixed by updating",
+      "notes": [
+        "Solution: Upgrade to >=0.4.1 (try `cargo update -p abox`)"
+      ],
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "fields": {
+      "code": "vulnerability",
+      "graphs": [
+        {
+          "Krate": {
+            "name": "abox",
+            "version": "0.4.0"
+          },
+          "parents": [
+            {
+              "Krate": {
+                "name": "patched",
+                "version": "0.1.0"
+              }
+            }
+          ]
+        }
+      ],
+      "labels": [
+        {
+          "column": 1,
+          "line": 1,
+          "message": "security vulnerability detected",
+          "span": "abox 0.4.0 registry+https://github.com/rust-lang/crates.io-index"
+        }
+      ],
+      "message": "AtomicBox<T> implements Send/Sync for any `T: Sized`",
+      "notes": [
+        "ID: RUSTSEC-2020-0121",
+        "Advisory: https://rustsec.org/advisories/RUSTSEC-2020-0121",
+        "Affected versions of this crate implements `Send`/`Sync` for `AtomicBox<T>` without requiring `T: Send`/`T: Sync`. This allows to create data races to `T: !Sync` and send `T: !Send` to another thread.\n\nSuch behavior breaks the compile-time thread safety guarantees of Rust, and allows users to incur undefined behavior using safe Rust (e.g. memory corruption from data race).\n\nThe flaw was corrected in commit 34c2b9e by adding trait bound `T: Send` to `Send` impl for `AtomicBox<T>` and trait bound `T: Sync` to `Sync` impl for `AtomicBox<T>`.",
+        "Announcement: https://github.com/SonicFrog/abox/issues/1",
+        "Solution: Upgrade to >=0.4.1 (try `cargo update -p abox`)"
+      ],
+      "severity": "note"
+    },
+    "type": "diagnostic"
+  }
+]

@@ -250,6 +250,8 @@ pub struct Config {
     pub db_urls: Vec<Spanned<Url>>,
     /// How to handle crates that have been yanked from eg crates.io
     pub yanked: Spanned<LintLevel>,
+    /// Whether to emit a diagnostic for advisories that have been ignored where a patch is available
+    pub patched: Spanned<LintLevel>,
     /// Ignore advisories for the given IDs
     ignore: Vec<Spanned<IgnoreId>>,
     /// The default amount of time from when an advisory is issued that an ignore for it will still emit a diagnostic
@@ -289,6 +291,7 @@ impl Default for Config {
             unsound: Spanned::new(crate::cfg::Scope::Workspace),
             ignore_yanked: Vec::new(),
             yanked: Spanned::new(LintLevel::Warn),
+            patched: Spanned::new(LintLevel::Warn),
             git_fetch_with_cli: None,
             disable_yank_checking: false,
             maximum_db_staleness: Spanned::new(Duration::from_secs(NINETY_DAYS)),
@@ -419,6 +422,10 @@ impl<'de> Deserialize<'de> for Config {
             (Vec::new(), Vec::new())
         };
 
+        let patched = th
+            .optional_s("patched")
+            .unwrap_or(Spanned::new(LintLevel::Warn));
+
         let ignore_expiry = parse_expiry(th.take("ignore-expiry"))?;
 
         if let Some((key, _)) = th.take("severity-threshold") {
@@ -442,6 +449,7 @@ impl<'de> Deserialize<'de> for Config {
             db_path,
             db_urls,
             yanked,
+            patched,
             ignore,
             ignore_expiry,
             unmaintained: unmaintained.unwrap_or(Spanned::new(Scope::Workspace)),
@@ -567,6 +575,11 @@ impl crate::cfg::UnvalidatedConfig for Config {
                 })
                 .collect(),
             yanked: self.yanked,
+            patched: if self.patched.value != LintLevel::Allow {
+                Some(self.patched.value.into())
+            } else {
+                None
+            },
             disable_yank_checking: self.disable_yank_checking,
             maximum_db_staleness: self.maximum_db_staleness,
             unused_ignored_advisory: self.unused_ignored_advisory,
@@ -584,6 +597,7 @@ pub struct ValidConfig {
     pub(crate) unsound: Spanned<Scope>,
     pub(crate) ignore_yanked: Vec<crate::bans::SpecAndReason>,
     pub yanked: Spanned<LintLevel>,
+    pub patched: Option<crate::diag::Severity>,
     pub disable_yank_checking: bool,
     pub maximum_db_staleness: Spanned<Duration>,
     pub unused_ignored_advisory: LintLevel,

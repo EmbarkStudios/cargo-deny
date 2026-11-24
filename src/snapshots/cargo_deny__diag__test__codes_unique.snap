@@ -43,6 +43,7 @@ expression: unique
     "not-allowed",
     "notice",
     "parse-error",
+    "patched",
     "path-bypassed",
     "path-bypassed-by-glob",
     "rejected",

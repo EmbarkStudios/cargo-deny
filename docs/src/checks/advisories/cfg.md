@@ -75,6 +75,14 @@ Controls whether the local registry indices are checked for yanked crates (see [
 - `false` (default) - The local registry indices are checked for yanked crates.
 - `true` - Yank checking is disabled; the local registry indices are not checked for yanked crates.
 
+### `patched`
+
+Determines the diagnostic level when a crate with an ignored advisory has a semver compatible patch available.
+
+- `deny` - Emits an error that a semver compatible patch is available that addresses the ignored advisory.
+- `warn` (default) - Emits a warning that a semver compatible patch is available that addresses the ignored advisory.
+- `allow` - No diagnostic is emitted, the same information is already available in the diagnostic for the advisory.
+
 ### `ignore`
 
 ```toml
