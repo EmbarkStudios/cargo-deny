@@ -69,3 +69,7 @@ A yanked crate version was ignored via [`advisories.ignore`](cfg.md#ignore).
 A yanked crate version was ignored via [`advisories.ignore`](cfg.md#ignore), but it was not found in the crate graph.
 
 This diagnostic can be silenced by configuring the [`advisories.unused-ignored-advisory`](cfg.md#unused-ignored-advisory) field to `'allow'`.
+
+### `patched`
+
+A crate with an [`advisories.ignore`](cfg.md#ignore) has a semver compatible patch available that addresses the advisory allowing for removal of the ignore.

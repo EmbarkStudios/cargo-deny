@@ -1329,3 +1329,51 @@ fn emits_all_matches() {
 
     insta::assert_json_snapshot!(advisories_by_kind(diags, "unsound"));
 }
+
+/// Ensures we emit a diagnostic for ignored advisories whose crate they apply to has a patched version that is semver
+/// compatible with all dependents
+#[test]
+fn patched_ignore() {
+    let TestCtx { dbs, .. } = load();
+
+    let mut cmd = krates::Cmd::new();
+    cmd.manifest_path("tests/test_data/patched/Cargo.toml");
+
+    let td = temp_dir();
+    let cargo_home = td.path();
+
+    let mut cmd: krates::cm::MetadataCommand = cmd.into();
+    cmd.env("CARGO_HOME", cargo_home);
+
+    let cargo_home: camino::Utf8PathBuf = cargo_home.to_owned().try_into().unwrap();
+
+    let mut kb = krates::Builder::new();
+    cargo_deny::krates_with_index(&mut kb, None, Some(cargo_home.clone())).unwrap();
+
+    let krates: Krates = krates::Builder::new()
+        .build(cmd, krates::NoneFilter)
+        .unwrap();
+
+    let cfg = tu::Config::new(
+        r"ignore = ['RUSTSEC-2020-0121']
+        patched = 'deny'
+    ",
+    );
+
+    let indices = advisories::Indices::load(&krates, cargo_home.clone());
+
+    let diags =
+        tu::gather_diagnostics::<cfg::Config, _, _>(&krates, func_name!(), cfg, |ctx, tx| {
+            advisories::check(
+                ctx,
+                &dbs,
+                Option::<advisories::NoneReporter>::None,
+                SA::No,
+                Some(indices),
+                tx,
+                DATE,
+            );
+        });
+
+    insta::assert_json_snapshot!(diags);
+}

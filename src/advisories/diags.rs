@@ -45,6 +45,7 @@ crate::simple_enum!(
         AdvisoryNotDetected = "advisory-not-detected",
         YankedNotDetected = "yanked-not-detected",
         UnknownAdvisory = "unknown-advisory",
+        Patched = "patched",
     ]
 );
 
@@ -72,6 +73,9 @@ impl Code {
             Self::AdvisoryNotDetected => "An advisory was ignored, but not detected",
             Self::YankedNotDetected => "A yanked crate version was ignored, but not detected",
             Self::UnknownAdvisory => "An ignored advisory does not exist in any advisory database",
+            Self::Patched => {
+                "A patched version of a crate is available that fixes an ignored advisory"
+            }
         }
     }
 }
@@ -143,6 +147,7 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
         let md = &advisory.advisory;
 
         let mut pack = Pack::with_kid(Check::Advisories, krate.id.clone());
+        let mut ignore = None;
 
         let (severity, ty) = {
             let adv_ty = md.informational.as_ref().map_or(AdvisoryType::Vulnerability, |info| {
@@ -170,14 +175,15 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                     // or if a crate not explicitly allowed depended on it
                     on_ignore(index);
 
-                    let ignore = &self.cfg.ignore[index];
+                    let ignored = &self.cfg.ignore[index];
+                    ignore = Some(ignored);
 
                     if let Some(withdrawn) = md.withdrawn {
                         pack.push(diag(
                             Diagnostic::warning()
                                 .with_message(format!("this advisory was withdrawn on {withdrawn}"))
                                 .with_labels(
-                                    ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                                    ignored.to_labels(self.cfg.file_id, "advisory ignored here"),
                                 ),
                             Code::AdvisoryWithdrawn,
                         ));
@@ -185,14 +191,15 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                         return pack;
                     }
 
-                    if let Some(expiry) = ignore.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
+                    if let Some(expiry) =
+                        ignored.expiry.as_ref().or(self.cfg.ignore_expiry.as_ref())
                         && let Some(max) = match expiry.value {
                             Expiry::Duration(dur) => md.date.checked_add(dur).ok(),
                             Expiry::Date(deadline) => Some(deadline),
                         }
                         && date > max
                     {
-                        let mut l = ignore.to_labels(self.cfg.file_id, "advisory ignored here");
+                        let mut l = ignored.to_labels(self.cfg.file_id, "advisory ignored here");
                         l.push(Label {
                             style: codespan_reporting::diagnostic::LabelStyle::Primary,
                             file_id: self.cfg.file_id,
@@ -209,7 +216,7 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                         break 'll LintLevel::Deny;
                     }
 
-                    if let Some(allow) = &ignore.allow {
+                    if let Some(allow) = &ignored.allow {
                         let before = pack.len();
                         for dd in direct_dependents {
                             if !allow
@@ -238,7 +245,7 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                         Diagnostic::note()
                             .with_message("advisory ignored")
                             .with_labels(
-                                ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                                ignored.to_labels(self.cfg.file_id, "advisory ignored here"),
                             ),
                         Code::AdvisoryIgnored,
                     ));
@@ -357,10 +364,27 @@ impl<'ctx> crate::CheckCtx<'ctx, super::cfg::ValidConfig> {
                     write!(&mut patched, "{req}").expect("unreachable unless OOM");
                 }
 
-                notes.push(format!(
+                let solution = format!(
                     "Solution: Upgrade to {patched} (try `cargo update -p {}`)",
                     krate.name,
-                ));
+                );
+
+                if let Some(ignore) = ignore
+                    && indices.is_some()
+                    && let Some(level) = self.cfg.patched
+                {
+                    pack.push(diag(
+                        Diagnostic::new(level)
+                            .with_message("ignored advisory can be fixed by updating")
+                            .with_labels(
+                                ignore.to_labels(self.cfg.file_id, "advisory ignored here"),
+                            )
+                            .with_note(solution.clone()),
+                        Code::Patched,
+                    ));
+                }
+
+                notes.push(solution);
             }
         }
 
