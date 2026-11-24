@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.22.1] - 2026-11-24
 ### Fixed
 - [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#926](https://github.com/EmbarkStudios/cargo-deny/issues/926) by ensuring `unsound` and `unmaintained` advisories were correctly emitted according to the configuration, previously, if a workspace had multiple versions of a crate that an advisory applied to, if an earlier semver was not emitted due its scope, a later version that _should_ have been emitted due to its scope would have been skipped completely.
 - [PR#930](https://github.com/EmbarkStudios/cargo-deny/pull/930) resolved [#928](https://github.com/EmbarkStudios/cargo-deny/issues/928) by always emitting the same exit code regardless of the format of the output.
@@ -875,7 +876,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.0...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.1...HEAD
+[0.22.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.0...0.22.1
 [0.22.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.21.0...0.22.0
 [0.21.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.2...0.21.0
 [0.20.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.1...0.20.2
