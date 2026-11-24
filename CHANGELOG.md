@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#926](https://github.com/EmbarkStudios/cargo-deny/issues/926) by ensuring `unsound` and `unmaintained` advisories were correctly emitted according to the configuration, previously, if a workspace had multiple versions of a crate that an advisory applied to, if an earlier semver was not emitted due its scope, a later version that _should_ have been emitted due to its scope would have been skipped completely.
+- [PR#930](https://github.com/EmbarkStudios/cargo-deny/pull/930) resolved [#928](https://github.com/EmbarkStudios/cargo-deny/issues/928) by always emitting the same exit code regardless of the format of the output.
+- [PR#933](https://github.com/EmbarkStudios/cargo-deny/pull/933) resolved [#694](https://github.com/EmbarkStudios/cargo-deny/issues/694) by not incorrectly marking workspace dependencies as unused when using [source replacement](https://doc.rust-lang.org/cargo/reference/source-replacement.html).
+
+### Added
+- [PR#934](https://github.com/EmbarkStudios/cargo-deny/pull/934) added the `patched` diagnostic and `advisories.patched` configuration which emits a warning or error diagnostic when an ignored advisory has patch available that is semver compatible with all of the dependents in the workspace, resolving [#931](https://github.com/EmbarkStudios/cargo-deny/issues/931).
+
 ## [0.22.0] - 2026-11-19
 ### Changed
 - [PR#923](https://github.com/EmbarkStudios/cargo-deny/pull/923) resolved [#920](https://github.com/EmbarkStudios/cargo-deny/issues/920) by emitting a new `advisory-withdrawn` diagnostic when an ignored advisory has been withdrawn in the advisory database and the ignore can be removed, instead of emitting `advisory-not-detected`.
