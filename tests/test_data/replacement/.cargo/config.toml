@@ -1,0 +1,5 @@
+[source.crates-io]
+replace-with = "mirror"
+
+[source.mirror]
+registry = "sparse+https://cargo.cloudsmith.io/embark/deny/"
