@@ -1,0 +1,14 @@
+[package]
+name = "replacement"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+abox.workspace = true
+
+[workspace]
+members = ["."]
+
+[workspace.dependencies]
+abox = "0.3.0"
+crate-two = "0.2"

@@ -1,0 +1,23 @@
+---
+source: tests/bans.rs
+expression: diags
+---
+[
+  {
+    "fields": {
+      "code": "unused-workspace-dependency",
+      "graphs": [],
+      "labels": [
+        {
+          "column": 1,
+          "line": 14,
+          "message": "unused workspace dependency",
+          "span": "crate-two"
+        }
+      ],
+      "message": "workspace dependency is declared, but unused",
+      "severity": "error"
+    },
+    "type": "diagnostic"
+  }
+]

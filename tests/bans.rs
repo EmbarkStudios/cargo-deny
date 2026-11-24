@@ -565,3 +565,19 @@ fn std_replacement_downgrades() {
 
     insta::assert_json_snapshot!(snapshot_name!("fallback-rust-version"), diags);
 }
+
+/// Tests that workspace dependencies aren't marked unused when they are being source replaced
+/// <https://github.com/EmbarkStudios/cargo-deny/issues/694>
+#[test]
+fn workspace_dependency_source_replacement() {
+    sync_replacements();
+
+    let diags = gather_bans(
+        func_name!(),
+        KrateGather::new("replacement"),
+        r"[workspace-dependencies]
+        unused = 'deny'",
+    );
+
+    insta::assert_json_snapshot!(snapshot_name!("source_replacement"), diags);
+}

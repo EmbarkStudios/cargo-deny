@@ -825,6 +825,7 @@ fn read_workspace_deps<'k>(
                     ) else {
                         return false;
                     };
+
                     match reg_src {
                         crate::Source::CratesIo(is_sparse) => {
                             let crates_io = if *is_sparse {
@@ -833,7 +834,7 @@ fn read_workspace_deps<'k>(
                                 tame_index::index::git::CRATES_IO_INDEX
                             };
 
-                            if urls.as_str() != crates_io {
+                            if registry.is_some() && urls.as_str() != crates_io {
                                 return false;
                             }
                         }
