@@ -10,10 +10,10 @@ use toml_span::{
 /// A package identifier, consisting of a package name and a version requirement
 ///
 /// This is specified similarly to [Cargo Package Ids](https://doc.rust-lang.org/cargo/reference/pkgid-spec.html),
-/// however we change semantics a bit to instead use a [`semver::VersionReq`] instead
-/// of a [`semver::Version`] as Cargo's are meant for disambiguating graph operations
-/// whereas ours may be targeting single or multiple packages. In practice this
-/// is mainly just a superset of Cargo's version
+/// however we change semantics a bit to instead use a [`semver::VersionReq`] instead of a [`semver::Version`] as
+/// Cargo's are meant for disambiguating graph operations whereas ours may be targeting single or multiple packages.
+///
+/// In practice this is mainly just a superset of Cargo's version.
 #[derive(Clone, PartialEq, Eq)]
 pub struct PackageSpec {
     pub name: Spanned<String>,
@@ -102,8 +102,41 @@ impl<'de> Deserialize<'de> for PackageSpec {
             other => return Err(expected("a string or table", other, value.span).into()),
         };
 
+        if ctx.inner.is_empty() {
+            return Err(toml_span::Error::from((
+                toml_span::ErrorKind::Wanted {
+                    expected: "a valid package specifier",
+                    found: "empty string",
+                },
+                ctx.span,
+            ))
+            .into());
+        }
+
         let (name, version_req) = if let Some((i, make_exact)) = ctx.split {
-            let mut v: VersionReq = ctx.inner[i + 1..].parse().map_err(|e: semver::Error| {
+            let vreq = &ctx.inner[i + 1..];
+
+            if vreq.is_empty() {
+                return Err(toml_span::Error::from((
+                    toml_span::ErrorKind::Wanted {
+                        expected: "a version requirement",
+                        found: "empty string",
+                    },
+                    Span::new(ctx.span.start + i + 1, ctx.span.end),
+                ))
+                .into());
+            }
+
+            if make_exact && !vreq.starts_with(|c: char| c.is_ascii_alphanumeric()) {
+                return Err(toml_span::Error::from((
+                    toml_span::ErrorKind::Custom(
+                        "@ was used to specify an exact semver requirement, but there was already a comparator in the semver".into(),
+                    ),
+                    Span::new(ctx.span.start + i + 1, ctx.span.start + i + 2),
+                )).into());
+            }
+
+            let mut v: VersionReq = vreq.parse().map_err(|e: semver::Error| {
                 toml_span::Error::from((
                     toml_span::ErrorKind::Custom(e.to_string().into()),
                     Span::new(ctx.span.start + i + 1, ctx.span.end),
@@ -407,5 +440,59 @@ mod test {
         let validated = cd.validate(|s| s);
 
         insta::assert_json_snapshot!(validated);
+    }
+
+    #[test]
+    fn fails_bad_specs() {
+        let bad_specs = [
+            "",
+            "blah@",
+            "blah:",
+            "blah:-",
+            "blah:1-",
+            "blah:a",
+            "blah:b-",
+            "blah@c",
+            "blah@=1.0",
+            "blah@^1.0",
+            "blah@~1.0",
+            "blah@*",
+            "blah@<1.1",
+            "blah@>1.2",
+        ];
+
+        struct TestCfg {
+            bad: PackageSpec,
+        }
+
+        impl<'de> Deserialize<'de> for TestCfg {
+            fn deserialize(value: &mut toml_span::value::Value<'de>) -> Result<Self, DeserError> {
+                let mut th = TableHelper::new(value)?;
+                let bad = th.required("bad")?;
+                Ok(Self { bad })
+            }
+        }
+
+        let mut files = crate::diag::Files::new();
+        let mut s = String::new();
+
+        for (i, bs) in bad_specs.iter().enumerate() {
+            let contents = format!("bad = '{bs}'");
+            let mut cval = toml_span::parse(&contents).expect("failed to parse toml");
+            let Err(err) = TestCfg::deserialize(&mut cval) else {
+                panic!("{i}: '{bs}' should have failed");
+            };
+
+            let id = files.add(format!("{i}.toml"), contents);
+
+            let diag_str = crate::test_utils::write_diagnostics(
+                &files,
+                err.errors.into_iter().map(|err| err.to_diagnostic(id)),
+            );
+
+            s.push_str(&diag_str);
+        }
+
+        insta::assert_snapshot!(s);
     }
 }

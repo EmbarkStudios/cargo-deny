@@ -479,7 +479,6 @@ fn ignore_with_allow() {
     };
 
     let allows: &[&[&str]] = &[
-        &[""],
         &["advisories"],
         &["advisories", "artifact_serde"],
         &["advisories", "artifact_serde", "missing-crate"],

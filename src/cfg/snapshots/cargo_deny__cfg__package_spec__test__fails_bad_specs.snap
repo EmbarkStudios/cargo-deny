@@ -1,0 +1,87 @@
+---
+source: src/cfg/package_spec.rs
+expression: s
+---
+error[wanted]: 
+  ┌─ 0.toml:1:7
+  │
+1 │ bad = ''
+  │       ━ expected a valid package specifier
+
+error[wanted]: 
+  ┌─ 1.toml:1:13
+  │
+1 │ bad = 'blah@'
+  │             ━ expected a version requirement
+
+error[wanted]: 
+  ┌─ 2.toml:1:13
+  │
+1 │ bad = 'blah:'
+  │             ━ expected a version requirement
+
+error[custom]: unexpected character '-' while parsing major version number
+  ┌─ 3.toml:1:13
+  │
+1 │ bad = 'blah:-'
+  │             ━
+
+error[custom]: expected comma after major version number, found '-'
+  ┌─ 4.toml:1:13
+  │
+1 │ bad = 'blah:1-'
+  │             ━━
+
+error[custom]: unexpected character 'a' while parsing major version number
+  ┌─ 5.toml:1:13
+  │
+1 │ bad = 'blah:a'
+  │             ━
+
+error[custom]: unexpected character 'b' while parsing major version number
+  ┌─ 6.toml:1:13
+  │
+1 │ bad = 'blah:b-'
+  │             ━━
+
+error[custom]: unexpected character 'c' while parsing major version number
+  ┌─ 7.toml:1:13
+  │
+1 │ bad = 'blah@c'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 8.toml:1:13
+  │
+1 │ bad = 'blah@=1.0'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 9.toml:1:13
+  │
+1 │ bad = 'blah@^1.0'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 10.toml:1:13
+  │
+1 │ bad = 'blah@~1.0'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 11.toml:1:13
+  │
+1 │ bad = 'blah@*'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 12.toml:1:13
+  │
+1 │ bad = 'blah@<1.1'
+  │             ━
+
+error[custom]: @ was used to specify an exact semver requirement, but there was already a comparator in the semver
+  ┌─ 13.toml:1:13
+  │
+1 │ bad = 'blah@>1.2'
+  │             ━
