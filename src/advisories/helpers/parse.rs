@@ -104,7 +104,12 @@ impl Iterator for LineIter {
         let start = self.start;
         self.start = end + 1;
 
-        Some(Line { s: s.trim(), start })
+        Some(Line {
+            // Trim the end to remove stupid Windows carriage returns so that we can not care about the line ending format
+            // in the rest of the code
+            s: s.trim_end(),
+            start,
+        })
     }
 }
 
@@ -505,5 +510,40 @@ patched = [
 unaffected = ["< 0.8.0"]"#;
 
         super::parse_toml(toml).unwrap();
+    }
+
+    /// 1. Handles stupid Windows carriage returns
+    /// 2. Weirdly formatted advisories that don't actually exist, at least in the only widely used database
+    #[test]
+    fn handle_stupid() {
+        let ugh: &[u8] = br#"```toml
+[advisory]
+id = "RUSTSEC-2020-0082"
+package = "ordered-float"
+date = "2020-08-30"
+
+[versions]
+patched = ["^1.1.1", ">= 2.0.1"]
+unaffected = [
+    "< 0.2.2"]
+```
+
+# NaN comparison issue
+Details.
+"#;
+
+        let windows: &[u8] = b"```toml\r\n[advisory]\r\nid = \"RUSTSEC-2020-0082\"\r\npackage = \"ordered-float\"\r\ndate = \"2020-08-30\"\r\n\r\n[versions]\r\npatched = [\"^1.1.1\", \">= 2.0.1\"]\r\nunaffected = [\r\n    \"< 0.2.2\"]\r\n```\r\n\r\n# NaN comparison issue\r\nDetails.\r\n";
+
+        macro_rules! vr {
+            ($l:literal) => {
+                $l.parse::<semver::VersionReq>().unwrap()
+            };
+        }
+
+        for adv in [ugh, windows] {
+            let adv = super::parse(adv).unwrap();
+            assert_eq!(adv.versions.patched, [vr!("^1.1.1"), vr!(">= 2.0.1")]);
+            assert_eq!(adv.versions.unaffected, [vr!("< 0.2.2")]);
+        }
     }
 }
