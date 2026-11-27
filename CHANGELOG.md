@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.22.2] - 2026-11-27
 ### Fixed
 - [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#935](https://github.com/EmbarkStudios/cargo-deny/issues/935) by performing additional validation when parsing `PackageSpec`.
 - [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#935](https://github.com/EmbarkStudios/cargo-deny/issues/936) by rejecting cannot-be-a-base URLs instead of panicking.
@@ -880,7 +881,8 @@ Now each license has to be explicitly approved, either by listing them in `licen
 - Initial implementation release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.2...HEAD
+[0.22.2]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.1...0.22.2
 [0.22.1]: https://github.com/EmbarkStudios/cargo-deny/compare/0.22.0...0.22.1
 [0.22.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.21.0...0.22.0
 [0.21.0]: https://github.com/EmbarkStudios/cargo-deny/compare/0.20.2...0.21.0
