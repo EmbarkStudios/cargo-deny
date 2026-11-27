@@ -155,13 +155,11 @@ impl cfg::UnvalidatedConfig for Config {
 
             match url::Url::parse(&astr[skip..]) {
                 Ok(mut url) => {
-                    if is_git {
-                        if let Err(err) = crate::normalize_git_url(&mut url) {
-                            ctx.push(Diagnostic::error().with_message("invalid url").with_labels(
-                                vec![Label::primary(ctx.cfg_id, aurl.span).with_message(err)],
-                            ));
-                            continue;
-                        }
+                    if is_git && let Err(err) = crate::normalize_git_url(&mut url) {
+                        ctx.push(Diagnostic::error().with_message("invalid url").with_labels(
+                            vec![Label::primary(ctx.cfg_id, aurl.span).with_message(err)],
+                        ));
+                        continue;
                     }
 
                     allowed_sources.push(UrlSource {
