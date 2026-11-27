@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#935](https://github.com/EmbarkStudios/cargo-deny/issues/935) by performing additional validation when parsing `PackageSpec`.
+- [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#935](https://github.com/EmbarkStudios/cargo-deny/issues/936) by rejecting cannot-be-a-base URLs instead of panicking.
+
 ## [0.22.1] - 2026-11-24
 ### Fixed
 - [PR#929](https://github.com/EmbarkStudios/cargo-deny/pull/929) resolved [#926](https://github.com/EmbarkStudios/cargo-deny/issues/926) by ensuring `unsound` and `unmaintained` advisories were correctly emitted according to the configuration, previously, if a workspace had multiple versions of a crate that an advisory applied to, if an earlier semver was not emitted due its scope, a later version that _should_ have been emitted due to its scope would have been skipped completely.

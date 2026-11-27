@@ -83,7 +83,7 @@ spdx = { version = "0.13", features = [
     "detection-inline-cache",
 ] }
 # Index retrieval and querying
-tame-index = { version = "0.27", default-features = false }
+tame-index = { version = "0.28", default-features = false }
 # Deserialization of configuration files and crate manifests
 toml-span = { version = "0.7", features = ["reporting"] }
 # Small fast hash crate
@@ -101,7 +101,7 @@ walkdir = "2.3"
 fs_extra = "1.3"
 # Snapshot testing
 insta = { version = "1.46", features = ["json"] }
-tame-index = { version = "0.27", default-features = false, features = [
+tame-index = { version = "0.28", default-features = false, features = [
     "local-builder",
 ] }
 # We use this for creating fake crate directories for crawling license files on disk
