@@ -143,7 +143,7 @@ impl Source {
             }
             "git" => {
                 let mut url = Url::parse(url_str).context("failed to parse url")?;
-                let (spec, spec_value) = normalize_git_url(&mut url);
+                let (spec, spec_value) = normalize_git_url(&mut url)?;
 
                 Ok(Self::Git {
                     url,
@@ -522,8 +522,13 @@ use sources::cfg::GitSpec;
 /// See <https://github.com/rust-lang/cargo/blob/1f6c6bd5e7bbdf596f7e88e6db347af5268ab113/src/cargo/util/canonical_url.rs#L31-L57>
 /// for what cargo does
 #[inline]
-pub(crate) fn normalize_git_url(url: &mut Url) -> (GitSpec, Option<String>) {
+pub(crate) fn normalize_git_url(url: &mut Url) -> anyhow::Result<(GitSpec, Option<String>)> {
     const GIT_EXT: &str = ".git";
+
+    anyhow::ensure!(
+        !url.cannot_be_a_base(),
+        "cannot-be-a-base urls are not supported"
+    );
 
     let needs_chopping = url.path().ends_with(&GIT_EXT);
     if needs_chopping {
@@ -575,7 +580,7 @@ pub(crate) fn normalize_git_url(url: &mut Url) -> (GitSpec, Option<String>) {
         }
     }
 
-    (spec, spec_value)
+    Ok((spec, spec_value))
 }
 
 /// Helper function to convert a std `PathBuf` to a camino one
@@ -820,7 +825,7 @@ mod test {
 
         // This is how `licenses.private.ignore-sources` urls are parsed
         let mut url = Url::parse("https://crates.example.com/api/v1/crates/").unwrap();
-        crate::normalize_git_url(&mut url);
+        crate::normalize_git_url(&mut url).unwrap();
         assert_eq!(url.path(), "/api/v1/crates");
 
         assert!(krate.matches_url(&url, true));

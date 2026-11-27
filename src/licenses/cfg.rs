@@ -314,8 +314,13 @@ impl crate::cfg::UnvalidatedConfig for Config {
         for aurl in &self.private.ignore_sources {
             match url::Url::parse(aurl.as_ref()) {
                 Ok(mut url) => {
-                    crate::normalize_git_url(&mut url);
-                    ignore_sources.push(url);
+                    if let Err(err) = crate::normalize_git_url(&mut url) {
+                        ctx.push(Diagnostic::error().with_message("invalid url").with_labels(
+                            vec![Label::primary(ctx.cfg_id, aurl.span).with_message(err)],
+                        ));
+                    } else {
+                        ignore_sources.push(url);
+                    }
                 }
                 Err(pe) => {
                     ctx.push(
